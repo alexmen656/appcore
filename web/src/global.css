@@ -733,3 +733,80 @@ button {
 ::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
 }
+
+/* ─── Settings Page ──────────────────────────────────────────────────────── */
+.page-content {
+  padding: 32px;
+  max-width: 900px;
+}
+.page-header {
+  margin-bottom: 32px;
+}
+.settings-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.settings-section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+.settings-section-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0 0 20px;
+}
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.settings-field--full {
+  grid-column: 1 / -1;
+}
+.settings-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+.settings-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.settings-input {
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+  font-family: inherit;
+}
+.settings-input:focus {
+  border-color: var(--accent);
+}
+.settings-textarea {
+  resize: vertical;
+  font-family: monospace;
+  font-size: 12px;
+}
+.settings-select {
+  cursor: pointer;
+}
+.settings-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+

@@ -39,26 +39,34 @@ export default function Suggestions({ addToast }: Props) {
 
   const { data, loading, refetch } = useApi<SuggestionsData>(
     `/suggestions${filterQ ? `?${filterQ}` : ""}`,
-    [statusFilter, typeFilter]
+    [statusFilter, typeFilter],
   );
 
   const [activeLocale, setActiveLocale] = useState<string | null>(null);
   const [acting, setActing] = useState<string | null>(null);
 
-  if (loading) return <div className="loading"><div className="spinner" /> Loading suggestions…</div>;
+  if (loading)
+    return (
+      <div className="loading">
+        <div className="spinner" /> Loading suggestions…
+      </div>
+    );
 
   const groups = data?.suggestions || {};
   const locales = Object.keys(groups);
   const currentLocale = activeLocale || locales[0] || "en-US";
   const items = groups[currentLocale] || [];
 
-  const handleAction = async (id: string, action: "approve" | "reject" | "apply") => {
+  const handleAction = async (
+    id: string,
+    action: "approve" | "reject" | "apply",
+  ) => {
     setActing(id);
     try {
       await apiPost(`/suggestions/${id}/${action}`);
       addToast(
         `Suggestion ${action === "approve" ? "approved" : action === "reject" ? "rejected" : "applied"}`,
-        "success"
+        "success",
       );
       refetch();
     } catch (e: any) {
@@ -71,7 +79,10 @@ export default function Suggestions({ addToast }: Props) {
   const handleBulkApprove = async () => {
     try {
       await apiPost("/suggestions/bulk-approve", { locale: currentLocale });
-      addToast(`All pending suggestions for ${currentLocale} approved`, "success");
+      addToast(
+        `All pending suggestions for ${currentLocale} approved`,
+        "success",
+      );
       refetch();
     } catch (e: any) {
       addToast(e.message, "error");
@@ -81,18 +92,26 @@ export default function Suggestions({ addToast }: Props) {
   return (
     <div>
       <h1 className="page-title">ASO Suggestions</h1>
-      <p className="page-subtitle">AI-generated optimization suggestions across locales</p>
+      <p className="page-subtitle">
+        AI-generated optimization suggestions across locales
+      </p>
 
       {/* Filters */}
       <div className="filter-bar">
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
           <option value="">All Statuses</option>
           <option value="PENDING">Pending</option>
           <option value="APPROVED">Approved</option>
           <option value="APPLIED">Applied</option>
           <option value="REJECTED">Rejected</option>
         </select>
-        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+        >
           <option value="">All Types</option>
           <option value="TITLE">Title</option>
           <option value="SUBTITLE">Subtitle</option>
@@ -100,7 +119,10 @@ export default function Suggestions({ addToast }: Props) {
           <option value="DESCRIPTION">Description</option>
         </select>
         <div style={{ flex: 1 }} />
-        <button className="btn btn-secondary btn-sm" onClick={handleBulkApprove}>
+        <button
+          className="btn btn-secondary btn-sm"
+          onClick={handleBulkApprove}
+        >
           Approve All Pending ({currentLocale})
         </button>
       </div>
@@ -128,7 +150,9 @@ export default function Suggestions({ addToast }: Props) {
         <div className="empty-state">
           <div className="empty-state-icon">📋</div>
           <div className="empty-state-text">No suggestions found</div>
-          <div className="empty-state-sub">Run an AI analysis from the Actions page to generate suggestions</div>
+          <div className="empty-state-sub">
+            Run an AI analysis from the Actions page to generate suggestions
+          </div>
         </div>
       ) : (
         items.map((s) => (
@@ -154,21 +178,38 @@ export default function Suggestions({ addToast }: Props) {
                 )}
               </div>
               <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                {new Date(s.createdAt).toLocaleDateString()} &middot; {s.aiProvider}/{s.aiModel}
+                {new Date(s.createdAt).toLocaleDateString()} &middot;{" "}
+                {s.aiProvider}/{s.aiModel}
               </span>
             </div>
 
             <div className="suggestion-card-body">
               {s.currentValue && (
                 <div className="suggestion-card-current">
-                  <strong style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 4 }}>
+                  <strong
+                    style={{
+                      fontSize: 10,
+                      textTransform: "uppercase",
+                      letterSpacing: 0.5,
+                      display: "block",
+                      marginBottom: 4,
+                    }}
+                  >
                     Current
                   </strong>
                   {s.currentValue}
                 </div>
               )}
               <div className="suggestion-card-new">
-                <strong style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 4 }}>
+                <strong
+                  style={{
+                    fontSize: 10,
+                    textTransform: "uppercase",
+                    letterSpacing: 0.5,
+                    display: "block",
+                    marginBottom: 4,
+                  }}
+                >
                   Suggested
                 </strong>
                 {s.suggestedValue}
@@ -176,9 +217,7 @@ export default function Suggestions({ addToast }: Props) {
             </div>
 
             {s.reasoning && (
-              <div className="suggestion-card-reasoning">
-                💡 {s.reasoning}
-              </div>
+              <div className="suggestion-card-reasoning">💡 {s.reasoning}</div>
             )}
 
             {s.status === "PENDING" && (

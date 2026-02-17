@@ -35,7 +35,12 @@ interface RankingEntry {
 }
 
 interface HistoryData {
-  keyword: { id: string; term: string; popularity: number | null; difficulty: number | null };
+  keyword: {
+    id: string;
+    term: string;
+    popularity: number | null;
+    difficulty: number | null;
+  };
   rankings: RankingEntry[];
 }
 
@@ -47,19 +52,27 @@ export default function Keywords({ addToast }: Props) {
   const { data, loading, refetch } = useApi<Keyword[]>("/keywords");
   const [newTerm, setNewTerm] = useState("");
   const [adding, setAdding] = useState(false);
-  const [sortBy, setSortBy] = useState<"popularity" | "term" | "rank">("popularity");
+  const [sortBy, setSortBy] = useState<"popularity" | "term" | "rank">(
+    "popularity",
+  );
 
   // ─── Ranking history chart state ──────────────────────────────────
   const [selectedKeyword, setSelectedKeyword] = useState<Keyword | null>(null);
   const [history, setHistory] = useState<HistoryData | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
 
-  if (loading) return <div className="loading"><div className="spinner" /> Loading keywords…</div>;
+  if (loading)
+    return (
+      <div className="loading">
+        <div className="spinner" /> Loading keywords…
+      </div>
+    );
 
   const keywords = data || [];
 
   const sorted = [...keywords].sort((a, b) => {
-    if (sortBy === "popularity") return (b.popularity ?? -1) - (a.popularity ?? -1);
+    if (sortBy === "popularity")
+      return (b.popularity ?? -1) - (a.popularity ?? -1);
     if (sortBy === "rank") return (a.ourRank ?? 999) - (b.ourRank ?? 999);
     return a.term.localeCompare(b.term);
   });
@@ -159,7 +172,10 @@ export default function Keywords({ addToast }: Props) {
     // Put "Kalbuddy" first
     const arr = Array.from(seen);
     const idx = arr.indexOf("Kalbuddy");
-    if (idx > 0) { arr.splice(idx, 1); arr.unshift("Kalbuddy"); }
+    if (idx > 0) {
+      arr.splice(idx, 1);
+      arr.unshift("Kalbuddy");
+    }
     return arr;
   })();
 
@@ -177,7 +193,9 @@ export default function Keywords({ addToast }: Props) {
   return (
     <div>
       <h1 className="page-title">Keywords</h1>
-      <p className="page-subtitle">Track keyword rankings and discover new opportunities</p>
+      <p className="page-subtitle">
+        Track keyword rankings and discover new opportunities
+      </p>
 
       {/* Add Keyword */}
       <form onSubmit={handleAdd} className="filter-bar">
@@ -187,11 +205,18 @@ export default function Keywords({ addToast }: Props) {
           value={newTerm}
           onChange={(e) => setNewTerm(e.target.value)}
         />
-        <button type="submit" className="btn btn-primary btn-sm" disabled={adding}>
+        <button
+          type="submit"
+          className="btn btn-primary btn-sm"
+          disabled={adding}
+        >
           + Add
         </button>
         <div style={{ flex: 1 }} />
-        <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}>
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as any)}
+        >
           <option value="popularity">Sort by Popularity</option>
           <option value="rank">Sort by Rank</option>
           <option value="term">Sort by Term</option>
@@ -203,7 +228,9 @@ export default function Keywords({ addToast }: Props) {
         <div className="empty-state">
           <div className="empty-state-icon">🔍</div>
           <div className="empty-state-text">No keywords tracked yet</div>
-          <div className="empty-state-sub">Add keywords above or run a competitor keyword extraction</div>
+          <div className="empty-state-sub">
+            Add keywords above or run a competitor keyword extraction
+          </div>
         </div>
       ) : (
         <table className="data-table">
@@ -227,7 +254,10 @@ export default function Keywords({ addToast }: Props) {
                 onClick={() => loadHistory(k)}
                 style={{
                   cursor: "pointer",
-                  background: selectedKeyword?.id === k.id ? "var(--bg-secondary)" : undefined,
+                  background:
+                    selectedKeyword?.id === k.id
+                      ? "var(--bg-secondary)"
+                      : undefined,
                 }}
               >
                 <td style={{ fontWeight: 500 }}>{k.term}</td>
@@ -241,7 +271,12 @@ export default function Keywords({ addToast }: Props) {
                           className="confidence-fill"
                           style={{
                             width: `${Math.min(k.popularity, 100)}%`,
-                            background: k.popularity > 60 ? "var(--success)" : k.popularity > 30 ? "var(--warning)" : "var(--danger)",
+                            background:
+                              k.popularity > 60
+                                ? "var(--success)"
+                                : k.popularity > 30
+                                  ? "var(--warning)"
+                                  : "var(--danger)",
                           }}
                         />
                       </div>
@@ -252,32 +287,56 @@ export default function Keywords({ addToast }: Props) {
                 </td>
                 <td>
                   {k.difficulty != null ? (
-                    <span style={{
-                      color: k.difficulty > 60 ? "var(--danger)" : k.difficulty > 30 ? "var(--warning)" : "var(--success)",
-                      fontWeight: 500,
-                    }}>
+                    <span
+                      style={{
+                        color:
+                          k.difficulty > 60
+                            ? "var(--danger)"
+                            : k.difficulty > 30
+                              ? "var(--warning)"
+                              : "var(--success)",
+                        fontWeight: 500,
+                      }}
+                    >
                       {k.difficulty.toFixed(0)}
                     </span>
                   ) : (
                     <span style={{ color: "var(--text-muted)" }}>—</span>
                   )}
                 </td>
-                <td>{k.searchVolume != null ? k.searchVolume : <span style={{ color: "var(--text-muted)" }}>—</span>}</td>
+                <td>
+                  {k.searchVolume != null ? (
+                    k.searchVolume
+                  ) : (
+                    <span style={{ color: "var(--text-muted)" }}>—</span>
+                  )}
+                </td>
                 <td>
                   {k.ourRank != null ? (
-                    <span style={{
-                      fontWeight: 600,
-                      color: k.ourRank <= 5 ? "var(--success)" : k.ourRank <= 20 ? "var(--warning)" : "var(--danger)",
-                    }}>
+                    <span
+                      style={{
+                        fontWeight: 600,
+                        color:
+                          k.ourRank <= 5
+                            ? "var(--success)"
+                            : k.ourRank <= 20
+                              ? "var(--warning)"
+                              : "var(--danger)",
+                      }}
+                    >
                       #{k.ourRank}
                     </span>
                   ) : (
-                    <span style={{ color: "var(--text-muted)" }}>not ranked</span>
+                    <span style={{ color: "var(--text-muted)" }}>
+                      not ranked
+                    </span>
                   )}
                 </td>
                 <td>
                   {k.topCompetitor ? (
-                    <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                    <span
+                      style={{ fontSize: 12, color: "var(--text-secondary)" }}
+                    >
                       #{k.topCompetitor.rank}{" "}
                       <span style={{ color: "var(--text-muted)" }}>
                         {k.topCompetitor.name.length > 18
@@ -289,7 +348,9 @@ export default function Keywords({ addToast }: Props) {
                     <span style={{ color: "var(--text-muted)" }}>—</span>
                   )}
                 </td>
-                <td style={{ color: "var(--text-muted)", fontSize: 12 }}>{k.trackingCount}×</td>
+                <td style={{ color: "var(--text-muted)", fontSize: 12 }}>
+                  {k.trackingCount}×
+                </td>
                 <td>
                   <button
                     className="btn btn-sm"
@@ -317,20 +378,40 @@ export default function Keywords({ addToast }: Props) {
             boxShadow: "0 1px 3px rgba(0,0,0,.06)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 16,
+            }}
+          >
             <div>
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>
-                Ranking History: <span style={{ color: "var(--primary)" }}>{selectedKeyword.term}</span>
+                Ranking History:{" "}
+                <span style={{ color: "var(--primary)" }}>
+                  {selectedKeyword.term}
+                </span>
               </h3>
-              <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
-                {selectedKeyword.country.toUpperCase()} ·{" "}
-                Popularity {selectedKeyword.popularity ?? "—"} ·{" "}
-                Difficulty {selectedKeyword.difficulty ?? "—"}
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "var(--text-muted)",
+                  marginTop: 2,
+                }}
+              >
+                {selectedKeyword.country.toUpperCase()} · Popularity{" "}
+                {selectedKeyword.popularity ?? "—"} · Difficulty{" "}
+                {selectedKeyword.difficulty ?? "—"}
               </div>
             </div>
             <button
               className="btn btn-sm"
-              onClick={(e) => { e.stopPropagation(); setSelectedKeyword(null); setHistory(null); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedKeyword(null);
+                setHistory(null);
+              }}
               style={{ fontSize: 11 }}
             >
               ✕ Close
@@ -338,16 +419,31 @@ export default function Keywords({ addToast }: Props) {
           </div>
 
           {historyLoading ? (
-            <div style={{ textAlign: "center", padding: 40, color: "var(--text-muted)" }}>
+            <div
+              style={{
+                textAlign: "center",
+                padding: 40,
+                color: "var(--text-muted)",
+              }}
+            >
               <div className="spinner" /> Loading history…
             </div>
           ) : chartData.length === 0 ? (
-            <div style={{ textAlign: "center", padding: 40, color: "var(--text-muted)" }}>
+            <div
+              style={{
+                textAlign: "center",
+                padding: 40,
+                color: "var(--text-muted)",
+              }}
+            >
               No ranking history yet. Run tracking first.
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={320}>
-              <LineChart data={chartData} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+              <LineChart
+                data={chartData}
+                margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis
                   dataKey="date"

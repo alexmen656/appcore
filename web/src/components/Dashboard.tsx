@@ -51,8 +51,18 @@ interface DashboardData {
 export default function Dashboard() {
   const { data, loading, error } = useApi<DashboardData>("/dashboard");
 
-  if (loading) return <div className="loading"><div className="spinner" /> Loading dashboard…</div>;
-  if (error) return <div className="empty-state"><div className="empty-state-text">Error: {error}</div></div>;
+  if (loading)
+    return (
+      <div className="loading">
+        <div className="spinner" /> Loading dashboard…
+      </div>
+    );
+  if (error)
+    return (
+      <div className="empty-state">
+        <div className="empty-state-text">Error: {error}</div>
+      </div>
+    );
   if (!data) return null;
 
   const { app, stats, config, lastJob, recentSuggestions } = data;
@@ -78,7 +88,13 @@ export default function Dashboard() {
         </div>
         <div className="stat-card">
           <div className="stat-card-label">Pending Suggestions</div>
-          <div className="stat-card-value" style={{ color: stats.pendingSuggestions > 0 ? "var(--warning)" : undefined }}>
+          <div
+            className="stat-card-value"
+            style={{
+              color:
+                stats.pendingSuggestions > 0 ? "var(--warning)" : undefined,
+            }}
+          >
             {stats.pendingSuggestions}
           </div>
         </div>
@@ -113,24 +129,52 @@ export default function Dashboard() {
                 {app.title || app.name}
               </div>
               {app.subtitle && (
-                <div style={{ fontSize: 13, color: "var(--text-secondary)", marginBottom: 4 }}>
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: "var(--text-secondary)",
+                    marginBottom: 4,
+                  }}
+                >
                   {app.subtitle}
                 </div>
               )}
-              <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "var(--text-muted)",
+                  marginBottom: 8,
+                }}
+              >
                 {app.bundleId}
               </div>
               {app.rating != null && (
                 <div style={{ fontSize: 13 }}>
-                  ⭐ {app.rating.toFixed(1)} ({app.ratingsCount?.toLocaleString()} ratings)
+                  ⭐ {app.rating.toFixed(1)} (
+                  {app.ratingsCount?.toLocaleString()} ratings)
                 </div>
               )}
               {app.keywords && (
                 <div style={{ marginTop: 8 }}>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: "var(--text-muted)",
+                      textTransform: "uppercase",
+                      letterSpacing: 0.5,
+                    }}
+                  >
                     Keywords
                   </span>
-                  <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4, lineHeight: 1.6 }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: "var(--text-secondary)",
+                      marginTop: 4,
+                      lineHeight: 1.6,
+                    }}
+                  >
                     {app.keywords}
                   </div>
                 </div>
@@ -143,20 +187,57 @@ export default function Dashboard() {
       {/* Config & Status */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
         <div className="section">
-          <div className="section-title" style={{ marginBottom: 12 }}>Configuration</div>
+          <div className="section-title" style={{ marginBottom: 12 }}>
+            Configuration
+          </div>
           <table className="data-table">
             <tbody>
-              <tr><td style={{ fontWeight: 500 }}>AI Provider</td><td>{config.aiProvider}</td></tr>
-              <tr><td style={{ fontWeight: 500 }}>Country</td><td>{config.country}</td></tr>
-              <tr><td style={{ fontWeight: 500 }}>Locales</td><td>{config.locales}</td></tr>
-              <tr><td style={{ fontWeight: 500 }}>Scrape Interval</td><td>{config.scrapeInterval}h</td></tr>
+              <tr>
+                <td style={{ fontWeight: 500 }}>AI Provider</td>
+                <td>{config.aiProvider}</td>
+              </tr>
+              <tr>
+                <td style={{ fontWeight: 500 }}>Country</td>
+                <td>{config.country}</td>
+              </tr>
+              <tr>
+                <td style={{ fontWeight: 500 }}>Locales</td>
+                <td>{config.locales}</td>
+              </tr>
+              <tr>
+                <td style={{ fontWeight: 500 }}>Scrape Interval</td>
+                <td>{config.scrapeInterval}h</td>
+              </tr>
               <tr>
                 <td style={{ fontWeight: 500 }}>Integrations</td>
                 <td>
-                  {config.hasOpenAI && <span className="badge badge-applied" style={{ marginRight: 4 }}>OpenAI</span>}
-                  {config.hasAnthropic && <span className="badge badge-approved" style={{ marginRight: 4 }}>Anthropic</span>}
-                  {config.hasASC && <span className="badge badge-title" style={{ marginRight: 4 }}>ASC</span>}
-                  {config.hasSearchAds && <span className="badge badge-keywords">Search Ads</span>}
+                  {config.hasOpenAI && (
+                    <span
+                      className="badge badge-applied"
+                      style={{ marginRight: 4 }}
+                    >
+                      OpenAI
+                    </span>
+                  )}
+                  {config.hasAnthropic && (
+                    <span
+                      className="badge badge-approved"
+                      style={{ marginRight: 4 }}
+                    >
+                      Anthropic
+                    </span>
+                  )}
+                  {config.hasASC && (
+                    <span
+                      className="badge badge-title"
+                      style={{ marginRight: 4 }}
+                    >
+                      ASC
+                    </span>
+                  )}
+                  {config.hasSearchAds && (
+                    <span className="badge badge-keywords">Search Ads</span>
+                  )}
                 </td>
               </tr>
             </tbody>
@@ -164,11 +245,15 @@ export default function Dashboard() {
         </div>
 
         <div className="section">
-          <div className="section-title" style={{ marginBottom: 12 }}>Recent Suggestions</div>
+          <div className="section-title" style={{ marginBottom: 12 }}>
+            Recent Suggestions
+          </div>
           {recentSuggestions.length === 0 ? (
             <div className="empty-state" style={{ padding: 24 }}>
               <div className="empty-state-text">No suggestions yet</div>
-              <div className="empty-state-sub">Run an analysis to generate ASO suggestions</div>
+              <div className="empty-state-sub">
+                Run an analysis to generate ASO suggestions
+              </div>
             </div>
           ) : (
             <table className="data-table">
@@ -183,19 +268,32 @@ export default function Dashboard() {
               <tbody>
                 {recentSuggestions.map((s) => (
                   <tr key={s.id}>
-                    <td><span className={`badge badge-${s.type.toLowerCase()}`}>{s.type}</span></td>
+                    <td>
+                      <span className={`badge badge-${s.type.toLowerCase()}`}>
+                        {s.type}
+                      </span>
+                    </td>
                     <td>{s.locale}</td>
                     <td>
                       {s.confidence != null ? (
                         <>
                           {Math.round(s.confidence * 100)}%
                           <div className="confidence-bar">
-                            <div className="confidence-fill" style={{ width: `${s.confidence * 100}%` }} />
+                            <div
+                              className="confidence-fill"
+                              style={{ width: `${s.confidence * 100}%` }}
+                            />
                           </div>
                         </>
-                      ) : "—"}
+                      ) : (
+                        "—"
+                      )}
                     </td>
-                    <td><span className={`badge badge-${s.status.toLowerCase()}`}>{s.status}</span></td>
+                    <td>
+                      <span className={`badge badge-${s.status.toLowerCase()}`}>
+                        {s.status}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -207,12 +305,15 @@ export default function Dashboard() {
       {/* Last Job */}
       {lastJob && (
         <div className="section">
-          <div className="section-title" style={{ marginBottom: 8 }}>Last Job</div>
+          <div className="section-title" style={{ marginBottom: 8 }}>
+            Last Job
+          </div>
           <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>
-            <span className={`badge badge-${lastJob.status === "COMPLETED" ? "approved" : lastJob.status === "FAILED" ? "rejected" : "pending"}`}>
+            <span
+              className={`badge badge-${lastJob.status === "COMPLETED" ? "approved" : lastJob.status === "FAILED" ? "rejected" : "pending"}`}
+            >
               {lastJob.status}
-            </span>
-            {" "}
+            </span>{" "}
             {lastJob.type} &middot; {lastJob.itemsCount} items &middot;{" "}
             {new Date(lastJob.createdAt).toLocaleString()}
           </div>

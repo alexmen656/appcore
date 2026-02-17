@@ -7,6 +7,56 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── Users & Auth ───────────────────────────────────────────────────────────
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String?
+  passwordHash String
+  role         UserRole      @default(USER)
+  settings     UserSettings?
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([email])
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+/// Per-user configuration stored in the DB (replaces .env for multi-user)
+model UserSettings {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // ── App Store Connect ────────────────────────────────────────────────
+  ascIssuerId   String?
+  ascKeyId      String?
+  ascPrivateKey String? // PEM content (not a file path)
+  ascAppId      String?
+  ascBundleId   String?
+
+  // ── AI Provider ──────────────────────────────────────────────────────
+  openaiApiKey    String?
+  anthropicApiKey String?
+  aiProvider      String? @default("openai") // openai | anthropic
+
+  // ── Scraping ─────────────────────────────────────────────────────────
+  scrapeCountry       String? @default("us")
+  scrapeIntervalHours Int?    @default(24)
+  maxCompetitors      Int?    @default(20)
+
+  // ── Multi-locale ASO ─────────────────────────────────────────────────
+  asoLocales String? @default("en-US") // comma-separated, e.g. "en-US,de-DE"
+
+  updatedAt DateTime @updatedAt
+}
+
 // ─── Our App ────────────────────────────────────────────────────────────────
 
 model App {

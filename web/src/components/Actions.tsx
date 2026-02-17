@@ -21,11 +21,7 @@ export default function Actions({ addToast }: Props) {
   const { data: jobs, refetch } = useApi<Job[]>("/actions/jobs");
   const [running, setRunning] = useState<string | null>(null);
 
-  const triggerAction = async (
-    endpoint: string,
-    label: string,
-    body?: any
-  ) => {
+  const triggerAction = async (endpoint: string, label: string, body?: any) => {
     setRunning(endpoint);
     try {
       const res = await apiPost(`/actions/${endpoint}`, body);
@@ -41,11 +37,22 @@ export default function Actions({ addToast }: Props) {
   return (
     <div>
       <h1 className="page-title">Actions</h1>
-      <p className="page-subtitle">Manually trigger scraping, analysis, and sync operations</p>
+      <p className="page-subtitle">
+        Manually trigger scraping, analysis, and sync operations
+      </p>
 
       {/* Action Buttons */}
-      <div className="stat-grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}>
-        <div className="stat-card" style={{ cursor: "pointer" }} onClick={() => !running && triggerAction("scrape", "Competitor Scrape")}>
+      <div
+        className="stat-grid"
+        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}
+      >
+        <div
+          className="stat-card"
+          style={{ cursor: "pointer" }}
+          onClick={() =>
+            !running && triggerAction("scrape", "Competitor Scrape")
+          }
+        >
           <div className="stat-card-label">Scrape</div>
           <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>
             {running === "scrape" ? "Running…" : "Discover Competitors"}
@@ -62,7 +69,11 @@ export default function Actions({ addToast }: Props) {
           </button>
         </div>
 
-        <div className="stat-card" style={{ cursor: "pointer" }} onClick={() => !running && triggerAction("analyze", "AI Analysis")}>
+        <div
+          className="stat-card"
+          style={{ cursor: "pointer" }}
+          onClick={() => !running && triggerAction("analyze", "AI Analysis")}
+        >
           <div className="stat-card-label">Analyze</div>
           <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>
             {running === "analyze" ? "Running…" : "AI ASO Analysis"}
@@ -79,7 +90,11 @@ export default function Actions({ addToast }: Props) {
           </button>
         </div>
 
-        <div className="stat-card" style={{ cursor: "pointer" }} onClick={() => !running && triggerAction("sync", "ASC Sync")}>
+        <div
+          className="stat-card"
+          style={{ cursor: "pointer" }}
+          onClick={() => !running && triggerAction("sync", "ASC Sync")}
+        >
           <div className="stat-card-label">Sync</div>
           <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>
             {running === "sync" ? "Running…" : "Sync with App Store Connect"}
@@ -96,7 +111,13 @@ export default function Actions({ addToast }: Props) {
           </button>
         </div>
 
-        <div className="stat-card" style={{ cursor: "pointer" }} onClick={() => !running && triggerAction("track-keywords", "Keyword Tracking")}>
+        <div
+          className="stat-card"
+          style={{ cursor: "pointer" }}
+          onClick={() =>
+            !running && triggerAction("track-keywords", "Keyword Tracking")
+          }
+        >
           <div className="stat-card-label">Track</div>
           <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>
             {running === "track-keywords" ? "Running…" : "Track Keywords"}
@@ -127,7 +148,9 @@ export default function Actions({ addToast }: Props) {
           <div className="empty-state">
             <div className="empty-state-icon">📊</div>
             <div className="empty-state-text">No jobs recorded yet</div>
-            <div className="empty-state-sub">Trigger an action above to create a job</div>
+            <div className="empty-state-sub">
+              Trigger an action above to create a job
+            </div>
           </div>
         ) : (
           <table className="data-table">
@@ -151,10 +174,10 @@ export default function Actions({ addToast }: Props) {
                         j.status === "COMPLETED"
                           ? "approved"
                           : j.status === "FAILED"
-                          ? "rejected"
-                          : j.status === "RUNNING"
-                          ? "applied"
-                          : "pending"
+                            ? "rejected"
+                            : j.status === "RUNNING"
+                              ? "applied"
+                              : "pending"
                       }`}
                     >
                       {j.status}
@@ -169,7 +192,16 @@ export default function Actions({ addToast }: Props) {
                       ? new Date(j.completedAt).toLocaleString()
                       : "—"}
                   </td>
-                  <td style={{ fontSize: 12, color: "var(--danger)", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <td
+                    style={{
+                      fontSize: 12,
+                      color: "var(--danger)",
+                      maxWidth: 200,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
                     {j.error || "—"}
                   </td>
                 </tr>
