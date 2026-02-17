@@ -78,9 +78,8 @@ button {
 }
 
 .sidebar-logo-icon {
-  width: 32px;
-  height: 32px;
-  background: var(--accent);
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
@@ -91,10 +90,11 @@ button {
 }
 
 .sidebar-logo-text {
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.3px;
+  color: #ea0e2b;
 }
 
 .sidebar-logo-sub {
@@ -105,7 +105,7 @@ button {
 
 .sidebar-section {
   padding: 8px 12px 4px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.8px;
@@ -123,7 +123,7 @@ button {
   gap: 10px;
   padding: 9px 12px;
   border-radius: var(--radius-sm);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--text-secondary);
   transition: all 0.15s;
@@ -172,7 +172,7 @@ button {
 }
 
 .sidebar-app-name {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
   white-space: nowrap;
@@ -181,7 +181,7 @@ button {
 }
 
 .sidebar-app-bundle {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -191,7 +191,7 @@ button {
 .sidebar-footer {
   padding: 16px;
   border-top: 1px solid var(--border);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-muted);
   text-align: center;
 }
@@ -200,19 +200,19 @@ button {
 .main-content {
   flex: 1;
   overflow-y: auto;
-  padding: 32px 40px;
+  padding: 24px 32px;
   background: var(--content-bg);
 }
 
 .page-title {
-  font-size: 22px;
+  font-size: 32px;
   font-weight: 700;
   margin-bottom: 4px;
   letter-spacing: -0.4px;
 }
 
 .page-subtitle {
-  font-size: 13px;
+  font-size: 16px;
   color: var(--text-secondary);
   margin-bottom: 28px;
 }
