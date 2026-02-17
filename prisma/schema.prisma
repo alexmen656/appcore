@@ -1,0 +1,213 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Our App ────────────────────────────────────────────────────────────────
+
+model App {
+  id            String   @id @default(cuid())
+  bundleId      String   @unique
+  name          String
+  trackId       BigInt?     @unique // Apple's numeric ID
+  country       String   @default("de")
+  isOwnApp      Boolean  @default(false)
+
+  // Current ASO metadata (synced from App Store Connect)
+  currentTitle       String?
+  currentSubtitle    String?
+  currentKeywords    String?  // comma-separated
+  currentDescription String?
+
+  // Tracking
+  snapshots     AppSnapshot[]
+  rankings      KeywordRanking[]
+  competitors   CompetitorRelation[] @relation("app_competitors")
+  competitorOf  CompetitorRelation[] @relation("competitor_of")
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([bundleId])
+  @@index([country])
+}
+
+// ─── Snapshots of app metadata over time ─────────────────────────────────
+
+model AppSnapshot {
+  id             String   @id @default(cuid())
+  appId          String
+  app            App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  // Scraped metadata
+  title          String
+  subtitle       String?
+  description    String
+  keywords       String?   // if available (only for our own app via ASC)
+  rating         Float?
+  ratingsCount   Int?
+  price           Float?
+  version        String?
+  releaseNotes   String?
+  screenshotUrls String[]  // array of URLs
+  iconUrl        String?
+  developerName  String?
+  category       String?
+  categoryId     Int?
+
+  // Computed metrics
+  descriptionLength  Int?
+  wordCount          Int?
+  readabilityScore   Float?
+
+  scrapedAt      DateTime @default(now())
+
+  @@index([appId, scrapedAt])
+  @@index([scrapedAt])
+}
+
+// ─── Keywords we track ──────────────────────────────────────────────────
+
+model Keyword {
+  id          String   @id @default(cuid())
+  term        String
+  country     String   @default("de")
+  language    String   @default("de")
+
+  // Search Ads data
+  popularity     Float?   // Apple Search Ads popularity score
+  difficulty     Float?   // estimated difficulty
+  searchVolume   Int?     // estimated monthly searches
+
+  rankings    KeywordRanking[]
+  suggestions ASOSuggestion[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([term, country])
+  @@index([term])
+  @@index([popularity])
+}
+
+// ─── Keyword ranking snapshots ──────────────────────────────────────────
+
+model KeywordRanking {
+  id          String   @id @default(cuid())
+  keywordId   String
+  keyword     Keyword  @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+  appId       String
+  app         App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  rank        Int?     // null = not ranked
+  country     String   @default("de")
+
+  trackedAt   DateTime @default(now())
+
+  @@index([keywordId, trackedAt])
+  @@index([appId, trackedAt])
+  @@index([trackedAt])
+}
+
+// ─── Competitor relationships ───────────────────────────────────────────
+
+model CompetitorRelation {
+  id            String   @id @default(cuid())
+  appId         String
+  app           App      @relation("app_competitors", fields: [appId], references: [id], onDelete: Cascade)
+  competitorId  String
+  competitor    App      @relation("competitor_of", fields: [competitorId], references: [id], onDelete: Cascade)
+
+  relevanceScore Float?   // AI-computed relevance 0-1
+  addedAt        DateTime @default(now())
+
+  @@unique([appId, competitorId])
+}
+
+// ─── AI-generated ASO suggestions ───────────────────────────────────────
+
+model ASOSuggestion {
+  id              String   @id @default(cuid())
+
+  // What was suggested
+  type            SuggestionType
+  suggestedValue  String
+  reasoning       String    // AI explanation
+
+  // Context
+  currentValue    String?
+  keywordId       String?
+  keyword         Keyword?  @relation(fields: [keywordId], references: [id])
+
+  // Scoring
+  confidenceScore Float?    // 0-1
+  estimatedImpact Float?    // 0-1
+
+  // Status tracking
+  status          SuggestionStatus @default(PENDING)
+  appliedAt       DateTime?
+  resultNotes     String?
+
+  // AI metadata
+  aiProvider      String    // openai | anthropic
+  aiModel         String
+  promptTokens    Int?
+  completionTokens Int?
+
+  createdAt       DateTime @default(now())
+
+  @@index([type, status])
+  @@index([createdAt])
+}
+
+enum SuggestionType {
+  TITLE
+  SUBTITLE
+  KEYWORDS
+  DESCRIPTION
+  SCREENSHOT_ORDER
+}
+
+enum SuggestionStatus {
+  PENDING
+  APPROVED
+  APPLIED
+  REJECTED
+  EXPIRED
+}
+
+// ─── Scrape job tracking ────────────────────────────────────────────────
+
+model ScrapeJob {
+  id          String      @id @default(cuid())
+  type        ScrapeType
+  status      JobStatus   @default(PENDING)
+  result      String?     // JSON summary
+  error       String?
+  itemsCount  Int         @default(0)
+
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime    @default(now())
+
+  @@index([type, status])
+  @@index([createdAt])
+}
+
+enum ScrapeType {
+  COMPETITOR_METADATA
+  KEYWORD_RANKING
+  SEARCH_ADS_DATA
+  OWN_APP_SYNC
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}

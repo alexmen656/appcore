@@ -1,0 +1,41 @@
+{
+  "name": "appcore-aso",
+  "version": "0.1.0",
+  "description": "Automated ASO optimization engine for App Store using AI",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "scrape": "tsx src/cli.ts scrape",
+    "analyze": "tsx src/cli.ts analyze",
+    "optimize": "tsx src/cli.ts optimize",
+    "track": "tsx src/cli.ts track"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.3.0",
+    "openai": "^4.80.0",
+    "@anthropic-ai/sdk": "^0.37.0",
+    "node-cron": "^3.0.3",
+    "axios": "^1.7.9",
+    "cheerio": "^1.0.0",
+    "commander": "^13.1.0",
+    "dotenv": "^16.4.7",
+    "jsonwebtoken": "^9.0.2",
+    "p-queue": "^8.0.1",
+    "winston": "^3.17.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.12.0",
+    "@types/node-cron": "^3.0.11",
+    "@types/jsonwebtoken": "^9.0.7",
+    "prisma": "^6.3.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
