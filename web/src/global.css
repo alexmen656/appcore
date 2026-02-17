@@ -78,8 +78,8 @@ button {
 }
 
 .sidebar-logo-icon {
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
@@ -90,7 +90,7 @@ button {
 }
 
 .sidebar-logo-text {
-  font-size: 18px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.3px;
@@ -98,7 +98,7 @@ button {
 }
 
 .sidebar-logo-sub {
-  font-size: 11px;
+  font-size: 14px;
   color: var(--text-muted);
   font-weight: 500;
 }
