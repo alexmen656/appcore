@@ -101,12 +101,12 @@ export default function App() {
         <div className="sidebar-logo">
           <img
             className="sidebar-logo-icon"
-            src="https://fringelo.com/data/fringelo_logo.png"
+            src="/logo.png"
             alt="Fringelo Logo"
           />
           <div>
-            <div className="sidebar-logo-text">Fringelo AppCore</div>
-            <div className="sidebar-logo-sub">ASO Engine</div>
+            <div className="sidebar-logo-text">AppCore</div>
+            <div className="sidebar-logo-sub">ASO Engine by Fringelo</div>
           </div>
         </div>
 
