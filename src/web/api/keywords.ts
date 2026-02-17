@@ -1,37 +1,75 @@
 import { Router } from "express";
-import { prisma } from "../../config";
+import { prisma, env } from "../../config";
 
 export const keywordsRouter = Router();
 
-// List all keywords with latest ranking
+// List all keywords with latest ranking (for OUR app specifically)
 keywordsRouter.get("/", async (req, res) => {
   try {
+    // Find our own app first
+    const ownApp = await prisma.app.findUnique({
+      where: { bundleId: env.ASC_BUNDLE_ID },
+    });
+
     const keywords = await prisma.keyword.findMany({
       include: {
         rankings: {
+          where: ownApp ? { appId: ownApp.id } : undefined,
           orderBy: { trackedAt: "desc" },
           take: 1,
         },
-        _count: { select: { rankings: true, suggestions: true } },
+        _count: { select: { suggestions: true } },
       },
       orderBy: [{ popularity: "desc" }],
     });
 
-    res.json(
-      keywords.map((k) => ({
-        id: k.id,
-        term: k.term,
-        country: k.country,
-        language: k.language,
-        popularity: k.popularity,
-        difficulty: k.difficulty,
-        searchVolume: k.searchVolume,
-        latestRank: k.rankings[0]?.rank ?? null,
-        rankingCount: k._count.rankings,
-        suggestionCount: k._count.suggestions,
-        updatedAt: k.updatedAt,
-      }))
+    // For each keyword, also get the top competitor rank
+    const result = await Promise.all(
+      keywords.map(async (k) => {
+        let topCompetitor: { name: string; rank: number } | null = null;
+        if (ownApp) {
+          const compRanking = await prisma.keywordRanking.findFirst({
+            where: {
+              keywordId: k.id,
+              appId: { not: ownApp.id },
+              rank: { not: null },
+            },
+            orderBy: [{ trackedAt: "desc" }, { rank: "asc" }],
+            include: { app: { select: { name: true } } },
+          });
+          if (compRanking?.rank) {
+            topCompetitor = {
+              name: compRanking.app.name,
+              rank: compRanking.rank,
+            };
+          }
+        }
+
+        // Count only OUR rankings for this keyword
+        const ourRankingCount = ownApp
+          ? await prisma.keywordRanking.count({
+              where: { keywordId: k.id, appId: ownApp.id },
+            })
+          : 0;
+
+        return {
+          id: k.id,
+          term: k.term,
+          country: k.country,
+          language: k.language,
+          popularity: k.popularity,
+          difficulty: k.difficulty,
+          searchVolume: k.searchVolume,
+          ourRank: k.rankings[0]?.rank ?? null,
+          topCompetitor,
+          trackingCount: ourRankingCount,
+          suggestionCount: k._count.suggestions,
+          updatedAt: k.updatedAt,
+        };
+      })
     );
+
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }

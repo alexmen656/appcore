@@ -1,8 +1,12 @@
 import axios, { AxiosInstance } from "axios";
+import * as crypto from "crypto";
+import * as fs from "fs";
+import * as path from "path";
 import { logger, env } from "../config";
 
 // ─── Apple Search Ads API Client ────────────────────────────────────────
 // Docs: https://developer.apple.com/documentation/apple_search_ads
+// Auth: OAuth2 client_credentials with JWT client_secret signed by EC key
 
 interface SearchAdsToken {
   access_token: string;
@@ -47,7 +51,108 @@ export class AppleSearchAdsClient {
   }
 
   /**
-   * OAuth2 client credentials flow for Search Ads
+   * Generate a JWT client_secret from the EC private key.
+   * Apple Search Ads requires the client_secret to be a signed JWT (ES256).
+   *
+   * JWT Header: { alg: "ES256", kid: APPLE_ADS_KEY_ID }
+   * JWT Payload: {
+   *   sub: APPLE_ADS_CLIENT_ID,
+   *   aud: "https://appleid.apple.com",
+   *   iat: <now>,
+   *   exp: <now + 180 days max>,
+   *   iss: APPLE_ADS_TEAM_ID
+   * }
+   */
+  private generateClientSecret(): string {
+    const keyPath = path.resolve(
+      env.APPLE_ADS_KEY_PATH || "./apple_ads_private_key.pem"
+    );
+
+    if (!fs.existsSync(keyPath)) {
+      throw new Error(
+        `Search Ads private key not found at ${keyPath}. ` +
+          `Download it from Apple Search Ads UI → Settings → API.`
+      );
+    }
+
+    const privateKey = fs.readFileSync(keyPath, "utf8");
+    const teamId = env.APPLE_ADS_TEAM_ID || env.APPLE_ADS_CLIENT_ID || "";
+    const keyId = env.APPLE_ADS_KEY_ID || "";
+    const clientId = env.APPLE_ADS_CLIENT_ID || "";
+
+    if (!clientId) throw new Error("APPLE_ADS_CLIENT_ID is required");
+
+    const now = Math.floor(Date.now() / 1000);
+    const expiry = now + 86400 * 180; // 180 days (Apple max)
+
+    // Build JWT manually (Header.Payload.Signature)
+    const header = {
+      alg: "ES256",
+      kid: keyId || undefined,
+    };
+
+    const payload = {
+      sub: clientId,
+      aud: "https://appleid.apple.com",
+      iat: now,
+      exp: expiry,
+      iss: teamId,
+    };
+
+    const encodedHeader = this.base64url(JSON.stringify(header));
+    const encodedPayload = this.base64url(JSON.stringify(payload));
+    const signingInput = `${encodedHeader}.${encodedPayload}`;
+
+    // Sign with ES256 (ECDSA using P-256 and SHA-256)
+    const sign = crypto.createSign("SHA256");
+    sign.update(signingInput);
+    const derSignature = sign.sign(privateKey);
+
+    // Convert DER signature to raw r||s format for JWT
+    const rawSignature = this.derToRaw(derSignature);
+    const encodedSignature = this.base64url(rawSignature);
+
+    return `${signingInput}.${encodedSignature}`;
+  }
+
+  private base64url(input: string | Buffer): string {
+    const buf = typeof input === "string" ? Buffer.from(input) : input;
+    return buf.toString("base64url");
+  }
+
+  /**
+   * Convert DER-encoded ECDSA signature to raw r||s (64 bytes for P-256)
+   */
+  private derToRaw(derSig: Buffer): Buffer {
+    // DER: 0x30 <len> 0x02 <rLen> <r> 0x02 <sLen> <s>
+    let offset = 2; // skip 0x30 and total length
+    if (derSig[1] & 0x80) offset += (derSig[1] & 0x7f); // long form length
+
+    // Read r
+    offset++; // skip 0x02
+    const rLen = derSig[offset++];
+    let r = derSig.subarray(offset, offset + rLen);
+    offset += rLen;
+
+    // Read s
+    offset++; // skip 0x02
+    const sLen = derSig[offset++];
+    let s = derSig.subarray(offset, offset + sLen);
+
+    // Trim leading zeros (DER uses minimal encoding, but may have leading 0x00 for sign)
+    if (r.length > 32) r = r.subarray(r.length - 32);
+    if (s.length > 32) s = s.subarray(s.length - 32);
+
+    // Pad to 32 bytes each
+    const raw = Buffer.alloc(64);
+    r.copy(raw, 32 - r.length);
+    s.copy(raw, 64 - s.length);
+    return raw;
+  }
+
+  /**
+   * OAuth2 client credentials flow for Search Ads.
+   * The client_secret is a JWT signed with our EC private key.
    */
   private async authenticate(): Promise<string> {
     const now = Date.now();
@@ -55,18 +160,21 @@ export class AppleSearchAdsClient {
       return this.accessToken;
     }
 
-    if (!env.APPLE_ADS_CLIENT_ID || !env.APPLE_ADS_CLIENT_SECRET) {
+    if (!env.APPLE_ADS_CLIENT_ID) {
       throw new Error(
-        "Apple Search Ads credentials missing. Set APPLE_ADS_CLIENT_ID and APPLE_ADS_CLIENT_SECRET."
+        "Apple Search Ads credentials missing. Set APPLE_ADS_CLIENT_ID."
       );
     }
+
+    // Generate JWT client_secret from private key
+    const clientSecret = this.generateClientSecret();
 
     const { data } = await axios.post<SearchAdsToken>(
       "https://appleid.apple.com/auth/oauth2/token",
       new URLSearchParams({
         grant_type: "client_credentials",
         client_id: env.APPLE_ADS_CLIENT_ID,
-        client_secret: env.APPLE_ADS_CLIENT_SECRET,
+        client_secret: clientSecret,
         scope: "searchadsorg",
       }),
       { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
@@ -75,7 +183,7 @@ export class AppleSearchAdsClient {
     this.accessToken = data.access_token;
     this.tokenExpiry = now + data.expires_in * 1000;
 
-    logger.debug("Authenticated with Apple Search Ads API");
+    logger.info("Authenticated with Apple Search Ads API");
     return this.accessToken;
   }
 
@@ -88,6 +196,11 @@ export class AppleSearchAdsClient {
     appId: string,
     limit = 50
   ): Promise<KeywordInsight[]> {
+    // Try recommended keywords first (works without active campaigns)
+    const recommended = await this.getRecommendedKeywords(appId, limit);
+    if (recommended.length > 0) return recommended;
+
+    // Fall back to targeting keywords (requires active campaign)
     try {
       const { data } = await this.client.post(
         "/keywords/targeting",
@@ -105,6 +218,40 @@ export class AppleSearchAdsClient {
       );
     } catch (error) {
       logger.warn("Failed to get targeting keywords", {
+        error: error instanceof Error ? error.message : error,
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Get keyword recommendations for an app (works without active campaigns)
+   */
+  async getRecommendedKeywords(
+    appId: string,
+    limit = 50
+  ): Promise<KeywordInsight[]> {
+    try {
+      const { data } = await this.client.post(
+        "/keywords/recommended",
+        {
+          appId,
+          limit,
+        }
+      );
+
+      const results =
+        data.data?.map((kw: any) => ({
+          keyword: kw.text ?? kw.keyword,
+          popularity: kw.popularity ?? 0,
+        })) ?? [];
+
+      if (results.length > 0) {
+        logger.info(`Got ${results.length} recommended keywords from Search Ads`);
+      }
+      return results;
+    } catch (error) {
+      logger.debug("Recommended keywords not available", {
         error: error instanceof Error ? error.message : error,
       });
       return [];

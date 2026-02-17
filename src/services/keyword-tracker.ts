@@ -1,14 +1,60 @@
 import { prisma, logger, env } from "../config";
 import { AppStoreScraper } from "./appstore-scraper";
+import { AppleSearchAdsClient } from "./search-ads";
 import { ScrapeType, JobStatus } from "@prisma/client";
 
 // ─── Keyword Tracking Service ───────────────────────────────────────────
 
 export class KeywordTracker {
   private scraper: AppStoreScraper;
+  private searchAds: AppleSearchAdsClient | null = null;
+  private searchAdsPopularity: Map<string, number> | null = null;
 
   constructor() {
     this.scraper = new AppStoreScraper();
+
+    // Initialize Search Ads client if credentials are available
+    if (env.APPLE_ADS_CLIENT_ID) {
+      this.searchAds = new AppleSearchAdsClient();
+    }
+  }
+
+  /**
+   * Fetch keyword popularity data from Apple Search Ads API.
+   * Caches results for the duration of a tracking session.
+   */
+  private async fetchSearchAdsData(): Promise<Map<string, number>> {
+    if (this.searchAdsPopularity) return this.searchAdsPopularity;
+
+    this.searchAdsPopularity = new Map();
+
+    if (!this.searchAds) {
+      logger.debug("Search Ads not configured, skipping popularity fetch");
+      return this.searchAdsPopularity;
+    }
+
+    try {
+      const appId = env.ASC_APP_ID || "";
+      if (!appId) {
+        logger.debug("ASC_APP_ID not set, cannot fetch Search Ads keywords");
+        return this.searchAdsPopularity;
+      }
+
+      logger.info("Fetching keyword popularity from Apple Search Ads API...");
+      const keywords = await this.searchAds.getTargetingKeywords(appId, 200);
+
+      for (const kw of keywords) {
+        this.searchAdsPopularity.set(kw.keyword.toLowerCase(), kw.popularity);
+      }
+
+      logger.info(`Got popularity data for ${keywords.length} keywords from Search Ads`);
+    } catch (error) {
+      logger.warn("Failed to fetch Search Ads data, will use estimates", {
+        error: error instanceof Error ? error.message : error,
+      });
+    }
+
+    return this.searchAdsPopularity;
   }
 
   /**
@@ -17,16 +63,17 @@ export class KeywordTracker {
   async addKeywords(
     terms: string[],
     country = env.SCRAPE_COUNTRY,
-    language = env.SCRAPE_LANGUAGE
+    language?: string
   ): Promise<number> {
     let added = 0;
+    const lang = language ?? country; // use country code as language fallback
     for (const term of terms) {
       const normalized = term.toLowerCase().trim();
       if (!normalized) continue;
 
       await prisma.keyword.upsert({
         where: { term_country: { term: normalized, country } },
-        create: { term: normalized, country, language },
+        create: { term: normalized, country, language: lang },
         update: {},
       });
       added++;
@@ -37,7 +84,7 @@ export class KeywordTracker {
 
   /**
    * Track ranking for a specific keyword
-   * Searches the App Store and finds our app's position
+   * Searches the App Store, calculates real popularity/difficulty/volume from Apple data
    */
   async trackKeywordRanking(
     keywordTerm: string,
@@ -51,8 +98,28 @@ export class KeywordTracker {
       return null;
     }
 
-    // Search the App Store for this keyword
-    const results = await this.scraper.searchApps(keywordTerm, 25);
+    // ── Analyze keyword using Apple data (search results + autocomplete) ──
+    const { results, popularity, difficulty, searchVolume } =
+      await this.scraper.analyzeKeyword(keywordTerm, 50);
+
+    // Check if Search Ads has better popularity data (overrides estimation)
+    const searchAdsData = await this.fetchSearchAdsData();
+    const realPopularity = searchAdsData.get(keywordTerm.toLowerCase());
+    const finalPopularity = realPopularity ?? popularity;
+
+    // Update keyword metrics in DB
+    await prisma.keyword.update({
+      where: { id: keyword.id },
+      data: {
+        popularity: finalPopularity,
+        difficulty,
+        searchVolume,
+      },
+    });
+
+    if (realPopularity != null) {
+      logger.debug(`Keyword "${keywordTerm}": Search Ads popularity = ${realPopularity}`);
+    }
 
     // Find our app's position
     const ownApp = await prisma.app.findUnique({

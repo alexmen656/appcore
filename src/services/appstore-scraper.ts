@@ -1,5 +1,6 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
+import { parseStringPromise } from "xml2js";
 import { prisma, logger, env } from "../config";
 import { ScrapeType, JobStatus } from "@prisma/client";
 
@@ -28,6 +29,65 @@ interface ITunesSearchResponse {
   results: ITunesResult[];
 }
 
+// ─── Country → Language mapping ─────────────────────────────────────────
+
+const COUNTRY_LANG: Record<string, string> = {
+  us: "en", gb: "en", au: "en", ca: "en", nz: "en", ie: "en", za: "en", sg: "en", in: "en",
+  de: "de", at: "de", ch: "de",
+  fr: "fr", be: "fr",
+  es: "es", mx: "es", ar: "es", cl: "es", co: "es",
+  pt: "pt", br: "pt",
+  it: "it",
+  nl: "nl",
+  ja: "ja", jp: "ja",
+  ko: "ko", kr: "ko",
+  zh: "zh", cn: "zh", tw: "zh", hk: "zh",
+  ru: "ru",
+  tr: "tr",
+  pl: "pl",
+  sv: "sv", se: "sv",
+  no: "no",
+  da: "da", dk: "da",
+  fi: "fi",
+  th: "th",
+  id: "id",
+  vi: "vi", vn: "vi",
+  ms: "ms", my: "ms",
+  el: "el", gr: "el",
+  he: "he", il: "he",
+  sa: "ar", ae: "ar", eg: "ar",
+  hi: "hi",
+  uk: "uk", ua: "uk",
+  cs: "cs", cz: "cs",
+  sk: "sk",
+  ro: "ro",
+  hu: "hu",
+  hr: "hr",
+  bg: "bg",
+};
+
+function langForCountry(country: string): string {
+  return COUNTRY_LANG[country.toLowerCase()] ?? "en";
+}
+
+// ─── Apple Store-Front IDs (for search hints API) ───────────────────────
+// Format: "storeFrontId-languageParam,version"
+const STOREFRONT: Record<string, string> = {
+  us: "143441-1,29", gb: "143444-2,29", au: "143460-27,29", ca: "143455-6,29",
+  de: "143443-4,29", at: "143445-4,29", ch: "143459-4,29",
+  fr: "143442-3,29", be: "143446-3,29",
+  es: "143454-8,29", mx: "143468-28,29",
+  pt: "143453-24,29", br: "143503-15,29",
+  it: "143450-7,29", nl: "143452-10,29",
+  jp: "143462-9,29", kr: "143466-13,29",
+  cn: "143465-19,29", tw: "143470-18,29", hk: "143463-45,29",
+  ru: "143469-16,29", tr: "143480-25,29",
+  se: "143456-17,29", no: "143457-14,29", dk: "143458-11,29", fi: "143447-12,29",
+  pl: "143478-39,29", in: "143467-50,29", sg: "143464-48,29",
+  nz: "143461-27,29", za: "143472-27,29", ie: "143449-2,29",
+  th: "143475-35,29", id: "143476-37,29",
+};
+
 // ─── App Store Scraper Service ──────────────────────────────────────────
 
 export class AppStoreScraper {
@@ -37,7 +97,7 @@ export class AppStoreScraper {
 
   constructor(country?: string, language?: string) {
     this.country = country ?? env.SCRAPE_COUNTRY;
-    this.language = language ?? env.SCRAPE_LANGUAGE;
+    this.language = language ?? langForCountry(this.country);
   }
 
   /**
@@ -56,6 +116,155 @@ export class AppStoreScraper {
     });
     logger.debug(`Search "${term}" returned ${data.resultCount} results`);
     return data.results;
+  }
+
+  /**
+   * Get Apple search suggestions (auto-complete) for a term.
+   * The position in the suggestion list correlates with search popularity.
+   * Returns suggestion terms ordered by relevance/popularity.
+   */
+  async getSearchSuggestions(term: string): Promise<string[]> {
+    const storeFront = STOREFRONT[this.country.toLowerCase()] ?? STOREFRONT.us;
+    const url = `https://search.itunes.apple.com/WebObjects/MZSearchHints.woa/wa/hints`;
+    try {
+      const { data: xml } = await axios.get<string>(url, {
+        params: { term, media: "software" },
+        headers: {
+          "X-Apple-Store-Front": storeFront,
+          "User-Agent": "iTunes/12.0",
+        },
+        timeout: 5000,
+      });
+
+      // Parse Apple's plist XML response
+      const parsed = await parseStringPromise(xml, { explicitArray: false });
+      const dict = parsed?.plist?.dict;
+      if (!dict) return [];
+
+      // hints can be an array of dicts or a single dict
+      const hintsKey = Array.isArray(dict.key) ? dict.key : [dict.key];
+      const hintsVal = Array.isArray(dict.array?.dict)
+        ? dict.array.dict
+        : dict.array?.dict
+          ? [dict.array.dict]
+          : [];
+
+      // Each hint is {key: ['term','url'], string: ['suggestion text', 'url']}
+      return hintsVal
+        .map((h: any) => {
+          const strings = Array.isArray(h.string) ? h.string : [h.string];
+          return strings[0]; // first string is the term
+        })
+        .filter(Boolean);
+    } catch (error) {
+      logger.debug(`Search suggestions for "${term}" failed: ${error instanceof Error ? error.message : error}`);
+      return [];
+    }
+  }
+
+  /**
+   * Calculate keyword metrics from Apple data:
+   *  - popularity:   Based on search suggestion ranking (higher = appears earlier in Apple autocomplete)
+   *  - difficulty:    Based on top-10 competitor strength (ratings count)
+   *  - searchVolume:  Based on number of search results returned
+   *
+   * @param term  Keyword to analyze
+   * @param limit Number of search results to fetch (more = slower but more accurate)
+   */
+  async analyzeKeyword(term: string, limit = 50): Promise<{
+    results: ITunesResult[];
+    popularity: number;
+    difficulty: number;
+    searchVolume: number;
+  }> {
+    // ── 1. Fetch search results ──────────────────────────────────────
+    const results = await this.searchApps(term, limit);
+    const resultCount = results.length;
+
+    // ── 2. Compute market signals ───────────────────────────────────
+    const totalRatings = results.reduce((sum, r) => sum + (r.userRatingCount ?? 0), 0);
+    const avgRatingCount = resultCount > 0 ? totalRatings / resultCount : 0;
+
+    const top10 = results.slice(0, 10);
+    const top10AvgRatings = top10.length > 0
+      ? top10.reduce((sum, r) => sum + (r.userRatingCount ?? 0), 0) / top10.length
+      : 0;
+    const top10MaxRatings = top10.length > 0
+      ? Math.max(...top10.map(r => r.userRatingCount ?? 0))
+      : 0;
+
+    // ── 3. Popularity: blended score from autocomplete + market strength ─
+    //
+    // Autocomplete position alone is misleading — niche brand names appear
+    // at position 0 even if nobody searches for them. We combine:
+    //   - autocompleteScore (0-50): position in Apple's suggestion list
+    //   - marketScore (0-50): how competitive the search results are
+    //
+    // A keyword is truly popular only if it has BOTH autocomplete presence
+    // AND competitive results.
+
+    const suggestions = await this.getSearchSuggestions(term);
+    const termLower = term.toLowerCase();
+    const exactIndex = suggestions.findIndex(s => s.toLowerCase() === termLower);
+    const partialIndex = suggestions.findIndex(s =>
+      s.toLowerCase().includes(termLower) || termLower.includes(s.toLowerCase())
+    );
+
+    // Autocomplete score (0–50)
+    let autocompleteScore: number;
+    if (exactIndex >= 0) {
+      autocompleteScore = Math.max(10, Math.round(50 - exactIndex * 5));
+    } else if (partialIndex >= 0) {
+      autocompleteScore = Math.max(5, Math.round(35 - partialIndex * 4));
+    } else if (suggestions.length > 0) {
+      autocompleteScore = 5; // prefix exists but term not suggested
+    } else {
+      autocompleteScore = 0; // no suggestions at all
+    }
+
+    // Market score (0–50): based on how many competing apps exist and how strong they are
+    let marketScore: number;
+    if (resultCount >= 40 && avgRatingCount > 100000) {
+      marketScore = 50; // saturated market = very popular keyword
+    } else if (resultCount >= 30 && avgRatingCount > 10000) {
+      marketScore = 40;
+    } else if (resultCount >= 20 && avgRatingCount > 1000) {
+      marketScore = 30;
+    } else if (resultCount >= 10) {
+      marketScore = Math.round(10 + Math.min(Math.log10(avgRatingCount + 1) * 4, 15));
+    } else if (resultCount >= 3) {
+      marketScore = Math.round(5 + Math.min(Math.log10(avgRatingCount + 1) * 3, 10));
+    } else {
+      // Very few results → niche / brand term → low market score
+      marketScore = Math.min(5, resultCount * 2);
+    }
+
+    const popularity = Math.min(100, Math.max(1, autocompleteScore + marketScore));
+
+    // ── 4. Difficulty: based on top-10 competitor strength ───────────
+    let difficulty: number;
+    if (top10MaxRatings > 1000000) {
+      difficulty = Math.min(100, 85 + Math.round(Math.log10(top10AvgRatings) * 3));
+    } else if (top10AvgRatings > 100000) {
+      difficulty = Math.round(70 + (Math.log10(top10AvgRatings / 100000)) * 20);
+    } else if (top10AvgRatings > 10000) {
+      difficulty = Math.round(40 + (top10AvgRatings / 100000) * 30);
+    } else if (top10AvgRatings > 1000) {
+      difficulty = Math.round(20 + (top10AvgRatings / 10000) * 20);
+    } else {
+      difficulty = Math.max(1, Math.round((top10AvgRatings / 1000) * 20));
+    }
+    difficulty = Math.min(100, Math.max(0, difficulty));
+
+    // ── 5. Search volume: result count as proxy ─────────────────────
+    const searchVolume = resultCount;
+
+    logger.debug(
+      `Keyword "${term}": popularity=${popularity} (ac=${autocompleteScore} mkt=${marketScore} pos=${exactIndex}), ` +
+      `difficulty=${difficulty} (top10avg=${Math.round(top10AvgRatings)}), volume=${searchVolume}`
+    );
+
+    return { results, popularity, difficulty, searchVolume };
   }
 
   /**

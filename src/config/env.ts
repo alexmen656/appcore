@@ -17,7 +17,9 @@ const envSchema = z.object({
 
   // Apple Search Ads
   APPLE_ADS_CLIENT_ID: z.string().optional(),
-  APPLE_ADS_CLIENT_SECRET: z.string().optional(),
+  APPLE_ADS_KEY_PATH: z.string().default("./apple_ads_private_key.pem"),
+  APPLE_ADS_KEY_ID: z.string().optional(),
+  APPLE_ADS_TEAM_ID: z.string().optional(),
   APPLE_ADS_ORG_ID: z.string().optional(),
 
   // AI
@@ -27,7 +29,6 @@ const envSchema = z.object({
 
   // Scraping
   SCRAPE_COUNTRY: z.string().default("de"),
-  SCRAPE_LANGUAGE: z.string().default("de"),
   SCRAPE_INTERVAL_HOURS: z.coerce.number().default(24),
   MAX_COMPETITORS: z.coerce.number().default(20),
 
