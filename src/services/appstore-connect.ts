@@ -50,6 +50,13 @@ interface ASCVersionLocalization {
   };
 }
 
+export interface ASCCredentials {
+  issuerId: string;
+  keyId: string;
+  /** PEM key content (not a file path) */
+  privateKey: string;
+}
+
 export class AppStoreConnectClient {
   private client: AxiosInstance;
   private token: string | null = null;
@@ -59,23 +66,30 @@ export class AppStoreConnectClient {
   private readonly keyId: string;
   private readonly privateKey: string;
 
-  constructor() {
-    if (!env.ASC_ISSUER_ID || !env.ASC_KEY_ID) {
+  constructor(override?: Partial<ASCCredentials>) {
+    const issuerId  = override?.issuerId  ?? env.ASC_ISSUER_ID;
+    const keyId     = override?.keyId     ?? env.ASC_KEY_ID;
+    let   privateKey = override?.privateKey;
+
+    if (!issuerId || !keyId) {
       throw new Error(
-        "App Store Connect credentials missing. Set ASC_ISSUER_ID and ASC_KEY_ID."
+        "App Store Connect credentials missing. Provide issuerId and keyId."
       );
     }
 
-    this.issuerId = env.ASC_ISSUER_ID;
-    this.keyId = env.ASC_KEY_ID;
-
-    try {
-      this.privateKey = fs.readFileSync(env.ASC_PRIVATE_KEY_PATH, "utf-8");
-    } catch {
-      throw new Error(
-        `Cannot read ASC private key at ${env.ASC_PRIVATE_KEY_PATH}`
-      );
+    if (!privateKey) {
+      try {
+        privateKey = fs.readFileSync(env.ASC_PRIVATE_KEY_PATH, "utf-8");
+      } catch {
+        throw new Error(
+          `Cannot read ASC private key at ${env.ASC_PRIVATE_KEY_PATH}`
+        );
+      }
     }
+
+    this.issuerId  = issuerId;
+    this.keyId     = keyId;
+    this.privateKey = privateKey;
 
     this.client = axios.create({
       baseURL: "https://api.appstoreconnect.apple.com/v1",
@@ -123,6 +137,19 @@ export class AppStoreConnectClient {
   }
 
   // ─── App Info ──────────────────────────────────────────────────────
+
+  /**
+   * List all apps accessible via the API key
+   */
+  async listApps(): Promise<ASCAppInfo[]> {
+    const { data } = await this.client.get("/apps", {
+      params: {
+        "fields[apps]": "name,bundleId,sku,primaryLocale",
+        limit: 200,
+      },
+    });
+    return data.data ?? [];
+  }
 
   /**
    * Get app by bundle ID

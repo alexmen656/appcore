@@ -810,3 +810,63 @@ button {
   padding-top: 4px;
 }
 
+/* ─── Secondary button ───────────────────────────────────────────────────── */
+.btn-secondary {
+  padding: 7px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--surface-hover, rgba(255,255,255,0.05));
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─── ASC App Picker ─────────────────────────────────────────────────────── */
+.asc-app-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.asc-app-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+}
+.asc-app-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.asc-app-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.asc-app-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+

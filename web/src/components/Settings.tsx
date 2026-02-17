@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useApi, apiPut } from "../hooks/useApi";
+import { useApi, apiPut, apiPost, getToken } from "../hooks/useApi";
 
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
@@ -23,17 +23,74 @@ interface SettingsData {
   asoLocales: string;
 }
 
+interface AscApp {
+  ascId: string;
+  name: string;
+  bundleId: string;
+  sku: string | null;
+  primaryLocale: string | null;
+}
+
 export default function Settings({ addToast }: Props) {
   const { data, loading, refetch } = useApi<SettingsData>("/settings");
   const [form, setForm] = useState<Partial<SettingsData>>({});
   const [saving, setSaving] = useState(false);
+
+  // ── ASC App Picker ───────────────────────────────────────────────────────
+  const [ascApps, setAscApps] = useState<AscApp[] | null>(null);
+  const [ascLoading, setAscLoading] = useState(false);
+  const [importing, setImporting] = useState<string | null>(null); // ascId being imported
+
+  const loadAscApps = async () => {
+    setAscLoading(true);
+    setAscApps(null);
+    try {
+      const token = getToken();
+      const res = await fetch("/api/asc/apps", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? `HTTP ${res.status}`);
+      }
+      setAscApps(await res.json());
+    } catch (err: any) {
+      addToast(`Failed to load apps: ${err.message}`, "error");
+    } finally {
+      setAscLoading(false);
+    }
+  };
+
+  const importApp = async (app: AscApp) => {
+    setImporting(app.ascId);
+    try {
+      const result = await apiPost<{ ok: boolean; app: { name: string } }>(
+        "/asc/import",
+        {
+          ascId: app.ascId,
+          bundleId: app.bundleId,
+          name: app.name,
+        },
+      );
+      addToast(`"${result.app.name}" imported successfully`, "success");
+    } catch (err: any) {
+      addToast(`Import failed: ${err.message}`, "error");
+    } finally {
+      setImporting(null);
+    }
+  };
 
   // Populate form once data loads
   useEffect(() => {
     if (data) setForm(data);
   }, [data]);
 
-  if (loading) return <div className="loading"><div className="spinner" /> Loading settings…</div>;
+  if (loading)
+    return (
+      <div className="loading">
+        <div className="spinner" /> Loading settings…
+      </div>
+    );
 
   const set = (key: keyof SettingsData, value: any) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -57,20 +114,24 @@ export default function Settings({ addToast }: Props) {
       <div className="page-header">
         <h1 className="page-title">Settings</h1>
         <p className="page-subtitle">
-          Configure your personal API keys and preferences. Apple Search Ads credentials are managed centrally.
+          Configure your personal API keys and preferences. Apple Search Ads
+          credentials are managed centrally.
         </p>
       </div>
 
       <form onSubmit={handleSave}>
-
         {/* ─── App Store Connect ─────────────────────────────────────────── */}
         <section className="settings-section">
           <h2 className="settings-section-title">App Store Connect</h2>
           <p className="settings-section-desc">
-            Required for syncing your app metadata, current keywords, and submitting ASO changes.
+            Required for syncing your app metadata, current keywords, and
+            submitting ASO changes.
           </p>
           <div className="settings-grid">
-            <Field label="Issuer ID" hint="Found in App Store Connect → Users & Access → Integrations">
+            <Field
+              label="Issuer ID"
+              hint="Found in App Store Connect → Users & Access → Integrations"
+            >
               <input
                 className="settings-input"
                 type="text"
@@ -88,24 +149,6 @@ export default function Settings({ addToast }: Props) {
                 placeholder="XXXXXXXXXX"
               />
             </Field>
-            <Field label="App ID (numeric)" hint="The numeric Apple app ID (e.g. 6751226253)">
-              <input
-                className="settings-input"
-                type="text"
-                value={form.ascAppId ?? ""}
-                onChange={(e) => set("ascAppId", e.target.value)}
-                placeholder="6751226253"
-              />
-            </Field>
-            <Field label="Bundle ID">
-              <input
-                className="settings-input"
-                type="text"
-                value={form.ascBundleId ?? ""}
-                onChange={(e) => set("ascBundleId", e.target.value)}
-                placeholder="com.yourcompany.yourapp"
-              />
-            </Field>
             <Field
               label="Private Key (.p8)"
               hint={
@@ -117,7 +160,11 @@ export default function Settings({ addToast }: Props) {
             >
               <textarea
                 className="settings-input settings-textarea"
-                value={form.ascPrivateKey === "••••••••" ? "" : (form.ascPrivateKey ?? "")}
+                value={
+                  form.ascPrivateKey === "••••••••"
+                    ? ""
+                    : (form.ascPrivateKey ?? "")
+                }
                 onChange={(e) => set("ascPrivateKey", e.target.value)}
                 placeholder={
                   data?.ascPrivateKeySet
@@ -130,11 +177,68 @@ export default function Settings({ addToast }: Props) {
           </div>
         </section>
 
+        {/* ─── App Store Connect: Browse & Import Apps ───────────────────── */}
+        <section className="settings-section">
+          <h2 className="settings-section-title">
+            Apps from App Store Connect
+          </h2>
+          <p className="settings-section-desc">
+            Load all apps from your App Store Connect account and import them
+            for tracking. Save your ASC credentials above first.
+          </p>
+          <button
+            type="button"
+            className="btn-primary"
+            style={{ marginBottom: ascApps ? 16 : 0 }}
+            onClick={loadAscApps}
+            disabled={ascLoading}
+          >
+            {ascLoading ? "Loading…" : "Load my apps from App Store Connect"}
+          </button>
+
+          {ascApps !== null &&
+            (ascApps.length === 0 ? (
+              <p
+                style={{
+                  color: "var(--text-muted)",
+                  fontSize: 13,
+                  marginTop: 12,
+                }}
+              >
+                No apps found. Make sure your ASC credentials have access to at
+                least one app.
+              </p>
+            ) : (
+              <div className="asc-app-list">
+                {ascApps.map((app) => (
+                  <div key={app.ascId} className="asc-app-row">
+                    <div className="asc-app-info">
+                      <span className="asc-app-name">{app.name}</span>
+                      <span className="asc-app-meta">
+                        {app.bundleId} &middot; ID {app.ascId}
+                        {app.primaryLocale ? ` · ${app.primaryLocale}` : ""}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      disabled={importing === app.ascId}
+                      onClick={() => importApp(app)}
+                    >
+                      {importing === app.ascId ? "Importing…" : "Import"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ))}
+        </section>
+
         {/* ─── AI Provider ───────────────────────────────────────────────── */}
         <section className="settings-section">
           <h2 className="settings-section-title">AI Provider</h2>
           <p className="settings-section-desc">
-            Used for generating ASO suggestions (titles, keywords, descriptions).
+            Used for generating ASO suggestions (titles, keywords,
+            descriptions).
           </p>
           <div className="settings-grid">
             <Field label="Provider">
@@ -149,27 +253,51 @@ export default function Settings({ addToast }: Props) {
             </Field>
             <Field
               label="OpenAI API Key"
-              hint={data?.openaiApiKeySet ? "Key is set. Enter a new value to replace." : undefined}
+              hint={
+                data?.openaiApiKeySet
+                  ? "Key is set. Enter a new value to replace."
+                  : undefined
+              }
             >
               <input
                 className="settings-input"
                 type="password"
-                value={form.openaiApiKey === "••••••••" ? "" : (form.openaiApiKey ?? "")}
+                value={
+                  form.openaiApiKey === "••••••••"
+                    ? ""
+                    : (form.openaiApiKey ?? "")
+                }
                 onChange={(e) => set("openaiApiKey", e.target.value)}
-                placeholder={data?.openaiApiKeySet ? "Leave empty to keep existing" : "sk-proj-…"}
+                placeholder={
+                  data?.openaiApiKeySet
+                    ? "Leave empty to keep existing"
+                    : "sk-proj-…"
+                }
                 autoComplete="off"
               />
             </Field>
             <Field
               label="Anthropic API Key"
-              hint={data?.anthropicApiKeySet ? "Key is set. Enter a new value to replace." : undefined}
+              hint={
+                data?.anthropicApiKeySet
+                  ? "Key is set. Enter a new value to replace."
+                  : undefined
+              }
             >
               <input
                 className="settings-input"
                 type="password"
-                value={form.anthropicApiKey === "••••••••" ? "" : (form.anthropicApiKey ?? "")}
+                value={
+                  form.anthropicApiKey === "••••••••"
+                    ? ""
+                    : (form.anthropicApiKey ?? "")
+                }
                 onChange={(e) => set("anthropicApiKey", e.target.value)}
-                placeholder={data?.anthropicApiKeySet ? "Leave empty to keep existing" : "sk-ant-…"}
+                placeholder={
+                  data?.anthropicApiKeySet
+                    ? "Leave empty to keep existing"
+                    : "sk-ant-…"
+                }
                 autoComplete="off"
               />
             </Field>
@@ -180,13 +308,18 @@ export default function Settings({ addToast }: Props) {
         <section className="settings-section">
           <h2 className="settings-section-title">Scraping & Tracking</h2>
           <div className="settings-grid">
-            <Field label="Store Country" hint="2-letter country code for App Store scraping (e.g. us, de, gb)">
+            <Field
+              label="Store Country"
+              hint="2-letter country code for App Store scraping (e.g. us, de, gb)"
+            >
               <input
                 className="settings-input"
                 type="text"
                 maxLength={2}
                 value={form.scrapeCountry ?? "us"}
-                onChange={(e) => set("scrapeCountry", e.target.value.toLowerCase())}
+                onChange={(e) =>
+                  set("scrapeCountry", e.target.value.toLowerCase())
+                }
                 placeholder="us"
               />
             </Field>
@@ -197,7 +330,9 @@ export default function Settings({ addToast }: Props) {
                 min={1}
                 max={168}
                 value={form.scrapeIntervalHours ?? 24}
-                onChange={(e) => set("scrapeIntervalHours", Number(e.target.value))}
+                onChange={(e) =>
+                  set("scrapeIntervalHours", Number(e.target.value))
+                }
               />
             </Field>
             <Field label="Max Competitors to Track">
@@ -217,7 +352,8 @@ export default function Settings({ addToast }: Props) {
         <section className="settings-section">
           <h2 className="settings-section-title">ASO Locales</h2>
           <p className="settings-section-desc">
-            Comma-separated App Store Connect locale codes for multi-language ASO analysis.
+            Comma-separated App Store Connect locale codes for multi-language
+            ASO analysis.
           </p>
           <div className="settings-grid">
             <Field label="Locales" hint="e.g. en-US,de-DE,fr-FR" fullWidth>
@@ -256,7 +392,9 @@ function Field({
   fullWidth?: boolean;
 }) {
   return (
-    <div className={`settings-field${fullWidth ? " settings-field--full" : ""}`}>
+    <div
+      className={`settings-field${fullWidth ? " settings-field--full" : ""}`}
+    >
       <label className="settings-label">{label}</label>
       {hint && <span className="settings-hint">{hint}</span>}
       {children}
