@@ -1,5 +1,23 @@
 import { useApi } from "../hooks/useApi";
 
+const TH =
+  "text-left text-[11px] font-semibold uppercase tracking-[0.5px] text-gray-400 px-3.5 py-2.5 border-b border-[#e5e7eb] whitespace-nowrap";
+const TD = "px-3.5 py-3 border-b border-[#f0f0f0] text-[13px] align-middle";
+const card = "bg-white border border-[#e5e7eb] rounded-lg p-5";
+const badgeVariants: Record<string, string> = {
+  pending: "bg-amber-100 text-amber-800",
+  approved: "bg-emerald-100 text-emerald-800",
+  applied: "bg-blue-100 text-blue-800",
+  rejected: "bg-red-100 text-red-700",
+  title: "bg-violet-100 text-violet-800",
+  subtitle: "bg-sky-100 text-sky-800",
+  keywords: "bg-pink-100 text-pink-800",
+  description: "bg-emerald-50 text-emerald-700",
+  running: "bg-blue-100 text-blue-700",
+};
+const badge = (v: string) =>
+  `inline-block px-2 py-0.5 rounded text-[11px] font-semibold tracking-[0.3px] ${badgeVariants[v.toLowerCase()] ?? "bg-gray-100 text-gray-700"}`;
+
 interface DashboardData {
   app: {
     name: string;
@@ -53,128 +71,92 @@ export default function Dashboard() {
 
   if (loading)
     return (
-      <div className="loading">
+      <div className="flex items-center justify-center py-20 gap-3 text-gray-400">
         <div className="spinner" /> Loading dashboard…
       </div>
     );
   if (error)
-    return (
-      <div className="empty-state">
-        <div className="empty-state-text">Error: {error}</div>
-      </div>
-    );
+    return <div className="py-20 text-center text-gray-400">{error}</div>;
   if (!data) return null;
-
   const { app, stats, config, lastJob, recentSuggestions } = data;
 
   return (
     <div>
-      <h1 className="page-title">Dashboard</h1>
-      <p className="page-subtitle">Overview of your ASO engine</p>
+      <h1 className="text-3xl font-bold tracking-tight text-[#1a1a2e] mb-1">
+        Dashboard
+      </h1>
+      <p className="text-base text-gray-500 mb-7">
+        Overview of your ASO engine
+      </p>
 
       {/* Stats Grid */}
-      <div className="stat-grid">
-        <div className="stat-card">
-          <div className="stat-card-label">Tracked Apps</div>
-          <div className="stat-card-value">{stats.apps}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-label">Snapshots</div>
-          <div className="stat-card-value">{stats.snapshots}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-label">Keywords</div>
-          <div className="stat-card-value">{stats.keywords}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-label">Pending Suggestions</div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+        {[
+          { label: "Tracked Apps", value: stats.apps, color: "" },
+          { label: "Snapshots", value: stats.snapshots, color: "" },
+          { label: "Keywords", value: stats.keywords, color: "" },
+          {
+            label: "Pending Suggestions",
+            value: stats.pendingSuggestions,
+            color: stats.pendingSuggestions > 0 ? "text-amber-500" : "",
+          },
+          {
+            label: "Applied Suggestions",
+            value: stats.appliedSuggestions,
+            color: "text-emerald-500",
+          },
+          { label: "Rankings", value: stats.rankings, color: "" },
+        ].map(({ label, value, color }) => (
           <div
-            className="stat-card-value"
-            style={{
-              color:
-                stats.pendingSuggestions > 0 ? "var(--warning)" : undefined,
-            }}
+            key={label}
+            className="bg-white border border-[#e5e7eb] rounded-lg px-5 py-[18px]"
           >
-            {stats.pendingSuggestions}
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-1.5">
+              {label}
+            </div>
+            <div
+              className={`text-[28px] font-bold tracking-tight ${color || "text-[#1a1a2e]"}`}
+            >
+              {value}
+            </div>
           </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-label">Applied Suggestions</div>
-          <div className="stat-card-value" style={{ color: "var(--success)" }}>
-            {stats.appliedSuggestions}
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-label">Rankings</div>
-          <div className="stat-card-value">{stats.rankings}</div>
-        </div>
+        ))}
       </div>
 
       {/* App Info */}
       {app && (
-        <div className="section">
-          <div className="section-header">
-            <div className="section-title">Your App</div>
+        <div className={`${card} mb-5`}>
+          <div className="text-sm font-semibold text-[#1a1a2e] mb-4">
+            Your App
           </div>
-          <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+          <div className="flex gap-5 items-start">
             {app.iconUrl && (
               <img
                 src={app.iconUrl}
                 alt=""
-                style={{ width: 64, height: 64, borderRadius: 14 }}
+                className="w-16 h-16 rounded-2xl shrink-0"
               />
             )}
             <div>
-              <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 4 }}>
+              <div className="font-semibold text-base text-[#1a1a2e] mb-1">
                 {app.title || app.name}
               </div>
               {app.subtitle && (
-                <div
-                  style={{
-                    fontSize: 13,
-                    color: "var(--text-secondary)",
-                    marginBottom: 4,
-                  }}
-                >
-                  {app.subtitle}
-                </div>
+                <div className="text-sm text-gray-500 mb-1">{app.subtitle}</div>
               )}
-              <div
-                style={{
-                  fontSize: 12,
-                  color: "var(--text-muted)",
-                  marginBottom: 8,
-                }}
-              >
-                {app.bundleId}
-              </div>
+              <div className="text-xs text-gray-400 mb-2">{app.bundleId}</div>
               {app.rating != null && (
-                <div style={{ fontSize: 13 }}>
+                <div className="text-sm text-[#1a1a2e]">
                   ⭐ {app.rating.toFixed(1)} (
                   {app.ratingsCount?.toLocaleString()} ratings)
                 </div>
               )}
               {app.keywords && (
-                <div style={{ marginTop: 8 }}>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: "var(--text-muted)",
-                      textTransform: "uppercase",
-                      letterSpacing: 0.5,
-                    }}
-                  >
+                <div className="mt-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-1">
                     Keywords
-                  </span>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: "var(--text-secondary)",
-                      marginTop: 4,
-                      lineHeight: 1.6,
-                    }}
-                  >
+                  </div>
+                  <div className="text-xs text-gray-500 leading-relaxed">
                     {app.keywords}
                   </div>
                 </div>
@@ -184,59 +166,54 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Config & Status */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-        <div className="section">
-          <div className="section-title" style={{ marginBottom: 12 }}>
+      {/* Config + Recent Suggestions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+        <div className={card}>
+          <div className="text-sm font-semibold text-[#1a1a2e] mb-4">
             Configuration
           </div>
-          <table className="data-table">
+          <table className="w-full border-collapse">
             <tbody>
+              {(
+                [
+                  "AI Provider",
+                  "Country",
+                  "Locales",
+                  "Scrape Interval",
+                ] as const
+              ).map((label, i) => {
+                const val = [
+                  config.aiProvider,
+                  config.country,
+                  config.locales,
+                  `${config.scrapeInterval}h`,
+                ][i];
+                return (
+                  <tr
+                    key={label}
+                    className="border-b border-[#f0f0f0] last:border-0"
+                  >
+                    <td className="w-40 py-3 pr-4 text-[13px] font-medium text-[#1a1a2e]">
+                      {label}
+                    </td>
+                    <td className="py-3 text-[13px] text-gray-600">{val}</td>
+                  </tr>
+                );
+              })}
               <tr>
-                <td style={{ fontWeight: 500 }}>AI Provider</td>
-                <td>{config.aiProvider}</td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 500 }}>Country</td>
-                <td>{config.country}</td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 500 }}>Locales</td>
-                <td>{config.locales}</td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 500 }}>Scrape Interval</td>
-                <td>{config.scrapeInterval}h</td>
-              </tr>
-              <tr>
-                <td style={{ fontWeight: 500 }}>Integrations</td>
-                <td>
+                <td className="py-3 pr-4 text-[13px] font-medium text-[#1a1a2e]">
+                  Integrations
+                </td>
+                <td className="py-3 flex gap-1.5 flex-wrap">
                   {config.hasOpenAI && (
-                    <span
-                      className="badge badge-applied"
-                      style={{ marginRight: 4 }}
-                    >
-                      OpenAI
-                    </span>
+                    <span className={badge("applied")}>OpenAI</span>
                   )}
                   {config.hasAnthropic && (
-                    <span
-                      className="badge badge-approved"
-                      style={{ marginRight: 4 }}
-                    >
-                      Anthropic
-                    </span>
+                    <span className={badge("approved")}>Anthropic</span>
                   )}
-                  {config.hasASC && (
-                    <span
-                      className="badge badge-title"
-                      style={{ marginRight: 4 }}
-                    >
-                      ASC
-                    </span>
-                  )}
+                  {config.hasASC && <span className={badge("title")}>ASC</span>}
                   {config.hasSearchAds && (
-                    <span className="badge badge-keywords">Search Ads</span>
+                    <span className={badge("keywords")}>Search Ads</span>
                   )}
                 </td>
               </tr>
@@ -244,53 +221,50 @@ export default function Dashboard() {
           </table>
         </div>
 
-        <div className="section">
-          <div className="section-title" style={{ marginBottom: 12 }}>
+        <div className={card}>
+          <div className="text-sm font-semibold text-[#1a1a2e] mb-4">
             Recent Suggestions
           </div>
           {recentSuggestions.length === 0 ? (
-            <div className="empty-state" style={{ padding: 24 }}>
-              <div className="empty-state-text">No suggestions yet</div>
-              <div className="empty-state-sub">
-                Run an analysis to generate ASO suggestions
-              </div>
+            <div className="py-8 text-center text-gray-400 text-sm">
+              No suggestions yet — run an AI analysis first
             </div>
           ) : (
-            <table className="data-table">
+            <table className="w-full border-collapse">
               <thead>
                 <tr>
-                  <th>Type</th>
-                  <th>Locale</th>
-                  <th>Confidence</th>
-                  <th>Status</th>
+                  <th className={TH}>Type</th>
+                  <th className={TH}>Locale</th>
+                  <th className={TH}>Confidence</th>
+                  <th className={TH}>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {recentSuggestions.map((s) => (
-                  <tr key={s.id}>
-                    <td>
-                      <span className={`badge badge-${s.type.toLowerCase()}`}>
+                  <tr key={s.id} className="hover:bg-gray-50/60">
+                    <td className={TD}>
+                      <span className={badge(s.type.toLowerCase())}>
                         {s.type}
                       </span>
                     </td>
-                    <td>{s.locale}</td>
-                    <td>
+                    <td className={`${TD} text-gray-500`}>{s.locale}</td>
+                    <td className={TD}>
                       {s.confidence != null ? (
-                        <>
+                        <span className="flex items-center gap-1.5">
                           {Math.round(s.confidence * 100)}%
-                          <div className="confidence-bar">
-                            <div
-                              className="confidence-fill"
+                          <span className="inline-block h-1 w-[60px] bg-[#e5e7eb] rounded-sm overflow-hidden align-middle ml-1.5">
+                            <span
+                              className="block h-full bg-emerald-500 rounded-sm"
                               style={{ width: `${s.confidence * 100}%` }}
                             />
-                          </div>
-                        </>
+                          </span>
+                        </span>
                       ) : (
                         "—"
                       )}
                     </td>
-                    <td>
-                      <span className={`badge badge-${s.status.toLowerCase()}`}>
+                    <td className={TD}>
+                      <span className={badge(s.status.toLowerCase())}>
                         {s.status}
                       </span>
                     </td>
@@ -304,16 +278,22 @@ export default function Dashboard() {
 
       {/* Last Job */}
       {lastJob && (
-        <div className="section">
-          <div className="section-title" style={{ marginBottom: 8 }}>
+        <div className={card}>
+          <div className="text-sm font-semibold text-[#1a1a2e] mb-2">
             Last Job
           </div>
-          <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+          <div className="text-sm text-gray-500 flex items-center gap-2">
             <span
-              className={`badge badge-${lastJob.status === "COMPLETED" ? "approved" : lastJob.status === "FAILED" ? "rejected" : "pending"}`}
+              className={badge(
+                lastJob.status === "COMPLETED"
+                  ? "approved"
+                  : lastJob.status === "FAILED"
+                    ? "rejected"
+                    : "pending",
+              )}
             >
               {lastJob.status}
-            </span>{" "}
+            </span>
             {lastJob.type} &middot; {lastJob.itemsCount} items &middot;{" "}
             {new Date(lastJob.createdAt).toLocaleString()}
           </div>

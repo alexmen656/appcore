@@ -4,7 +4,6 @@ import { setToken } from "../hooks/useApi";
 interface Props {
   onAuth: (user: AuthUser) => void;
 }
-
 export interface AuthUser {
   id: string;
   email: string;
@@ -25,10 +24,10 @@ export default function Login({ onAuth }: Props) {
     setError(null);
     setLoading(true);
     try {
-      const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
+      const endpoint =
+        mode === "login" ? "/api/auth/login" : "/api/auth/register";
       const body: Record<string, string> = { email, password };
       if (mode === "register" && name) body.name = name;
-
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -36,7 +35,6 @@ export default function Login({ onAuth }: Props) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-
       setToken(data.token);
       onAuth(data.user);
     } catch (err: any) {
@@ -47,26 +45,33 @@ export default function Login({ onAuth }: Props) {
   };
 
   return (
-    <div style={styles.backdrop}>
-      <div style={styles.card}>
-        <div style={styles.logoRow}>
-          <img src="/logo.png" alt="AppCore" style={{ height: 36, borderRadius: 8 }} />
+    <div className="min-h-screen flex items-center justify-center bg-[#eff3f6]">
+      <div className="w-[400px] bg-white rounded-2xl shadow-xl border border-gray-200 p-10">
+        {/* Logo */}
+        <div className="flex items-center gap-3 mb-8">
+          <img
+            src="/logo.png"
+            alt="AppCore"
+            className="h-10 w-10 rounded-xl object-cover"
+          />
           <div>
-            <div style={styles.appName}>AppCore</div>
-            <div style={styles.appSub}>ASO Engine by Fringelo</div>
+            <div className="text-xl font-bold text-[#ea0e2b] leading-tight">
+              AppCore
+            </div>
+            <div className="text-xs text-gray-400">ASO Engine by Fringelo</div>
           </div>
         </div>
 
-        <h2 style={styles.title}>
+        <h2 className="text-[22px] font-bold text-[#1a1a2e] mb-6 tracking-tight">
           {mode === "login" ? "Sign in to your account" : "Create an account"}
         </h2>
 
-        <form onSubmit={handleSubmit} style={styles.form}>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {mode === "register" && (
-            <label style={styles.label}>
-              Name
+            <label className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-[#1a1a2e]">Name</span>
               <input
-                style={styles.input}
+                className="settings-input"
                 type="text"
                 placeholder="Your name"
                 value={name}
@@ -75,10 +80,11 @@ export default function Login({ onAuth }: Props) {
               />
             </label>
           )}
-          <label style={styles.label}>
-            Email
+
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-[#1a1a2e]">Email</span>
             <input
-              style={styles.input}
+              className="settings-input"
               type="email"
               placeholder="you@example.com"
               value={email}
@@ -87,39 +93,66 @@ export default function Login({ onAuth }: Props) {
               autoComplete="email"
             />
           </label>
-          <label style={styles.label}>
-            Password
+
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-[#1a1a2e]">Password</span>
             <input
-              style={styles.input}
+              className="settings-input"
               type="password"
               placeholder="••••••••"
               value={password}
               required
               minLength={8}
               onChange={(e) => setPassword(e.target.value)}
-              autoComplete={mode === "login" ? "current-password" : "new-password"}
+              autoComplete={
+                mode === "login" ? "current-password" : "new-password"
+              }
             />
           </label>
 
-          {error && <div style={styles.error}>{error}</div>}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-2.5">
+              {error}
+            </div>
+          )}
 
-          <button style={styles.btn} type="submit" disabled={loading}>
-            {loading ? "Please wait…" : mode === "login" ? "Sign in" : "Create account"}
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary w-full justify-center mt-1"
+          >
+            {loading
+              ? "Please wait…"
+              : mode === "login"
+                ? "Sign in"
+                : "Create account"}
           </button>
         </form>
 
-        <div style={styles.switchRow}>
+        <div className="mt-5 text-center text-sm text-gray-500">
           {mode === "login" ? (
             <>
               No account yet?{" "}
-              <button style={styles.link} onClick={() => { setMode("register"); setError(null); }}>
+              <button
+                className="text-[#ea0e2b] font-medium hover:underline"
+                onClick={() => {
+                  setMode("register");
+                  setError(null);
+                }}
+              >
                 Register
               </button>
             </>
           ) : (
             <>
               Already have an account?{" "}
-              <button style={styles.link} onClick={() => { setMode("login"); setError(null); }}>
+              <button
+                className="text-[#ea0e2b] font-medium hover:underline"
+                onClick={() => {
+                  setMode("login");
+                  setError(null);
+                }}
+              >
                 Sign in
               </button>
             </>
@@ -129,98 +162,3 @@ export default function Login({ onAuth }: Props) {
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  backdrop: {
-    minHeight: "100vh",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: "var(--bg, #0f1117)",
-  },
-  card: {
-    background: "var(--surface, #1a1d27)",
-    border: "1px solid var(--border, #2a2d3a)",
-    borderRadius: 16,
-    padding: "40px 36px",
-    width: 380,
-    boxShadow: "0 8px 40px rgba(0,0,0,0.4)",
-  },
-  logoRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 28,
-  },
-  appName: {
-    fontWeight: 700,
-    fontSize: 18,
-    color: "var(--text, #e8eaf0)",
-  },
-  appSub: {
-    fontSize: 12,
-    color: "var(--text-muted, #8b8fa8)",
-  },
-  title: {
-    margin: "0 0 24px",
-    fontSize: 20,
-    fontWeight: 600,
-    color: "var(--text, #e8eaf0)",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
-  },
-  label: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 6,
-    fontSize: 13,
-    color: "var(--text-muted, #8b8fa8)",
-    fontWeight: 500,
-  },
-  input: {
-    padding: "10px 12px",
-    borderRadius: 8,
-    border: "1px solid var(--border, #2a2d3a)",
-    background: "var(--bg, #0f1117)",
-    color: "var(--text, #e8eaf0)",
-    fontSize: 14,
-    outline: "none",
-  },
-  error: {
-    background: "rgba(220,53,69,0.12)",
-    border: "1px solid rgba(220,53,69,0.3)",
-    borderRadius: 8,
-    padding: "10px 12px",
-    color: "#f56565",
-    fontSize: 13,
-  },
-  btn: {
-    padding: "11px 0",
-    borderRadius: 8,
-    border: "none",
-    background: "var(--accent, #6c63ff)",
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: 600,
-    cursor: "pointer",
-    marginTop: 4,
-  },
-  switchRow: {
-    marginTop: 20,
-    textAlign: "center",
-    fontSize: 13,
-    color: "var(--text-muted, #8b8fa8)",
-  },
-  link: {
-    background: "none",
-    border: "none",
-    color: "var(--accent, #6c63ff)",
-    cursor: "pointer",
-    fontSize: 13,
-    padding: 0,
-    fontWeight: 500,
-  },
-};

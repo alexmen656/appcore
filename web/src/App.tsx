@@ -10,7 +10,6 @@ import Actions from "./components/Actions";
 import Settings from "./components/Settings";
 import Login, { AuthUser } from "./components/Login";
 
-// ─── SVG Icons (inline, small) ──────────────────────────────────────────
 const IconDashboard = () => (
   <svg
     viewBox="0 0 24 24"
@@ -107,17 +106,21 @@ interface DashboardData {
 export default function App() {
   const { data: dash } = useApi<DashboardData>("/dashboard");
   const { toasts, addToast } = useToast();
-
-  // ── Auth state ───────────────────────────────────────────────────────
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
     const token = getToken();
-    if (!token) { setAuthLoading(false); return; }
+    if (!token) {
+      setAuthLoading(false);
+      return;
+    }
     fetch("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => (r.ok ? r.json() : null))
-      .then((u) => { setUser(u); setAuthLoading(false); })
+      .then((u) => {
+        setUser(u);
+        setAuthLoading(false);
+      })
       .catch(() => setAuthLoading(false));
   }, []);
 
@@ -127,135 +130,110 @@ export default function App() {
   };
 
   if (authLoading) {
-    return <div className="loading" style={{ height: "100vh" }}><div className="spinner" /></div>;
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="spinner" />
+      </div>
+    );
   }
 
   if (!user) {
     return <Login onAuth={(u) => setUser(u)} />;
   }
 
-  return (
-    <div className="app-layout">
-      <ToastContainer toasts={toasts} />
+  const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+    `flex items-center gap-2.5 px-3 py-[9px] rounded-[6px] text-sm font-medium mb-0.5 transition-all [&_svg]:w-[18px] [&_svg]:h-[18px] ${
+      isActive
+        ? "bg-white text-[#1a1a2e] shadow-sm [&_svg]:opacity-100 [&_svg]:text-[#ea0e2b]"
+        : "text-[#6b7280] hover:bg-black/[0.04] hover:text-[#1a1a2e] [&_svg]:opacity-60"
+    }`;
 
-      {/* ─── Sidebar ──────────────────────────────── */}
-      <aside className="sidebar">
-        <div className="sidebar-logo">
+  return (
+    <div className="flex h-screen overflow-hidden">
+      <ToastContainer toasts={toasts} />
+      <aside className="w-[260px] min-w-[260px] bg-[#eff3f6] border-r border-[#e5e7eb] flex flex-col overflow-y-auto">
+        <div className="px-5 pt-6 pb-5 flex items-center gap-2.5">
           <img
-            className="sidebar-logo-icon"
+            className="w-[42px] h-[42px] rounded-[6px]"
             src="/logo.png"
             alt="Fringelo Logo"
           />
           <div>
-            <div className="sidebar-logo-text">AppCore</div>
-            <div className="sidebar-logo-sub">ASO Engine by Fringelo</div>
+            <div className="text-2xl font-bold text-[#ea0e2b] tracking-[-0.3px]">
+              AppCore
+            </div>
+            <div className="text-sm text-[#9ca3af] font-medium">
+              ASO Engine by Fringelo
+            </div>
           </div>
         </div>
-
-        {/* App Selector */}
         {dash?.app && (
-          <div className="sidebar-app-selector">
+          <div className="mx-3 mb-4 px-3 py-2.5 bg-white border border-[#e5e7eb] rounded-lg flex items-center gap-2.5">
             {dash.app.iconUrl ? (
-              <img src={dash.app.iconUrl} alt="" className="sidebar-app-icon" />
+              <img
+                src={dash.app.iconUrl}
+                alt=""
+                className="w-9 h-9 rounded-lg object-cover"
+              />
             ) : (
-              <div
-                className="sidebar-app-icon"
-                style={{
-                  background: "var(--accent)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#fff",
-                  fontWeight: 700,
-                  fontSize: 16,
-                }}
-              >
+              <div className="w-9 h-9 rounded-lg bg-[#ea0e2b] flex items-center justify-center text-white font-bold text-base shrink-0">
                 {dash.app.name?.charAt(0) || "K"}
               </div>
             )}
-            <div style={{ overflow: "hidden" }}>
-              <div className="sidebar-app-name">{dash.app.name}</div>
-              <div className="sidebar-app-bundle">{dash.app.bundleId}</div>
+            <div className="overflow-hidden">
+              <div className="text-[15px] font-semibold text-[#1a1a2e] truncate">
+                {dash.app.name}
+              </div>
+              <div className="text-xs text-[#9ca3af] truncate">
+                {dash.app.bundleId}
+              </div>
             </div>
           </div>
         )}
-
-        <div className="sidebar-section">Navigation</div>
-        <nav className="sidebar-nav">
-          <NavLink
-            to="/dashboard"
-            className={({ isActive }) =>
-              `sidebar-link${isActive ? " active" : ""}`
-            }
-          >
+        <div className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-[0.8px] text-[#9ca3af]">
+          Navigation
+        </div>
+        <nav className="px-2 flex-1">
+          <NavLink to="/dashboard" className={navLinkClass}>
             <IconDashboard /> Dashboard
           </NavLink>
-          <NavLink
-            to="/suggestions"
-            className={({ isActive }) =>
-              `sidebar-link${isActive ? " active" : ""}`
-            }
-          >
+          <NavLink to="/suggestions" className={navLinkClass}>
             <IconSuggestions /> Suggestions
           </NavLink>
-          <NavLink
-            to="/keywords"
-            className={({ isActive }) =>
-              `sidebar-link${isActive ? " active" : ""}`
-            }
-          >
+          <NavLink to="/keywords" className={navLinkClass}>
             <IconKeywords /> Keywords
           </NavLink>
-          <NavLink
-            to="/competitors"
-            className={({ isActive }) =>
-              `sidebar-link${isActive ? " active" : ""}`
-            }
-          >
+          <NavLink to="/competitors" className={navLinkClass}>
             <IconCompetitors /> Competitors
           </NavLink>
-
-          <div className="sidebar-section" style={{ marginTop: 16 }}>
+          <div className="px-3 pb-1 pt-2 mt-4 text-xs font-semibold uppercase tracking-[0.8px] text-[#9ca3af]">
             Operations
           </div>
-          <NavLink
-            to="/actions"
-            className={({ isActive }) =>
-              `sidebar-link${isActive ? " active" : ""}`
-            }
-          >
+          <NavLink to="/actions" className={navLinkClass}>
             <IconActions /> Actions
           </NavLink>
-          <NavLink
-            to="/settings"
-            className={({ isActive }) =>
-              `sidebar-link${isActive ? " active" : ""}`
-            }
-          >
+          <NavLink to="/settings" className={navLinkClass}>
             <IconSettings /> Settings
           </NavLink>
         </nav>
-
-        <div className="sidebar-footer">
-          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 6 }}>
+        <div className="px-4 py-4 border-t border-[#e5e7eb] text-xs text-[#9ca3af] text-center">
+          <div className="mb-1.5">
             {user.name || user.email}
             {user.role === "ADMIN" && (
-              <span style={{ marginLeft: 6, fontSize: 10, background: "var(--accent)", color: "#fff", borderRadius: 4, padding: "1px 5px" }}>
+              <span className="ml-1.5 text-[10px] bg-[#ea0e2b] text-white rounded px-[5px] py-px">
                 admin
               </span>
             )}
           </div>
           <button
             onClick={handleLogout}
-            style={{ background: "none", border: "1px solid var(--border)", color: "var(--text-muted)", borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontSize: 12 }}
+            className="border border-[#e5e7eb] text-[#9ca3af] rounded-[6px] px-2.5 py-1 text-xs hover:border-gray-300 hover:text-[#6b7280] transition-colors"
           >
             Sign out
           </button>
         </div>
       </aside>
-
-      {/* ─── Main Content ─────────────────────────── */}
-      <main className="main-content">
+      <main className="flex-1 overflow-y-auto px-8 py-6 bg-white">
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
