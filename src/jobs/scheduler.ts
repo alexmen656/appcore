@@ -69,14 +69,18 @@ export class Scheduler {
       async () => {
         logger.info("[CRON] Starting AI ASO analysis...");
         try {
-          const analysis = await this.aiAnalyzer.analyzeAndSuggest();
-          logger.info("[CRON] AI analysis complete", {
-            suggestions:
+          const results = await this.aiAnalyzer.analyzeAndSuggest();
+          let totalSuggestions = 0;
+          for (const [locale, analysis] of results) {
+            const count =
               analysis.titleSuggestions.length +
               analysis.subtitleSuggestions.length +
               analysis.keywordSuggestions.length +
-              analysis.descriptionSuggestions.length,
-          });
+              analysis.descriptionSuggestions.length;
+            totalSuggestions += count;
+            logger.info(`[CRON] ${locale}: ${count} suggestions`);
+          }
+          logger.info(`[CRON] AI analysis complete: ${totalSuggestions} suggestions across ${results.size} locales`);
         } catch (error) {
           logger.error("[CRON] AI analysis failed", {
             error: error instanceof Error ? error.message : error,

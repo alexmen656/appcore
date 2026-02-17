@@ -31,6 +31,9 @@ const envSchema = z.object({
   SCRAPE_INTERVAL_HOURS: z.coerce.number().default(24),
   MAX_COMPETITORS: z.coerce.number().default(20),
 
+  // Multi-locale ASO (comma-separated ASC locales, e.g. "en-US,de-DE,fr-FR")
+  ASO_LOCALES: z.string().default("en-US"),
+
   // Logging
   LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),
 });

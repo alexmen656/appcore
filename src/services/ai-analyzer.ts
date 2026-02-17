@@ -3,6 +3,69 @@ import Anthropic from "@anthropic-ai/sdk";
 import { prisma, env, logger } from "../config";
 import { SuggestionType, SuggestionStatus } from "@prisma/client";
 
+// ─── Locale Configuration ───────────────────────────────────────────────
+
+interface LocaleConfig {
+  locale: string;     // ASC locale, e.g. "en-US"
+  language: string;   // human-readable
+  promptLang: string; // language for the AI prompt output
+  market: string;     // market description for the prompt
+}
+
+const LOCALE_MAP: Record<string, LocaleConfig> = {
+  "en-US": { locale: "en-US", language: "English", promptLang: "English", market: "US/English-speaking" },
+  "en-GB": { locale: "en-GB", language: "English (UK)", promptLang: "English", market: "UK" },
+  "en-AU": { locale: "en-AU", language: "English (AU)", promptLang: "English", market: "Australian" },
+  "de-DE": { locale: "de-DE", language: "Deutsch", promptLang: "German", market: "German" },
+  "fr-FR": { locale: "fr-FR", language: "Français", promptLang: "French", market: "French" },
+  "es-ES": { locale: "es-ES", language: "Español", promptLang: "Spanish", market: "Spanish" },
+  "es-MX": { locale: "es-MX", language: "Español (MX)", promptLang: "Spanish", market: "Latin American" },
+  "it-IT": { locale: "it-IT", language: "Italiano", promptLang: "Italian", market: "Italian" },
+  "pt-BR": { locale: "pt-BR", language: "Português (BR)", promptLang: "Portuguese", market: "Brazilian" },
+  "pt-PT": { locale: "pt-PT", language: "Português", promptLang: "Portuguese", market: "Portuguese" },
+  "nl-NL": { locale: "nl-NL", language: "Nederlands", promptLang: "Dutch", market: "Dutch" },
+  "ja":    { locale: "ja", language: "日本語", promptLang: "Japanese", market: "Japanese" },
+  "ko":    { locale: "ko", language: "한국어", promptLang: "Korean", market: "Korean" },
+  "zh-Hans": { locale: "zh-Hans", language: "中文(简体)", promptLang: "Simplified Chinese", market: "Chinese" },
+  "zh-Hant": { locale: "zh-Hant", language: "中文(繁體)", promptLang: "Traditional Chinese", market: "Taiwanese/Hong Kong" },
+  "ru":    { locale: "ru", language: "Русский", promptLang: "Russian", market: "Russian" },
+  "tr":    { locale: "tr", language: "Türkçe", promptLang: "Turkish", market: "Turkish" },
+  "ar-SA": { locale: "ar-SA", language: "العربية", promptLang: "Arabic", market: "Arabic-speaking" },
+  "th":    { locale: "th", language: "ไทย", promptLang: "Thai", market: "Thai" },
+  "sv":    { locale: "sv", language: "Svenska", promptLang: "Swedish", market: "Swedish" },
+  "da":    { locale: "da", language: "Dansk", promptLang: "Danish", market: "Danish" },
+  "fi":    { locale: "fi", language: "Suomi", promptLang: "Finnish", market: "Finnish" },
+  "nb":    { locale: "nb", language: "Norsk", promptLang: "Norwegian", market: "Norwegian" },
+  "pl":    { locale: "pl", language: "Polski", promptLang: "Polish", market: "Polish" },
+  "cs":    { locale: "cs", language: "Čeština", promptLang: "Czech", market: "Czech" },
+  "el":    { locale: "el", language: "Ελληνικά", promptLang: "Greek", market: "Greek" },
+  "he":    { locale: "he", language: "עברית", promptLang: "Hebrew", market: "Israeli" },
+  "id":    { locale: "id", language: "Bahasa Indonesia", promptLang: "Indonesian", market: "Indonesian" },
+  "ms":    { locale: "ms", language: "Bahasa Melayu", promptLang: "Malay", market: "Malaysian" },
+  "vi":    { locale: "vi", language: "Tiếng Việt", promptLang: "Vietnamese", market: "Vietnamese" },
+  "uk":    { locale: "uk", language: "Українська", promptLang: "Ukrainian", market: "Ukrainian" },
+  "ro":    { locale: "ro", language: "Română", promptLang: "Romanian", market: "Romanian" },
+  "hu":    { locale: "hu", language: "Magyar", promptLang: "Hungarian", market: "Hungarian" },
+  "sk":    { locale: "sk", language: "Slovenčina", promptLang: "Slovak", market: "Slovak" },
+  "hr":    { locale: "hr", language: "Hrvatski", promptLang: "Croatian", market: "Croatian" },
+  "ca":    { locale: "ca", language: "Català", promptLang: "Catalan", market: "Catalan" },
+  "hi":    { locale: "hi", language: "हिन्दी", promptLang: "Hindi", market: "Indian" },
+};
+
+function getLocaleConfig(locale: string): LocaleConfig {
+  return LOCALE_MAP[locale] ?? {
+    locale,
+    language: locale,
+    promptLang: "English",
+    market: locale,
+  };
+}
+
+/** Parse ASO_LOCALES env var into locale list */
+function getConfiguredLocales(): string[] {
+  return env.ASO_LOCALES.split(",").map((l) => l.trim()).filter(Boolean);
+}
+
 // ─── AI Provider Abstraction ────────────────────────────────────────────
 
 interface AIResponse {
@@ -125,10 +188,35 @@ export class AIAnalyzer {
   // ─── ASO Analysis ─────────────────────────────────────────────────
 
   /**
-   * Analyze our app vs competitors and generate ASO suggestions
+   * Analyze our app vs competitors and generate ASO suggestions.
+   * Runs for ALL configured locales (ASO_LOCALES env) or a specific one.
    */
-  async analyzeAndSuggest(): Promise<ASOAnalysis> {
-    // Gather data
+  async analyzeAndSuggest(locales?: string[]): Promise<Map<string, ASOAnalysis>> {
+    const targetLocales = locales ?? getConfiguredLocales();
+    const results = new Map<string, ASOAnalysis>();
+
+    // Gather shared data once
+    const appData = await this.gatherAppData();
+
+    for (const locale of targetLocales) {
+      logger.info(`Running AI ASO analysis for locale: ${locale}`);
+      try {
+        const analysis = await this.analyzeForLocale(locale, appData);
+        results.set(locale, analysis);
+      } catch (error) {
+        logger.error(`AI analysis failed for locale ${locale}`, {
+          error: error instanceof Error ? error.message : error,
+        });
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Gather all app + competitor data once (shared across locales)
+   */
+  private async gatherAppData() {
     const ownApp = await prisma.app.findUnique({
       where: { bundleId: env.ASC_BUNDLE_ID },
       include: {
@@ -154,7 +242,19 @@ export class AIAnalyzer {
       throw new Error("Own app not found. Run scrape first.");
     }
 
+    return ownApp;
+  }
+
+  /**
+   * Run AI analysis for a single locale
+   */
+  private async analyzeForLocale(
+    locale: string,
+    ownApp: Awaited<ReturnType<typeof this.gatherAppData>>
+  ): Promise<ASOAnalysis> {
+    const lc = getLocaleConfig(locale);
     const ownSnapshot = ownApp.snapshots[0];
+
     const competitorData = ownApp.competitors.map((rel) => ({
       name: rel.competitor.name,
       title: rel.competitor.currentTitle,
@@ -170,21 +270,25 @@ export class AIAnalyzer {
       popularity: r.keyword.popularity,
     }));
 
-    // Build the analysis prompt
-    const systemPrompt = `Du bist ein erfahrener App Store Optimization (ASO) Experte. 
-Du analysierst App-Metadaten, Konkurrenz-Apps und Keyword-Rankings, um datenbasierte 
-Optimierungsvorschläge zu generieren.
+    const systemPrompt = `You are an expert App Store Optimization (ASO) specialist.
+You analyze app metadata, competitor apps, and keyword rankings to generate
+data-driven optimization suggestions.
 
-WICHTIGE REGELN:
-- App-Titel: max 30 Zeichen
-- Untertitel: max 30 Zeichen  
-- Keywords: max 100 Zeichen, komma-separiert, keine Leerzeichen nach Kommas
-- Beschreibung: max 4000 Zeichen, die ersten 3 Zeilen sind am wichtigsten
-- Nutze relevante Keywords natürlich in Titel und Untertitel
-- Analysiere was bei der Konkurrenz funktioniert
-- Berücksichtige den deutschen Markt
+TARGET LOCALE: ${locale} (${lc.language})
+TARGET MARKET: ${lc.market} market
 
-Antworte IMMER als valides JSON im folgenden Format:
+CRITICAL RULES:
+- App title: max 30 characters
+- Subtitle: max 30 characters
+- Keywords: max 100 characters, comma-separated, NO spaces after commas
+- Description: max 4000 characters, first 3 lines are most important
+- ALL suggestions (title, subtitle, keywords, description) MUST be written in ${lc.promptLang}
+- Use keywords natural in title and subtitle
+- Analyze what works for competitors
+- Optimize specifically for the ${lc.market} market and ${lc.promptLang}-speaking users
+- Consider cultural nuances and local search behavior
+
+ALWAYS respond as valid JSON in this format:
 {
   "titleSuggestions": [{"value": "...", "reasoning": "...", "confidence": 0.0-1.0}],
   "subtitleSuggestions": [{"value": "...", "reasoning": "...", "confidence": 0.0-1.0}],
@@ -192,44 +296,44 @@ Antworte IMMER als valides JSON im folgenden Format:
   "descriptionSuggestions": [{"value": "...", "reasoning": "...", "confidence": 0.0-1.0}],
   "competitorInsights": "...",
   "overallStrategy": "..."
-}`;
+}
 
-    const userPrompt = `Analysiere die folgende App und ihre Konkurrenz:
+Write ALL suggestion values in ${lc.promptLang}. Reasoning can be in English.`;
 
-## UNSERE APP
+    const userPrompt = `Analyze this app and generate ASO suggestions for ${lc.language} (${locale}):
+
+## OUR APP
 Name: ${ownApp.name}
 Bundle ID: ${ownApp.bundleId}
-Aktueller Titel: ${ownApp.currentTitle}
-Aktueller Untertitel: ${ownApp.currentSubtitle ?? "keiner"}
-Aktuelle Keywords: ${ownApp.currentKeywords ?? "nicht verfügbar"}
-Aktuelle Beschreibung (Auszug): ${ownSnapshot?.description?.substring(0, 800) ?? "nicht verfügbar"}
-Rating: ${ownSnapshot?.rating ?? "?"} (${ownSnapshot?.ratingsCount ?? "?"} Bewertungen)
+Current Title: ${ownApp.currentTitle}
+Current Subtitle: ${ownApp.currentSubtitle ?? "none"}
+Current Keywords: ${ownApp.currentKeywords ?? "not available"}
+Current Description (excerpt): ${ownSnapshot?.description?.substring(0, 800) ?? "not available"}
+Rating: ${ownSnapshot?.rating ?? "?"} (${ownSnapshot?.ratingsCount ?? "?"} ratings)
 
-## KEYWORD-RANKINGS
+## KEYWORD RANKINGS
 ${keywordData.length > 0
-        ? keywordData.map((k) => `- "${k.keyword}": Rang ${k.rank ?? "nicht gerankt"} (Popularität: ${k.popularity ?? "?"})`).join("\n")
-        : "Noch keine Keywords getrackt"
+        ? keywordData.map((k) => `- "${k.keyword}": Rank ${k.rank ?? "unranked"} (Popularity: ${k.popularity ?? "?"})`).join("\n")
+        : "No keywords tracked yet"
       }
 
-## KONKURRENZ-APPS (${competitorData.length} Apps)
+## COMPETITOR APPS (${competitorData.length} apps)
 ${competitorData
         .map(
           (c) => `### ${c.name}
-Titel: ${c.title}
-Untertitel: ${c.subtitle ?? "-"}
-Beschreibung (Auszug): ${c.description ?? "-"}
-Rating: ${c.rating ?? "?"} (${c.ratingsCount ?? "?"} Bewertungen)`
+Title: ${c.title}
+Subtitle: ${c.subtitle ?? "-"}
+Description (excerpt): ${c.description ?? "-"}
+Rating: ${c.rating ?? "?"} (${c.ratingsCount ?? "?"} ratings)`
         )
         .join("\n\n")}
 
-Erstelle detaillierte ASO-Optimierungsvorschläge basierend auf dieser Analyse.`;
+Generate detailed ASO optimization suggestions in ${lc.promptLang} for the ${lc.market} market.`;
 
-    logger.info("Running AI ASO analysis...");
     const response = await this.query(systemPrompt, userPrompt);
 
     let analysis: ASOAnalysis;
     try {
-      // Extract JSON from response (handle markdown code blocks)
       let jsonStr = response.content;
       const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (jsonMatch) {
@@ -237,16 +341,16 @@ Erstelle detaillierte ASO-Optimierungsvorschläge basierend auf dieser Analyse.`
       }
       analysis = JSON.parse(jsonStr);
     } catch (error) {
-      logger.error("Failed to parse AI response as JSON", {
+      logger.error(`Failed to parse AI response as JSON for locale ${locale}`, {
         content: response.content.substring(0, 200),
       });
       throw new Error("AI response was not valid JSON");
     }
 
-    // Save suggestions to database
-    await this.saveSuggestions(analysis, response);
+    // Save suggestions with locale tag
+    await this.saveSuggestions(analysis, response, locale);
 
-    logger.info("ASO analysis complete", {
+    logger.info(`ASO analysis complete for ${locale}`, {
       titles: analysis.titleSuggestions.length,
       subtitles: analysis.subtitleSuggestions.length,
       keywords: analysis.keywordSuggestions.length,
@@ -257,11 +361,12 @@ Erstelle detaillierte ASO-Optimierungsvorschläge basierend auf dieser Analyse.`
   }
 
   /**
-   * Persist AI suggestions in the database
+   * Persist AI suggestions in the database (tagged with locale)
    */
   private async saveSuggestions(
     analysis: ASOAnalysis,
-    aiResponse: AIResponse
+    aiResponse: AIResponse,
+    locale: string
   ): Promise<void> {
     const suggestions = [
       ...analysis.titleSuggestions.map((s) => ({
@@ -286,6 +391,7 @@ Erstelle detaillierte ASO-Optimierungsvorschläge basierend auf dieser Analyse.`
       await prisma.aSOSuggestion.create({
         data: {
           type: suggestion.type,
+          locale,
           suggestedValue: suggestion.value,
           reasoning: suggestion.reasoning,
           confidenceScore: suggestion.confidence,
@@ -298,7 +404,7 @@ Erstelle detaillierte ASO-Optimierungsvorschläge basierend auf dieser Analyse.`
       });
     }
 
-    logger.info(`Saved ${suggestions.length} ASO suggestions`);
+    logger.info(`Saved ${suggestions.length} ASO suggestions for locale ${locale}`);
   }
 
   // ─── Keyword Extraction ───────────────────────────────────────────

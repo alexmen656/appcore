@@ -135,6 +135,7 @@ model ASOSuggestion {
 
   // What was suggested
   type            SuggestionType
+  locale          String   @default("en-US") // ASC locale (en-US, de-DE, etc.)
   suggestedValue  String
   reasoning       String    // AI explanation
 
@@ -161,6 +162,7 @@ model ASOSuggestion {
   createdAt       DateTime @default(now())
 
   @@index([type, status])
+  @@index([locale, status])
   @@index([createdAt])
 }
 

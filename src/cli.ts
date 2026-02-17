@@ -109,6 +109,7 @@ program
   .description("Run AI-powered ASO analysis")
   .option("--keywords", "Extract keywords from competitors")
   .option("--suggest", "Generate ASO optimization suggestions")
+  .option("--locales <locales...>", "Override ASO_LOCALES (e.g. en-US de-DE fr-FR)")
   .action(async (options) => {
     const analyzer = new AIAnalyzer();
 
@@ -128,50 +129,64 @@ program
     }
 
     if (options.suggest || (!options.keywords && !options.suggest)) {
-      logger.info("Running AI ASO analysis...");
-      const analysis = await analyzer.analyzeAndSuggest();
+      const locales = options.locales as string[] | undefined;
+      logger.info(
+        `Running AI ASO analysis for locales: ${locales?.join(", ") ?? env.ASO_LOCALES}...`
+      );
+      const results = await analyzer.analyzeAndSuggest(locales);
 
-      console.log("\n🎯 ASO Optimierungsvorschläge:");
-      console.log("═".repeat(70));
+      for (const [locale, analysis] of results) {
+        const lc = locale;
+        console.log(`\n🎯 ASO Suggestions for ${lc}:`);
+        console.log("═".repeat(70));
 
-      if (analysis.titleSuggestions.length > 0) {
-        console.log("\n📱 TITEL-VORSCHLÄGE:");
-        for (const s of analysis.titleSuggestions) {
-          console.log(`  ✦ "${s.value}" (Konfidenz: ${(s.confidence * 100).toFixed(0)}%)`);
-          console.log(`    → ${s.reasoning}`);
+        if (analysis.titleSuggestions.length > 0) {
+          console.log("\n📱 TITLE:");
+          for (const s of analysis.titleSuggestions) {
+            console.log(
+              `  ✦ "${s.value}" (${(s.confidence * 100).toFixed(0)}%)`
+            );
+            console.log(`    → ${s.reasoning}`);
+          }
         }
-      }
 
-      if (analysis.subtitleSuggestions.length > 0) {
-        console.log("\n📝 UNTERTITEL-VORSCHLÄGE:");
-        for (const s of analysis.subtitleSuggestions) {
-          console.log(`  ✦ "${s.value}" (Konfidenz: ${(s.confidence * 100).toFixed(0)}%)`);
-          console.log(`    → ${s.reasoning}`);
+        if (analysis.subtitleSuggestions.length > 0) {
+          console.log("\n📝 SUBTITLE:");
+          for (const s of analysis.subtitleSuggestions) {
+            console.log(
+              `  ✦ "${s.value}" (${(s.confidence * 100).toFixed(0)}%)`
+            );
+            console.log(`    → ${s.reasoning}`);
+          }
         }
-      }
 
-      if (analysis.keywordSuggestions.length > 0) {
-        console.log("\n🔑 KEYWORD-VORSCHLÄGE:");
-        for (const s of analysis.keywordSuggestions) {
-          console.log(`  ✦ "${s.value}" (Konfidenz: ${(s.confidence * 100).toFixed(0)}%)`);
-          console.log(`    → ${s.reasoning}`);
+        if (analysis.keywordSuggestions.length > 0) {
+          console.log("\n🔑 KEYWORDS:");
+          for (const s of analysis.keywordSuggestions) {
+            console.log(
+              `  ✦ "${s.value}" (${(s.confidence * 100).toFixed(0)}%)`
+            );
+            console.log(`    → ${s.reasoning}`);
+          }
         }
-      }
 
-      if (analysis.descriptionSuggestions.length > 0) {
-        console.log("\n📄 BESCHREIBUNGS-VORSCHLÄGE:");
-        for (const s of analysis.descriptionSuggestions) {
-          console.log(`  ✦ Konfidenz: ${(s.confidence * 100).toFixed(0)}%`);
-          console.log(`    → ${s.reasoning}`);
-          console.log(`    Auszug: "${s.value.substring(0, 150)}..."`);
+        if (analysis.descriptionSuggestions.length > 0) {
+          console.log("\n📄 DESCRIPTION:");
+          for (const s of analysis.descriptionSuggestions) {
+            console.log(`  ✦ (${(s.confidence * 100).toFixed(0)}%)`);
+            console.log(`    → ${s.reasoning}`);
+            console.log(
+              `    Preview: "${s.value.substring(0, 150)}..."`
+            );
+          }
         }
+
+        console.log("\n💡 COMPETITOR INSIGHTS:");
+        console.log(`  ${analysis.competitorInsights}`);
+
+        console.log("\n🗺️ STRATEGY:");
+        console.log(`  ${analysis.overallStrategy}`);
       }
-
-      console.log("\n💡 KONKURRENZ-INSIGHTS:");
-      console.log(`  ${analysis.competitorInsights}`);
-
-      console.log("\n🗺️ GESAMTSTRATEGIE:");
-      console.log(`  ${analysis.overallStrategy}`);
     }
 
     await prisma.$disconnect();
@@ -184,11 +199,8 @@ program
   .description("Apply ASO suggestions via App Store Connect API")
   .option("--dry-run", "Show what would be changed without applying")
   .option("--auto", "Automatically apply high-confidence suggestions (>=80%)")
-  .option(
-    "--apply <ids...>",
-    "Apply specific suggestion IDs"
-  )
-  .option("--locale <locale>", "Target locale", "en-US")
+  .option("--apply <ids...>", "Apply specific suggestion IDs")
+  .option("--locale <locale>", "Apply only for a specific locale (default: all configured)")
   .option("--reject <ids...>", "Reject specific suggestion IDs")
   .action(async (options) => {
     // ── Reject suggestions ──────────────────────────────────────
@@ -199,35 +211,51 @@ program
           data: { status: "REJECTED" },
         });
       }
-      console.log(`\n❌ ${options.reject.length} Vorschläge abgelehnt.`);
+      console.log(`\n❌ ${options.reject.length} suggestions rejected.`);
       await prisma.$disconnect();
       return;
     }
 
     // ── Fetch pending suggestions ───────────────────────────────
+    const whereClause: any = { status: "PENDING" };
+    if (options.locale) {
+      whereClause.locale = options.locale;
+    }
+
     const suggestions = await prisma.aSOSuggestion.findMany({
-      where: { status: "PENDING" },
-      orderBy: { confidenceScore: "desc" },
+      where: whereClause,
+      orderBy: [{ locale: "asc" }, { confidenceScore: "desc" }],
     });
 
     if (suggestions.length === 0) {
-      console.log(
-        "Keine ausstehenden Vorschläge. Führe zuerst 'analyze' aus."
-      );
+      console.log("No pending suggestions. Run 'analyze' first.");
       await prisma.$disconnect();
       return;
     }
 
-    console.log(`\n📋 ${suggestions.length} ausstehende Vorschläge:`);
-    console.log("─".repeat(80));
+    // Group suggestions by locale
+    const byLocale = new Map<string, typeof suggestions>();
     for (const s of suggestions) {
-      const confidence = s.confidenceScore
-        ? `${(s.confidenceScore * 100).toFixed(0)}%`
-        : "?";
-      console.log(
-        `  [${s.id.substring(0, 8)}] [${s.type.padEnd(11)}] "${s.suggestedValue.substring(0, 50)}" (${confidence})`
-      );
-      console.log(`    → ${s.reasoning.substring(0, 100)}`);
+      const group = byLocale.get(s.locale) ?? [];
+      group.push(s);
+      byLocale.set(s.locale, group);
+    }
+
+    console.log(
+      `\n📋 ${suggestions.length} pending suggestions across ${byLocale.size} locale(s):`
+    );
+    console.log("─".repeat(85));
+
+    for (const [locale, localeSuggestions] of byLocale) {
+      console.log(`\n  🌐 ${locale}:`);
+      for (const s of localeSuggestions) {
+        const confidence = s.confidenceScore
+          ? `${(s.confidenceScore * 100).toFixed(0)}%`
+          : "?";
+        console.log(
+          `    [${s.id.substring(0, 8)}] [${s.type.padEnd(11)}] "${s.suggestedValue.substring(0, 45)}" (${confidence})`
+        );
+      }
     }
 
     // ── Determine which suggestions to apply ────────────────────
@@ -245,121 +273,157 @@ program
 
     if (toApply.length === 0) {
       console.log(
-        "\n⚠️  Keine passenden Vorschläge. Nutze --apply <id> oder --auto."
+        "\n⚠️  No matching suggestions. Use --apply <id> or --auto."
       );
       await prisma.$disconnect();
       return;
     }
 
-    // ── Pick the best suggestion per type ───────────────────────
-    // Only apply the highest-confidence suggestion per type
-    const bestByType = new Map<string, (typeof toApply)[0]>();
+    // Group toApply by locale, then pick best per type per locale
+    const applyByLocale = new Map<string, typeof toApply>();
     for (const s of toApply) {
-      const existing = bestByType.get(s.type);
-      if (
-        !existing ||
-        (s.confidenceScore ?? 0) > (existing.confidenceScore ?? 0)
-      ) {
-        bestByType.set(s.type, s);
-      }
+      const group = applyByLocale.get(s.locale) ?? [];
+      group.push(s);
+      applyByLocale.set(s.locale, group);
     }
 
-    // Build the change set
-    const changes: {
-      title?: string;
-      subtitle?: string;
-      description?: string;
-      keywords?: string;
-    } = {};
-
-    const appliedSuggestions: (typeof toApply)[0][] = [];
-
-    for (const [type, suggestion] of bestByType) {
-      switch (type) {
-        case "TITLE":
-          changes.title = suggestion.suggestedValue;
-          appliedSuggestions.push(suggestion);
-          break;
-        case "SUBTITLE":
-          changes.subtitle = suggestion.suggestedValue;
-          appliedSuggestions.push(suggestion);
-          break;
-        case "KEYWORDS":
-          changes.keywords = suggestion.suggestedValue;
-          appliedSuggestions.push(suggestion);
-          break;
-        case "DESCRIPTION":
-          changes.description = suggestion.suggestedValue;
-          appliedSuggestions.push(suggestion);
-          break;
+    // Build changes per locale
+    const changesPerLocale = new Map<
+      string,
+      {
+        changes: {
+          title?: string;
+          subtitle?: string;
+          description?: string;
+          keywords?: string;
+        };
+        appliedSuggestions: typeof toApply;
       }
+    >();
+
+    for (const [locale, localeSuggestions] of applyByLocale) {
+      const bestByType = new Map<string, (typeof localeSuggestions)[0]>();
+      for (const s of localeSuggestions) {
+        const existing = bestByType.get(s.type);
+        if (
+          !existing ||
+          (s.confidenceScore ?? 0) > (existing.confidenceScore ?? 0)
+        ) {
+          bestByType.set(s.type, s);
+        }
+      }
+
+      const changes: {
+        title?: string;
+        subtitle?: string;
+        description?: string;
+        keywords?: string;
+      } = {};
+      const appliedSuggestions: typeof toApply = [];
+
+      for (const [type, suggestion] of bestByType) {
+        switch (type) {
+          case "TITLE":
+            changes.title = suggestion.suggestedValue;
+            appliedSuggestions.push(suggestion);
+            break;
+          case "SUBTITLE":
+            changes.subtitle = suggestion.suggestedValue;
+            appliedSuggestions.push(suggestion);
+            break;
+          case "KEYWORDS":
+            changes.keywords = suggestion.suggestedValue;
+            appliedSuggestions.push(suggestion);
+            break;
+          case "DESCRIPTION":
+            changes.description = suggestion.suggestedValue;
+            appliedSuggestions.push(suggestion);
+            break;
+        }
+      }
+
+      changesPerLocale.set(locale, { changes, appliedSuggestions });
     }
 
-    console.log(`\n🔄 Änderungen die angewendet werden:`);
-    console.log("─".repeat(80));
-    if (changes.title) console.log(`  📱 Titel:       "${changes.title}"`);
-    if (changes.subtitle)
-      console.log(`  📝 Untertitel:  "${changes.subtitle}"`);
-    if (changes.keywords)
-      console.log(`  🔑 Keywords:    "${changes.keywords}"`);
-    if (changes.description)
-      console.log(
-        `  📄 Beschreibung: "${changes.description.substring(0, 80)}..."`
-      );
+    // ── Display summary ─────────────────────────────────────────
+    console.log(`\n🔄 Changes to apply:`);
+    console.log("─".repeat(85));
+    for (const [locale, { changes }] of changesPerLocale) {
+      console.log(`\n  🌐 ${locale}:`);
+      if (changes.title) console.log(`    📱 Title:       "${changes.title}"`);
+      if (changes.subtitle)
+        console.log(`    📝 Subtitle:    "${changes.subtitle}"`);
+      if (changes.keywords)
+        console.log(`    🔑 Keywords:    "${changes.keywords}"`);
+      if (changes.description)
+        console.log(
+          `    📄 Description: "${changes.description.substring(0, 70)}..."`
+        );
+    }
 
     if (options.dryRun) {
-      console.log("\n(Dry run – keine Änderungen angewendet)");
+      console.log("\n(Dry run – no changes applied)");
       await prisma.$disconnect();
       return;
     }
 
-    // ── Apply via App Store Connect API ─────────────────────────
-    console.log("\n⏳ Verbinde mit App Store Connect API...");
+    // ── Apply via App Store Connect API per locale ──────────────
+    console.log("\n⏳ Connecting to App Store Connect API...");
 
     try {
       const ascClient = new AppStoreConnectClient();
+      let totalApplied = 0;
+      let totalErrors = 0;
 
-      const result = await ascClient.applyASOChanges(
-        changes,
-        options.locale
+      for (const [locale, { changes, appliedSuggestions }] of changesPerLocale) {
+        console.log(`\n🌐 Applying changes for ${locale}...`);
+
+        const result = await ascClient.applyASOChanges(changes, locale);
+
+        if (result.applied.length > 0) {
+          totalApplied += result.applied.length;
+          console.log(
+            `  ✅ Applied to version ${result.versionString}:`
+          );
+          for (const a of result.applied) {
+            console.log(`      ✓ ${a}`);
+          }
+        }
+
+        if (result.errors.length > 0) {
+          totalErrors += result.errors.length;
+          console.log("  ⚠️  Errors:");
+          for (const e of result.errors) {
+            console.log(`      ✗ ${e}`);
+          }
+        }
+
+        // Mark suggestions in DB
+        for (const suggestion of appliedSuggestions) {
+          const wasApplied = result.applied.some((a) =>
+            a.toLowerCase().includes(suggestion.type.toLowerCase())
+          );
+          await prisma.aSOSuggestion.update({
+            where: { id: suggestion.id },
+            data: {
+              status: wasApplied ? "APPLIED" : "REJECTED",
+              appliedAt: wasApplied ? new Date() : undefined,
+              resultNotes: wasApplied
+                ? `Applied to ${locale} version ${result.versionString}`
+                : `Failed: ${result.errors.join("; ")}`,
+            },
+          });
+        }
+      }
+
+      console.log(
+        `\n📊 Summary: ${totalApplied} changes applied, ${totalErrors} errors across ${changesPerLocale.size} locale(s).`
       );
 
-      // Report results
-      if (result.applied.length > 0) {
-        console.log(
-          `\n✅ Erfolgreich angewendet auf Version ${result.versionString}:`
-        );
-        for (const a of result.applied) {
-          console.log(`    ✓ ${a}`);
-        }
-      }
-
-      if (result.errors.length > 0) {
-        console.log("\n⚠️  Fehler:");
-        for (const e of result.errors) {
-          console.log(`    ✗ ${e}`);
-        }
-      }
-
-      // Mark suggestions as applied/failed in DB
-      for (const suggestion of appliedSuggestions) {
-        const wasApplied = result.applied.some((a) =>
-          a.toLowerCase().includes(suggestion.type.toLowerCase())
-        );
-        await prisma.aSOSuggestion.update({
-          where: { id: suggestion.id },
-          data: {
-            status: wasApplied ? "APPLIED" : "REJECTED",
-            appliedAt: wasApplied ? new Date() : undefined,
-            resultNotes: wasApplied
-              ? `Applied to version ${result.versionString}`
-              : `Failed: ${result.errors.join("; ")}`,
-          },
-        });
-      }
-
-      // Sync back to local DB
-      if (result.applied.length > 0) {
+      // Sync primary locale back to local DB
+      const primaryLocale = options.locale ?? env.ASO_LOCALES.split(",")[0].trim();
+      const primaryChanges = changesPerLocale.get(primaryLocale)?.changes;
+      if (primaryChanges) {
         const ownApp = await prisma.app.findUnique({
           where: { bundleId: env.ASC_BUNDLE_ID },
         });
@@ -367,28 +431,31 @@ program
           await prisma.app.update({
             where: { id: ownApp.id },
             data: {
-              ...(changes.title && { currentTitle: changes.title }),
-              ...(changes.subtitle && {
-                currentSubtitle: changes.subtitle,
+              ...(primaryChanges.title && {
+                currentTitle: primaryChanges.title,
               }),
-              ...(changes.keywords && {
-                currentKeywords: changes.keywords,
+              ...(primaryChanges.subtitle && {
+                currentSubtitle: primaryChanges.subtitle,
               }),
-              ...(changes.description && {
-                currentDescription: changes.description,
+              ...(primaryChanges.keywords && {
+                currentKeywords: primaryChanges.keywords,
+              }),
+              ...(primaryChanges.description && {
+                currentDescription: primaryChanges.description,
               }),
             },
           });
         }
-        console.log("\n💾 Lokale Datenbank aktualisiert.");
       }
+
+      console.log("💾 Local database updated.");
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      console.error(`\n❌ App Store Connect Fehler: ${msg}`);
+      console.error(`\n❌ App Store Connect Error: ${msg}`);
 
       if (msg.includes("credentials missing")) {
         console.log(
-          "\nStelle sicher dass ASC_ISSUER_ID, ASC_KEY_ID und AuthKey.p8 konfiguriert sind."
+          "\nMake sure ASC_ISSUER_ID, ASC_KEY_ID and AuthKey.p8 are configured."
         );
       }
     }
@@ -401,72 +468,71 @@ program
 program
   .command("sync")
   .description("Sync current ASO metadata from App Store Connect")
-  .option("--locale <locale>", "Locale to sync", "en-US")
+  .option("--locale <locale>", "Sync a specific locale (default: all from ASO_LOCALES)")
   .action(async (options) => {
-    console.log("\n⏳ Verbinde mit App Store Connect API...");
+    console.log("\n⏳ Connecting to App Store Connect API...");
+
+    const locales = options.locale
+      ? [options.locale]
+      : env.ASO_LOCALES.split(",").map((l: string) => l.trim());
 
     try {
       const ascClient = new AppStoreConnectClient();
-      const state = await ascClient.getCurrentASOState(options.locale);
 
-      if (!state) {
-        console.log("❌ App nicht in App Store Connect gefunden.");
-        await prisma.$disconnect();
-        return;
+      for (const locale of locales) {
+        const state = await ascClient.getCurrentASOState(locale);
+
+        if (!state) {
+          console.log(`\n❌ App not found in App Store Connect for ${locale}.`);
+          continue;
+        }
+
+        console.log(`\n🌐 ${locale} – App Store Connect:`);
+        console.log("─".repeat(70));
+        console.log(`  App ID:      ${state.appId}`);
+        console.log(`  Version:     ${state.versionString ?? "–"} (${state.appStoreState ?? "–"})`);
+        console.log(`  Title:       ${state.title ?? "–"}`);
+        console.log(`  Subtitle:    ${state.subtitle ?? "–"}`);
+        console.log(`  Keywords:    ${state.keywords ?? "–"}`);
+        console.log(
+          `  Description: ${state.description?.substring(0, 100) ?? "–"}${state.description && state.description.length > 100 ? "..." : ""}`
+        );
+        console.log(`  What's New:  ${state.whatsNew?.substring(0, 80) ?? "–"}`);
+        console.log(`  Promo Text:  ${state.promotionalText?.substring(0, 80) ?? "–"}`);
       }
 
-      console.log("\n📱 App Store Connect – Aktueller Stand:");
-      console.log("═".repeat(70));
-      console.log(`  App ID:          ${state.appId}`);
-      console.log(`  Version:         ${state.versionString ?? "–"}`);
-      console.log(`  Status:          ${state.appStoreState ?? "–"}`);
-      console.log(`  Titel:           ${state.title ?? "–"}`);
-      console.log(`  Untertitel:      ${state.subtitle ?? "–"}`);
-      console.log(
-        `  Keywords:        ${state.keywords ?? "–"}`
-      );
-      console.log(
-        `  Beschreibung:    ${state.description?.substring(0, 120) ?? "–"}${state.description && state.description.length > 120 ? "..." : ""}`
-      );
-      console.log(
-        `  What's New:      ${state.whatsNew?.substring(0, 100) ?? "–"}`
-      );
-      console.log(
-        `  Promo Text:      ${state.promotionalText?.substring(0, 100) ?? "–"}`
-      );
-      console.log("\n  IDs:");
-      console.log(
-        `    AppInfo Loc:   ${state.appInfoLocalizationId ?? "–"}`
-      );
-      console.log(
-        `    Version Loc:   ${state.versionLocalizationId ?? "–"}`
-      );
+      // Sync primary locale to local DB
+      const primaryLocale = locales[0];
+      const primaryState = await ascClient.getCurrentASOState(primaryLocale);
 
-      // Save to local DB
-      const ownApp = await prisma.app.findUnique({
-        where: { bundleId: env.ASC_BUNDLE_ID },
-      });
-
-      if (ownApp) {
-        await prisma.app.update({
-          where: { id: ownApp.id },
-          data: {
-            currentTitle: state.title ?? ownApp.currentTitle,
-            currentSubtitle: state.subtitle ?? ownApp.currentSubtitle,
-            currentKeywords: state.keywords ?? ownApp.currentKeywords,
-            currentDescription:
-              state.description ?? ownApp.currentDescription,
-          },
+      if (primaryState) {
+        const ownApp = await prisma.app.findUnique({
+          where: { bundleId: env.ASC_BUNDLE_ID },
         });
-        console.log("\n💾 Lokale Datenbank mit ASC-Daten synchronisiert.");
-      } else {
-        console.log(
-          "\n⚠️  App noch nicht lokal vorhanden. Führe zuerst 'scrape' aus."
-        );
+
+        if (ownApp) {
+          await prisma.app.update({
+            where: { id: ownApp.id },
+            data: {
+              currentTitle: primaryState.title ?? ownApp.currentTitle,
+              currentSubtitle: primaryState.subtitle ?? ownApp.currentSubtitle,
+              currentKeywords: primaryState.keywords ?? ownApp.currentKeywords,
+              currentDescription:
+                primaryState.description ?? ownApp.currentDescription,
+            },
+          });
+          console.log(
+            `\n💾 Local DB synced with ${primaryLocale} data.`
+          );
+        } else {
+          console.log(
+            "\n⚠️  App not found locally. Run 'scrape' first."
+          );
+        }
       }
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      console.error(`\n❌ App Store Connect Fehler: ${msg}`);
+      console.error(`\n❌ App Store Connect Error: ${msg}`);
     }
 
     await prisma.$disconnect();
