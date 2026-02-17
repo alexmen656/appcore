@@ -1,6 +1,11 @@
 import { Command } from "commander";
 import { logger, prisma, env } from "./config";
-import { AppStoreScraper, KeywordTracker, AIAnalyzer } from "./services";
+import {
+  AppStoreScraper,
+  AppStoreConnectClient,
+  KeywordTracker,
+  AIAnalyzer,
+} from "./services";
 import { Scheduler } from "./jobs/scheduler";
 
 const program = new Command();
@@ -178,53 +183,290 @@ program
   .command("optimize")
   .description("Apply ASO suggestions via App Store Connect API")
   .option("--dry-run", "Show what would be changed without applying")
-  .option("--auto", "Automatically apply high-confidence suggestions")
+  .option("--auto", "Automatically apply high-confidence suggestions (>=80%)")
+  .option(
+    "--apply <ids...>",
+    "Apply specific suggestion IDs"
+  )
+  .option("--locale <locale>", "Target locale", "en-US")
+  .option("--reject <ids...>", "Reject specific suggestion IDs")
   .action(async (options) => {
+    // ── Reject suggestions ──────────────────────────────────────
+    if (options.reject) {
+      for (const id of options.reject) {
+        await prisma.aSOSuggestion.update({
+          where: { id },
+          data: { status: "REJECTED" },
+        });
+      }
+      console.log(`\n❌ ${options.reject.length} Vorschläge abgelehnt.`);
+      await prisma.$disconnect();
+      return;
+    }
+
+    // ── Fetch pending suggestions ───────────────────────────────
     const suggestions = await prisma.aSOSuggestion.findMany({
       where: { status: "PENDING" },
       orderBy: { confidenceScore: "desc" },
     });
 
     if (suggestions.length === 0) {
-      console.log("Keine ausstehenden Vorschläge. Führe zuerst 'analyze' aus.");
+      console.log(
+        "Keine ausstehenden Vorschläge. Führe zuerst 'analyze' aus."
+      );
       await prisma.$disconnect();
       return;
     }
 
     console.log(`\n📋 ${suggestions.length} ausstehende Vorschläge:`);
+    console.log("─".repeat(80));
     for (const s of suggestions) {
       const confidence = s.confidenceScore
         ? `${(s.confidenceScore * 100).toFixed(0)}%`
         : "?";
-      console.log(`  [${s.type}] "${s.suggestedValue.substring(0, 60)}" (${confidence})`);
-      console.log(`    Grund: ${s.reasoning.substring(0, 100)}`);
+      console.log(
+        `  [${s.id.substring(0, 8)}] [${s.type.padEnd(11)}] "${s.suggestedValue.substring(0, 50)}" (${confidence})`
+      );
+      console.log(`    → ${s.reasoning.substring(0, 100)}`);
     }
+
+    // ── Determine which suggestions to apply ────────────────────
+    let toApply = suggestions;
+
+    if (options.apply) {
+      toApply = suggestions.filter((s) =>
+        options.apply.some((id: string) => s.id.startsWith(id))
+      );
+    } else if (options.auto) {
+      toApply = suggestions.filter(
+        (s) => s.confidenceScore && s.confidenceScore >= 0.8
+      );
+    }
+
+    if (toApply.length === 0) {
+      console.log(
+        "\n⚠️  Keine passenden Vorschläge. Nutze --apply <id> oder --auto."
+      );
+      await prisma.$disconnect();
+      return;
+    }
+
+    // ── Pick the best suggestion per type ───────────────────────
+    // Only apply the highest-confidence suggestion per type
+    const bestByType = new Map<string, (typeof toApply)[0]>();
+    for (const s of toApply) {
+      const existing = bestByType.get(s.type);
+      if (
+        !existing ||
+        (s.confidenceScore ?? 0) > (existing.confidenceScore ?? 0)
+      ) {
+        bestByType.set(s.type, s);
+      }
+    }
+
+    // Build the change set
+    const changes: {
+      title?: string;
+      subtitle?: string;
+      description?: string;
+      keywords?: string;
+    } = {};
+
+    const appliedSuggestions: (typeof toApply)[0][] = [];
+
+    for (const [type, suggestion] of bestByType) {
+      switch (type) {
+        case "TITLE":
+          changes.title = suggestion.suggestedValue;
+          appliedSuggestions.push(suggestion);
+          break;
+        case "SUBTITLE":
+          changes.subtitle = suggestion.suggestedValue;
+          appliedSuggestions.push(suggestion);
+          break;
+        case "KEYWORDS":
+          changes.keywords = suggestion.suggestedValue;
+          appliedSuggestions.push(suggestion);
+          break;
+        case "DESCRIPTION":
+          changes.description = suggestion.suggestedValue;
+          appliedSuggestions.push(suggestion);
+          break;
+      }
+    }
+
+    console.log(`\n🔄 Änderungen die angewendet werden:`);
+    console.log("─".repeat(80));
+    if (changes.title) console.log(`  📱 Titel:       "${changes.title}"`);
+    if (changes.subtitle)
+      console.log(`  📝 Untertitel:  "${changes.subtitle}"`);
+    if (changes.keywords)
+      console.log(`  🔑 Keywords:    "${changes.keywords}"`);
+    if (changes.description)
+      console.log(
+        `  📄 Beschreibung: "${changes.description.substring(0, 80)}..."`
+      );
 
     if (options.dryRun) {
       console.log("\n(Dry run – keine Änderungen angewendet)");
-    } else if (options.auto) {
-      // Apply suggestions with confidence >= 0.8
-      const highConfidence = suggestions.filter(
-        (s) => s.confidenceScore && s.confidenceScore >= 0.8
+      await prisma.$disconnect();
+      return;
+    }
+
+    // ── Apply via App Store Connect API ─────────────────────────
+    console.log("\n⏳ Verbinde mit App Store Connect API...");
+
+    try {
+      const ascClient = new AppStoreConnectClient();
+
+      const result = await ascClient.applyASOChanges(
+        changes,
+        options.locale
       );
 
-      if (highConfidence.length === 0) {
+      // Report results
+      if (result.applied.length > 0) {
         console.log(
-          "\nKeine Vorschläge mit >= 80% Konfidenz. Manuelle Prüfung empfohlen."
+          `\n✅ Erfolgreich angewendet auf Version ${result.versionString}:`
         );
+        for (const a of result.applied) {
+          console.log(`    ✓ ${a}`);
+        }
+      }
+
+      if (result.errors.length > 0) {
+        console.log("\n⚠️  Fehler:");
+        for (const e of result.errors) {
+          console.log(`    ✗ ${e}`);
+        }
+      }
+
+      // Mark suggestions as applied/failed in DB
+      for (const suggestion of appliedSuggestions) {
+        const wasApplied = result.applied.some((a) =>
+          a.toLowerCase().includes(suggestion.type.toLowerCase())
+        );
+        await prisma.aSOSuggestion.update({
+          where: { id: suggestion.id },
+          data: {
+            status: wasApplied ? "APPLIED" : "REJECTED",
+            appliedAt: wasApplied ? new Date() : undefined,
+            resultNotes: wasApplied
+              ? `Applied to version ${result.versionString}`
+              : `Failed: ${result.errors.join("; ")}`,
+          },
+        });
+      }
+
+      // Sync back to local DB
+      if (result.applied.length > 0) {
+        const ownApp = await prisma.app.findUnique({
+          where: { bundleId: env.ASC_BUNDLE_ID },
+        });
+        if (ownApp) {
+          await prisma.app.update({
+            where: { id: ownApp.id },
+            data: {
+              ...(changes.title && { currentTitle: changes.title }),
+              ...(changes.subtitle && {
+                currentSubtitle: changes.subtitle,
+              }),
+              ...(changes.keywords && {
+                currentKeywords: changes.keywords,
+              }),
+              ...(changes.description && {
+                currentDescription: changes.description,
+              }),
+            },
+          });
+        }
+        console.log("\n💾 Lokale Datenbank aktualisiert.");
+      }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error(`\n❌ App Store Connect Fehler: ${msg}`);
+
+      if (msg.includes("credentials missing")) {
+        console.log(
+          "\nStelle sicher dass ASC_ISSUER_ID, ASC_KEY_ID und AuthKey.p8 konfiguriert sind."
+        );
+      }
+    }
+
+    await prisma.$disconnect();
+  });
+
+// ─── Sync Command (read current state from ASC) ────────────────────────
+
+program
+  .command("sync")
+  .description("Sync current ASO metadata from App Store Connect")
+  .option("--locale <locale>", "Locale to sync", "en-US")
+  .action(async (options) => {
+    console.log("\n⏳ Verbinde mit App Store Connect API...");
+
+    try {
+      const ascClient = new AppStoreConnectClient();
+      const state = await ascClient.getCurrentASOState(options.locale);
+
+      if (!state) {
+        console.log("❌ App nicht in App Store Connect gefunden.");
+        await prisma.$disconnect();
+        return;
+      }
+
+      console.log("\n📱 App Store Connect – Aktueller Stand:");
+      console.log("═".repeat(70));
+      console.log(`  App ID:          ${state.appId}`);
+      console.log(`  Version:         ${state.versionString ?? "–"}`);
+      console.log(`  Status:          ${state.appStoreState ?? "–"}`);
+      console.log(`  Titel:           ${state.title ?? "–"}`);
+      console.log(`  Untertitel:      ${state.subtitle ?? "–"}`);
+      console.log(
+        `  Keywords:        ${state.keywords ?? "–"}`
+      );
+      console.log(
+        `  Beschreibung:    ${state.description?.substring(0, 120) ?? "–"}${state.description && state.description.length > 120 ? "..." : ""}`
+      );
+      console.log(
+        `  What's New:      ${state.whatsNew?.substring(0, 100) ?? "–"}`
+      );
+      console.log(
+        `  Promo Text:      ${state.promotionalText?.substring(0, 100) ?? "–"}`
+      );
+      console.log("\n  IDs:");
+      console.log(
+        `    AppInfo Loc:   ${state.appInfoLocalizationId ?? "–"}`
+      );
+      console.log(
+        `    Version Loc:   ${state.versionLocalizationId ?? "–"}`
+      );
+
+      // Save to local DB
+      const ownApp = await prisma.app.findUnique({
+        where: { bundleId: env.ASC_BUNDLE_ID },
+      });
+
+      if (ownApp) {
+        await prisma.app.update({
+          where: { id: ownApp.id },
+          data: {
+            currentTitle: state.title ?? ownApp.currentTitle,
+            currentSubtitle: state.subtitle ?? ownApp.currentSubtitle,
+            currentKeywords: state.keywords ?? ownApp.currentKeywords,
+            currentDescription:
+              state.description ?? ownApp.currentDescription,
+          },
+        });
+        console.log("\n💾 Lokale Datenbank mit ASC-Daten synchronisiert.");
       } else {
         console.log(
-          `\n⚠️  Auto-Apply ist vorbereitet für ${highConfidence.length} Vorschläge.`
+          "\n⚠️  App noch nicht lokal vorhanden. Führe zuerst 'scrape' aus."
         );
-        console.log(
-          "Implementiere App Store Connect Update wenn ASC-Zugangsdaten konfiguriert sind."
-        );
-
-        // TODO: When ASC credentials are set up, uncomment this:
-        // const ascClient = new AppStoreConnectClient();
-        // const asoState = await ascClient.getCurrentASOState();
-        // ... apply changes via ASC API
       }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error(`\n❌ App Store Connect Fehler: ${msg}`);
     }
 
     await prisma.$disconnect();

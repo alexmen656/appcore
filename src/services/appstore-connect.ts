@@ -252,12 +252,104 @@ export class AppStoreConnectClient {
     logger.info(`Updated version localization ${localizationId}`, updates);
   }
 
+  // ─── Editable Version Handling ──────────────────────────────────
+
+  /**
+   * Get an editable App Store version (PREPARE_FOR_SUBMISSION or IN_REVIEW).
+   * If none exists, returns null — you'd need to create a new version.
+   */
+  async getEditableVersion(appId: string): Promise<ASCAppStoreVersion | null> {
+    const editableStates = [
+      "PREPARE_FOR_SUBMISSION",
+      "DEVELOPER_REJECTED",
+      "REJECTED",
+      "METADATA_REJECTED",
+      "WAITING_FOR_REVIEW",
+    ];
+
+    for (const state of editableStates) {
+      const { data } = await this.client.get(
+        `/apps/${appId}/appStoreVersions`,
+        {
+          params: {
+            "filter[appStoreState]": state,
+            "filter[platform]": "IOS",
+            "fields[appStoreVersions]":
+              "versionString,appStoreState,platform,releaseType",
+          },
+        }
+      );
+      if (data.data?.length > 0) {
+        return data.data[0];
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Create a new App Store version for editing
+   */
+  async createNewVersion(
+    appId: string,
+    versionString: string,
+    releaseType: "MANUAL" | "AFTER_APPROVAL" = "MANUAL"
+  ): Promise<ASCAppStoreVersion> {
+    const { data } = await this.client.post("/appStoreVersions", {
+      data: {
+        type: "appStoreVersions",
+        attributes: {
+          versionString,
+          platform: "IOS",
+          releaseType,
+        },
+        relationships: {
+          app: {
+            data: { type: "apps", id: appId },
+          },
+        },
+      },
+    });
+
+    logger.info(
+      `Created new App Store version ${versionString} (${data.data.id})`
+    );
+    return data.data;
+  }
+
+  /**
+   * Get or create an editable version. If there's a live version, bumps the patch.
+   */
+  async getOrCreateEditableVersion(
+    appId: string
+  ): Promise<ASCAppStoreVersion> {
+    // Try to find an existing editable version
+    const editable = await this.getEditableVersion(appId);
+    if (editable) {
+      logger.info(
+        `Found editable version: ${editable.attributes.versionString} (${editable.attributes.appStoreState})`
+      );
+      return editable;
+    }
+
+    // Get live version to determine next version number
+    const live = await this.getLiveVersion(appId);
+    let nextVersion = "1.0.1";
+    if (live) {
+      const parts = live.attributes.versionString.split(".").map(Number);
+      parts[parts.length - 1]++;
+      nextVersion = parts.join(".");
+    }
+
+    logger.info(`No editable version found. Creating v${nextVersion}...`);
+    return this.createNewVersion(appId, nextVersion);
+  }
+
   // ─── Convenience: Get full current ASO state ──────────────────────
 
   /**
    * Fetch the complete current ASO metadata for our app
    */
-  async getCurrentASOState(locale = "de-DE"): Promise<{
+  async getCurrentASOState(locale = "en-US"): Promise<{
     title?: string;
     subtitle?: string;
     description?: string;
@@ -266,6 +358,10 @@ export class AppStoreConnectClient {
     promotionalText?: string;
     appInfoLocalizationId?: string;
     versionLocalizationId?: string;
+    appId?: string;
+    versionId?: string;
+    versionString?: string;
+    appStoreState?: string;
   } | null> {
     const app = await this.getApp();
     if (!app) {
@@ -278,11 +374,16 @@ export class AppStoreConnectClient {
       (l) => l.attributes.locale === locale
     );
 
-    const liveVersion = await this.getLiveVersion(app.id);
+    // Try editable version first, then live
+    let version = await this.getEditableVersion(app.id);
+    if (!version) {
+      version = await this.getLiveVersion(app.id);
+    }
+
     let versionLoc: ASCVersionLocalization | undefined;
-    if (liveVersion) {
+    if (version) {
       const versionLocalizations = await this.getVersionLocalizations(
-        liveVersion.id,
+        version.id,
         locale
       );
       versionLoc = versionLocalizations[0];
@@ -297,6 +398,128 @@ export class AppStoreConnectClient {
       promotionalText: versionLoc?.attributes.promotionalText,
       appInfoLocalizationId: infoLoc?.id,
       versionLocalizationId: versionLoc?.id,
+      appId: app.id,
+      versionId: version?.id,
+      versionString: version?.attributes.versionString,
+      appStoreState: version?.attributes.appStoreState,
     };
+  }
+
+  // ─── Apply ASO changes ────────────────────────────────────────────
+
+  /**
+   * Apply a set of ASO changes to the app.
+   * Finds/creates an editable version and updates localizations.
+   */
+  async applyASOChanges(
+    changes: {
+      title?: string;
+      subtitle?: string;
+      description?: string;
+      keywords?: string;
+      whatsNew?: string;
+      promotionalText?: string;
+    },
+    locale = "en-US"
+  ): Promise<{
+    applied: string[];
+    errors: string[];
+    versionId: string;
+    versionString: string;
+  }> {
+    const applied: string[] = [];
+    const errors: string[] = [];
+
+    // Get app
+    const app = await this.getApp();
+    if (!app) {
+      throw new Error("App not found in App Store Connect");
+    }
+
+    // Get or create editable version
+    const version = await this.getOrCreateEditableVersion(app.id);
+    const versionId = version.id;
+    const versionString = version.attributes.versionString;
+
+    logger.info(
+      `Applying ASO changes to version ${versionString} (${version.attributes.appStoreState})`
+    );
+
+    // ── Update title/subtitle via appInfoLocalizations ──────────
+    if (changes.title || changes.subtitle) {
+      try {
+        const infoLocalizations = await this.getAppInfoLocalizations(app.id);
+        const infoLoc = infoLocalizations.find(
+          (l) => l.attributes.locale === locale
+        );
+
+        if (infoLoc) {
+          const updates: { name?: string; subtitle?: string } = {};
+          if (changes.title) updates.name = changes.title;
+          if (changes.subtitle) updates.subtitle = changes.subtitle;
+
+          await this.updateAppInfoLocalization(infoLoc.id, updates);
+
+          if (changes.title) applied.push(`Title → "${changes.title}"`);
+          if (changes.subtitle)
+            applied.push(`Subtitle → "${changes.subtitle}"`);
+        } else {
+          errors.push(
+            `No appInfoLocalization found for locale "${locale}". Available: ${infoLocalizations.map((l) => l.attributes.locale).join(", ")}`
+          );
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (changes.title) errors.push(`Title update failed: ${msg}`);
+        if (changes.subtitle) errors.push(`Subtitle update failed: ${msg}`);
+      }
+    }
+
+    // ── Update description/keywords/whatsNew via versionLocalizations ──
+    if (
+      changes.description ||
+      changes.keywords ||
+      changes.whatsNew ||
+      changes.promotionalText
+    ) {
+      try {
+        const versionLocs = await this.getVersionLocalizations(
+          versionId,
+          locale
+        );
+        const versionLoc = versionLocs[0];
+
+        if (versionLoc) {
+          const updates: {
+            description?: string;
+            keywords?: string;
+            whatsNew?: string;
+            promotionalText?: string;
+          } = {};
+          if (changes.description) updates.description = changes.description;
+          if (changes.keywords) updates.keywords = changes.keywords;
+          if (changes.whatsNew) updates.whatsNew = changes.whatsNew;
+          if (changes.promotionalText)
+            updates.promotionalText = changes.promotionalText;
+
+          await this.updateVersionLocalization(versionLoc.id, updates);
+
+          if (changes.description) applied.push("Description updated");
+          if (changes.keywords) applied.push(`Keywords → "${changes.keywords}"`);
+          if (changes.whatsNew) applied.push("What's New updated");
+          if (changes.promotionalText)
+            applied.push("Promotional Text updated");
+        } else {
+          errors.push(
+            `No versionLocalization found for locale "${locale}" on version ${versionString}`
+          );
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        errors.push(`Version localization update failed: ${msg}`);
+      }
+    }
+
+    return { applied, errors, versionId, versionString };
   }
 }
