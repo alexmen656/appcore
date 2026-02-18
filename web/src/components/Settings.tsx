@@ -270,56 +270,60 @@ export default function Settings({ addToast }: Props) {
                 <option value="anthropic">Anthropic</option>
               </select>
             </Field>
-            <Field
-              label="OpenAI API Key"
-              hint={
-                data?.openaiApiKeySet
-                  ? "Key is set. Enter a new value to replace."
-                  : undefined
-              }
-            >
-              <input
-                className={inputCls}
-                type="password"
-                autoComplete="off"
-                value={
-                  form.openaiApiKey === "••••••••"
-                    ? ""
-                    : (form.openaiApiKey ?? "")
-                }
-                onChange={(e) => set("openaiApiKey", e.target.value)}
-                placeholder={
+            {form.aiProvider === "openai" && (
+              <Field
+                label="OpenAI API Key"
+                hint={
                   data?.openaiApiKeySet
-                    ? "Leave empty to keep existing"
-                    : "sk-proj-…"
+                    ? "Key is set. Enter a new value to replace."
+                    : undefined
                 }
-              />
-            </Field>
-            <Field
-              label="Anthropic API Key"
-              hint={
-                data?.anthropicApiKeySet
-                  ? "Key is set. Enter a new value to replace."
-                  : undefined
-              }
-            >
-              <input
-                className={inputCls}
-                type="password"
-                autoComplete="off"
-                value={
-                  form.anthropicApiKey === "••••••••"
-                    ? ""
-                    : (form.anthropicApiKey ?? "")
-                }
-                onChange={(e) => set("anthropicApiKey", e.target.value)}
-                placeholder={
+              >
+                <input
+                  className={inputCls}
+                  type="password"
+                  autoComplete="off"
+                  value={
+                    form.openaiApiKey === "••••••••"
+                      ? ""
+                      : (form.openaiApiKey ?? "")
+                  }
+                  onChange={(e) => set("openaiApiKey", e.target.value)}
+                  placeholder={
+                    data?.openaiApiKeySet
+                      ? "Leave empty to keep existing"
+                      : "sk-proj-…"
+                  }
+                />
+              </Field>
+            )}
+            {form.aiProvider === "anthropic" && (
+              <Field
+                label="Anthropic API Key"
+                hint={
                   data?.anthropicApiKeySet
-                    ? "Leave empty to keep existing"
-                    : "sk-ant-…"
+                    ? "Key is set. Enter a new value to replace."
+                    : undefined
                 }
-              />
-            </Field>
+              >
+                <input
+                  className={inputCls}
+                  type="password"
+                  autoComplete="off"
+                  value={
+                    form.anthropicApiKey === "••••••••"
+                      ? ""
+                      : (form.anthropicApiKey ?? "")
+                  }
+                  onChange={(e) => set("anthropicApiKey", e.target.value)}
+                  placeholder={
+                    data?.anthropicApiKeySet
+                      ? "Leave empty to keep existing"
+                      : "sk-ant-…"
+                  }
+                />
+              </Field>
+            )}
           </div>
         </SectionCard>
 
