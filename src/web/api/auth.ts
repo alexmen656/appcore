@@ -156,7 +156,9 @@ authRouter.delete("/users/:id", requireAuth, async (req, res) => {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
-    const userId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const userId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
     if (userId === req.user!.userId) {
       res.status(400).json({ error: "Cannot delete yourself" });
       return;

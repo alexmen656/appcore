@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma, env, logger } from "../config";
+import type { EffectiveSettings } from "../config";
 import { SuggestionType, SuggestionStatus } from "@prisma/client";
 
 // ─── Locale Configuration ───────────────────────────────────────────────
@@ -61,7 +62,7 @@ function getLocaleConfig(locale: string): LocaleConfig {
   };
 }
 
-/** Parse ASO_LOCALES env var into locale list */
+/** Parse ASO_LOCALES env var into locale list (fallback when no settings provided) */
 function getConfiguredLocales(): string[] {
   return env.ASO_LOCALES.split(",").map((l) => l.trim()).filter(Boolean);
 }
@@ -104,18 +105,24 @@ interface ASOAnalysis {
 export class AIAnalyzer {
   private openai?: OpenAI;
   private anthropic?: Anthropic;
+  private readonly settings?: EffectiveSettings;
 
-  constructor() {
-    if (env.OPENAI_API_KEY) {
-      this.openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+  constructor(settings?: EffectiveSettings) {
+    this.settings = settings;
+
+    const openaiKey = settings?.openaiApiKey || env.OPENAI_API_KEY;
+    const anthropicKey = settings?.anthropicApiKey || env.ANTHROPIC_API_KEY;
+
+    if (openaiKey) {
+      this.openai = new OpenAI({ apiKey: openaiKey });
     }
-    if (env.ANTHROPIC_API_KEY) {
-      this.anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+    if (anthropicKey) {
+      this.anthropic = new Anthropic({ apiKey: anthropicKey });
     }
 
     if (!this.openai && !this.anthropic) {
       logger.warn(
-        "No AI provider configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY."
+        "No AI provider configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY in settings."
       );
     }
   }
@@ -128,7 +135,7 @@ export class AIAnalyzer {
     userPrompt: string,
     provider?: "openai" | "anthropic"
   ): Promise<AIResponse> {
-    const selectedProvider = provider ?? env.AI_PROVIDER;
+    const selectedProvider = provider ?? (this.settings?.aiProvider as "openai" | "anthropic" | undefined) ?? env.AI_PROVIDER;
 
     if (selectedProvider === "anthropic" && this.anthropic) {
       return this.queryAnthropic(systemPrompt, userPrompt);
@@ -192,7 +199,7 @@ export class AIAnalyzer {
    * Runs for ALL configured locales (ASO_LOCALES env) or a specific one.
    */
   async analyzeAndSuggest(locales?: string[]): Promise<Map<string, ASOAnalysis>> {
-    const targetLocales = locales ?? getConfiguredLocales();
+    const targetLocales = locales ?? this.settings?.asoLocales ?? getConfiguredLocales();
     const results = new Map<string, ASOAnalysis>();
 
     // Gather shared data once
@@ -218,7 +225,7 @@ export class AIAnalyzer {
    */
   private async gatherAppData() {
     const ownApp = await prisma.app.findUnique({
-      where: { bundleId: env.ASC_BUNDLE_ID },
+      where: { bundleId: (this.settings?.ascBundleId || env.ASC_BUNDLE_ID) },
       include: {
         snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 },
         competitors: {

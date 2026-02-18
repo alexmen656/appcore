@@ -1,12 +1,15 @@
 import { Router } from "express";
-import { prisma, env } from "../../config";
+import { prisma, env, getEffectiveSettings } from "../../config";
+import { requireAuth } from "../auth";
 
 export const dashboardRouter = Router();
+dashboardRouter.use(requireAuth);
 
 dashboardRouter.get("/", async (req, res) => {
   try {
+    const settings = await getEffectiveSettings(req.user!.userId);
     const activeBundleId =
-      (req.query.bundleId as string | undefined) || env.ASC_BUNDLE_ID;
+      (req.query.bundleId as string | undefined) || settings.ascBundleId;
 
     const [
       appCount,
@@ -63,15 +66,15 @@ dashboardRouter.get("/", async (req, res) => {
         jobs: jobCount,
       },
       config: {
-        bundleId: env.ASC_BUNDLE_ID,
-        country: env.SCRAPE_COUNTRY,
-        locales: env.ASO_LOCALES,
-        aiProvider: env.AI_PROVIDER,
-        hasOpenAI: !!env.OPENAI_API_KEY,
-        hasAnthropic: !!env.ANTHROPIC_API_KEY,
-        hasASC: !!env.ASC_ISSUER_ID,
+        bundleId: settings.ascBundleId,
+        country: settings.scrapeCountry,
+        locales: settings.asoLocales.join(","),
+        aiProvider: settings.aiProvider,
+        hasOpenAI: !!settings.openaiApiKey,
+        hasAnthropic: !!settings.anthropicApiKey,
+        hasASC: !!(settings.ascIssuerId && settings.ascKeyId && settings.ascPrivateKey),
         hasSearchAds: !!env.APPLE_ADS_CLIENT_ID,
-        scrapeInterval: env.SCRAPE_INTERVAL_HOURS,
+        scrapeInterval: settings.scrapeIntervalHours,
       },
       lastJob: lastJob
         ? {

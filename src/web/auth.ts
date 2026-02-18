@@ -18,7 +18,6 @@ export function verifyToken(token: string): JwtPayload {
   return jwt.verify(token, JWT_SECRET) as JwtPayload;
 }
 
-// Extend Express Request to carry the decoded user
 declare global {
   namespace Express {
     interface Request {

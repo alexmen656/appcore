@@ -7,7 +7,9 @@ export const ascRouter = Router();
 ascRouter.use(requireAuth);
 
 /** Build an ASC client from the requesting user's DB settings, falling back to env. */
-async function ascClientForUser(userId: string): Promise<AppStoreConnectClient> {
+async function ascClientForUser(
+  userId: string,
+): Promise<AppStoreConnectClient> {
   const s = await prisma.userSettings.findUnique({ where: { userId } });
   if (s?.ascIssuerId && s?.ascKeyId && s?.ascPrivateKey) {
     return new AppStoreConnectClient({
@@ -16,12 +18,10 @@ async function ascClientForUser(userId: string): Promise<AppStoreConnectClient> 
       privateKey: s.ascPrivateKey,
     });
   }
-  // Fall back to env / key file
   return new AppStoreConnectClient();
 }
 
 // ─── GET /api/asc/apps ──────────────────────────────────────────────────────
-// Returns all apps accessible via the user's ASC key
 ascRouter.get("/apps", async (req, res) => {
   try {
     const asc = await ascClientForUser(req.user!.userId);
@@ -34,7 +34,7 @@ ascRouter.get("/apps", async (req, res) => {
         bundleId: a.attributes.bundleId,
         sku: a.attributes.sku ?? null,
         primaryLocale: a.attributes.primaryLocale ?? null,
-      }))
+      })),
     );
   } catch (err: any) {
     logger.error("ASC listApps failed", err);

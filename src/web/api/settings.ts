@@ -3,8 +3,6 @@ import { prisma } from "../../config";
 import { requireAuth } from "../auth";
 
 export const settingsRouter = Router();
-
-// All settings routes require authentication
 settingsRouter.use(requireAuth);
 
 // ─── GET /api/settings ───────────────────────────────────────────────────────
@@ -14,7 +12,6 @@ settingsRouter.get("/", async (req, res) => {
       where: { userId: req.user!.userId },
     });
 
-    // Return settings, masking sensitive keys (only show if set, not the value)
     res.json(
       settings
         ? {
@@ -50,7 +47,7 @@ settingsRouter.get("/", async (req, res) => {
             scrapeIntervalHours: 24,
             maxCompetitors: 20,
             asoLocales: "en-US",
-          }
+          },
     );
   } catch (err) {
     res.status(500).json({ error: String(err) });
@@ -75,11 +72,9 @@ settingsRouter.put("/", async (req, res) => {
       asoLocales,
     } = req.body as Record<string, any>;
 
-    // Build update data – skip masked placeholder values so we don't overwrite
     const data: Record<string, any> = {};
     if (ascIssuerId !== undefined) data.ascIssuerId = ascIssuerId || null;
     if (ascKeyId !== undefined) data.ascKeyId = ascKeyId || null;
-    // Only update private key if a new value (not the mask) was provided
     if (ascPrivateKey !== undefined && ascPrivateKey !== "••••••••")
       data.ascPrivateKey = ascPrivateKey || null;
     if (ascAppId !== undefined) data.ascAppId = ascAppId || null;

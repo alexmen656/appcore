@@ -1,4 +1,5 @@
 import { prisma, logger, env } from "../config";
+import type { EffectiveSettings } from "../config";
 import { AppStoreScraper } from "./appstore-scraper";
 import { AppleSearchAdsClient } from "./search-ads";
 import { ScrapeType, JobStatus } from "@prisma/client";
@@ -9,20 +10,19 @@ export class KeywordTracker {
   private scraper: AppStoreScraper;
   private searchAds: AppleSearchAdsClient | null = null;
   private searchAdsPopularity: Map<string, number> | null = null;
+  private readonly bundleId: string;
+  private readonly country: string;
 
-  constructor() {
-    this.scraper = new AppStoreScraper();
+  constructor(settings?: EffectiveSettings) {
+    this.bundleId = settings?.ascBundleId || env.ASC_BUNDLE_ID;
+    this.country  = settings?.scrapeCountry || env.SCRAPE_COUNTRY;
+    this.scraper  = new AppStoreScraper(settings ?? this.country);
 
-    // Initialize Search Ads client if credentials are available
     if (env.APPLE_ADS_CLIENT_ID) {
       this.searchAds = new AppleSearchAdsClient();
     }
   }
 
-  /**
-   * Fetch keyword popularity data from Apple Search Ads API.
-   * Caches results for the duration of a tracking session.
-   */
   private async fetchSearchAdsData(): Promise<Map<string, number>> {
     if (this.searchAdsPopularity) return this.searchAdsPopularity;
 
@@ -59,12 +59,9 @@ export class KeywordTracker {
     return this.searchAdsPopularity;
   }
 
-  /**
-   * Add keywords to track
-   */
   async addKeywords(
     terms: string[],
-    country = env.SCRAPE_COUNTRY,
+    country = this.country,
     language?: string,
   ): Promise<number> {
     let added = 0;
@@ -90,7 +87,7 @@ export class KeywordTracker {
    */
   async trackKeywordRanking(
     keywordTerm: string,
-    country = env.SCRAPE_COUNTRY,
+    country = this.country,
   ): Promise<number | null> {
     const keyword = await prisma.keyword.findUnique({
       where: { term_country: { term: keywordTerm, country } },
@@ -127,7 +124,7 @@ export class KeywordTracker {
 
     // Find our app's position
     const ownApp = await prisma.app.findUnique({
-      where: { bundleId: env.ASC_BUNDLE_ID },
+      where: { bundleId: this.bundleId },
     });
 
     if (!ownApp) {
@@ -136,7 +133,7 @@ export class KeywordTracker {
     }
 
     const rank =
-      results.findIndex((r) => r.bundleId === env.ASC_BUNDLE_ID) + 1 || null;
+      results.findIndex((r) => r.bundleId === this.bundleId) + 1 || null;
 
     // Save ranking
     await prisma.keywordRanking.create({
@@ -274,12 +271,12 @@ export class KeywordTracker {
     }>
   > {
     const ownApp = await prisma.app.findUnique({
-      where: { bundleId: env.ASC_BUNDLE_ID },
+      where: { bundleId: this.bundleId },
     });
     if (!ownApp) return [];
 
     const keywords = await prisma.keyword.findMany({
-      where: { country: env.SCRAPE_COUNTRY },
+      where: { country: this.country },
       include: {
         rankings: {
           orderBy: { trackedAt: "desc" },

@@ -3,7 +3,6 @@ import { prisma, env } from "../../config";
 
 export const appsRouter = Router();
 
-// List all apps
 appsRouter.get("/", async (req, res) => {
   try {
     const apps = await prisma.app.findMany({
@@ -37,14 +36,13 @@ appsRouter.get("/", async (req, res) => {
         competitorCount: a._count.competitors + a._count.competitorOf,
         rankingCount: a._count.rankings,
         updatedAt: a.updatedAt,
-      }))
+      })),
     );
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
 });
 
-// Get single app
 appsRouter.get("/:id", async (req, res) => {
   try {
     const app = await prisma.app.findUnique({
@@ -54,14 +52,18 @@ appsRouter.get("/:id", async (req, res) => {
         competitors: {
           include: {
             competitor: {
-              include: { snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 } },
+              include: {
+                snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 },
+              },
             },
           },
         },
         competitorOf: {
           include: {
             app: {
-              include: { snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 } },
+              include: {
+                snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 },
+              },
             },
           },
         },

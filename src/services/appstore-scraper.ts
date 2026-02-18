@@ -2,6 +2,7 @@ import axios from "axios";
 import * as cheerio from "cheerio";
 import { parseStringPromise } from "xml2js";
 import { prisma, logger, env } from "../config";
+import type { EffectiveSettings } from "../config";
 import { ScrapeType, JobStatus } from "@prisma/client";
 
 // ─── iTunes Search API types ────────────────────────────────────────────
@@ -94,9 +95,16 @@ export class AppStoreScraper {
   private readonly baseUrl = "https://itunes.apple.com";
   private readonly country: string;
   private readonly language: string;
+  private readonly bundleId: string;
 
-  constructor(country?: string, language?: string) {
-    this.country = country ?? env.SCRAPE_COUNTRY;
+  constructor(countryOrSettings?: string | EffectiveSettings, language?: string) {
+    if (countryOrSettings && typeof countryOrSettings === "object") {
+      this.country = countryOrSettings.scrapeCountry || env.SCRAPE_COUNTRY;
+      this.bundleId = countryOrSettings.ascBundleId || env.ASC_BUNDLE_ID;
+    } else {
+      this.country = countryOrSettings ?? env.SCRAPE_COUNTRY;
+      this.bundleId = env.ASC_BUNDLE_ID;
+    }
     this.language = language ?? langForCountry(this.country);
   }
 
@@ -486,11 +494,11 @@ export class AppStoreScraper {
 
     try {
       // Scrape our own app
-      await this.scrapeAndSaveApp(env.ASC_BUNDLE_ID, true);
+      await this.scrapeAndSaveApp(this.bundleId, true);
 
       // Scrape all tracked competitors
       const ownApp = await prisma.app.findUnique({
-        where: { bundleId: env.ASC_BUNDLE_ID },
+        where: { bundleId: this.bundleId },
         include: { competitors: { include: { competitor: true } } },
       });
 

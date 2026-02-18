@@ -1,15 +1,16 @@
 import { Router } from "express";
-import { prisma, logger, env } from "../../config";
+import { prisma, logger, getEffectiveSettings } from "../../config";
+import { requireAuth } from "../auth";
 
 export const actionsRouter = Router();
+actionsRouter.use(requireAuth);
 
-// Trigger a competitor scrape
-actionsRouter.post("/scrape", async (_req, res) => {
+actionsRouter.post("/scrape", async (req, res) => {
   try {
+    const settings = await getEffectiveSettings(req.user!.userId);
     const { AppStoreScraper } = await import("../../services/appstore-scraper");
-    const scraper = new AppStoreScraper();
+    const scraper = new AppStoreScraper(settings);
 
-    // Run in background, return immediately
     res.json({ ok: true, message: "Scrape job started" });
 
     scraper
@@ -21,14 +22,17 @@ actionsRouter.post("/scrape", async (_req, res) => {
   }
 });
 
-// Trigger AI analysis
 actionsRouter.post("/analyze", async (req, res) => {
   try {
-    const { ASOAnalyzer } = await import("../../services/ai-analyzer");
-    const analyzer = new ASOAnalyzer();
-    const locales = req.body.locales || env.ASO_LOCALES.split(",");
+    const settings = await getEffectiveSettings(req.user!.userId);
+    const { AIAnalyzer } = await import("../../services/ai-analyzer");
+    const analyzer = new AIAnalyzer(settings);
+    const locales: string[] = req.body.locales || settings.asoLocales;
 
-    res.json({ ok: true, message: `Analysis started for locales: ${locales.join(", ")}` });
+    res.json({
+      ok: true,
+      message: `Analysis started for locales: ${locales.join(", ")}`,
+    });
 
     analyzer
       .analyzeAndSuggest(locales)
@@ -39,14 +43,23 @@ actionsRouter.post("/analyze", async (req, res) => {
   }
 });
 
-// Trigger ASC sync
-actionsRouter.post("/sync", async (_req, res) => {
+actionsRouter.post("/sync", async (req, res) => {
   try {
-    const { AppStoreConnectClient } = await import(
-      "../../services/appstore-connect"
-    );
-    const asc = new AppStoreConnectClient();
-    const locales = env.ASO_LOCALES.split(",");
+    const settings = await getEffectiveSettings(req.user!.userId);
+
+    if (!settings.ascIssuerId || !settings.ascKeyId || !settings.ascPrivateKey) {
+      res.status(400).json({ error: "App Store Connect credentials not configured in Settings." });
+      return;
+    }
+
+    const { AppStoreConnectClient } = await import("../../services/appstore-connect");
+    const asc = new AppStoreConnectClient({
+      issuerId: settings.ascIssuerId,
+      keyId: settings.ascKeyId,
+      privateKey: settings.ascPrivateKey,
+    });
+
+    const locales = settings.asoLocales;
     const results: Record<string, any> = {};
 
     for (const locale of locales) {
@@ -54,14 +67,13 @@ actionsRouter.post("/sync", async (_req, res) => {
       results[locale] = state;
     }
 
-    // Update our local DB with the synced data (use first locale as primary)
     const primaryState = results[locales[0]];
-    if (primaryState) {
+    if (primaryState && settings.ascBundleId) {
       await prisma.app.upsert({
-        where: { bundleId: env.ASC_BUNDLE_ID },
+        where: { bundleId: settings.ascBundleId },
         create: {
-          bundleId: env.ASC_BUNDLE_ID,
-          name: primaryState.name || "Kalbuddy",
+          bundleId: settings.ascBundleId,
+          name: primaryState.name || "App",
           isOwnApp: true,
           currentTitle: primaryState.name,
           currentSubtitle: primaryState.subtitle,
@@ -83,24 +95,25 @@ actionsRouter.post("/sync", async (_req, res) => {
   }
 });
 
-// Trigger keyword tracking
-actionsRouter.post("/track-keywords", async (_req, res) => {
+actionsRouter.post("/track-keywords", async (req, res) => {
   try {
+    const settings = await getEffectiveSettings(req.user!.userId);
     const { KeywordTracker } = await import("../../services/keyword-tracker");
-    const tracker = new KeywordTracker();
+    const tracker = new KeywordTracker(settings);
 
     res.json({ ok: true, message: "Keyword tracking started" });
 
     tracker
       .trackAllKeywords()
       .then(() => logger.info("Web-triggered keyword tracking completed"))
-      .catch((err) => logger.error("Web-triggered keyword tracking failed", err));
+      .catch((err) =>
+        logger.error("Web-triggered keyword tracking failed", err),
+      );
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
 });
 
-// Get job history
 actionsRouter.get("/jobs", async (_req, res) => {
   try {
     const jobs = await prisma.scrapeJob.findMany({
@@ -112,3 +125,4 @@ actionsRouter.get("/jobs", async (_req, res) => {
     res.status(500).json({ error: String(err) });
   }
 });
+

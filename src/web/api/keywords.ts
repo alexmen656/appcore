@@ -1,12 +1,15 @@
 import { Router } from "express";
-import { prisma, env } from "../../config";
+import { prisma, getEffectiveSettings } from "../../config";
+import { requireAuth } from "../auth";
 
 export const keywordsRouter = Router();
+keywordsRouter.use(requireAuth);
 
 keywordsRouter.get("/", async (req, res) => {
   try {
+    const settings = await getEffectiveSettings(req.user!.userId);
     const activeBundleId =
-      (req.query.bundleId as string | undefined) || env.ASC_BUNDLE_ID;
+      (req.query.bundleId as string | undefined) || settings.ascBundleId;
 
     const ownApp = await prisma.app.findUnique({
       where: { bundleId: activeBundleId },
