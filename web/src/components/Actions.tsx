@@ -27,10 +27,11 @@ interface ActionCard {
 }
 
 const ACTION_CARDS: ActionCard[] = [
-  { id: "scrape",         label: "Scrape",   title: "Discover Competitors",         desc: "Scrape iTunes API for competitor apps and save snapshots." },
-  { id: "analyze",        label: "Analyze",  title: "AI ASO Analysis",              desc: "Generate multi-locale ASO suggestions using AI.", primary: true },
-  { id: "sync",           label: "Sync",     title: "Sync with App Store Connect",  desc: "Pull current ASO state (title, subtitle, keywords) from ASC." },
-  { id: "track-keywords", label: "Track",    title: "Track Keywords",               desc: "Check current rankings for all tracked keywords." },
+  { id: "scrape",            label: "Scrape",    title: "Discover Competitors",        desc: "Scrape iTunes API for competitor apps and save snapshots." },
+  { id: "analyze",           label: "Analyze",   title: "AI ASO Analysis",             desc: "Generate multi-locale ASO suggestions using AI.", primary: true },
+  { id: "sync",              label: "Sync",      title: "Sync with App Store Connect", desc: "Pull current ASO state (title, subtitle, keywords) from ASC." },
+  { id: "track-keywords",    label: "Track",     title: "Track Keywords",              desc: "Check current rankings for all tracked keywords." },
+  { id: "discover-keywords", label: "Discover",  title: "Discover Keywords",           desc: "Find new keywords via AI, competitor texts and autocomplete expansion." },
 ];
 
 export default function Actions({ addToast }: Props) {

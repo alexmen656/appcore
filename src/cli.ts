@@ -5,6 +5,7 @@ import {
   AppStoreConnectClient,
   KeywordTracker,
   AIAnalyzer,
+  KeywordDiscoveryAgent,
 } from "./services";
 import { Scheduler } from "./jobs/scheduler";
 
@@ -188,6 +189,36 @@ program
         console.log(`  ${analysis.overallStrategy}`);
       }
     }
+
+    await prisma.$disconnect();
+  });
+
+// ─── Keyword Discovery Command ──────────────────────────────────────────
+
+program
+  .command("discover")
+  .description(
+    "Discover new keywords via AI (competitor texts + autocomplete + semantic expansion)",
+  )
+  .action(async () => {
+    const agent = new KeywordDiscoveryAgent();
+
+    console.log("\nKeyword Discovery starting...");
+    console.log(
+      "  Strategies: competitor text mining + autocomplete expansion + AI semantic gaps",
+    );
+    console.log(
+      `  Country: ${env.SCRAPE_COUNTRY} | Min. popularity: 15/100 | Max. scored per run: 25`,
+    );
+    console.log("  This may take a few minutes due to rate limiting.\n");
+
+    const result = await agent.run();
+
+    console.log("\nResults:");
+    console.log("─".repeat(40));
+    console.log(`  Candidates found:   ${result.discovered}`);
+    console.log(`  Passed quality:     ${result.scored}`);
+    console.log(`  Added to tracking:  ${result.added}`);
 
     await prisma.$disconnect();
   });

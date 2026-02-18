@@ -114,6 +114,29 @@ actionsRouter.post("/track-keywords", async (req, res) => {
   }
 });
 
+actionsRouter.post("/discover-keywords", async (req, res) => {
+  try {
+    const settings = await getEffectiveSettings(req.user!.userId);
+    const { KeywordDiscoveryAgent } = await import(
+      "../../services/keyword-discovery-agent"
+    );
+    const agent = new KeywordDiscoveryAgent(settings);
+
+    res.json({ ok: true, message: "Keyword discovery started" });
+
+    agent
+      .run()
+      .then((result) =>
+        logger.info("Web-triggered keyword discovery completed", result),
+      )
+      .catch((err) =>
+        logger.error("Web-triggered keyword discovery failed", err),
+      );
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 actionsRouter.get("/jobs", async (_req, res) => {
   try {
     const jobs = await prisma.scrapeJob.findMany({

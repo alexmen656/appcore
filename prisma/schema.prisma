@@ -255,6 +255,7 @@ enum ScrapeType {
   KEYWORD_RANKING
   SEARCH_ADS_DATA
   OWN_APP_SYNC
+  KEYWORD_DISCOVERY
 }
 
 enum JobStatus {

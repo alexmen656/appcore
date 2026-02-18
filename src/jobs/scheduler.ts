@@ -3,6 +3,7 @@ import { logger, env } from "../config";
 import { AppStoreScraper } from "../services/appstore-scraper";
 import { KeywordTracker } from "../services/keyword-tracker";
 import { AIAnalyzer } from "../services/ai-analyzer";
+import { KeywordDiscoveryAgent } from "../services/keyword-discovery-agent";
 
 // ─── Scheduled Job Orchestrator ─────────────────────────────────────────
 
@@ -10,12 +11,14 @@ export class Scheduler {
   private scraper: AppStoreScraper;
   private keywordTracker: KeywordTracker;
   private aiAnalyzer: AIAnalyzer;
+  private discoveryAgent: KeywordDiscoveryAgent;
   private jobs: cron.ScheduledTask[] = [];
 
   constructor() {
     this.scraper = new AppStoreScraper();
     this.keywordTracker = new KeywordTracker();
     this.aiAnalyzer = new AIAnalyzer();
+    this.discoveryAgent = new KeywordDiscoveryAgent();
   }
 
   /**
@@ -117,8 +120,29 @@ export class Scheduler {
     );
     this.jobs.push(extractionJob);
 
+    // ── Job 5: Keyword discovery (AI + autocomplete + competitor mining) ─
+    // Runs 3× daily at 3am, 11am, 7pm — staggered from keyword tracking
+    const discoveryJob = cron.schedule(
+      "0 3,11,19 * * *",
+      async () => {
+        logger.info("[CRON] Starting keyword discovery...");
+        try {
+          const result = await this.discoveryAgent.run();
+          logger.info(
+            `[CRON] Keyword discovery complete: ${result.discovered} found, ${result.scored} qualified, ${result.added} added`,
+          );
+        } catch (error) {
+          logger.error("[CRON] Keyword discovery failed", {
+            error: error instanceof Error ? error.message : error,
+          });
+        }
+      },
+      { timezone: "Europe/Berlin" },
+    );
+    this.jobs.push(discoveryJob);
+
     logger.info(
-      `Scheduler started with ${this.jobs.length} jobs (scrape every ${intervalHours}h, keywords every 6h, analysis daily 8am, extraction weekly Monday 6am)`
+      `Scheduler started with ${this.jobs.length} jobs (scrape every ${intervalHours}h, keywords every 6h, analysis daily 8am, extraction weekly Monday 6am, discovery 3×daily)`,
     );
   }
 
@@ -151,8 +175,11 @@ export class Scheduler {
       await this.keywordTracker.addKeywords(keywords.map((k) => k.keyword));
     }
 
-    logger.info("Step 4/4: Running AI analysis...");
+    logger.info("Step 4/5: Running AI analysis...");
     await this.aiAnalyzer.analyzeAndSuggest();
+
+    logger.info("Step 5/5: Running keyword discovery...");
+    await this.discoveryAgent.run();
 
     logger.info("All jobs completed successfully");
   }
