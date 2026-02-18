@@ -225,136 +225,181 @@ export class AppStoreScraper {
     difficulty: number;
     searchVolume: number;
   }> {
-    // ── 1. Fetch search results ──────────────────────────────────────
-    const results = await this.searchApps(term, limit);
+    // ── 1. Fetch results and autocomplete suggestions in parallel ────
+    const [results, suggestions] = await Promise.all([
+      this.searchApps(term, limit),
+      this.getSearchSuggestions(term),
+    ]);
     const resultCount = results.length;
+    const termLower = term.toLowerCase();
 
-    // ── 2. Compute market signals ───────────────────────────────────
-    const totalRatings = results.reduce(
-      (sum, r) => sum + (r.userRatingCount ?? 0),
-      0,
+    // ── 2. Autocomplete score (0–30) ─────────────────────────────────
+    //
+    // Apple's suggestion list position is the strongest externally-available
+    // proxy for real user search volume. We distinguish three match types:
+    //   exact   – term appears verbatim in suggestions  (strongest signal)
+    //   prefix  – a suggestion *starts with* our term   (e.g. "fit" → "fitness tracker")
+    //   contains – term appears somewhere inside a suggestion
+    //
+    // Suggestion count adds a small richness bonus: Apple only returns
+    // completions for queries with meaningful search activity, so more
+    // completions = busier query space.
+
+    const exactIndex = suggestions.findIndex(
+      (s) => s.toLowerCase() === termLower,
     );
-    const avgRatingCount = resultCount > 0 ? totalRatings / resultCount : 0;
+    const prefixIndex = suggestions.findIndex((s) =>
+      s.toLowerCase().startsWith(termLower),
+    );
+    const containsIndex = suggestions.findIndex((s) =>
+      s.toLowerCase().includes(termLower),
+    );
 
+    let positionScore: number;
+    if (exactIndex === 0) {
+      positionScore = 25;
+    } else if (exactIndex === 1) {
+      positionScore = 22;
+    } else if (exactIndex === 2) {
+      positionScore = 19;
+    } else if (exactIndex >= 3) {
+      positionScore = Math.max(8, 16 - exactIndex * 2);
+    } else if (prefixIndex === 0) {
+      positionScore = 14;
+    } else if (prefixIndex >= 1) {
+      positionScore = Math.max(6, 12 - prefixIndex * 2);
+    } else if (containsIndex >= 0) {
+      positionScore = Math.max(2, Math.round(8 - containsIndex * 1.5));
+    } else if (suggestions.length > 0) {
+      // Apple returns completions but none relate to our term → low but non-zero
+      positionScore = 2;
+    } else {
+      positionScore = 0;
+    }
+
+    // Richness bonus (0–5): more completions returned = busier query space
+    const suggestionBonus = Math.min(5, Math.ceil(suggestions.length / 2));
+    const autocompleteScore = Math.min(
+      30,
+      Math.round(positionScore + suggestionBonus),
+    );
+
+    // ── 3. Market depth score (0–25): result saturation ──────────────
+    //
+    // Logistic curve via 1 − e^(−x/15) — grows quickly at first then
+    // saturates near 50 results. No hard tier thresholds, no cliffs.
+    const depthScore =
+      resultCount === 0
+        ? 0
+        : Math.round(25 * (1 - Math.exp(-resultCount / 15)));
+
+    // ── 4. Engagement score (0–30): position-weighted rating counts ───
+    //
+    // Higher-ranked apps are more indicative of keyword demand; later
+    // positions get exponential decay. Log-scaled so the range doesn't
+    // collapse for ultra-popular keywords vs niche ones.
+    //   weighted ≈ 100  → score ≈ 10
+    //   weighted ≈ 10K  → score ≈ 20
+    //   weighted ≈ 1M   → score = 30 (cap)
+    const weightedRatings = results
+      .slice(0, 20)
+      .reduce((sum, r, i) => sum + (r.userRatingCount ?? 0) / (1 + i * 0.3), 0);
+    const engagementScore =
+      weightedRatings > 0
+        ? Math.min(30, Math.round(Math.log10(weightedRatings + 1) * 5))
+        : 0;
+
+    // ── 5. Market quality score (0–15): breadth of established apps ───
+    //
+    // Counts how many of the top-10 results have ≥500 ratings.
+    // A keyword where 8 of the top 10 apps are well-established is a
+    // genuinely more active search space than one with a single hit app.
+    const qualifiedApps = results
+      .slice(0, 10)
+      .filter((r) => (r.userRatingCount ?? 0) >= 500).length;
+    const qualityScore = Math.min(15, Math.round(qualifiedApps * 1.5));
+
+    // ── 6. Brand-term detection & penalty ─────────────────────────────
+    //
+    // Brand searches (e.g. "whatsapp", "spotify") show: very few diverse
+    // results, first app name closely matches the query. They reflect high
+    // search volume but zero targetability as generic keywords. We use
+    // character-bigram (Dice) similarity for a fuzzy name comparison
+    // rather than simple startsWith, which misses many brand variants.
+    let popularityMultiplier = 1.0;
+    if (resultCount <= 4 && results.length > 0) {
+      const firstApp = results[0]?.trackName?.toLowerCase() ?? "";
+      const firstWord = firstApp.split(/\s+/)[0] ?? "";
+      const isBrandLike =
+        firstApp === termLower ||
+        firstApp.startsWith(termLower) ||
+        termLower.startsWith(firstWord) ||
+        this.stringSimilarity(termLower, firstApp) > 0.75;
+      if (isBrandLike) {
+        popularityMultiplier = 0.4;
+      }
+    }
+
+    // ── 7. Composite popularity (0–100) ──────────────────────────────
+    const rawPopularity =
+      autocompleteScore + depthScore + engagementScore + qualityScore;
+    const popularity = Math.min(
+      100,
+      Math.max(1, Math.round(rawPopularity * popularityMultiplier)),
+    );
+
+    // ── 8. Difficulty: position-weighted competitor strength ──────────
+    //
+    // Blends top-3 avg (60 %) with top-10 avg (40 %) so the ranking leader
+    // matters more than the tail. Formula: (log10(x + 10) − 1) × 20
+    // anchors the scale at ratings ≈ 10, yielding:
+    //   ~90 ratings → 20   ~990 → 40   ~9 990 → 60   ~99 990 → 80   ~1 M → 100
+    const top3 = results.slice(0, 3);
     const top10 = results.slice(0, 10);
+
+    const top3AvgRatings =
+      top3.length > 0
+        ? top3.reduce((s, r) => s + (r.userRatingCount ?? 0), 0) / top3.length
+        : 0;
     const top10AvgRatings =
       top10.length > 0
-        ? top10.reduce((sum, r) => sum + (r.userRatingCount ?? 0), 0) /
-          top10.length
+        ? top10.reduce((s, r) => s + (r.userRatingCount ?? 0), 0) / top10.length
         : 0;
     const top10MaxRatings =
       top10.length > 0
         ? Math.max(...top10.map((r) => r.userRatingCount ?? 0))
         : 0;
 
-    // ── 3. Popularity: blended score from autocomplete + market breadth
-    //
-    // Design rationale:
-    //   - Autocomplete (max 30): lower weight because Apple's API readily surfaces
-    //     app *names* as the top suggestion even for near-zero-volume brand queries.
-    //   - Market breadth (max 70): heavier weight — result count + engagement is
-    //     the strongest proxy for real keyword search demand.
-    //   - Brand-term penalty: when ≤ 2 results are returned AND the first app name
-    //     closely matches the query it is almost certainly a brand/app-name search,
-    //     not a generic keyword. The autocomplete bonus is cut by 60 % in that case.
-
-    const suggestions = await this.getSearchSuggestions(term);
-    const termLower = term.toLowerCase();
-    const exactIndex = suggestions.findIndex(
-      (s) => s.toLowerCase() === termLower,
-    );
-    const partialIndex = suggestions.findIndex(
-      (s) =>
-        s.toLowerCase().includes(termLower) ||
-        termLower.includes(s.toLowerCase()),
+    const blendedAvgRatings = top3AvgRatings * 0.6 + top10AvgRatings * 0.4;
+    const baseDifficulty = Math.round(
+      (Math.log10(blendedAvgRatings + 10) - 1) * 20,
     );
 
-    // Autocomplete score (0–30)
-    let autocompleteScore: number;
-    if (exactIndex === 0) {
-      autocompleteScore = 30;
-    } else if (exactIndex >= 1 && exactIndex <= 2) {
-      autocompleteScore = 22;
-    } else if (exactIndex >= 3) {
-      autocompleteScore = Math.max(5, 18 - exactIndex * 2);
-    } else if (partialIndex >= 0) {
-      autocompleteScore = Math.max(3, 12 - partialIndex * 2);
-    } else if (suggestions.length > 0) {
-      autocompleteScore = 3;
-    } else {
-      autocompleteScore = 0;
-    }
+    // Dominance bonus: a single market-leading app raises the entry bar
+    // even when the overall top-10 average looks moderate.
+    const dominanceBonus =
+      top10MaxRatings > 5_000_000
+        ? 8
+        : top10MaxRatings > 1_000_000
+          ? 5
+          : top10MaxRatings > 100_000
+            ? 2
+            : 0;
 
-    // Brand-term penalty: few results + first app name matches query → brand search
-    if (resultCount <= 2 && exactIndex === 0) {
-      const firstAppName = results[0]?.trackName?.toLowerCase() ?? "";
-      const firstWord = firstAppName.split(" ")[0];
-      if (
-        firstAppName === termLower ||
-        firstAppName.startsWith(termLower) ||
-        termLower.startsWith(firstWord)
-      ) {
-        autocompleteScore = Math.round(autocompleteScore * 0.4);
-      }
-    }
-
-    // Market score (0–70): result breadth + engagement
-    let marketScore: number;
-    if (resultCount >= 40 && avgRatingCount > 100000) {
-      marketScore = 70;
-    } else if (resultCount >= 30 && avgRatingCount > 10000) {
-      marketScore = 55;
-    } else if (resultCount >= 20 && avgRatingCount > 1000) {
-      marketScore = 40;
-    } else if (resultCount >= 15) {
-      marketScore = Math.round(
-        25 + Math.min(Math.log10(avgRatingCount + 1) * 5, 15),
-      );
-    } else if (resultCount >= 10) {
-      marketScore = Math.round(
-        15 + Math.min(Math.log10(avgRatingCount + 1) * 4, 10),
-      );
-    } else if (resultCount >= 5) {
-      marketScore = Math.round(
-        8 + Math.min(Math.log10(avgRatingCount + 1) * 3, 7),
-      );
-    } else if (resultCount >= 3) {
-      marketScore = Math.round(
-        3 + Math.min(Math.log10(avgRatingCount + 1) * 2, 5),
-      );
-    } else {
-      marketScore = Math.min(3, resultCount);
-    }
-
-    const popularity = Math.min(
+    const difficulty = Math.min(
       100,
-      Math.max(1, autocompleteScore + marketScore),
+      Math.max(1, baseDifficulty + dominanceBonus),
     );
 
-    // ── 4. Difficulty: based on top-10 competitor strength ───────────
-    let difficulty: number;
-    if (top10MaxRatings > 1000000) {
-      difficulty = Math.min(
-        100,
-        85 + Math.round(Math.log10(top10AvgRatings) * 3),
-      );
-    } else if (top10AvgRatings > 100000) {
-      difficulty = Math.round(70 + Math.log10(top10AvgRatings / 100000) * 20);
-    } else if (top10AvgRatings > 10000) {
-      difficulty = Math.round(40 + (top10AvgRatings / 100000) * 30);
-    } else if (top10AvgRatings > 1000) {
-      difficulty = Math.round(20 + (top10AvgRatings / 10000) * 20);
-    } else {
-      difficulty = Math.max(1, Math.round((top10AvgRatings / 1000) * 20));
-    }
-    difficulty = Math.min(100, Math.max(0, difficulty));
-
-    // ── 5. Search volume: result count as proxy ─────────────────────
+    // ── 9. Search volume: result count as proxy ───────────────────────
     const searchVolume = resultCount;
 
     logger.debug(
-      `Keyword "${term}": popularity=${popularity} (ac=${autocompleteScore} mkt=${marketScore} exactIdx=${exactIndex} partialIdx=${partialIndex} results=${resultCount}), ` +
-        `difficulty=${difficulty} (top10avg=${Math.round(top10AvgRatings)}), volume=${searchVolume}`,
+      `Keyword "${term}": popularity=${popularity} ` +
+        `(ac=${autocompleteScore} depth=${depthScore} eng=${engagementScore} qual=${qualityScore} ` +
+        `exactIdx=${exactIndex} prefixIdx=${prefixIndex} results=${resultCount} mult=${popularityMultiplier}), ` +
+        `difficulty=${difficulty} (blendedAvg=${Math.round(blendedAvgRatings)} domBonus=${dominanceBonus}), ` +
+        `volume=${searchVolume}`,
     );
 
     return { results, popularity, difficulty, searchVolume };
@@ -592,6 +637,32 @@ export class AppStoreScraper {
       });
       throw error;
     }
+  }
+
+  /**
+   * Sørensen–Dice similarity over character bigrams (0–1).
+   * Used for brand-term detection without a heavy string-similarity library.
+   */
+  private stringSimilarity(a: string, b: string): number {
+    if (a === b) return 1;
+    if (a.length < 2 || b.length < 2) return 0;
+
+    const bigrams = (s: string): Map<string, number> => {
+      const map = new Map<string, number>();
+      for (let i = 0; i < s.length - 1; i++) {
+        const bg = s.slice(i, i + 2);
+        map.set(bg, (map.get(bg) ?? 0) + 1);
+      }
+      return map;
+    };
+
+    const aMap = bigrams(a);
+    const bMap = bigrams(b);
+    let intersection = 0;
+    for (const [bg, count] of aMap) {
+      intersection += Math.min(count, bMap.get(bg) ?? 0);
+    }
+    return (2 * intersection) / (a.length - 1 + b.length - 1);
   }
 
   private sleep(ms: number): Promise<void> {
