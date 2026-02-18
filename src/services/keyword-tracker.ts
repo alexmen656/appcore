@@ -5,7 +5,6 @@ import { AppleSearchAdsClient } from "./search-ads";
 import { ScrapeType, JobStatus } from "@prisma/client";
 
 // ─── Keyword Tracking Service ───────────────────────────────────────────
-
 export class KeywordTracker {
   private scraper: AppStoreScraper;
   private searchAds: AppleSearchAdsClient | null = null;
@@ -15,8 +14,8 @@ export class KeywordTracker {
 
   constructor(settings?: EffectiveSettings) {
     this.bundleId = settings?.ascBundleId || env.ASC_BUNDLE_ID;
-    this.country  = settings?.scrapeCountry || env.SCRAPE_COUNTRY;
-    this.scraper  = new AppStoreScraper(settings ?? this.country);
+    this.country = settings?.scrapeCountry || env.SCRAPE_COUNTRY;
+    this.scraper = new AppStoreScraper(settings ?? this.country);
 
     if (env.APPLE_ADS_CLIENT_ID) {
       this.searchAds = new AppleSearchAdsClient();
@@ -65,7 +64,7 @@ export class KeywordTracker {
     language?: string,
   ): Promise<number> {
     let added = 0;
-    const lang = language ?? country; // use country code as language fallback
+    const lang = language ?? country;
     for (const term of terms) {
       const normalized = term.toLowerCase().trim();
       if (!normalized) continue;
@@ -81,10 +80,6 @@ export class KeywordTracker {
     return added;
   }
 
-  /**
-   * Track ranking for a specific keyword
-   * Searches the App Store, calculates real popularity/difficulty/volume from Apple data
-   */
   async trackKeywordRanking(
     keywordTerm: string,
     country = this.country,
@@ -101,12 +96,10 @@ export class KeywordTracker {
     const { results, popularity, difficulty, searchVolume } =
       await this.scraper.analyzeKeyword(keywordTerm, 50);
 
-    // Check if Search Ads has better popularity data (overrides estimation)
     const searchAdsData = await this.fetchSearchAdsData();
     const realPopularity = searchAdsData.get(keywordTerm.toLowerCase());
     const finalPopularity = realPopularity ?? popularity;
 
-    // Update keyword metrics in DB
     await prisma.keyword.update({
       where: { id: keyword.id },
       data: {
@@ -122,7 +115,6 @@ export class KeywordTracker {
       );
     }
 
-    // Find our app's position
     const ownApp = await prisma.app.findUnique({
       where: { bundleId: this.bundleId },
     });
@@ -135,7 +127,6 @@ export class KeywordTracker {
     const rank =
       results.findIndex((r) => r.bundleId === this.bundleId) + 1 || null;
 
-    // Save ranking
     await prisma.keywordRanking.create({
       data: {
         keywordId: keyword.id,
@@ -145,7 +136,6 @@ export class KeywordTracker {
       },
     });
 
-    // Also track competitor rankings
     const competitors = await prisma.competitorRelation.findMany({
       where: { appId: ownApp.id },
       include: { competitor: true },
@@ -172,9 +162,6 @@ export class KeywordTracker {
     return rank;
   }
 
-  /**
-   * Track rankings for all monitored keywords
-   */
   async trackAllKeywords(): Promise<Map<string, number | null>> {
     const job = await prisma.scrapeJob.create({
       data: {
@@ -187,7 +174,6 @@ export class KeywordTracker {
     const rankings = new Map<string, number | null>();
 
     try {
-      // Track all keywords regardless of country/language
       const keywords = await prisma.keyword.findMany({});
 
       for (const keyword of keywords) {
@@ -197,7 +183,6 @@ export class KeywordTracker {
         );
         rankings.set(`${keyword.term}@${keyword.country}`, rank);
 
-        // Rate limiting: 1.5 seconds between searches
         await new Promise((r) => setTimeout(r, 1500));
       }
 
@@ -227,9 +212,6 @@ export class KeywordTracker {
     return rankings;
   }
 
-  /**
-   * Get ranking history for a keyword
-   */
   async getRankingHistory(
     keywordTerm: string,
     days = 30,
@@ -258,9 +240,6 @@ export class KeywordTracker {
     }));
   }
 
-  /**
-   * Get summary of current keyword rankings
-   */
   async getCurrentRankingSummary(): Promise<
     Array<{
       keyword: string;
@@ -280,7 +259,7 @@ export class KeywordTracker {
       include: {
         rankings: {
           orderBy: { trackedAt: "desc" },
-          take: 50, // latest rankings (multiple apps)
+          take: 50,
           include: { app: true },
         },
       },

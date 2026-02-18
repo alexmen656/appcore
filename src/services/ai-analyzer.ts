@@ -7,64 +7,248 @@ import { SuggestionType, SuggestionStatus } from "@prisma/client";
 // ─── Locale Configuration ───────────────────────────────────────────────
 
 interface LocaleConfig {
-  locale: string;     // ASC locale, e.g. "en-US"
-  language: string;   // human-readable
+  locale: string; // ASC locale, e.g. "en-US"
+  language: string; // human-readable
   promptLang: string; // language for the AI prompt output
-  market: string;     // market description for the prompt
+  market: string; // market description for the prompt
 }
 
 const LOCALE_MAP: Record<string, LocaleConfig> = {
-  "en-US": { locale: "en-US", language: "English", promptLang: "English", market: "US/English-speaking" },
-  "en-GB": { locale: "en-GB", language: "English (UK)", promptLang: "English", market: "UK" },
-  "en-AU": { locale: "en-AU", language: "English (AU)", promptLang: "English", market: "Australian" },
-  "de-DE": { locale: "de-DE", language: "Deutsch", promptLang: "German", market: "German" },
-  "fr-FR": { locale: "fr-FR", language: "Français", promptLang: "French", market: "French" },
-  "es-ES": { locale: "es-ES", language: "Español", promptLang: "Spanish", market: "Spanish" },
-  "es-MX": { locale: "es-MX", language: "Español (MX)", promptLang: "Spanish", market: "Latin American" },
-  "it-IT": { locale: "it-IT", language: "Italiano", promptLang: "Italian", market: "Italian" },
-  "pt-BR": { locale: "pt-BR", language: "Português (BR)", promptLang: "Portuguese", market: "Brazilian" },
-  "pt-PT": { locale: "pt-PT", language: "Português", promptLang: "Portuguese", market: "Portuguese" },
-  "nl-NL": { locale: "nl-NL", language: "Nederlands", promptLang: "Dutch", market: "Dutch" },
-  "ja":    { locale: "ja", language: "日本語", promptLang: "Japanese", market: "Japanese" },
-  "ko":    { locale: "ko", language: "한국어", promptLang: "Korean", market: "Korean" },
-  "zh-Hans": { locale: "zh-Hans", language: "中文(简体)", promptLang: "Simplified Chinese", market: "Chinese" },
-  "zh-Hant": { locale: "zh-Hant", language: "中文(繁體)", promptLang: "Traditional Chinese", market: "Taiwanese/Hong Kong" },
-  "ru":    { locale: "ru", language: "Русский", promptLang: "Russian", market: "Russian" },
-  "tr":    { locale: "tr", language: "Türkçe", promptLang: "Turkish", market: "Turkish" },
-  "ar-SA": { locale: "ar-SA", language: "العربية", promptLang: "Arabic", market: "Arabic-speaking" },
-  "th":    { locale: "th", language: "ไทย", promptLang: "Thai", market: "Thai" },
-  "sv":    { locale: "sv", language: "Svenska", promptLang: "Swedish", market: "Swedish" },
-  "da":    { locale: "da", language: "Dansk", promptLang: "Danish", market: "Danish" },
-  "fi":    { locale: "fi", language: "Suomi", promptLang: "Finnish", market: "Finnish" },
-  "nb":    { locale: "nb", language: "Norsk", promptLang: "Norwegian", market: "Norwegian" },
-  "pl":    { locale: "pl", language: "Polski", promptLang: "Polish", market: "Polish" },
-  "cs":    { locale: "cs", language: "Čeština", promptLang: "Czech", market: "Czech" },
-  "el":    { locale: "el", language: "Ελληνικά", promptLang: "Greek", market: "Greek" },
-  "he":    { locale: "he", language: "עברית", promptLang: "Hebrew", market: "Israeli" },
-  "id":    { locale: "id", language: "Bahasa Indonesia", promptLang: "Indonesian", market: "Indonesian" },
-  "ms":    { locale: "ms", language: "Bahasa Melayu", promptLang: "Malay", market: "Malaysian" },
-  "vi":    { locale: "vi", language: "Tiếng Việt", promptLang: "Vietnamese", market: "Vietnamese" },
-  "uk":    { locale: "uk", language: "Українська", promptLang: "Ukrainian", market: "Ukrainian" },
-  "ro":    { locale: "ro", language: "Română", promptLang: "Romanian", market: "Romanian" },
-  "hu":    { locale: "hu", language: "Magyar", promptLang: "Hungarian", market: "Hungarian" },
-  "sk":    { locale: "sk", language: "Slovenčina", promptLang: "Slovak", market: "Slovak" },
-  "hr":    { locale: "hr", language: "Hrvatski", promptLang: "Croatian", market: "Croatian" },
-  "ca":    { locale: "ca", language: "Català", promptLang: "Catalan", market: "Catalan" },
-  "hi":    { locale: "hi", language: "हिन्दी", promptLang: "Hindi", market: "Indian" },
+  "en-US": {
+    locale: "en-US",
+    language: "English",
+    promptLang: "English",
+    market: "US/English-speaking",
+  },
+  "en-GB": {
+    locale: "en-GB",
+    language: "English (UK)",
+    promptLang: "English",
+    market: "UK",
+  },
+  "en-AU": {
+    locale: "en-AU",
+    language: "English (AU)",
+    promptLang: "English",
+    market: "Australian",
+  },
+  "de-DE": {
+    locale: "de-DE",
+    language: "Deutsch",
+    promptLang: "German",
+    market: "German",
+  },
+  "fr-FR": {
+    locale: "fr-FR",
+    language: "Français",
+    promptLang: "French",
+    market: "French",
+  },
+  "es-ES": {
+    locale: "es-ES",
+    language: "Español",
+    promptLang: "Spanish",
+    market: "Spanish",
+  },
+  "es-MX": {
+    locale: "es-MX",
+    language: "Español (MX)",
+    promptLang: "Spanish",
+    market: "Latin American",
+  },
+  "it-IT": {
+    locale: "it-IT",
+    language: "Italiano",
+    promptLang: "Italian",
+    market: "Italian",
+  },
+  "pt-BR": {
+    locale: "pt-BR",
+    language: "Português (BR)",
+    promptLang: "Portuguese",
+    market: "Brazilian",
+  },
+  "pt-PT": {
+    locale: "pt-PT",
+    language: "Português",
+    promptLang: "Portuguese",
+    market: "Portuguese",
+  },
+  "nl-NL": {
+    locale: "nl-NL",
+    language: "Nederlands",
+    promptLang: "Dutch",
+    market: "Dutch",
+  },
+  ja: {
+    locale: "ja",
+    language: "日本語",
+    promptLang: "Japanese",
+    market: "Japanese",
+  },
+  ko: {
+    locale: "ko",
+    language: "한국어",
+    promptLang: "Korean",
+    market: "Korean",
+  },
+  "zh-Hans": {
+    locale: "zh-Hans",
+    language: "中文(简体)",
+    promptLang: "Simplified Chinese",
+    market: "Chinese",
+  },
+  "zh-Hant": {
+    locale: "zh-Hant",
+    language: "中文(繁體)",
+    promptLang: "Traditional Chinese",
+    market: "Taiwanese/Hong Kong",
+  },
+  ru: {
+    locale: "ru",
+    language: "Русский",
+    promptLang: "Russian",
+    market: "Russian",
+  },
+  tr: {
+    locale: "tr",
+    language: "Türkçe",
+    promptLang: "Turkish",
+    market: "Turkish",
+  },
+  "ar-SA": {
+    locale: "ar-SA",
+    language: "العربية",
+    promptLang: "Arabic",
+    market: "Arabic-speaking",
+  },
+  th: { locale: "th", language: "ไทย", promptLang: "Thai", market: "Thai" },
+  sv: {
+    locale: "sv",
+    language: "Svenska",
+    promptLang: "Swedish",
+    market: "Swedish",
+  },
+  da: {
+    locale: "da",
+    language: "Dansk",
+    promptLang: "Danish",
+    market: "Danish",
+  },
+  fi: {
+    locale: "fi",
+    language: "Suomi",
+    promptLang: "Finnish",
+    market: "Finnish",
+  },
+  nb: {
+    locale: "nb",
+    language: "Norsk",
+    promptLang: "Norwegian",
+    market: "Norwegian",
+  },
+  pl: {
+    locale: "pl",
+    language: "Polski",
+    promptLang: "Polish",
+    market: "Polish",
+  },
+  cs: {
+    locale: "cs",
+    language: "Čeština",
+    promptLang: "Czech",
+    market: "Czech",
+  },
+  el: {
+    locale: "el",
+    language: "Ελληνικά",
+    promptLang: "Greek",
+    market: "Greek",
+  },
+  he: {
+    locale: "he",
+    language: "עברית",
+    promptLang: "Hebrew",
+    market: "Israeli",
+  },
+  id: {
+    locale: "id",
+    language: "Bahasa Indonesia",
+    promptLang: "Indonesian",
+    market: "Indonesian",
+  },
+  ms: {
+    locale: "ms",
+    language: "Bahasa Melayu",
+    promptLang: "Malay",
+    market: "Malaysian",
+  },
+  vi: {
+    locale: "vi",
+    language: "Tiếng Việt",
+    promptLang: "Vietnamese",
+    market: "Vietnamese",
+  },
+  uk: {
+    locale: "uk",
+    language: "Українська",
+    promptLang: "Ukrainian",
+    market: "Ukrainian",
+  },
+  ro: {
+    locale: "ro",
+    language: "Română",
+    promptLang: "Romanian",
+    market: "Romanian",
+  },
+  hu: {
+    locale: "hu",
+    language: "Magyar",
+    promptLang: "Hungarian",
+    market: "Hungarian",
+  },
+  sk: {
+    locale: "sk",
+    language: "Slovenčina",
+    promptLang: "Slovak",
+    market: "Slovak",
+  },
+  hr: {
+    locale: "hr",
+    language: "Hrvatski",
+    promptLang: "Croatian",
+    market: "Croatian",
+  },
+  ca: {
+    locale: "ca",
+    language: "Català",
+    promptLang: "Catalan",
+    market: "Catalan",
+  },
+  hi: {
+    locale: "hi",
+    language: "हिन्दी",
+    promptLang: "Hindi",
+    market: "Indian",
+  },
 };
 
 function getLocaleConfig(locale: string): LocaleConfig {
-  return LOCALE_MAP[locale] ?? {
-    locale,
-    language: locale,
-    promptLang: "English",
-    market: locale,
-  };
+  return (
+    LOCALE_MAP[locale] ?? {
+      locale,
+      language: locale,
+      promptLang: "English",
+      market: locale,
+    }
+  );
 }
 
 /** Parse ASO_LOCALES env var into locale list (fallback when no settings provided) */
 function getConfiguredLocales(): string[] {
-  return env.ASO_LOCALES.split(",").map((l) => l.trim()).filter(Boolean);
+  return env.ASO_LOCALES.split(",")
+    .map((l) => l.trim())
+    .filter(Boolean);
 }
 
 // ─── AI Provider Abstraction ────────────────────────────────────────────
@@ -122,20 +306,20 @@ export class AIAnalyzer {
 
     if (!this.openai && !this.anthropic) {
       logger.warn(
-        "No AI provider configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY in settings."
+        "No AI provider configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY in settings.",
       );
     }
   }
 
-  /**
-   * Send a prompt to the configured AI provider
-   */
   private async query(
     systemPrompt: string,
     userPrompt: string,
-    provider?: "openai" | "anthropic"
+    provider?: "openai" | "anthropic",
   ): Promise<AIResponse> {
-    const selectedProvider = provider ?? (this.settings?.aiProvider as "openai" | "anthropic" | undefined) ?? env.AI_PROVIDER;
+    const selectedProvider =
+      provider ??
+      (this.settings?.aiProvider as "openai" | "anthropic" | undefined) ??
+      env.AI_PROVIDER;
 
     if (selectedProvider === "anthropic" && this.anthropic) {
       return this.queryAnthropic(systemPrompt, userPrompt);
@@ -148,7 +332,7 @@ export class AIAnalyzer {
 
   private async queryOpenAI(
     systemPrompt: string,
-    userPrompt: string
+    userPrompt: string,
   ): Promise<AIResponse> {
     const response = await this.openai!.chat.completions.create({
       model: "gpt-4o",
@@ -172,7 +356,7 @@ export class AIAnalyzer {
 
   private async queryAnthropic(
     systemPrompt: string,
-    userPrompt: string
+    userPrompt: string,
   ): Promise<AIResponse> {
     const response = await this.anthropic!.messages.create({
       model: "claude-sonnet-4-20250514",
@@ -194,15 +378,12 @@ export class AIAnalyzer {
 
   // ─── ASO Analysis ─────────────────────────────────────────────────
 
-  /**
-   * Analyze our app vs competitors and generate ASO suggestions.
-   * Runs for ALL configured locales (ASO_LOCALES env) or a specific one.
-   */
-  async analyzeAndSuggest(locales?: string[]): Promise<Map<string, ASOAnalysis>> {
-    const targetLocales = locales ?? this.settings?.asoLocales ?? getConfiguredLocales();
+  async analyzeAndSuggest(
+    locales?: string[],
+  ): Promise<Map<string, ASOAnalysis>> {
+    const targetLocales =
+      locales ?? this.settings?.asoLocales ?? getConfiguredLocales();
     const results = new Map<string, ASOAnalysis>();
-
-    // Gather shared data once
     const appData = await this.gatherAppData();
 
     for (const locale of targetLocales) {
@@ -220,12 +401,9 @@ export class AIAnalyzer {
     return results;
   }
 
-  /**
-   * Gather all app + competitor data once (shared across locales)
-   */
   private async gatherAppData() {
     const ownApp = await prisma.app.findUnique({
-      where: { bundleId: (this.settings?.ascBundleId || env.ASC_BUNDLE_ID) },
+      where: { bundleId: this.settings?.ascBundleId || env.ASC_BUNDLE_ID },
       include: {
         snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 },
         competitors: {
@@ -252,12 +430,9 @@ export class AIAnalyzer {
     return ownApp;
   }
 
-  /**
-   * Run AI analysis for a single locale
-   */
   private async analyzeForLocale(
     locale: string,
-    ownApp: Awaited<ReturnType<typeof this.gatherAppData>>
+    ownApp: Awaited<ReturnType<typeof this.gatherAppData>>,
   ): Promise<ASOAnalysis> {
     const lc = getLocaleConfig(locale);
     const ownSnapshot = ownApp.snapshots[0];
@@ -319,21 +494,27 @@ Current Description (excerpt): ${ownSnapshot?.description?.substring(0, 800) ?? 
 Rating: ${ownSnapshot?.rating ?? "?"} (${ownSnapshot?.ratingsCount ?? "?"} ratings)
 
 ## KEYWORD RANKINGS
-${keywordData.length > 0
-        ? keywordData.map((k) => `- "${k.keyword}": Rank ${k.rank ?? "unranked"} (Popularity: ${k.popularity ?? "?"})`).join("\n")
-        : "No keywords tracked yet"
-      }
+${
+  keywordData.length > 0
+    ? keywordData
+        .map(
+          (k) =>
+            `- "${k.keyword}": Rank ${k.rank ?? "unranked"} (Popularity: ${k.popularity ?? "?"})`,
+        )
+        .join("\n")
+    : "No keywords tracked yet"
+}
 
 ## COMPETITOR APPS (${competitorData.length} apps)
 ${competitorData
-        .map(
-          (c) => `### ${c.name}
+  .map(
+    (c) => `### ${c.name}
 Title: ${c.title}
 Subtitle: ${c.subtitle ?? "-"}
 Description (excerpt): ${c.description ?? "-"}
-Rating: ${c.rating ?? "?"} (${c.ratingsCount ?? "?"} ratings)`
-        )
-        .join("\n\n")}
+Rating: ${c.rating ?? "?"} (${c.ratingsCount ?? "?"} ratings)`,
+  )
+  .join("\n\n")}
 
 Generate detailed ASO optimization suggestions in ${lc.promptLang} for the ${lc.market} market.`;
 
@@ -354,7 +535,6 @@ Generate detailed ASO optimization suggestions in ${lc.promptLang} for the ${lc.
       throw new Error("AI response was not valid JSON");
     }
 
-    // Save suggestions with locale tag
     await this.saveSuggestions(analysis, response, locale);
 
     logger.info(`ASO analysis complete for ${locale}`, {
@@ -367,13 +547,10 @@ Generate detailed ASO optimization suggestions in ${lc.promptLang} for the ${lc.
     return analysis;
   }
 
-  /**
-   * Persist AI suggestions in the database (tagged with locale)
-   */
   private async saveSuggestions(
     analysis: ASOAnalysis,
     aiResponse: AIResponse,
-    locale: string
+    locale: string,
   ): Promise<void> {
     const suggestions = [
       ...analysis.titleSuggestions.map((s) => ({
@@ -411,14 +588,13 @@ Generate detailed ASO optimization suggestions in ${lc.promptLang} for the ${lc.
       });
     }
 
-    logger.info(`Saved ${suggestions.length} ASO suggestions for locale ${locale}`);
+    logger.info(
+      `Saved ${suggestions.length} ASO suggestions for locale ${locale}`,
+    );
   }
 
   // ─── Keyword Extraction ───────────────────────────────────────────
 
-  /**
-   * Extract potential keywords from competitor descriptions
-   */
   async extractKeywordsFromCompetitors(): Promise<
     Array<{ keyword: string; frequency: number; relevance: number }>
   > {
@@ -454,13 +630,13 @@ Antworte als JSON:
     const userPrompt = `Analysiere diese Konkurrenz-Apps und extrahiere die wichtigsten ASO-Keywords:
 
 ${descriptions
-        .map(
-          (d) => `## ${d.name}
+  .map(
+    (d) => `## ${d.name}
 Titel: ${d.title}
 Untertitel: ${d.subtitle}
-Beschreibung: ${d.description}`
-        )
-        .join("\n\n")}
+Beschreibung: ${d.description}`,
+  )
+  .join("\n\n")}
 
 Extrahiere die 30 wichtigsten Keywords/Suchbegriffe die Nutzer verwenden würden.`;
 
