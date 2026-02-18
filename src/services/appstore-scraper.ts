@@ -247,15 +247,16 @@ export class AppStoreScraper {
         ? Math.max(...top10.map((r) => r.userRatingCount ?? 0))
         : 0;
 
-    // ── 3. Popularity: blended score from autocomplete + market strength ─
+    // ── 3. Popularity: blended score from autocomplete + market breadth
     //
-    // Autocomplete position alone is misleading — niche brand names appear
-    // at position 0 even if nobody searches for them. We combine:
-    //   - autocompleteScore (0-50): position in Apple's suggestion list
-    //   - marketScore (0-50): how competitive the search results are
-    //
-    // A keyword is truly popular only if it has BOTH autocomplete presence
-    // AND competitive results.
+    // Design rationale:
+    //   - Autocomplete (max 30): lower weight because Apple's API readily surfaces
+    //     app *names* as the top suggestion even for near-zero-volume brand queries.
+    //   - Market breadth (max 70): heavier weight — result count + engagement is
+    //     the strongest proxy for real keyword search demand.
+    //   - Brand-term penalty: when ≤ 2 results are returned AND the first app name
+    //     closely matches the query it is almost certainly a brand/app-name search,
+    //     not a generic keyword. The autocomplete bonus is cut by 60 % in that case.
 
     const suggestions = await this.getSearchSuggestions(term);
     const termLower = term.toLowerCase();
@@ -268,36 +269,61 @@ export class AppStoreScraper {
         termLower.includes(s.toLowerCase()),
     );
 
-    // Autocomplete score (0–50)
+    // Autocomplete score (0–30)
     let autocompleteScore: number;
-    if (exactIndex >= 0) {
-      autocompleteScore = Math.max(10, Math.round(50 - exactIndex * 5));
+    if (exactIndex === 0) {
+      autocompleteScore = 30;
+    } else if (exactIndex >= 1 && exactIndex <= 2) {
+      autocompleteScore = 22;
+    } else if (exactIndex >= 3) {
+      autocompleteScore = Math.max(5, 18 - exactIndex * 2);
     } else if (partialIndex >= 0) {
-      autocompleteScore = Math.max(5, Math.round(35 - partialIndex * 4));
+      autocompleteScore = Math.max(3, 12 - partialIndex * 2);
     } else if (suggestions.length > 0) {
-      autocompleteScore = 5; // prefix exists but term not suggested
+      autocompleteScore = 3;
     } else {
-      autocompleteScore = 0; // no suggestions at all
+      autocompleteScore = 0;
     }
 
-    // Market score (0–50): based on how many competing apps exist and how strong they are
+    // Brand-term penalty: few results + first app name matches query → brand search
+    if (resultCount <= 2 && exactIndex === 0) {
+      const firstAppName = results[0]?.trackName?.toLowerCase() ?? "";
+      const firstWord = firstAppName.split(" ")[0];
+      if (
+        firstAppName === termLower ||
+        firstAppName.startsWith(termLower) ||
+        termLower.startsWith(firstWord)
+      ) {
+        autocompleteScore = Math.round(autocompleteScore * 0.4);
+      }
+    }
+
+    // Market score (0–70): result breadth + engagement
     let marketScore: number;
     if (resultCount >= 40 && avgRatingCount > 100000) {
-      marketScore = 50;
+      marketScore = 70;
     } else if (resultCount >= 30 && avgRatingCount > 10000) {
-      marketScore = 40;
+      marketScore = 55;
     } else if (resultCount >= 20 && avgRatingCount > 1000) {
-      marketScore = 30;
+      marketScore = 40;
+    } else if (resultCount >= 15) {
+      marketScore = Math.round(
+        25 + Math.min(Math.log10(avgRatingCount + 1) * 5, 15),
+      );
     } else if (resultCount >= 10) {
       marketScore = Math.round(
-        10 + Math.min(Math.log10(avgRatingCount + 1) * 4, 15),
+        15 + Math.min(Math.log10(avgRatingCount + 1) * 4, 10),
+      );
+    } else if (resultCount >= 5) {
+      marketScore = Math.round(
+        8 + Math.min(Math.log10(avgRatingCount + 1) * 3, 7),
       );
     } else if (resultCount >= 3) {
       marketScore = Math.round(
-        5 + Math.min(Math.log10(avgRatingCount + 1) * 3, 10),
+        3 + Math.min(Math.log10(avgRatingCount + 1) * 2, 5),
       );
     } else {
-      marketScore = Math.min(5, resultCount * 2);
+      marketScore = Math.min(3, resultCount);
     }
 
     const popularity = Math.min(
@@ -327,7 +353,7 @@ export class AppStoreScraper {
     const searchVolume = resultCount;
 
     logger.debug(
-      `Keyword "${term}": popularity=${popularity} (ac=${autocompleteScore} mkt=${marketScore} pos=${exactIndex}), ` +
+      `Keyword "${term}": popularity=${popularity} (ac=${autocompleteScore} mkt=${marketScore} exactIdx=${exactIndex} partialIdx=${partialIndex} results=${resultCount}), ` +
         `difficulty=${difficulty} (top10avg=${Math.round(top10AvgRatings)}), volume=${searchVolume}`,
     );
 
