@@ -3,12 +3,13 @@ import { prisma, env } from "../../config";
 
 export const keywordsRouter = Router();
 
-// List all keywords with latest ranking (for OUR app specifically)
 keywordsRouter.get("/", async (req, res) => {
   try {
-    // Find our own app first
+    const activeBundleId =
+      (req.query.bundleId as string | undefined) || env.ASC_BUNDLE_ID;
+
     const ownApp = await prisma.app.findUnique({
-      where: { bundleId: env.ASC_BUNDLE_ID },
+      where: { bundleId: activeBundleId },
     });
 
     const keywords = await prisma.keyword.findMany({
@@ -23,7 +24,6 @@ keywordsRouter.get("/", async (req, res) => {
       orderBy: [{ popularity: "desc" }],
     });
 
-    // For each keyword, also get the top competitor rank
     const result = await Promise.all(
       keywords.map(async (k) => {
         let topCompetitor: { name: string; rank: number } | null = null;
@@ -45,7 +45,6 @@ keywordsRouter.get("/", async (req, res) => {
           }
         }
 
-        // Count only OUR rankings for this keyword
         const ourRankingCount = ownApp
           ? await prisma.keywordRanking.count({
               where: { keywordId: k.id, appId: ownApp.id },
@@ -66,7 +65,7 @@ keywordsRouter.get("/", async (req, res) => {
           suggestionCount: k._count.suggestions,
           updatedAt: k.updatedAt,
         };
-      })
+      }),
     );
 
     res.json(result);
@@ -75,7 +74,6 @@ keywordsRouter.get("/", async (req, res) => {
   }
 });
 
-// Get keyword ranking history
 keywordsRouter.get("/:id/history", async (req, res) => {
   try {
     const keyword = await prisma.keyword.findUnique({
@@ -110,7 +108,6 @@ keywordsRouter.get("/:id/history", async (req, res) => {
   }
 });
 
-// Add a keyword to track
 keywordsRouter.post("/", async (req, res) => {
   try {
     const { term, country, language } = req.body;
@@ -132,7 +129,6 @@ keywordsRouter.post("/", async (req, res) => {
   }
 });
 
-// Delete a keyword
 keywordsRouter.delete("/:id", async (req, res) => {
   try {
     await prisma.keyword.delete({ where: { id: req.params.id } });

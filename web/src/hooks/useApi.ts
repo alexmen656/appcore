@@ -8,9 +8,25 @@ export const getToken = () => localStorage.getItem(TOKEN_KEY);
 export const setToken = (t: string | null) =>
   t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY);
 
+// ─── Active app helpers ───────────────────────────────────────────────────────
+export const ACTIVE_BUNDLE_KEY = "appcore_active_bundle";
+export const getActiveBundleId = () => localStorage.getItem(ACTIVE_BUNDLE_KEY);
+export const setActiveBundleId = (bundleId: string | null) => {
+  if (bundleId) localStorage.setItem(ACTIVE_BUNDLE_KEY, bundleId);
+  else localStorage.removeItem(ACTIVE_BUNDLE_KEY);
+  window.dispatchEvent(new Event("app-changed"));
+};
+
 function authHeaders(): HeadersInit {
   const t = getToken();
   return t ? { Authorization: `Bearer ${t}` } : {};
+}
+
+function buildUrl(path: string): string {
+  const url = new URL(`${BASE}${path}`, window.location.origin);
+  const bundleId = getActiveBundleId();
+  if (bundleId) url.searchParams.set("bundleId", bundleId);
+  return url.toString().replace(window.location.origin, "");
 }
 
 export function useApi<T>(path: string, deps: any[] = []) {
@@ -21,7 +37,7 @@ export function useApi<T>(path: string, deps: any[] = []) {
   const refetch = useCallback(() => {
     setLoading(true);
     setError(null);
-    fetch(`${BASE}${path}`, { headers: authHeaders() })
+    fetch(buildUrl(path), { headers: authHeaders() })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
@@ -38,6 +54,11 @@ export function useApi<T>(path: string, deps: any[] = []) {
 
   useEffect(() => {
     refetch();
+  }, [refetch]);
+
+  useEffect(() => {
+    window.addEventListener("app-changed", refetch);
+    return () => window.removeEventListener("app-changed", refetch);
   }, [refetch]);
 
   return { data, loading, error, refetch };

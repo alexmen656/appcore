@@ -47,7 +47,9 @@ export class KeywordTracker {
         this.searchAdsPopularity.set(kw.keyword.toLowerCase(), kw.popularity);
       }
 
-      logger.info(`Got popularity data for ${keywords.length} keywords from Search Ads`);
+      logger.info(
+        `Got popularity data for ${keywords.length} keywords from Search Ads`,
+      );
     } catch (error) {
       logger.warn("Failed to fetch Search Ads data, will use estimates", {
         error: error instanceof Error ? error.message : error,
@@ -63,7 +65,7 @@ export class KeywordTracker {
   async addKeywords(
     terms: string[],
     country = env.SCRAPE_COUNTRY,
-    language?: string
+    language?: string,
   ): Promise<number> {
     let added = 0;
     const lang = language ?? country; // use country code as language fallback
@@ -88,7 +90,7 @@ export class KeywordTracker {
    */
   async trackKeywordRanking(
     keywordTerm: string,
-    country = env.SCRAPE_COUNTRY
+    country = env.SCRAPE_COUNTRY,
   ): Promise<number | null> {
     const keyword = await prisma.keyword.findUnique({
       where: { term_country: { term: keywordTerm, country } },
@@ -118,7 +120,9 @@ export class KeywordTracker {
     });
 
     if (realPopularity != null) {
-      logger.debug(`Keyword "${keywordTerm}": Search Ads popularity = ${realPopularity}`);
+      logger.debug(
+        `Keyword "${keywordTerm}": Search Ads popularity = ${realPopularity}`,
+      );
     }
 
     // Find our app's position
@@ -152,9 +156,8 @@ export class KeywordTracker {
 
     for (const rel of competitors) {
       const compRank =
-        results.findIndex(
-          (r) => r.bundleId === rel.competitor.bundleId
-        ) + 1 || null;
+        results.findIndex((r) => r.bundleId === rel.competitor.bundleId) + 1 ||
+        null;
 
       if (compRank) {
         await prisma.keywordRanking.create({
@@ -168,9 +171,7 @@ export class KeywordTracker {
       }
     }
 
-    logger.info(
-      `Keyword "${keywordTerm}": our rank = ${rank ?? "not ranked"}`
-    );
+    logger.info(`Keyword "${keywordTerm}": our rank = ${rank ?? "not ranked"}`);
     return rank;
   }
 
@@ -189,13 +190,15 @@ export class KeywordTracker {
     const rankings = new Map<string, number | null>();
 
     try {
-      const keywords = await prisma.keyword.findMany({
-        where: { country: env.SCRAPE_COUNTRY },
-      });
+      // Track all keywords regardless of country/language
+      const keywords = await prisma.keyword.findMany({});
 
       for (const keyword of keywords) {
-        const rank = await this.trackKeywordRanking(keyword.term);
-        rankings.set(keyword.term, rank);
+        const rank = await this.trackKeywordRanking(
+          keyword.term,
+          keyword.country,
+        );
+        rankings.set(`${keyword.term}@${keyword.country}`, rank);
 
         // Rate limiting: 1.5 seconds between searches
         await new Promise((r) => setTimeout(r, 1500));
@@ -232,10 +235,8 @@ export class KeywordTracker {
    */
   async getRankingHistory(
     keywordTerm: string,
-    days = 30
-  ): Promise<
-    Array<{ date: Date; rank: number | null; appName: string }>
-  > {
+    days = 30,
+  ): Promise<Array<{ date: Date; rank: number | null; appName: string }>> {
     const since = new Date();
     since.setDate(since.getDate() - days);
 

@@ -11,11 +11,15 @@ import {
   Legend,
 } from "recharts";
 
-const TH = "text-left text-[11px] font-semibold uppercase tracking-[0.5px] text-gray-400 px-3.5 py-2.5 border-b border-[#e5e7eb] whitespace-nowrap";
+const TH =
+  "text-left text-[11px] font-semibold uppercase tracking-[0.5px] text-gray-400 px-3.5 py-2.5 border-b border-[#e5e7eb] whitespace-nowrap";
 const TD = "px-3.5 py-3 border-b border-[#f0f0f0] text-[13px] align-middle";
-const inputCls = "px-3 py-[7px] rounded-[6px] border border-[#e5e7eb] bg-white text-[#1a1a2e] text-[13px] outline-none focus:border-[#ea0e2b] transition-colors font-[inherit]";
-const btnPrimSm = "inline-flex items-center gap-1.5 px-2.5 py-[5px] rounded-[6px] text-xs font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed";
-const btnSecSm  = "inline-flex items-center gap-1.5 px-2.5 py-[5px] rounded-[6px] text-xs font-medium border border-[#e5e7eb] bg-white text-[#1a1a2e] hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap";
+const inputCls =
+  "px-3 py-[7px] rounded-[6px] border border-[#e5e7eb] bg-white text-[#1a1a2e] text-[13px] outline-none focus:border-[#ea0e2b] transition-colors font-[inherit]";
+const btnPrimSm =
+  "inline-flex items-center gap-1.5 px-2.5 py-[5px] rounded-[6px] text-xs font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed";
+const btnSecSm =
+  "inline-flex items-center gap-1.5 px-2.5 py-[5px] rounded-[6px] text-xs font-medium border border-[#e5e7eb] bg-white text-[#1a1a2e] hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap";
 
 interface Keyword {
   id: string;
@@ -62,9 +66,31 @@ const CHART_COLORS = [
   "#84cc16",
 ];
 
+const COUNTRIES: { code: string; label: string; lang: string }[] = [
+  { code: "de", label: "🇩🇪 Deutschland", lang: "de" },
+  { code: "us", label: "🇺🇸 United States", lang: "en" },
+  { code: "gb", label: "🇬🇧 United Kingdom", lang: "en" },
+  { code: "at", label: "🇦🇹 Österreich", lang: "de" },
+  { code: "ch", label: "🇨🇭 Schweiz", lang: "de" },
+  { code: "fr", label: "🇫🇷 France", lang: "fr" },
+  { code: "es", label: "🇪🇸 España", lang: "es" },
+  { code: "it", label: "🇮🇹 Italia", lang: "it" },
+  { code: "nl", label: "🇳🇱 Netherlands", lang: "nl" },
+  { code: "pl", label: "🇵🇱 Poland", lang: "pl" },
+  { code: "tr", label: "🇹🇷 Türkiye", lang: "tr" },
+  { code: "br", label: "🇧🇷 Brasil", lang: "pt" },
+  { code: "mx", label: "🇲🇽 México", lang: "es" },
+  { code: "ca", label: "🇨🇦 Canada", lang: "en" },
+  { code: "au", label: "🇦🇺 Australia", lang: "en" },
+  { code: "jp", label: "🇯🇵 Japan", lang: "ja" },
+  { code: "kr", label: "🇰🇷 Korea", lang: "ko" },
+  { code: "cn", label: "🇨🇳 China", lang: "zh" },
+];
+
 export default function Keywords({ addToast }: Props) {
   const { data, loading, refetch } = useApi<Keyword[]>("/keywords");
   const [newTerm, setNewTerm] = useState("");
+  const [newCountry, setNewCountry] = useState("de");
   const [adding, setAdding] = useState(false);
   const [sortBy, setSortBy] = useState<"popularity" | "term" | "rank">(
     "popularity",
@@ -92,10 +118,19 @@ export default function Keywords({ addToast }: Props) {
     e.preventDefault();
     if (!newTerm.trim()) return;
     setAdding(true);
+    const country =
+      COUNTRIES.find((c) => c.code === newCountry) ?? COUNTRIES[0];
     try {
-      await apiPost("/keywords", { term: newTerm.trim() });
+      await apiPost("/keywords", {
+        term: newTerm.trim(),
+        country: country.code,
+        language: country.lang,
+      });
+      addToast(
+        `Keyword "${newTerm.trim()}" (${country.code.toUpperCase()}) added`,
+        "success",
+      );
       setNewTerm("");
-      addToast(`Keyword "${newTerm.trim()}" added`, "success");
       refetch();
     } catch (e: any) {
       addToast(e.message, "error");
@@ -207,12 +242,23 @@ export default function Keywords({ addToast }: Props) {
         className="flex items-center gap-2.5 flex-wrap mb-6"
       >
         <input
-          className={`${inputCls} w-56`}
+          className={`${inputCls} w-52`}
           type="text"
           placeholder="Add keyword to track…"
           value={newTerm}
           onChange={(e) => setNewTerm(e.target.value)}
         />
+        <select
+          className={`${inputCls} cursor-pointer`}
+          value={newCountry}
+          onChange={(e) => setNewCountry(e.target.value)}
+        >
+          {COUNTRIES.map((c) => (
+            <option key={c.code} value={c.code}>
+              {c.label}
+            </option>
+          ))}
+        </select>
         <button type="submit" className={btnPrimSm} disabled={adding}>
           + Add
         </button>
@@ -261,7 +307,9 @@ export default function Keywords({ addToast }: Props) {
                   onClick={() => loadHistory(k)}
                   className={`cursor-pointer hover:bg-gray-50/60 ${selectedKeyword?.id === k.id ? "!bg-blue-50/60" : ""}`}
                 >
-                  <td className={`${TD} font-medium text-[#1a1a2e]`}>{k.term}</td>
+                  <td className={`${TD} font-medium text-[#1a1a2e]`}>
+                    {k.term}
+                  </td>
                   <td className={`${TD} text-gray-500`}>{k.country}</td>
                   <td className={TD}>
                     {k.popularity != null ? (
@@ -323,7 +371,9 @@ export default function Keywords({ addToast }: Props) {
                       <span className="text-gray-400">—</span>
                     )}
                   </td>
-                  <td className={`${TD} text-gray-400 text-xs`}>{k.trackingCount}×</td>
+                  <td className={`${TD} text-gray-400 text-xs`}>
+                    {k.trackingCount}×
+                  </td>
                   <td className={TD}>
                     <button
                       className={`${btnSecSm} !text-red-500 !border-red-200 hover:!bg-red-50`}
@@ -411,7 +461,8 @@ export default function Keywords({ addToast }: Props) {
                   }}
                   labelStyle={{ fontWeight: 600, marginBottom: 4 }}
                 />{" "}
-x                <Legend
+                x{" "}
+                <Legend
                   verticalAlign="top"
                   height={36}
                   iconType="circle"

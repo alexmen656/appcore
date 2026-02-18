@@ -3,8 +3,11 @@ import { prisma, env } from "../../config";
 
 export const dashboardRouter = Router();
 
-dashboardRouter.get("/", async (_req, res) => {
+dashboardRouter.get("/", async (req, res) => {
   try {
+    const activeBundleId =
+      (req.query.bundleId as string | undefined) || env.ASC_BUNDLE_ID;
+
     const [
       appCount,
       snapshotCount,
@@ -24,7 +27,7 @@ dashboardRouter.get("/", async (_req, res) => {
     ]);
 
     const ownApp = await prisma.app.findUnique({
-      where: { bundleId: env.ASC_BUNDLE_ID },
+      where: { bundleId: activeBundleId },
       include: { snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 } },
     });
 

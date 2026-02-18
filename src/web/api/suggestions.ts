@@ -3,7 +3,6 @@ import { prisma } from "../../config";
 
 export const suggestionsRouter = Router();
 
-// List suggestions (with filters)
 suggestionsRouter.get("/", async (req, res) => {
   try {
     const { status, locale, type, limit } = req.query;
@@ -19,7 +18,6 @@ suggestionsRouter.get("/", async (req, res) => {
       include: { keyword: true },
     });
 
-    // Group by locale
     const grouped: Record<string, any[]> = {};
     for (const s of suggestions) {
       const loc = s.locale || "en-US";
@@ -48,7 +46,6 @@ suggestionsRouter.get("/", async (req, res) => {
   }
 });
 
-// Approve a suggestion
 suggestionsRouter.post("/:id/approve", async (req, res) => {
   try {
     const suggestion = await prisma.aSOSuggestion.update({
@@ -61,7 +58,6 @@ suggestionsRouter.post("/:id/approve", async (req, res) => {
   }
 });
 
-// Reject a suggestion
 suggestionsRouter.post("/:id/reject", async (req, res) => {
   try {
     const suggestion = await prisma.aSOSuggestion.update({
@@ -74,7 +70,6 @@ suggestionsRouter.post("/:id/reject", async (req, res) => {
   }
 });
 
-// Apply a single suggestion via ASC
 suggestionsRouter.post("/:id/apply", async (req, res) => {
   try {
     const suggestion = await prisma.aSOSuggestion.findUnique({
@@ -82,18 +77,18 @@ suggestionsRouter.post("/:id/apply", async (req, res) => {
     });
     if (!suggestion) return res.status(404).json({ error: "Not found" });
 
-    // Lazy-load the ASC client to avoid import issues
-    const { AppStoreConnectClient } = await import(
-      "../../services/appstore-connect"
-    );
+    const { AppStoreConnectClient } =
+      await import("../../services/appstore-connect");
     const asc = new AppStoreConnectClient();
     const locale = suggestion.locale || "en-US";
 
     const changes: Record<string, string> = {};
     const typeKey = suggestion.type.toLowerCase();
     if (typeKey === "title") changes.name = suggestion.suggestedValue;
-    else if (typeKey === "subtitle") changes.subtitle = suggestion.suggestedValue;
-    else if (typeKey === "keywords") changes.keywords = suggestion.suggestedValue;
+    else if (typeKey === "subtitle")
+      changes.subtitle = suggestion.suggestedValue;
+    else if (typeKey === "keywords")
+      changes.keywords = suggestion.suggestedValue;
     else if (typeKey === "description")
       changes.description = suggestion.suggestedValue;
 
@@ -112,7 +107,6 @@ suggestionsRouter.post("/:id/apply", async (req, res) => {
   }
 });
 
-// Bulk approve all pending for a locale
 suggestionsRouter.post("/bulk-approve", async (req, res) => {
   try {
     const { locale } = req.body;
