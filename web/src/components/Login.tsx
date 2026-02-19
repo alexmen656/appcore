@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { setToken } from "../hooks/useApi";
+import AuthHeader from "./comps/login/AuthHeader";
 
 interface Props {
   onAuth: (user: AuthUser) => void;
@@ -47,22 +48,7 @@ export default function Login({ onAuth }: Props) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#eff3f6]">
       <div className="w-[400px] bg-white rounded-2xl shadow-xl border border-gray-200 p-10">
-        <div className="flex items-center gap-3 mb-8">
-          <img
-            src="/logo.png"
-            alt="AppCore"
-            className="h-10 w-10 rounded-xl object-cover"
-          />
-          <div>
-            <div className="text-xl font-bold text-[#ea0e2b] leading-tight">
-              AppCore
-            </div>
-            <div className="text-xs text-gray-400">ASO Engine by Fringelo</div>
-          </div>
-        </div>
-        <h2 className="text-[22px] font-bold text-[#1a1a2e] mb-6 tracking-tight">
-          {mode === "login" ? "Sign in to your account" : "Create an account"}
-        </h2>
+        <AuthHeader mode={mode} />
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {mode === "register" && (
             <label className="flex flex-col gap-1.5">
