@@ -138,12 +138,34 @@ export class KeywordDiscoveryAgent {
 
     // Persist qualified keywords
     let added = 0;
+    const ownApp = await prisma.app.findUnique({
+      where: { bundleId: this.bundleId },
+    });
+
     for (const term of qualified) {
-      await prisma.keyword.upsert({
+      const keyword = await prisma.keyword.upsert({
         where: { term_country: { term, country: this.country } },
         create: { term, country: this.country, language: this.country },
         update: {},
       });
+
+      // Link keyword to the specific app so it appears in the keywords list
+      if (ownApp) {
+        const existingRanking = await prisma.keywordRanking.findFirst({
+          where: { keywordId: keyword.id, appId: ownApp.id },
+        });
+        if (!existingRanking) {
+          await prisma.keywordRanking.create({
+            data: {
+              keywordId: keyword.id,
+              appId: ownApp.id,
+              rank: null,
+              country: this.country,
+            },
+          });
+        }
+      }
+
       added++;
     }
 
@@ -268,7 +290,7 @@ Return the 25 most valuable keyword candidates not yet tracked. Respond with JSO
     existing: Set<string>,
   ): Promise<string[]> {
     const ownApp = await prisma.app.findFirst({
-      where: { isOwnApp: true },
+      where: { bundleId: this.bundleId, isOwnApp: true },
       include: { snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 } },
     });
 
@@ -354,8 +376,15 @@ Return JSON only.`;
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   private async loadExistingTerms(): Promise<Set<string>> {
+    const ownApp = await prisma.app.findUnique({
+      where: { bundleId: this.bundleId },
+    });
+
     const keywords = await prisma.keyword.findMany({
-      where: { country: this.country },
+      where: {
+        country: this.country,
+        ...(ownApp ? { rankings: { some: { appId: ownApp.id } } } : {}),
+      },
       select: { term: true },
     });
     return new Set(keywords.map((k) => k.term.toLowerCase()));

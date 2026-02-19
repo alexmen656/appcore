@@ -31,12 +31,15 @@ program
       logger.info("Running full scrape job...");
       await scraper.runFullScrapeJob();
     } else if (options.discover) {
-      logger.info(`Discovering competitors for: ${options.discover.join(", ")}`);
-      await scraper.scrapeAndSaveApp(env.ASC_BUNDLE_ID, true);
+      const targetBundleId = options.bundleId || env.ASC_BUNDLE_ID;
+      logger.info(
+        `Discovering competitors for ${targetBundleId}: ${options.discover.join(", ")}`,
+      );
+      await scraper.scrapeAndSaveApp(targetBundleId, true);
       const ids = await scraper.discoverCompetitors(
         options.discover,
-        env.ASC_BUNDLE_ID,
-        env.MAX_COMPETITORS
+        targetBundleId,
+        env.MAX_COMPETITORS,
       );
       logger.info(`Found ${ids.length} competitors`);
     } else if (options.bundleId) {
@@ -69,9 +72,7 @@ program
     if (options.all) {
       const rankings = await tracker.trackAllKeywords();
       for (const [keyword, rank] of rankings) {
-        console.log(
-          `  ${keyword}: ${rank ? `#${rank}` : "not ranked"}`
-        );
+        console.log(`  ${keyword}: ${rank ? `#${rank}` : "not ranked"}`);
       }
     }
 
@@ -85,7 +86,7 @@ program
           ? `${item.topCompetitor} #${item.topCompetitorRank}`
           : "—";
         console.log(
-          `  ${item.keyword.padEnd(30)} Rang: ${ourRank.padEnd(8)} Popularität: ${String(item.popularity ?? "?").padEnd(8)} Top-Konkurrenz: ${comp}`
+          `  ${item.keyword.padEnd(30)} Rang: ${ourRank.padEnd(8)} Popularität: ${String(item.popularity ?? "?").padEnd(8)} Top-Konkurrenz: ${comp}`,
         );
       }
     }
@@ -95,7 +96,7 @@ program
       console.log(`\n📈 Ranking-Verlauf für "${options.history}":`);
       for (const entry of history) {
         console.log(
-          `  ${entry.date.toISOString().split("T")[0]} | ${entry.appName.padEnd(25)} | Rang: ${entry.rank ?? "—"}`
+          `  ${entry.date.toISOString().split("T")[0]} | ${entry.appName.padEnd(25)} | Rang: ${entry.rank ?? "—"}`,
         );
       }
     }
@@ -108,11 +109,19 @@ program
 program
   .command("analyze")
   .description("Run AI-powered ASO analysis")
+  .option(
+    "-b, --bundle-id <bundleId>",
+    "App to analyze (overrides env ASC_BUNDLE_ID)",
+  )
   .option("--keywords", "Extract keywords from competitors")
   .option("--suggest", "Generate ASO optimization suggestions")
-  .option("--locales <locales...>", "Override ASO_LOCALES (e.g. en-US de-DE fr-FR)")
+  .option(
+    "--locales <locales...>",
+    "Override ASO_LOCALES (e.g. en-US de-DE fr-FR)",
+  )
   .action(async (options) => {
-    const analyzer = new AIAnalyzer();
+    const bundleId = options.bundleId || env.ASC_BUNDLE_ID;
+    const analyzer = new AIAnalyzer({ ascBundleId: bundleId } as any);
 
     if (options.keywords) {
       logger.info("Extracting keywords from competitor data...");
@@ -120,11 +129,10 @@ program
       console.log("\n🔑 Extracted Keywords:");
       for (const kw of keywords) {
         console.log(
-          `  ${kw.keyword.padEnd(30)} Häufigkeit: ${kw.frequency}  Relevanz: ${kw.relevance}`
+          `  ${kw.keyword.padEnd(30)} Häufigkeit: ${kw.frequency}  Relevanz: ${kw.relevance}`,
         );
       }
 
-      // Optionally add to tracking
       const tracker = new KeywordTracker();
       await tracker.addKeywords(keywords.map((k) => k.keyword));
     }
@@ -132,7 +140,7 @@ program
     if (options.suggest || (!options.keywords && !options.suggest)) {
       const locales = options.locales as string[] | undefined;
       logger.info(
-        `Running AI ASO analysis for locales: ${locales?.join(", ") ?? env.ASO_LOCALES}...`
+        `Running AI ASO analysis for locales: ${locales?.join(", ") ?? env.ASO_LOCALES}...`,
       );
       const results = await analyzer.analyzeAndSuggest(locales);
 
@@ -145,7 +153,7 @@ program
           console.log("\n📱 TITLE:");
           for (const s of analysis.titleSuggestions) {
             console.log(
-              `  ✦ "${s.value}" (${(s.confidence * 100).toFixed(0)}%)`
+              `  ✦ "${s.value}" (${(s.confidence * 100).toFixed(0)}%)`,
             );
             console.log(`    → ${s.reasoning}`);
           }
@@ -155,7 +163,7 @@ program
           console.log("\n📝 SUBTITLE:");
           for (const s of analysis.subtitleSuggestions) {
             console.log(
-              `  ✦ "${s.value}" (${(s.confidence * 100).toFixed(0)}%)`
+              `  ✦ "${s.value}" (${(s.confidence * 100).toFixed(0)}%)`,
             );
             console.log(`    → ${s.reasoning}`);
           }
@@ -165,7 +173,7 @@ program
           console.log("\n🔑 KEYWORDS:");
           for (const s of analysis.keywordSuggestions) {
             console.log(
-              `  ✦ "${s.value}" (${(s.confidence * 100).toFixed(0)}%)`
+              `  ✦ "${s.value}" (${(s.confidence * 100).toFixed(0)}%)`,
             );
             console.log(`    → ${s.reasoning}`);
           }
@@ -176,9 +184,7 @@ program
           for (const s of analysis.descriptionSuggestions) {
             console.log(`  ✦ (${(s.confidence * 100).toFixed(0)}%)`);
             console.log(`    → ${s.reasoning}`);
-            console.log(
-              `    Preview: "${s.value.substring(0, 150)}..."`
-            );
+            console.log(`    Preview: "${s.value.substring(0, 150)}..."`);
           }
         }
 
@@ -200,25 +206,46 @@ program
   .description(
     "Discover new keywords via AI (competitor texts + autocomplete + semantic expansion)",
   )
-  .action(async () => {
-    const agent = new KeywordDiscoveryAgent();
+  .option(
+    "-b, --bundle-id <bundleId>",
+    "App to discover keywords for (overrides env ASC_BUNDLE_ID)",
+  )
+  .option("--all-own-apps", "Run discovery for all own apps in the database")
+  .action(async (options) => {
+    const bundleIds: string[] = [];
 
-    console.log("\nKeyword Discovery starting...");
-    console.log(
-      "  Strategies: competitor text mining + autocomplete expansion + AI semantic gaps",
-    );
-    console.log(
-      `  Country: ${env.SCRAPE_COUNTRY} | Min. popularity: 15/100 | Max. scored per run: 25`,
-    );
-    console.log("  This may take a few minutes due to rate limiting.\n");
+    if (options.allOwnApps) {
+      const ownApps = await prisma.app.findMany({ where: { isOwnApp: true } });
+      bundleIds.push(...ownApps.map((a) => a.bundleId));
+      if (bundleIds.length === 0) {
+        console.log("No own apps found. Run 'scrape' first.");
+        await prisma.$disconnect();
+        return;
+      }
+    } else {
+      bundleIds.push(options.bundleId || env.ASC_BUNDLE_ID);
+    }
 
-    const result = await agent.run();
+    for (const bundleId of bundleIds) {
+      const agent = new KeywordDiscoveryAgent({ ascBundleId: bundleId } as any);
 
-    console.log("\nResults:");
-    console.log("─".repeat(40));
-    console.log(`  Candidates found:   ${result.discovered}`);
-    console.log(`  Passed quality:     ${result.scored}`);
-    console.log(`  Added to tracking:  ${result.added}`);
+      console.log(`\nKeyword Discovery for: ${bundleId}`);
+      console.log(
+        "  Strategies: competitor text mining + autocomplete expansion + AI semantic gaps",
+      );
+      console.log(
+        `  Country: ${env.SCRAPE_COUNTRY} | Min. popularity: 15/100 | Max. scored per run: 25`,
+      );
+      console.log("  This may take a few minutes due to rate limiting.\n");
+
+      const result = await agent.run();
+
+      console.log("\nResults:");
+      console.log("─".repeat(40));
+      console.log(`  Candidates found:   ${result.discovered}`);
+      console.log(`  Passed quality:     ${result.scored}`);
+      console.log(`  Added to tracking:  ${result.added}`);
+    }
 
     await prisma.$disconnect();
   });
@@ -231,7 +258,10 @@ program
   .option("--dry-run", "Show what would be changed without applying")
   .option("--auto", "Automatically apply high-confidence suggestions (>=80%)")
   .option("--apply <ids...>", "Apply specific suggestion IDs")
-  .option("--locale <locale>", "Apply only for a specific locale (default: all configured)")
+  .option(
+    "--locale <locale>",
+    "Apply only for a specific locale (default: all configured)",
+  )
   .option("--reject <ids...>", "Reject specific suggestion IDs")
   .action(async (options) => {
     // ── Reject suggestions ──────────────────────────────────────
@@ -273,7 +303,7 @@ program
     }
 
     console.log(
-      `\n📋 ${suggestions.length} pending suggestions across ${byLocale.size} locale(s):`
+      `\n📋 ${suggestions.length} pending suggestions across ${byLocale.size} locale(s):`,
     );
     console.log("─".repeat(85));
 
@@ -284,7 +314,7 @@ program
           ? `${(s.confidenceScore * 100).toFixed(0)}%`
           : "?";
         console.log(
-          `    [${s.id.substring(0, 8)}] [${s.type.padEnd(11)}] "${s.suggestedValue.substring(0, 45)}" (${confidence})`
+          `    [${s.id.substring(0, 8)}] [${s.type.padEnd(11)}] "${s.suggestedValue.substring(0, 45)}" (${confidence})`,
         );
       }
     }
@@ -294,18 +324,16 @@ program
 
     if (options.apply) {
       toApply = suggestions.filter((s) =>
-        options.apply.some((id: string) => s.id.startsWith(id))
+        options.apply.some((id: string) => s.id.startsWith(id)),
       );
     } else if (options.auto) {
       toApply = suggestions.filter(
-        (s) => s.confidenceScore && s.confidenceScore >= 0.8
+        (s) => s.confidenceScore && s.confidenceScore >= 0.8,
       );
     }
 
     if (toApply.length === 0) {
-      console.log(
-        "\n⚠️  No matching suggestions. Use --apply <id> or --auto."
-      );
+      console.log("\n⚠️  No matching suggestions. Use --apply <id> or --auto.");
       await prisma.$disconnect();
       return;
     }
@@ -388,7 +416,7 @@ program
         console.log(`    🔑 Keywords:    "${changes.keywords}"`);
       if (changes.description)
         console.log(
-          `    📄 Description: "${changes.description.substring(0, 70)}..."`
+          `    📄 Description: "${changes.description.substring(0, 70)}..."`,
         );
     }
 
@@ -406,16 +434,17 @@ program
       let totalApplied = 0;
       let totalErrors = 0;
 
-      for (const [locale, { changes, appliedSuggestions }] of changesPerLocale) {
+      for (const [
+        locale,
+        { changes, appliedSuggestions },
+      ] of changesPerLocale) {
         console.log(`\n🌐 Applying changes for ${locale}...`);
 
         const result = await ascClient.applyASOChanges(changes, locale);
 
         if (result.applied.length > 0) {
           totalApplied += result.applied.length;
-          console.log(
-            `  ✅ Applied to version ${result.versionString}:`
-          );
+          console.log(`  ✅ Applied to version ${result.versionString}:`);
           for (const a of result.applied) {
             console.log(`      ✓ ${a}`);
           }
@@ -432,7 +461,7 @@ program
         // Mark suggestions in DB
         for (const suggestion of appliedSuggestions) {
           const wasApplied = result.applied.some((a) =>
-            a.toLowerCase().includes(suggestion.type.toLowerCase())
+            a.toLowerCase().includes(suggestion.type.toLowerCase()),
           );
           await prisma.aSOSuggestion.update({
             where: { id: suggestion.id },
@@ -448,11 +477,12 @@ program
       }
 
       console.log(
-        `\n📊 Summary: ${totalApplied} changes applied, ${totalErrors} errors across ${changesPerLocale.size} locale(s).`
+        `\n📊 Summary: ${totalApplied} changes applied, ${totalErrors} errors across ${changesPerLocale.size} locale(s).`,
       );
 
       // Sync primary locale back to local DB
-      const primaryLocale = options.locale ?? env.ASO_LOCALES.split(",")[0].trim();
+      const primaryLocale =
+        options.locale ?? env.ASO_LOCALES.split(",")[0].trim();
       const primaryChanges = changesPerLocale.get(primaryLocale)?.changes;
       if (primaryChanges) {
         const ownApp = await prisma.app.findUnique({
@@ -486,7 +516,7 @@ program
 
       if (msg.includes("credentials missing")) {
         console.log(
-          "\nMake sure ASC_ISSUER_ID, ASC_KEY_ID and AuthKey.p8 are configured."
+          "\nMake sure ASC_ISSUER_ID, ASC_KEY_ID and AuthKey.p8 are configured.",
         );
       }
     }
@@ -499,7 +529,10 @@ program
 program
   .command("sync")
   .description("Sync current ASO metadata from App Store Connect")
-  .option("--locale <locale>", "Sync a specific locale (default: all from ASO_LOCALES)")
+  .option(
+    "--locale <locale>",
+    "Sync a specific locale (default: all from ASO_LOCALES)",
+  )
   .action(async (options) => {
     console.log("\n⏳ Connecting to App Store Connect API...");
 
@@ -521,15 +554,21 @@ program
         console.log(`\n🌐 ${locale} – App Store Connect:`);
         console.log("─".repeat(70));
         console.log(`  App ID:      ${state.appId}`);
-        console.log(`  Version:     ${state.versionString ?? "–"} (${state.appStoreState ?? "–"})`);
+        console.log(
+          `  Version:     ${state.versionString ?? "–"} (${state.appStoreState ?? "–"})`,
+        );
         console.log(`  Title:       ${state.title ?? "–"}`);
         console.log(`  Subtitle:    ${state.subtitle ?? "–"}`);
         console.log(`  Keywords:    ${state.keywords ?? "–"}`);
         console.log(
-          `  Description: ${state.description?.substring(0, 100) ?? "–"}${state.description && state.description.length > 100 ? "..." : ""}`
+          `  Description: ${state.description?.substring(0, 100) ?? "–"}${state.description && state.description.length > 100 ? "..." : ""}`,
         );
-        console.log(`  What's New:  ${state.whatsNew?.substring(0, 80) ?? "–"}`);
-        console.log(`  Promo Text:  ${state.promotionalText?.substring(0, 80) ?? "–"}`);
+        console.log(
+          `  What's New:  ${state.whatsNew?.substring(0, 80) ?? "–"}`,
+        );
+        console.log(
+          `  Promo Text:  ${state.promotionalText?.substring(0, 80) ?? "–"}`,
+        );
       }
 
       // Sync primary locale to local DB
@@ -552,13 +591,9 @@ program
                 primaryState.description ?? ownApp.currentDescription,
             },
           });
-          console.log(
-            `\n💾 Local DB synced with ${primaryLocale} data.`
-          );
+          console.log(`\n💾 Local DB synced with ${primaryLocale} data.`);
         } else {
-          console.log(
-            "\n⚠️  App not found locally. Run 'scrape' first."
-          );
+          console.log("\n⚠️  App not found locally. Run 'scrape' first.");
         }
       }
     } catch (error) {
@@ -599,15 +634,21 @@ program
   .command("status")
   .description("Show current system status")
   .action(async () => {
-    const [appCount, snapshotCount, keywordCount, rankingCount, suggestionCount, jobCount] =
-      await Promise.all([
-        prisma.app.count(),
-        prisma.appSnapshot.count(),
-        prisma.keyword.count(),
-        prisma.keywordRanking.count(),
-        prisma.aSOSuggestion.count({ where: { status: "PENDING" } }),
-        prisma.scrapeJob.count(),
-      ]);
+    const [
+      appCount,
+      snapshotCount,
+      keywordCount,
+      rankingCount,
+      suggestionCount,
+      jobCount,
+    ] = await Promise.all([
+      prisma.app.count(),
+      prisma.appSnapshot.count(),
+      prisma.keyword.count(),
+      prisma.keywordRanking.count(),
+      prisma.aSOSuggestion.count({ where: { status: "PENDING" } }),
+      prisma.scrapeJob.count(),
+    ]);
 
     const ownApp = await prisma.app.findUnique({
       where: { bundleId: env.ASC_BUNDLE_ID },
@@ -631,12 +672,14 @@ program
     console.log(`  Jobs ausgeführt:  ${jobCount}`);
     if (lastJob) {
       console.log(
-        `  Letzter Job:      ${lastJob.type} (${lastJob.status}) @ ${lastJob.createdAt.toISOString()}`
+        `  Letzter Job:      ${lastJob.type} (${lastJob.status}) @ ${lastJob.createdAt.toISOString()}`,
       );
     }
     if (ownApp?.snapshots[0]) {
       const snap = ownApp.snapshots[0];
-      console.log(`  Rating:           ${snap.rating ?? "?"} ⭐ (${snap.ratingsCount ?? "?"} Bewertungen)`);
+      console.log(
+        `  Rating:           ${snap.rating ?? "?"} ⭐ (${snap.ratingsCount ?? "?"} Bewertungen)`,
+      );
     }
 
     console.log("\n🔧 Konfiguration:");

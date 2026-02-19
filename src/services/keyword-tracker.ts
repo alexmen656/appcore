@@ -174,7 +174,13 @@ export class KeywordTracker {
     const rankings = new Map<string, number | null>();
 
     try {
-      const keywords = await prisma.keyword.findMany({});
+      const ownApp = await prisma.app.findUnique({
+        where: { bundleId: this.bundleId },
+      });
+
+      const keywords = await prisma.keyword.findMany({
+        where: ownApp ? { rankings: { some: { appId: ownApp.id } } } : {},
+      });
 
       for (const keyword of keywords) {
         const rank = await this.trackKeywordRanking(

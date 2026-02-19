@@ -571,11 +571,13 @@ Generate detailed ASO optimization suggestions in ${lc.promptLang} for the ${lc.
       })),
     ];
 
+    const appBundleId = this.settings?.ascBundleId || env.ASC_BUNDLE_ID;
     for (const suggestion of suggestions) {
       await prisma.aSOSuggestion.create({
         data: {
           type: suggestion.type,
           locale,
+          appBundleId,
           suggestedValue: suggestion.value,
           reasoning: suggestion.reasoning,
           confidenceScore: suggestion.confidence,

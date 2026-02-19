@@ -5,11 +5,12 @@ export const suggestionsRouter = Router();
 
 suggestionsRouter.get("/", async (req, res) => {
   try {
-    const { status, locale, type, limit } = req.query;
+    const { status, locale, type, limit, bundleId } = req.query;
     const where: any = {};
     if (status) where.status = String(status).toUpperCase();
     if (locale) where.locale = String(locale);
     if (type) where.type = String(type).toUpperCase();
+    if (bundleId) where.appBundleId = String(bundleId);
 
     const suggestions = await prisma.aSOSuggestion.findMany({
       where,

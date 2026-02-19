@@ -8,10 +8,12 @@ actionsRouter.use(requireAuth);
 actionsRouter.post("/scrape", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
+    const bundleId = req.body.bundleId || settings.ascBundleId;
+    const effectiveSettings = { ...settings, ascBundleId: bundleId };
     const { AppStoreScraper } = await import("../../services/appstore-scraper");
-    const scraper = new AppStoreScraper(settings);
+    const scraper = new AppStoreScraper(effectiveSettings);
 
-    res.json({ ok: true, message: "Scrape job started" });
+    res.json({ ok: true, message: `Scrape job started for ${bundleId}` });
 
     scraper
       .runFullScrapeJob()
@@ -25,13 +27,15 @@ actionsRouter.post("/scrape", async (req, res) => {
 actionsRouter.post("/analyze", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
+    const bundleId = req.body.bundleId || settings.ascBundleId;
+    const effectiveSettings = { ...settings, ascBundleId: bundleId };
     const { AIAnalyzer } = await import("../../services/ai-analyzer");
-    const analyzer = new AIAnalyzer(settings);
+    const analyzer = new AIAnalyzer(effectiveSettings);
     const locales: string[] = req.body.locales || settings.asoLocales;
 
     res.json({
       ok: true,
-      message: `Analysis started for locales: ${locales.join(", ")}`,
+      message: `Analysis started for ${bundleId}, locales: ${locales.join(", ")}`,
     });
 
     analyzer
@@ -98,8 +102,10 @@ actionsRouter.post("/sync", async (req, res) => {
 actionsRouter.post("/track-keywords", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
+    const bundleId = req.body.bundleId || settings.ascBundleId;
+    const effectiveSettings = { ...settings, ascBundleId: bundleId };
     const { KeywordTracker } = await import("../../services/keyword-tracker");
-    const tracker = new KeywordTracker(settings);
+    const tracker = new KeywordTracker(effectiveSettings);
 
     res.json({ ok: true, message: "Keyword tracking started" });
 
@@ -117,10 +123,12 @@ actionsRouter.post("/track-keywords", async (req, res) => {
 actionsRouter.post("/discover-keywords", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
+    const bundleId = req.body.bundleId || settings.ascBundleId;
+    const effectiveSettings = { ...settings, ascBundleId: bundleId };
     const { KeywordDiscoveryAgent } = await import(
       "../../services/keyword-discovery-agent"
     );
-    const agent = new KeywordDiscoveryAgent(settings);
+    const agent = new KeywordDiscoveryAgent(effectiveSettings);
 
     res.json({ ok: true, message: "Keyword discovery started" });
 

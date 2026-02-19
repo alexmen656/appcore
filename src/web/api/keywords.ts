@@ -16,6 +16,7 @@ keywordsRouter.get("/", async (req, res) => {
     });
 
     const keywords = await prisma.keyword.findMany({
+      where: ownApp ? { rankings: { some: { appId: ownApp.id } } } : {},
       include: {
         rankings: {
           where: ownApp ? { appId: ownApp.id } : undefined,

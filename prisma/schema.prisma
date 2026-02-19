@@ -190,6 +190,7 @@ model ASOSuggestion {
   reasoning       String    // AI explanation
 
   // Context
+  appBundleId     String?   // which app this suggestion belongs to
   currentValue    String?
   keywordId       String?
   keyword         Keyword?  @relation(fields: [keywordId], references: [id])

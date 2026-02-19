@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { apiPost, useApi } from "../hooks/useApi";
+import { apiPost, useApi, getActiveBundleId } from "../hooks/useApi";
 
 const TH = "text-left text-[11px] font-semibold uppercase tracking-[0.5px] text-gray-400 px-3.5 py-2.5 border-b border-[#e5e7eb] whitespace-nowrap";
 const TD = "px-3.5 py-3 border-b border-[#f0f0f0] text-[13px] align-middle";
@@ -41,7 +41,7 @@ export default function Actions({ addToast }: Props) {
   const triggerAction = async (endpoint: string, label: string) => {
     setRunning(endpoint);
     try {
-      const res = await apiPost(`/actions/${endpoint}`, {});
+      const res = await apiPost(`/actions/${endpoint}`, { bundleId: getActiveBundleId() });
       addToast(res.message || `${label} started`, "success");
       setTimeout(refetch, 2000);
     } catch (e: any) {

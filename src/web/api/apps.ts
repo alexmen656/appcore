@@ -5,7 +5,24 @@ export const appsRouter = Router();
 
 appsRouter.get("/", async (req, res) => {
   try {
+    const bundleId = req.query.bundleId as string | undefined;
+    let whereClause: any = {};
+
+    if (bundleId) {
+      const activeApp = await prisma.app.findUnique({ where: { bundleId } });
+      if (activeApp) {
+        const rels = await prisma.competitorRelation.findMany({
+          where: { OR: [{ appId: activeApp.id }, { competitorId: activeApp.id }] },
+        });
+        const relatedIds = rels.map((r) =>
+          r.appId === activeApp.id ? r.competitorId : r.appId
+        );
+        whereClause = { OR: [{ id: activeApp.id }, { id: { in: relatedIds } }] };
+      }
+    }
+
     const apps = await prisma.app.findMany({
+      where: whereClause,
       include: {
         snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 },
         _count: {
