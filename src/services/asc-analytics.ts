@@ -12,9 +12,17 @@ const ASC_BASE = "https://api.appstoreconnect.apple.com/v1";
 function makeToken(settings: EffectiveSettings): string {
   const now = Math.floor(Date.now() / 1000);
   return jwt.sign(
-    { iss: settings.ascIssuerId, iat: now, exp: now + 20 * 60, aud: "appstoreconnect-v1" },
+    {
+      iss: settings.ascIssuerId,
+      iat: now,
+      exp: now + 20 * 60,
+      aud: "appstoreconnect-v1",
+    },
     settings.ascPrivateKey,
-    { algorithm: "ES256", header: { alg: "ES256", kid: settings.ascKeyId, typ: "JWT" } },
+    {
+      algorithm: "ES256",
+      header: { alg: "ES256", kid: settings.ascKeyId, typ: "JWT" },
+    },
   );
 }
 
@@ -29,22 +37,18 @@ function parseTsv(raw: string): Record<string, string>[] {
   const headers = lines[0].split("\t");
   return lines.slice(1).map((line) => {
     const cols = line.split("\t");
-    return Object.fromEntries(headers.map((h, i) => [h.trim(), (cols[i] ?? "").trim()]));
+    return Object.fromEntries(
+      headers.map((h, i) => [h.trim(), (cols[i] ?? "").trim()]),
+    );
   });
 }
 
-/** Format a Date as YYYY-MM-DD for ASC API filter. */
 function fmtDate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
 // ─── Sales Reports ───────────────────────────────────────────────────────────
 
-/**
- * Fetch and upsert daily Sales Report data for the last `daysBack` days.
- * Requires settings.ascVendorNumber.
- * Returns the number of report-days successfully stored.
- */
 export async function fetchSalesReports(
   settings: EffectiveSettings,
   bundleId: string,
@@ -63,7 +67,6 @@ export async function fetchSalesReports(
     date.setDate(date.getDate() - i);
     const dateStr = fmtDate(date);
 
-    // Skip if we already have fresh data for this date (within last 2 days it may update)
     if (i > 2) {
       const existing = await prisma.appStoreAnalytics.findFirst({
         where: {
@@ -90,20 +93,30 @@ export async function fetchSalesReports(
       const raw = zlib.gunzipSync(Buffer.from(resp.data)).toString("utf-8");
       const rows = parseTsv(raw);
 
-      // Aggregate by country for this date
       const byCountry: Record<
         string,
-        { downloads: number; updates: number; reDownloads: number; proceeds: number }
+        {
+          downloads: number;
+          updates: number;
+          reDownloads: number;
+          proceeds: number;
+        }
       > = {};
 
       for (const row of rows) {
         const typeId = row["Product Type Identifier"] ?? "";
         const units = parseInt(row["Units"] ?? "0", 10) || 0;
         const proceeds = parseFloat(row["Developer Proceeds"] ?? "0") || 0;
-        const country = (row["Country Of Sale"] ?? "").toUpperCase() || "UNKNOWN";
+        const country =
+          (row["Country Of Sale"] ?? "").toUpperCase() || "UNKNOWN";
 
         if (!byCountry[country]) {
-          byCountry[country] = { downloads: 0, updates: 0, reDownloads: 0, proceeds: 0 };
+          byCountry[country] = {
+            downloads: 0,
+            updates: 0,
+            reDownloads: 0,
+            proceeds: 0,
+          };
         }
 
         // 1 = paid app, 1F = free app install (new)
@@ -124,21 +137,27 @@ export async function fetchSalesReports(
       const reportDate = new Date(dateStr);
       for (const [country, agg] of Object.entries(byCountry)) {
         await prisma.appStoreAnalytics.upsert({
-          where: { bundleId_reportDate_country: { bundleId, reportDate, country } },
+          where: {
+            bundleId_reportDate_country: { bundleId, reportDate, country },
+          },
           create: { bundleId, reportDate, country, ...agg },
           update: agg,
         });
       }
 
       storedDays++;
-      logger.debug(`Sales report stored: ${dateStr} (${Object.keys(byCountry).length} countries)`);
+      logger.debug(
+        `Sales report stored: ${dateStr} (${Object.keys(byCountry).length} countries)`,
+      );
     } catch (err: any) {
       // 404 means no report for that day yet – normal for recent dates
       if (err?.response?.status === 404 || err?.response?.status === 400) {
         logger.debug(`No sales report for ${dateStr}`);
         continue;
       }
-      logger.warn(`Sales report fetch failed for ${dateStr}: ${err?.message ?? err}`);
+      logger.warn(
+        `Sales report fetch failed for ${dateStr}: ${err?.message ?? err}`,
+      );
     }
   }
 
@@ -147,11 +166,6 @@ export async function fetchSalesReports(
 
 // ─── Customer Reviews ─────────────────────────────────────────────────────────
 
-/**
- * Fetch and upsert customer reviews from ASC.
- * ascAppId is Apple's numeric app ID (not bundleId).
- * Returns number of reviews upserted.
- */
 export async function fetchReviews(
   settings: EffectiveSettings,
   ascAppId: string,
@@ -166,14 +180,18 @@ export async function fetchReviews(
     const params: Record<string, any> = {
       sort: "-createdDate",
       limit: 200,
-      "fields[customerReviews]": "rating,title,body,reviewerNickname,territory,createdDate",
+      "fields[customerReviews]":
+        "rating,title,body,reviewerNickname,territory,createdDate",
     };
     if (cursor) params["cursor"] = cursor;
 
-    const resp = await axios.get(`${ASC_BASE}/apps/${ascAppId}/customerReviews`, {
-      headers,
-      params,
-    });
+    const resp = await axios.get(
+      `${ASC_BASE}/apps/${ascAppId}/customerReviews`,
+      {
+        headers,
+        params,
+      },
+    );
 
     const reviews: any[] = resp.data?.data ?? [];
 
@@ -202,7 +220,6 @@ export async function fetchReviews(
 
     const nextCursor = resp.data?.links?.next;
     if (!nextCursor || reviews.length === 0) break;
-    // Extract cursor from next link
     try {
       const url = new URL(nextCursor);
       cursor = url.searchParams.get("cursor");
@@ -222,10 +239,6 @@ export interface AnalyticsSyncResult {
   error?: string;
 }
 
-/**
- * Main entry point: sync sales reports + reviews for a given app.
- * Creates a ScrapeJob record for tracking.
- */
 export async function syncAllAnalytics(
   settings: EffectiveSettings,
   bundleId: string,
@@ -253,7 +266,9 @@ export async function syncAllAnalytics(
       },
     });
 
-    logger.info(`ASC analytics sync done: ${downloadDays} report-days, ${reviewsFetched} reviews`);
+    logger.info(
+      `ASC analytics sync done: ${downloadDays} report-days, ${reviewsFetched} reviews`,
+    );
     return { downloadDays, reviewsFetched };
   } catch (err: any) {
     const error = err?.message ?? String(err);

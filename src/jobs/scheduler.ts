@@ -20,7 +20,6 @@ export class Scheduler {
     return this.jobs.length;
   }
 
-  /** Build fresh service instances using per-user settings */
   private async getServicesForUser(userId: string) {
     const settings = await getEffectiveSettings(userId);
     return {
@@ -32,7 +31,6 @@ export class Scheduler {
     };
   }
 
-  /** Run a job for every registered user */
   private async forAllUsers(fn: (userId: string) => Promise<void>) {
     const users = await prisma.user.findMany({ select: { id: true } });
     for (const user of users) {
@@ -46,12 +44,9 @@ export class Scheduler {
     }
   }
 
-  /**
-   * Start all scheduled jobs
-   */
   start(): void {
     if (this._running) return;
-    const intervalHours = 24; // default; per-user overrides apply inside jobs
+    const intervalHours = 24;
 
     // ── Job 1: Scrape all apps (own + competitors) ──────────────────
     const scrapeJob = cron.schedule(
@@ -156,7 +151,6 @@ export class Scheduler {
       async () => {
         logger.info("[CRON] Starting ASC analytics sync...");
         try {
-          // Sync for all own apps across all users
           const ownApps = await prisma.app.findMany({
             where: { isOwnApp: true },
             select: { bundleId: true, trackId: true },
@@ -188,9 +182,6 @@ export class Scheduler {
     this._running = true;
   }
 
-  /**
-   * Stop all scheduled jobs
-   */
   stop(): void {
     for (const job of this.jobs) {
       job.stop();
@@ -200,9 +191,6 @@ export class Scheduler {
     logger.info("Scheduler stopped");
   }
 
-  /**
-   * Run all jobs once immediately for a specific user
-   */
   async runAllNow(userId: string): Promise<void> {
     logger.info(`Running all jobs immediately for user ${userId}...`);
     const { scraper, keywordTracker, aiAnalyzer, discoveryAgent } =

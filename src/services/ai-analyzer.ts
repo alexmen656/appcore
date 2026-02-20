@@ -7,10 +7,10 @@ import { SuggestionType, SuggestionStatus } from "@prisma/client";
 // ─── Locale Configuration ───────────────────────────────────────────────
 
 interface LocaleConfig {
-  locale: string; // ASC locale, e.g. "en-US"
-  language: string; // human-readable
-  promptLang: string; // language for the AI prompt output
-  market: string; // market description for the prompt
+  locale: string;
+  language: string;
+  promptLang: string;
+  market: string;
 }
 
 const LOCALE_MAP: Record<string, LocaleConfig> = {
