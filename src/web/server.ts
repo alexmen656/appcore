@@ -10,6 +10,7 @@ import { actionsRouter } from "./api/actions";
 import { authRouter } from "./api/auth";
 import { settingsRouter } from "./api/settings";
 import { ascRouter } from "./api/asc";
+import { analyticsRouter } from "./api/analytics";
 import { requireAuth } from "./auth";
 
 const app = express();
@@ -29,6 +30,7 @@ app.use("/api/keywords", requireAuth, keywordsRouter);
 app.use("/api/actions", requireAuth, actionsRouter);
 app.use("/api/settings", settingsRouter);
 app.use("/api/asc", ascRouter);
+app.use("/api/analytics", requireAuth, analyticsRouter);
 
 // ─── Serve built frontend in production ─────────────────────────────────
 const webDist = path.join(__dirname, "../../web/dist");

@@ -7,6 +7,7 @@ export interface EffectiveSettings {
   ascPrivateKey: string;
   ascAppId: string;
   ascBundleId: string;
+  ascVendorNumber: string;
 
   // AI
   openaiApiKey: string;
@@ -28,6 +29,7 @@ const DEFAULTS: EffectiveSettings = {
   ascPrivateKey: "",
   ascAppId: "",
   ascBundleId: "",
+  ascVendorNumber: "",
   openaiApiKey: "",
   anthropicApiKey: "",
   aiProvider: "openai",
@@ -48,6 +50,7 @@ export async function getEffectiveSettings(
     ascPrivateKey: s?.ascPrivateKey ?? DEFAULTS.ascPrivateKey,
     ascAppId: s?.ascAppId ?? DEFAULTS.ascAppId,
     ascBundleId: s?.ascBundleId ?? DEFAULTS.ascBundleId,
+    ascVendorNumber: s?.ascVendorNumber ?? DEFAULTS.ascVendorNumber,
     openaiApiKey: s?.openaiApiKey ?? DEFAULTS.openaiApiKey,
     anthropicApiKey: s?.anthropicApiKey ?? DEFAULTS.anthropicApiKey,
     aiProvider: s?.aiProvider === "anthropic" ? "anthropic" : "openai",

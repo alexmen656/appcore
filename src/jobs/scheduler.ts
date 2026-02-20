@@ -1,9 +1,10 @@
 import cron from "node-cron";
-import { logger, env } from "../config";
+import { logger, env, prisma, getEffectiveSettings } from "../config";
 import { AppStoreScraper } from "../services/appstore-scraper";
 import { KeywordTracker } from "../services/keyword-tracker";
 import { AIAnalyzer } from "../services/ai-analyzer";
 import { KeywordDiscoveryAgent } from "../services/keyword-discovery-agent";
+import { syncAllAnalytics } from "../services/asc-analytics";
 
 // ─── Scheduled Job Orchestrator ─────────────────────────────────────────
 
@@ -141,8 +142,41 @@ export class Scheduler {
     );
     this.jobs.push(discoveryJob);
 
+    // ── Job 6: Sync ASC analytics (sales reports + reviews) ─────────────
+    // Runs every 8 hours: 2am, 10am, 6pm
+    const analyticsJob = cron.schedule(
+      "0 2,10,18 * * *",
+      async () => {
+        logger.info("[CRON] Starting ASC analytics sync...");
+        try {
+          // Sync for all own apps across all users
+          const ownApps = await prisma.app.findMany({
+            where: { isOwnApp: true },
+            select: { bundleId: true, trackId: true },
+          });
+          const users = await prisma.user.findMany({ select: { id: true } });
+          for (const user of users) {
+            const settings = await getEffectiveSettings(user.id);
+            if (!settings.ascIssuerId || !settings.ascVendorNumber) continue;
+            for (const app of ownApps) {
+              const ascAppId = app.trackId?.toString() ?? settings.ascAppId;
+              if (!ascAppId) continue;
+              await syncAllAnalytics(settings, app.bundleId, ascAppId);
+            }
+          }
+          logger.info("[CRON] ASC analytics sync completed");
+        } catch (error) {
+          logger.error("[CRON] ASC analytics sync failed", {
+            error: error instanceof Error ? error.message : error,
+          });
+        }
+      },
+      { timezone: "Europe/Berlin" },
+    );
+    this.jobs.push(analyticsJob);
+
     logger.info(
-      `Scheduler started with ${this.jobs.length} jobs (scrape every ${intervalHours}h, keywords every 6h, analysis daily 8am, extraction weekly Monday 6am, discovery 3×daily)`,
+      `Scheduler started with ${this.jobs.length} jobs (scrape every ${intervalHours}h, keywords every 6h, analysis daily 8am, extraction weekly Monday 6am, discovery 3×daily, analytics every 8h)`,
     );
   }
 

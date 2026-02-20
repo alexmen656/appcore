@@ -5,6 +5,7 @@ export interface SettingsData {
   ascPrivateKeySet: boolean;
   ascAppId: string;
   ascBundleId: string;
+  ascVendorNumber: string;
   openaiApiKey: string;
   openaiApiKeySet: boolean;
   anthropicApiKey: string;

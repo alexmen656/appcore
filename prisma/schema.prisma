@@ -54,6 +54,9 @@ model UserSettings {
   // ── Multi-locale ASO ─────────────────────────────────────────────────
   asoLocales String? @default("en-US") // comma-separated, e.g. "en-US,de-DE"
 
+  // ── Analytics ────────────────────────────────────────────────────────
+  ascVendorNumber String? // required for Sales Reports API (found in Payments & Financial Reports)
+
   updatedAt DateTime @updatedAt
 }
 
@@ -257,6 +260,39 @@ enum ScrapeType {
   SEARCH_ADS_DATA
   OWN_APP_SYNC
   KEYWORD_DISCOVERY
+  ASC_ANALYTICS
+}
+
+// ─── App Store Connect Analytics ────────────────────────────────────────────
+
+model AppStoreAnalytics {
+  id         String   @id @default(cuid())
+  bundleId   String
+  reportDate DateTime // the day this row represents (midnight UTC)
+  country    String   // 2-letter country code, e.g. "DE", "US"
+  downloads  Int      @default(0) // new installs (product type 1 / 1F)
+  updates    Int      @default(0) // re-downloads / updates (product type 1T)
+  reDownloads Int     @default(0) // re-downloads counted separately
+  proceeds   Float    @default(0) // Developer Proceeds (revenue in USD)
+  createdAt  DateTime @default(now())
+
+  @@unique([bundleId, reportDate, country])
+  @@index([bundleId, reportDate])
+}
+
+model AppReview {
+  id               String   @id @default(cuid())
+  ascReviewId      String   @unique // ASC's own review ID
+  bundleId         String
+  rating           Int // 1–5
+  title            String?
+  body             String?
+  reviewerNickname String?
+  territory        String? // e.g. "DEU", "USA"
+  reviewedAt       DateTime // createdDate from ASC
+  createdAt        DateTime @default(now())
+
+  @@index([bundleId, reviewedAt])
 }
 
 enum JobStatus {

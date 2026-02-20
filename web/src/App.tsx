@@ -14,6 +14,7 @@ import Keywords from "./components/Keywords";
 import Competitors from "./components/Competitors";
 import Actions from "./components/Actions";
 import Settings from "./components/Settings";
+import Analytics from "./components/Analytics";
 import Login, { AuthUser } from "./components/Login";
 
 const IconDashboard = () => (
@@ -83,6 +84,20 @@ const IconActions = () => (
     strokeLinejoin="round"
   >
     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+  </svg>
+);
+const IconAnalytics = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <line x1="18" y1="20" x2="18" y2="10" />
+    <line x1="12" y1="20" x2="12" y2="4" />
+    <line x1="6" y1="20" x2="6" y2="14" />
   </svg>
 );
 const IconSettings = () => (
@@ -454,6 +469,9 @@ export default function App() {
           <NavLink to="/competitors" className={navLinkClass}>
             <IconCompetitors /> Competitors
           </NavLink>
+          <NavLink to="/analytics" className={navLinkClass}>
+            <IconAnalytics /> Analytics
+          </NavLink>
           <div className="px-3 pb-1 pt-2 mt-4 text-xs font-semibold uppercase tracking-[0.8px] text-[#9ca3af]">
             Operations
           </div>
@@ -479,6 +497,7 @@ export default function App() {
           />
           <Route path="/keywords" element={<Keywords addToast={addToast} />} />
           <Route path="/competitors" element={<Competitors />} />
+          <Route path="/analytics" element={<Analytics addToast={addToast} />} />
           <Route path="/actions" element={<Actions addToast={addToast} />} />
           <Route path="/settings" element={<Settings addToast={addToast} />} />
         </Routes>

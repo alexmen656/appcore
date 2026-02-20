@@ -21,6 +21,7 @@ settingsRouter.get("/", async (req, res) => {
             ascPrivateKeySet: !!settings.ascPrivateKey,
             ascAppId: settings.ascAppId ?? "",
             ascBundleId: settings.ascBundleId ?? "",
+            ascVendorNumber: settings.ascVendorNumber ?? "",
             openaiApiKey: settings.openaiApiKey ? "••••••••" : "",
             openaiApiKeySet: !!settings.openaiApiKey,
             anthropicApiKey: settings.anthropicApiKey ? "••••••••" : "",
@@ -38,6 +39,7 @@ settingsRouter.get("/", async (req, res) => {
             ascPrivateKeySet: false,
             ascAppId: "",
             ascBundleId: "",
+            ascVendorNumber: "",
             openaiApiKey: "",
             openaiApiKeySet: false,
             anthropicApiKey: "",
@@ -63,6 +65,7 @@ settingsRouter.put("/", async (req, res) => {
       ascPrivateKey,
       ascAppId,
       ascBundleId,
+      ascVendorNumber,
       openaiApiKey,
       anthropicApiKey,
       aiProvider,
@@ -79,6 +82,7 @@ settingsRouter.put("/", async (req, res) => {
       data.ascPrivateKey = ascPrivateKey || null;
     if (ascAppId !== undefined) data.ascAppId = ascAppId || null;
     if (ascBundleId !== undefined) data.ascBundleId = ascBundleId || null;
+    if (ascVendorNumber !== undefined) data.ascVendorNumber = ascVendorNumber || null;
     if (openaiApiKey !== undefined && openaiApiKey !== "••••••••")
       data.openaiApiKey = openaiApiKey || null;
     if (anthropicApiKey !== undefined && anthropicApiKey !== "••••••••")

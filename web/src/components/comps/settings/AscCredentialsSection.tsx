@@ -45,6 +45,18 @@ export default function AscCredentialsSection({
           />
         </Field>
         <Field
+          label="Vendor Number"
+          hint="Found in App Store Connect → Payments & Financial Reports"
+        >
+          <input
+            className={inputCls}
+            type="text"
+            value={form.ascVendorNumber ?? ""}
+            onChange={(e) => onChange("ascVendorNumber", e.target.value)}
+            placeholder="12345678"
+          />
+        </Field>
+        <Field
           label="Private Key (.p8)"
           hint={
             data?.ascPrivateKeySet
