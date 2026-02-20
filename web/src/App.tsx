@@ -114,6 +114,19 @@ const IconSettings = () => (
   </svg>
 );
 
+const sidebarLinks = [
+  { to: "/dashboard", label: "Dashboard", icon: IconDashboard },
+  { to: "/analytics", label: "Analytics", icon: IconAnalytics },
+  { to: "/suggestions", label: "Suggestions", icon: IconSuggestions },
+  { to: "/keywords", label: "Keywords", icon: IconKeywords },
+  { to: "/competitors", label: "Competitors", icon: IconCompetitors },
+];
+
+const sidebarOperations = [
+  { to: "/actions", label: "Actions", icon: IconActions },
+  { to: "/settings", label: "Settings", icon: IconSettings },
+];
+
 interface DashboardData {
   app: {
     name: string;
@@ -296,7 +309,6 @@ function ProfileMenu({
 
   return (
     <div ref={ref} className="relative px-3 py-3 border-t border-[#e5e7eb]">
-      {/* Dropdown — opens UPWARD */}
       {open && (
         <div className="absolute left-3 right-3 bottom-[calc(100%-8px)] bg-white border border-[#e5e7eb] rounded-xl shadow-lg z-50 overflow-hidden">
           <div className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
@@ -346,13 +358,10 @@ function ProfileMenu({
           <div className="h-1" />
         </div>
       )}
-
-      {/* Trigger */}
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-black/[0.04] transition-colors group"
       >
-        {/* Avatar */}
         <div className="w-8 h-8 rounded-full bg-[#ea0e2b] flex items-center justify-center text-white text-xs font-bold shrink-0">
           {initials}
         </div>
@@ -366,7 +375,6 @@ function ProfileMenu({
             </div>
           )}
         </div>
-        {/* chevron */}
         <svg
           viewBox="0 0 24 24"
           fill="none"
@@ -432,7 +440,6 @@ export default function App() {
     <div className="flex h-screen overflow-hidden">
       <ToastContainer toasts={toasts} />
       <aside className="w-[260px] min-w-[260px] bg-[#eff3f6] border-r border-[#e5e7eb] flex flex-col overflow-y-auto">
-        {/* Logo */}
         <div className="px-5 pt-6 pb-5 flex items-center gap-2.5">
           <img
             className="w-[42px] h-[42px] rounded-[6px]"
@@ -448,42 +455,27 @@ export default function App() {
             </div>
           </div>
         </div>
-
-        {/* App Switcher */}
         <AppSwitcher current={dash?.app ?? null} />
-
-        {/* Nav */}
         <div className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-[0.8px] text-[#9ca3af]">
           Navigation
         </div>
         <nav className="px-2 flex-1">
-          <NavLink to="/dashboard" className={navLinkClass}>
-            <IconDashboard /> Dashboard
-          </NavLink>
-          <NavLink to="/suggestions" className={navLinkClass}>
-            <IconSuggestions /> Suggestions
-          </NavLink>
-          <NavLink to="/keywords" className={navLinkClass}>
-            <IconKeywords /> Keywords
-          </NavLink>
-          <NavLink to="/competitors" className={navLinkClass}>
-            <IconCompetitors /> Competitors
-          </NavLink>
-          <NavLink to="/analytics" className={navLinkClass}>
-            <IconAnalytics /> Analytics
-          </NavLink>
+          {sidebarLinks.map((link) => (
+            <NavLink key={link.to} to={link.to} className={navLinkClass}>
+              {link.icon && <link.icon />}
+              {link.label}
+            </NavLink>
+          ))}
           <div className="px-3 pb-1 pt-2 mt-4 text-xs font-semibold uppercase tracking-[0.8px] text-[#9ca3af]">
             Operations
           </div>
-          <NavLink to="/actions" className={navLinkClass}>
-            <IconActions /> Actions
-          </NavLink>
-          <NavLink to="/settings" className={navLinkClass}>
-            <IconSettings /> Settings
-          </NavLink>
+          {sidebarOperations.map((link) => (
+            <NavLink key={link.to} to={link.to} className={navLinkClass}>
+              {link.icon && <link.icon />}
+              {link.label}
+            </NavLink>
+          ))}
         </nav>
-
-        {/* Profile */}
         <ProfileMenu user={user} onLogout={handleLogout} />
       </aside>
 
@@ -497,7 +489,10 @@ export default function App() {
           />
           <Route path="/keywords" element={<Keywords addToast={addToast} />} />
           <Route path="/competitors" element={<Competitors />} />
-          <Route path="/analytics" element={<Analytics addToast={addToast} />} />
+          <Route
+            path="/analytics"
+            element={<Analytics addToast={addToast} />}
+          />
           <Route path="/actions" element={<Actions addToast={addToast} />} />
           <Route path="/settings" element={<Settings addToast={addToast} />} />
         </Routes>
