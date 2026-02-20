@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Routes, Route, NavLink, Navigate } from "react-router-dom";
 import {
   useApi,
+  apiPost,
   getToken,
   setToken,
   setActiveBundleId,
@@ -145,6 +146,14 @@ interface AppItem {
   isOwnApp: boolean;
 }
 
+interface AscApp {
+  ascId: string;
+  name: string;
+  bundleId: string;
+  sku: string | null;
+  primaryLocale: string | null;
+}
+
 // ─── App icon helper ──────────────────────────────────────────────────────────
 function AppAvatar({
   url,
@@ -171,10 +180,20 @@ function AppAvatar({
 }
 
 // ─── App Switcher dropdown ────────────────────────────────────────────────────
-function AppSwitcher({ current }: { current: DashboardData["app"] }) {
-  const { data: apps } = useApi<AppItem[]>("/apps");
+function AppSwitcher({
+  current,
+  addToast,
+}: {
+  current: DashboardData["app"];
+  addToast: (msg: string, type: "success" | "error" | "info") => void;
+}) {
+  const { data: apps, refetch: refetchApps } = useApi<AppItem[]>("/apps", [], true);
   const [open, setOpen] = useState(false);
   const [activeBundleId, setLocalBundle] = useState(getActiveBundleId);
+  const [importOpen, setImportOpen] = useState(false);
+  const [ascApps, setAscApps] = useState<AscApp[] | null>(null);
+  const [ascLoading, setAscLoading] = useState(false);
+  const [importing, setImporting] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -198,84 +217,254 @@ function AppSwitcher({ current }: { current: DashboardData["app"] }) {
     setOpen(false);
   };
 
-  return (
-    <div ref={ref} className="relative mx-3 mb-4">
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full px-3 py-2.5 bg-white border border-[#e5e7eb] rounded-lg flex items-center gap-2.5 hover:border-[#d1d5db] transition-colors group"
-      >
-        {activeApp ? (
-          <AppAvatar
-            url={activeApp.iconUrl}
-            name={activeApp.name}
-            size={9}
-            accent
-          />
-        ) : (
-          <div className="w-9 h-9 rounded-lg bg-gray-200 shrink-0" />
-        )}
-        <div className="overflow-hidden flex-1 text-left">
-          <div className="text-[15px] font-semibold text-[#1a1a2e] truncate leading-tight">
-            {activeApp?.name ?? current?.name ?? "No app"}
-          </div>
-          <div className="text-[11px] text-[#9ca3af] truncate font-mono">
-            {activeApp?.bundleId ?? current?.bundleId ?? "—"}
-          </div>
-        </div>
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={`w-4 h-4 shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
-        >
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      </button>
+  const openImport = () => {
+    setOpen(false);
+    setAscApps(null);
+    setImportOpen(true);
+  };
 
-      {open && (
-        <div className="absolute left-0 right-0 top-[calc(100%+6px)] bg-white border border-[#e5e7eb] rounded-xl shadow-lg z-50 overflow-hidden">
-          <div className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
-            Your Apps
-          </div>
-          {ownApps.length === 0 && (
-            <div className="px-3 py-2 text-xs text-gray-400">No apps found</div>
+  const closeImport = () => {
+    setImportOpen(false);
+    setAscApps(null);
+  };
+
+  const loadAscApps = async () => {
+    setAscLoading(true);
+    setAscApps(null);
+    try {
+      const token = getToken();
+      const res = await fetch("/api/asc/apps", {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.error ?? `HTTP ${res.status}`);
+      }
+      setAscApps(await res.json());
+    } catch (err: any) {
+      addToast(`Failed to load apps: ${err.message}`, "error");
+    } finally {
+      setAscLoading(false);
+    }
+  };
+
+  const importApp = async (app: AscApp) => {
+    setImporting(app.ascId);
+    try {
+      const result = await apiPost<{
+        ok: boolean;
+        app: { name: string; bundleId: string };
+      }>("/asc/import", {
+        ascId: app.ascId,
+        bundleId: app.bundleId,
+        name: app.name,
+      });
+      addToast(`"${result.app.name}" imported`, "success");
+      setActiveBundleId(result.app.bundleId);
+      setLocalBundle(result.app.bundleId);
+      refetchApps();
+      closeImport();
+    } catch (err: any) {
+      addToast(`Import failed: ${err.message}`, "error");
+    } finally {
+      setImporting(null);
+    }
+  };
+
+  return (
+    <>
+      <div ref={ref} className="relative mx-3 mb-4">
+        <button
+          onClick={() => setOpen(!open)}
+          className="w-full px-3 py-2.5 bg-white border border-[#e5e7eb] rounded-lg flex items-center gap-2.5 hover:border-[#d1d5db] transition-colors group"
+        >
+          {activeApp ? (
+            <AppAvatar
+              url={activeApp.iconUrl}
+              name={activeApp.name}
+              size={9}
+              accent
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-lg bg-gray-200 shrink-0" />
           )}
-          {ownApps.map((a) => (
-            <button
-              key={a.id}
-              onClick={() => handleSelect(a)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#f7f8fa] transition-colors text-left ${a.bundleId === activeBundleResolved ? "bg-[#fef2f3]" : ""}`}
-            >
-              <AppAvatar url={a.iconUrl} name={a.name} size={8} accent />
-              <div className="overflow-hidden">
-                <div className="text-[13px] font-medium text-[#1a1a2e] truncate">
-                  {a.name}
-                </div>
-                <div className="text-[10px] text-gray-400 font-mono truncate">
-                  {a.bundleId}
-                </div>
+          <div className="overflow-hidden flex-1 text-left">
+            <div className="text-[15px] font-semibold text-[#1a1a2e] truncate leading-tight">
+              {activeApp?.name ?? current?.name ?? "No app"}
+            </div>
+            <div className="text-[11px] text-[#9ca3af] truncate font-mono">
+              {activeApp?.bundleId ?? current?.bundleId ?? "—"}
+            </div>
+          </div>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={`w-4 h-4 shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
+
+        {open && (
+          <div className="absolute left-0 right-0 top-[calc(100%+6px)] bg-white border border-[#e5e7eb] rounded-xl shadow-lg z-50 overflow-hidden">
+            <div className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+              Your Apps
+            </div>
+            {ownApps.length === 0 && (
+              <div className="px-3 py-2 text-xs text-gray-400">
+                No apps found
               </div>
-              {a.bundleId === activeBundleResolved && (
+            )}
+            {ownApps.map((a) => (
+              <button
+                key={a.id}
+                onClick={() => handleSelect(a)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#f7f8fa] transition-colors text-left ${a.bundleId === activeBundleResolved ? "bg-[#fef2f3]" : ""}`}
+              >
+                <AppAvatar url={a.iconUrl} name={a.name} size={8} accent />
+                <div className="overflow-hidden">
+                  <div className="text-[13px] font-medium text-[#1a1a2e] truncate">
+                    {a.name}
+                  </div>
+                  <div className="text-[10px] text-gray-400 font-mono truncate">
+                    {a.bundleId}
+                  </div>
+                </div>
+                {a.bundleId === activeBundleResolved && (
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-3.5 h-3.5 shrink-0 text-[#ea0e2b] ml-auto"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </button>
+            ))}
+            <div className="border-t border-gray-100 px-2 py-2">
+              <button
+                onClick={openImport}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[#f7f8fa] transition-colors text-left"
+              >
+                <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center shrink-0">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-4 h-4 text-gray-400"
+                  >
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                </div>
+                <span className="text-[13px] font-medium text-gray-500">
+                  Add project
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Import modal */}
+      {importOpen && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40"
+          onClick={closeImport}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-[480px] max-h-[80vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 pt-5 pb-4 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-[#1a1a2e]">
+                  Add project
+                </h2>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Import an app from App Store Connect.
+                </p>
+              </div>
+              <button
+                onClick={closeImport}
+                className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center text-gray-400 transition-colors"
+              >
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="2.5"
+                  strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="w-3.5 h-3.5 shrink-0 text-[#ea0e2b] ml-auto"
+                  className="w-4 h-4"
                 >
-                  <polyline points="20 6 9 17 4 12" />
+                  <path d="M18 6L6 18M6 6l12 12" />
                 </svg>
+              </button>
+            </div>
+            <div className="px-6 py-5 flex-1 overflow-y-auto">
+              {!ascApps && !ascLoading && (
+                <button
+                  type="button"
+                  onClick={loadAscApps}
+                  className="w-full py-2.5 px-4 rounded-lg border border-[#e5e7eb] bg-transparent text-[#1a1a2e] text-[13px] font-medium hover:border-[#ea0e2b] hover:text-[#ea0e2b] transition-all"
+                >
+                  Load apps from App Store Connect
+                </button>
               )}
-            </button>
-          ))}
+              {ascLoading && (
+                <div className="flex items-center justify-center py-8 gap-2 text-gray-400 text-sm">
+                  <div className="spinner" /> Loading…
+                </div>
+              )}
+              {ascApps !== null && ascApps.length === 0 && (
+                <p className="text-xs text-gray-400 text-center py-6">
+                  No apps found. Check your ASC credentials in Settings.
+                </p>
+              )}
+              {ascApps && ascApps.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  {ascApps.map((app) => (
+                    <div
+                      key={app.ascId}
+                      className="flex items-center justify-between gap-3 px-4 py-3 bg-[#eff3f6] rounded-xl border border-gray-200"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-[#1a1a2e] truncate">
+                          {app.name}
+                        </div>
+                        <div className="text-[11px] text-gray-400 font-mono">
+                          {app.bundleId}
+                          {app.primaryLocale ? ` · ${app.primaryLocale}` : ""}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={importing === app.ascId}
+                        onClick={() => importApp(app)}
+                        className="shrink-0 px-3 py-1.5 rounded-lg border border-[#e5e7eb] bg-transparent text-[#1a1a2e] text-xs font-medium hover:border-[#ea0e2b] hover:text-[#ea0e2b] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {importing === app.ascId ? "Importing…" : "Import"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -455,7 +644,7 @@ export default function App() {
             </div>
           </div>
         </div>
-        <AppSwitcher current={dash?.app ?? null} />
+        <AppSwitcher current={dash?.app ?? null} addToast={addToast} />
         <div className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-[0.8px] text-[#9ca3af]">
           Navigation
         </div>

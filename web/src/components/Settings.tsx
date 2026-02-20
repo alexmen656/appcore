@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useApi, apiPut, apiPost, getToken } from "../hooks/useApi";
+import { useApi, apiPut, apiPost, getToken, setActiveBundleId } from "../hooks/useApi";
 import AscCredentialsSection from "./comps/settings/AscCredentialsSection";
 import AscAppsSection from "./comps/settings/AscAppsSection";
 import AiProviderSection from "./comps/settings/AiProviderSection";
@@ -49,11 +49,16 @@ export default function Settings({ addToast }: Props) {
   const importApp = async (app: AscApp) => {
     setImporting(app.ascId);
     try {
-      const result = await apiPost<{ ok: boolean; app: { name: string } }>(
-        "/asc/import",
-        { ascId: app.ascId, bundleId: app.bundleId, name: app.name },
-      );
+      const result = await apiPost<{
+        ok: boolean;
+        app: { name: string; bundleId: string };
+      }>("/asc/import", {
+        ascId: app.ascId,
+        bundleId: app.bundleId,
+        name: app.name,
+      });
       addToast(`"${result.app.name}" imported successfully`, "success");
+      setActiveBundleId(result.app.bundleId);
     } catch (err: any) {
       addToast(`Import failed: ${err.message}`, "error");
     } finally {

@@ -17,7 +17,13 @@ appsRouter.get("/", async (req, res) => {
         const relatedIds = rels.map((r) =>
           r.appId === activeApp.id ? r.competitorId : r.appId
         );
-        whereClause = { OR: [{ id: activeApp.id }, { id: { in: relatedIds } }] };
+        whereClause = {
+          OR: [
+            { id: activeApp.id },
+            { id: { in: relatedIds } },
+            { isOwnApp: true },
+          ],
+        };
       }
     }
 

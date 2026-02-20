@@ -29,7 +29,7 @@ function buildUrl(path: string): string {
   return url.toString().replace(window.location.origin, "");
 }
 
-export function useApi<T>(path: string, deps: any[] = []) {
+export function useApi<T>(path: string, deps: any[] = [], skipBundleId = false) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +37,7 @@ export function useApi<T>(path: string, deps: any[] = []) {
   const refetch = useCallback(() => {
     setLoading(true);
     setError(null);
-    fetch(buildUrl(path), { headers: authHeaders() })
+    fetch(skipBundleId ? `${BASE}${path}` : buildUrl(path), { headers: authHeaders() })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
@@ -50,7 +50,7 @@ export function useApi<T>(path: string, deps: any[] = []) {
         setError(e.message);
         setLoading(false);
       });
-  }, [path, ...deps]);
+  }, [path, skipBundleId, ...deps]);
 
   useEffect(() => {
     refetch();
