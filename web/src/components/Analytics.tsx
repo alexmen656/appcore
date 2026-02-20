@@ -117,7 +117,7 @@ export default function Analytics({ addToast }: Props) {
         <button
           onClick={handleSync}
           disabled={syncing}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[6px] text-[13px] font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] disabled:opacity-60 transition-colors"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] disabled:opacity-60 transition-colors"
         >
           {syncing ? (
             <>

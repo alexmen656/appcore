@@ -91,7 +91,7 @@ export default function ReviewsList({ reviews }: Props) {
       {shown < reviews.length && (
         <button
           onClick={() => setShown((s) => s + PAGE_SIZE)}
-          className="mt-4 w-full py-2 rounded-[6px] text-[13px] font-medium text-[#6b7280] border border-[#e5e7eb] hover:bg-[#f7f8fa] transition-colors"
+          className="mt-4 w-full py-2 rounded-lg text-[13px] font-medium text-[#6b7280] border border-[#e5e7eb] hover:bg-[#f7f8fa] transition-colors"
         >
           Load more ({reviews.length - shown} remaining)
         </button>

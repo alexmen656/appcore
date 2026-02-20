@@ -94,7 +94,7 @@ export default function Settings({ addToast }: Props) {
     "inline-flex items-center gap-1.5 px-4 py-[7px] rounded-lg border border-[#e5e7eb] bg-transparent text-[#1a1a2e] text-[13px] font-medium transition-all hover:border-[#ea0e2b] hover:text-[#ea0e2b] disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap";
   const btnSecondarySmall = `${btnSecondary} !px-[10px] !py-[5px] !text-xs`;
   const btnPrimary =
-    "inline-flex items-center gap-1.5 px-4 py-2 rounded-[6px] text-[13px] font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed";
+    "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed";
 
   return (
     <div className="max-w-3xl">

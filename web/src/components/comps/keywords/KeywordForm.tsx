@@ -1,7 +1,7 @@
 const inputCls =
-  "px-3 py-[7px] rounded-[6px] border border-[#e5e7eb] bg-white text-[#1a1a2e] text-[13px] outline-none focus:border-[#ea0e2b] transition-colors font-[inherit]";
+  "px-3 py-[7px] rounded-lg border border-[#e5e7eb] bg-white text-[#1a1a2e] text-[13px] outline-none focus:border-[#ea0e2b] transition-colors font-[inherit]";
 const btnPrimSm =
-  "inline-flex items-center gap-1.5 px-2.5 py-[5px] rounded-[6px] text-xs font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed";
+  "inline-flex items-center gap-1.5 px-2.5 py-[5px] rounded-lg text-xs font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed";
 
 export const COUNTRIES: { code: string; label: string; lang: string }[] = [
   { code: "de", label: "🇩🇪 Deutschland", lang: "de" },

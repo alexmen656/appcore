@@ -118,9 +118,9 @@ const IconSettings = () => (
 const sidebarLinks = [
   { to: "/dashboard", label: "Dashboard", icon: IconDashboard },
   { to: "/analytics", label: "Analytics", icon: IconAnalytics },
-  { to: "/suggestions", label: "Suggestions", icon: IconSuggestions },
   { to: "/keywords", label: "Keywords", icon: IconKeywords },
   { to: "/competitors", label: "Competitors", icon: IconCompetitors },
+  { to: "/suggestions", label: "Suggestions", icon: IconSuggestions },
 ];
 
 const sidebarOperations = [
@@ -187,7 +187,11 @@ function AppSwitcher({
   current: DashboardData["app"];
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }) {
-  const { data: apps, refetch: refetchApps } = useApi<AppItem[]>("/apps", [], true);
+  const { data: apps, refetch: refetchApps } = useApi<AppItem[]>(
+    "/apps",
+    [],
+    true,
+  );
   const [open, setOpen] = useState(false);
   const [activeBundleId, setLocalBundle] = useState(getActiveBundleId);
   const [importOpen, setImportOpen] = useState(false);
@@ -276,7 +280,7 @@ function AppSwitcher({
       <div ref={ref} className="relative mx-3 mb-4">
         <button
           onClick={() => setOpen(!open)}
-          className="w-full px-3 py-2.5 bg-white border border-[#e5e7eb] rounded-lg flex items-center gap-2.5 hover:border-[#d1d5db] transition-colors group"
+          className="w-full px-3 py-2.5 bg-white border border-[#e5e7eb] rounded-xl flex items-center gap-2.5 hover:border-[#d1d5db] transition-colors group"
         >
           {activeApp ? (
             <AppAvatar
@@ -619,7 +623,7 @@ export default function App() {
   }
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-2.5 px-3 py-[9px] rounded-[6px] text-sm font-medium mb-0.5 transition-all [&_svg]:w-[18px] [&_svg]:h-[18px] ${
+    `flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-sm font-medium mb-0.5 transition-all [&_svg]:w-[18px] [&_svg]:h-[18px] ${
       isActive
         ? "bg-white text-[#1a1a2e] shadow-sm [&_svg]:opacity-100 [&_svg]:text-[#ea0e2b]"
         : "text-[#6b7280] hover:bg-black/[0.04] hover:text-[#1a1a2e] [&_svg]:opacity-60"
@@ -629,9 +633,9 @@ export default function App() {
     <div className="flex h-screen overflow-hidden">
       <ToastContainer toasts={toasts} />
       <aside className="w-[260px] min-w-[260px] bg-[#eff3f6] border-r border-[#e5e7eb] flex flex-col overflow-y-auto">
-        <div className="px-5 pt-6 pb-5 flex items-center gap-2.5">
+        <div className="px-4 pt-6 pb-5 flex items-center gap-2.5">
           <img
-            className="w-[42px] h-[42px] rounded-[6px]"
+            className="w-[42px] h-[42px] rounded-lg"
             src="/logo.png"
             alt="Fringelo Logo"
           />

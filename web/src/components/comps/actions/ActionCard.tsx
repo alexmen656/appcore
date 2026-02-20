@@ -1,7 +1,7 @@
 const btnPrimSm =
-  "inline-flex items-center gap-1.5 px-2.5 py-[5px] rounded-[6px] text-xs font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed";
+  "inline-flex items-center gap-1.5 px-2.5 py-[5px] rounded-lg text-xs font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed";
 const btnSecSm =
-  "inline-flex items-center gap-1.5 px-2.5 py-[5px] rounded-[6px] text-xs font-medium border border-[#e5e7eb] bg-white text-[#1a1a2e] hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap";
+  "inline-flex items-center gap-1.5 px-2.5 py-[5px] rounded-lg text-xs font-medium border border-[#e5e7eb] bg-white text-[#1a1a2e] hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap";
 
 export interface ActionCardDef {
   id: string;
