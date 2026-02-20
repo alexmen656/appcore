@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
-import { useApi, apiPut, apiPost, getToken, setActiveBundleId } from "../hooks/useApi";
+import { useApi, apiPut } from "../hooks/useApi";
 import AscCredentialsSection from "./comps/settings/AscCredentialsSection";
-import AscAppsSection from "./comps/settings/AscAppsSection";
 import AiProviderSection from "./comps/settings/AiProviderSection";
 import ScrapingConfigSection from "./comps/settings/ScrapingConfigSection";
 import AsoLocalesSection from "./comps/settings/AsoLocalesSection";
-import { SettingsData, AscApp } from "./comps/settings/types";
+import { SettingsData } from "./comps/settings/types";
 
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
@@ -15,9 +14,6 @@ export default function Settings({ addToast }: Props) {
   const { data, loading, refetch } = useApi<SettingsData>("/settings");
   const [form, setForm] = useState<Partial<SettingsData>>({});
   const [saving, setSaving] = useState(false);
-  const [ascApps, setAscApps] = useState<AscApp[] | null>(null);
-  const [ascLoading, setAscLoading] = useState(false);
-  const [importing, setImporting] = useState<string | null>(null);
 
   useEffect(() => {
     if (data) setForm(data);
@@ -25,46 +21,6 @@ export default function Settings({ addToast }: Props) {
 
   const set = (key: keyof SettingsData, value: any) =>
     setForm((f) => ({ ...f, [key]: value }));
-
-  const loadAscApps = async () => {
-    setAscLoading(true);
-    setAscApps(null);
-    try {
-      const token = getToken();
-      const res = await fetch("/api/asc/apps", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!res.ok) {
-        const e = await res.json().catch(() => ({}));
-        throw new Error(e.error ?? `HTTP ${res.status}`);
-      }
-      setAscApps(await res.json());
-    } catch (err: any) {
-      addToast(`Failed to load apps: ${err.message}`, "error");
-    } finally {
-      setAscLoading(false);
-    }
-  };
-
-  const importApp = async (app: AscApp) => {
-    setImporting(app.ascId);
-    try {
-      const result = await apiPost<{
-        ok: boolean;
-        app: { name: string; bundleId: string };
-      }>("/asc/import", {
-        ascId: app.ascId,
-        bundleId: app.bundleId,
-        name: app.name,
-      });
-      addToast(`"${result.app.name}" imported successfully`, "success");
-      setActiveBundleId(result.app.bundleId);
-    } catch (err: any) {
-      addToast(`Import failed: ${err.message}`, "error");
-    } finally {
-      setImporting(null);
-    }
-  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,15 +68,6 @@ export default function Settings({ addToast }: Props) {
           inputCls={inputCls}
           textareaCls={textareaCls}
           onChange={set}
-        />
-        <AscAppsSection
-          ascApps={ascApps}
-          ascLoading={ascLoading}
-          importing={importing}
-          btnSecondary={btnSecondary}
-          btnSecondarySmall={btnSecondarySmall}
-          onLoadApps={loadAscApps}
-          onImport={importApp}
         />
         <AiProviderSection
           form={form}
