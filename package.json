@@ -5,19 +5,13 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "dev": "tsx watch src/index.ts",
-    "start": "node dist/index.js",
-    "web": "tsx src/web/server.ts",
-    "web:dev": "concurrently \"tsx watch src/web/server.ts\" \"cd web && npx vite\"",
+    "dev": "concurrently \"tsx watch src/web/server.ts\" \"cd web && npx vite\"",
+    "start": "tsx src/web/server.ts",
     "web:build": "cd web && npx vite build",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
-    "db:studio": "prisma studio",
-    "scrape": "tsx src/cli.ts scrape",
-    "analyze": "tsx src/cli.ts analyze",
-    "optimize": "tsx src/cli.ts optimize",
-    "track": "tsx src/cli.ts track"
+    "db:studio": "prisma studio"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",
@@ -26,7 +20,6 @@
     "axios": "^1.7.9",
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.0.0",
-    "commander": "^13.1.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",

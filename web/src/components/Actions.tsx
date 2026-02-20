@@ -37,12 +37,19 @@ const ACTION_CARDS: ActionCardDef[] = [
   },
 ];
 
+interface SchedulerStatus {
+  running: boolean;
+  jobCount: number;
+}
+
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }
 
 export default function Actions({ addToast }: Props) {
   const { data: jobs, refetch } = useApi<Job[]>("/actions/jobs");
+  const { data: schedulerStatus, refetch: refetchScheduler } =
+    useApi<SchedulerStatus>("/scheduler/status", [], true);
   const [running, setRunning] = useState<string | null>(null);
 
   const triggerAction = async (endpoint: string, label: string) => {
@@ -60,15 +67,94 @@ export default function Actions({ addToast }: Props) {
     }
   };
 
+  const toggleScheduler = async () => {
+    const action = schedulerStatus?.running ? "stop" : "start";
+    try {
+      const res = await apiPost(`/scheduler/${action}`);
+      addToast(res.message, "success");
+      refetchScheduler();
+    } catch (e: any) {
+      addToast(e.message, "error");
+    }
+  };
+
+  const runAll = async () => {
+    setRunning("run-all");
+    try {
+      const res = await apiPost("/scheduler/run-all");
+      addToast(res.message || "Running all jobs…", "success");
+      setTimeout(refetch, 5000);
+    } catch (e: any) {
+      addToast(e.message, "error");
+    } finally {
+      setRunning(null);
+    }
+  };
+
+  const autoApply = async () => {
+    setRunning("auto-apply");
+    try {
+      const res = await apiPost("/suggestions/auto-apply", {
+        minConfidence: 0.8,
+      });
+      addToast(
+        `Auto-apply: ${res.applied} changes applied across ${res.results?.length ?? 0} locale(s)`,
+        res.applied > 0 ? "success" : "info",
+      );
+    } catch (e: any) {
+      addToast(e.message, "error");
+    } finally {
+      setRunning(null);
+    }
+  };
+
   return (
     <div>
       <h1 className="text-3xl font-bold tracking-tight text-[#1a1a2e] mb-1">
         Actions
       </h1>
       <p className="text-base text-gray-500 mb-7">
-        Manually trigger scraping, analysis, and sync operations
+        Trigger jobs, manage the scheduler, and auto-apply suggestions
       </p>
 
+      {/* ─── Scheduler Control ─────────────────────────────────────── */}
+      <div className="bg-white border border-[#e5e7eb] rounded-lg p-5 mb-6 flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-2 mr-auto">
+          <span
+            className={`inline-block w-2.5 h-2.5 rounded-full ${
+              schedulerStatus?.running ? "bg-green-500" : "bg-gray-300"
+            }`}
+          />
+          <span className="text-sm font-medium text-[#1a1a2e]">
+            Scheduler:{" "}
+            {schedulerStatus?.running
+              ? `Running (${schedulerStatus.jobCount} jobs)`
+              : "Stopped"}
+          </span>
+        </div>
+        <button
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-[#e5e7eb] bg-white text-[#1a1a2e] hover:bg-gray-50 transition-all disabled:opacity-50"
+          onClick={toggleScheduler}
+        >
+          {schedulerStatus?.running ? "⏹ Stop" : "▶ Start"}
+        </button>
+        <button
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-[#e5e7eb] bg-white text-[#1a1a2e] hover:bg-gray-50 transition-all disabled:opacity-50"
+          disabled={!!running}
+          onClick={runAll}
+        >
+          {running === "run-all" ? "⏳ Running…" : "🔄 Run All Now"}
+        </button>
+        <button
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50"
+          disabled={!!running}
+          onClick={autoApply}
+        >
+          {running === "auto-apply" ? "⏳ Applying…" : "⚡ Auto-Apply (≥80%)"}
+        </button>
+      </div>
+
+      {/* ─── Action Cards ──────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
         {ACTION_CARDS.map((ac) => (
           <ActionCard

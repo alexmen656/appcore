@@ -1,7 +1,9 @@
 import { Router } from "express";
-import { prisma } from "../../config";
+import { prisma, getEffectiveSettings } from "../../config";
+import { requireAuth } from "../auth";
 
 export const suggestionsRouter = Router();
+suggestionsRouter.use(requireAuth);
 
 suggestionsRouter.get("/", async (req, res) => {
   try {
@@ -119,6 +121,110 @@ suggestionsRouter.post("/bulk-approve", async (req, res) => {
       data: { status: "APPROVED" },
     });
     res.json({ ok: true, count: result.count });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// ─── POST /suggestions/auto-apply ────────────────────────────────────────
+// Automatically apply all high-confidence suggestions (≥ threshold) via ASC API
+// Replaces CLI's `optimize --auto` command
+suggestionsRouter.post("/auto-apply", async (req, res) => {
+  try {
+    const settings = await getEffectiveSettings(req.user!.userId);
+    const minConfidence = parseFloat(req.body.minConfidence ?? "0.8");
+    const locale = req.body.locale as string | undefined;
+
+    if (!settings.ascIssuerId || !settings.ascKeyId || !settings.ascPrivateKey) {
+      res.status(400).json({ error: "App Store Connect credentials not configured." });
+      return;
+    }
+
+    const where: any = {
+      status: "PENDING",
+      confidenceScore: { gte: minConfidence },
+    };
+    if (locale) where.locale = locale;
+
+    const suggestions = await prisma.aSOSuggestion.findMany({
+      where,
+      orderBy: [{ locale: "asc" }, { confidenceScore: "desc" }],
+    });
+
+    if (suggestions.length === 0) {
+      res.json({ ok: true, applied: 0, message: "No qualifying suggestions found." });
+      return;
+    }
+
+    // Group by locale, pick best per type
+    const byLocale = new Map<string, typeof suggestions>();
+    for (const s of suggestions) {
+      const group = byLocale.get(s.locale) ?? [];
+      group.push(s);
+      byLocale.set(s.locale, group);
+    }
+
+    const { AppStoreConnectClient } = await import("../../services/appstore-connect");
+    const asc = new AppStoreConnectClient({
+      issuerId: settings.ascIssuerId,
+      keyId: settings.ascKeyId,
+      privateKey: settings.ascPrivateKey,
+    });
+
+    let totalApplied = 0;
+    const results: { locale: string; applied: string[]; errors: string[] }[] = [];
+
+    for (const [loc, localeSuggestions] of byLocale) {
+      // Best per type
+      const bestByType = new Map<string, (typeof localeSuggestions)[0]>();
+      for (const s of localeSuggestions) {
+        const existing = bestByType.get(s.type);
+        if (!existing || (s.confidenceScore ?? 0) > (existing.confidenceScore ?? 0)) {
+          bestByType.set(s.type, s);
+        }
+      }
+
+      const changes: Record<string, string> = {};
+      const appliedSuggestions: typeof localeSuggestions = [];
+
+      for (const [type, suggestion] of bestByType) {
+        const key = type.toLowerCase();
+        if (key === "title") changes.name = suggestion.suggestedValue;
+        else if (key === "subtitle") changes.subtitle = suggestion.suggestedValue;
+        else if (key === "keywords") changes.keywords = suggestion.suggestedValue;
+        else if (key === "description") changes.description = suggestion.suggestedValue;
+        appliedSuggestions.push(suggestion);
+      }
+
+      if (Object.keys(changes).length === 0) continue;
+
+      try {
+        const result = await asc.applyASOChanges(changes, loc);
+
+        for (const suggestion of appliedSuggestions) {
+          const wasApplied = result.applied.some((a: string) =>
+            a.toLowerCase().includes(suggestion.type.toLowerCase()),
+          );
+          await prisma.aSOSuggestion.update({
+            where: { id: suggestion.id },
+            data: {
+              status: wasApplied ? "APPLIED" : "REJECTED",
+              appliedAt: wasApplied ? new Date() : undefined,
+              resultNotes: wasApplied
+                ? `Auto-applied to ${loc} version ${result.versionString}`
+                : `Failed: ${result.errors.join("; ")}`,
+            },
+          });
+          if (wasApplied) totalApplied++;
+        }
+
+        results.push({ locale: loc, applied: result.applied, errors: result.errors });
+      } catch (err) {
+        results.push({ locale: loc, applied: [], errors: [String(err)] });
+      }
+    }
+
+    res.json({ ok: true, applied: totalApplied, results });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
