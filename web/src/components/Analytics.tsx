@@ -141,11 +141,12 @@ export default function Analytics({ addToast }: Props) {
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[22px] font-bold text-[#1a1a2e]">Analytics</h1>
-          <p className="text-[13px] text-[#9ca3af] mt-0.5">
+          <h1 className="text-3xl font-bold tracking-tight text-[#1a1a2e] mb-1">
+            Analytics
+          </h1>
+          <p className="text-base text-gray-500 mb-7">
             Downloads, revenue and reviews from App Store Connect
             {summary?.lastSyncAt && (
               <span className="ml-2">
@@ -184,7 +185,6 @@ export default function Analytics({ addToast }: Props) {
         </button>
       </div>
 
-      {/* Vendor number not configured warning */}
       {!loading && !summary?.totalDownloads30d && reviews?.length === 0 && (
         <div className="mb-5 px-4 py-3.5 rounded-xl bg-amber-50 border border-amber-200 text-[13px] text-amber-800">
           <strong>No analytics data yet.</strong> Make sure your{" "}
@@ -195,7 +195,6 @@ export default function Analytics({ addToast }: Props) {
         </div>
       )}
 
-      {/* Summary cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
         <StatCard
           label="Downloads (30d)"
@@ -223,14 +222,11 @@ export default function Analytics({ addToast }: Props) {
         />
       </div>
 
-      {/* Downloads chart */}
       <div className="mb-5">
         <DownloadsChart data={downloads?.byDay ?? []} />
       </div>
 
-      {/* Country breakdown + reviews side-by-side on large screens */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
-        {/* Country breakdown */}
         <div className="bg-white border border-[#e5e7eb] rounded-xl overflow-hidden">
           <div className="px-5 py-4 border-b border-[#e5e7eb]">
             <div className="text-[15px] font-semibold text-[#1a1a2e]">
@@ -298,7 +294,6 @@ export default function Analytics({ addToast }: Props) {
           )}
         </div>
 
-        {/* Rating distribution */}
         <div className="bg-white border border-[#e5e7eb] rounded-xl p-5">
           <div className="text-[15px] font-semibold text-[#1a1a2e] mb-1">
             Rating Distribution
