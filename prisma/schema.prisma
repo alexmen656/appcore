@@ -57,6 +57,10 @@ model UserSettings {
   // ── Analytics ────────────────────────────────────────────────────────
   ascVendorNumber String? // required for Sales Reports API (found in Payments & Financial Reports)
 
+  // ── MCP Integration ───────────────────────────────────────────────────
+  mcpEnabled  Boolean @default(false)
+  mcpApiKey   String? // UUID-basierter Key, null bis erstmalig generiert
+
   updatedAt DateTime @updatedAt
 }
 

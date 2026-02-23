@@ -12,7 +12,9 @@ import { settingsRouter } from "./api/settings";
 import { ascRouter } from "./api/asc";
 import { analyticsRouter } from "./api/analytics";
 import { schedulerRouter, scheduler } from "./api/scheduler";
+import { mcpRouter } from "./api/mcp";
 import { requireAuth } from "./auth";
+import { mcpAuth, createMcpHandler } from "./mcp";
 
 const app = express();
 const PORT = process.env.WEB_PORT ?? 3100;
@@ -33,6 +35,10 @@ app.use("/api/settings", settingsRouter);
 app.use("/api/asc", ascRouter);
 app.use("/api/analytics", requireAuth, analyticsRouter);
 app.use("/api/scheduler", requireAuth, schedulerRouter);
+app.use("/api/mcp", mcpRouter);
+
+// ─── MCP Server Endpoint (API-key authenticated) ─────────────────────────
+app.post("/mcp", mcpAuth, createMcpHandler());
 
 // ─── Serve built frontend in production ─────────────────────────────────
 const webDist = path.join(__dirname, "../../web/dist");

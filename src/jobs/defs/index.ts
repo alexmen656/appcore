@@ -8,9 +8,9 @@ import syncAnalyticsJob from "./sync-analytics";
 
 export const allJobs: JobDefinition[] = [
   scrapeJob,
-  trackKeywordsJob,
   analyzeJob,
   extractKeywordsJob,
   discoverKeywordsJob,
+  trackKeywordsJob,
   syncAnalyticsJob,
 ];
