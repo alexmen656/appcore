@@ -64,28 +64,26 @@ analyticsRouter.get("/downloads", async (req, res) => {
       orderBy: { reportDate: "asc" },
     });
 
-    // Aggregate by day (sum across countries)
     const byDayMap: Record<
       string,
       { date: string; downloads: number; updates: number; proceeds: number }
     > = {};
     for (const r of rows) {
       const key = r.reportDate.toISOString().slice(0, 10);
-      if (!byDayMap[key]) byDayMap[key] = { date: key, downloads: 0, updates: 0, proceeds: 0 };
+      if (!byDayMap[key])
+        byDayMap[key] = { date: key, downloads: 0, updates: 0, proceeds: 0 };
       byDayMap[key].downloads += r.downloads;
       byDayMap[key].updates += r.updates;
       byDayMap[key].proceeds += r.proceeds;
     }
 
-    // Aggregate by country (total over date range)
     const byCountryMap: Record<string, number> = {};
     for (const r of rows) {
       byCountryMap[r.country] = (byCountryMap[r.country] ?? 0) + r.downloads;
     }
     const byCountry = Object.entries(byCountryMap)
       .map(([country, downloads]) => ({ country, downloads }))
-      .sort((a, b) => b.downloads - a.downloads)
-      .slice(0, 20);
+      .sort((a, b) => b.downloads - a.downloads);
 
     res.json({
       byDay: Object.values(byDayMap),
@@ -128,19 +126,26 @@ analyticsRouter.get("/reviews", async (req, res) => {
 });
 
 // ─── POST /api/analytics/sync ─────────────────────────────────────────────────
-// Fire-and-forget: returns immediately, runs sync in background.
 analyticsRouter.post("/sync", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
     const bundleId = (req.body.bundleId as string) || settings.ascBundleId;
     const ascAppId = settings.ascAppId;
 
-    if (!settings.ascIssuerId || !settings.ascKeyId || !settings.ascPrivateKey) {
-      res.status(400).json({ error: "App Store Connect credentials not configured." });
+    if (
+      !settings.ascIssuerId ||
+      !settings.ascKeyId ||
+      !settings.ascPrivateKey
+    ) {
+      res
+        .status(400)
+        .json({ error: "App Store Connect credentials not configured." });
       return;
     }
     if (!settings.ascVendorNumber) {
-      res.status(400).json({ error: "ASC Vendor Number not configured in Settings." });
+      res
+        .status(400)
+        .json({ error: "ASC Vendor Number not configured in Settings." });
       return;
     }
 

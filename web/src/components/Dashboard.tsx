@@ -8,6 +8,7 @@ import RecentSuggestionsTable, {
   RecentSuggestion,
 } from "./comps/dashboard/RecentSuggestionsTable";
 import LastJobStatus, { LastJob } from "./comps/dashboard/LastJobStatus";
+import DownloadsChart from "./comps/analytics/DownloadsChart";
 
 interface DashboardData {
   app: AppInfo | null;
@@ -17,8 +18,21 @@ interface DashboardData {
   recentSuggestions: RecentSuggestion[];
 }
 
+interface DownloadsData {
+  byDay: {
+    date: string;
+    downloads: number;
+    updates: number;
+    proceeds: number;
+  }[];
+  byCountry: { country: string; downloads: number }[];
+}
+
 export default function Dashboard() {
   const { data, loading, error } = useApi<DashboardData>("/dashboard");
+  const { data: downloads } = useApi<DownloadsData>(
+    "/analytics/downloads?days=90",
+  );
 
   if (loading)
     return (
@@ -43,6 +57,12 @@ export default function Dashboard() {
       <StatsGrid stats={stats} />
 
       {app && <AppInfoCard app={app} />}
+
+      {downloads && (
+        <div className="mb-5">
+          <DownloadsChart data={downloads.byDay} />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
         <ConfigurationTable config={config} />
