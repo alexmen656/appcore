@@ -22,10 +22,7 @@ const PORT = process.env.WEB_PORT ?? 3100;
 app.use(cors());
 app.use(express.json());
 
-// ─── Auth Routes (public) ────────────────────────────────────────────────
 app.use("/api/auth", authRouter);
-
-// ─── Protected API Routes ────────────────────────────────────────────────
 app.use("/api/dashboard", requireAuth, dashboardRouter);
 app.use("/api/apps", requireAuth, appsRouter);
 app.use("/api/suggestions", requireAuth, suggestionsRouter);
@@ -36,11 +33,8 @@ app.use("/api/asc", ascRouter);
 app.use("/api/analytics", requireAuth, analyticsRouter);
 app.use("/api/scheduler", requireAuth, schedulerRouter);
 app.use("/api/mcp", mcpRouter);
-
-// ─── MCP Server Endpoint (API-key authenticated) ─────────────────────────
 app.post("/mcp", mcpAuth, createMcpHandler());
 
-// ─── Serve built frontend in production ─────────────────────────────────
 const webDist = path.join(__dirname, "../../web/dist");
 app.use(express.static(webDist));
 app.get("*", (_req, res) => {
@@ -49,17 +43,15 @@ app.get("*", (_req, res) => {
 
 app.listen(PORT, () => {
   logger.info(`AppCore Web UI running at http://localhost:${PORT}`);
-
-  // Auto-start the scheduler
   scheduler.start();
   logger.info("Background scheduler started automatically");
 });
 
-// ─── Graceful shutdown ──────────────────────────────────────────────────
 function shutdown() {
   logger.info("Shutting down...");
   scheduler.stop();
   prisma.$disconnect().then(() => process.exit(0));
 }
+
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);

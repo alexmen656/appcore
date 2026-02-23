@@ -4,8 +4,6 @@ import { prisma, env, logger } from "../config";
 import type { EffectiveSettings } from "../config";
 import { SuggestionType, SuggestionStatus } from "@prisma/client";
 
-// ─── Locale Configuration ───────────────────────────────────────────────
-
 interface LocaleConfig {
   locale: string;
   language: string;
@@ -244,15 +242,6 @@ function getLocaleConfig(locale: string): LocaleConfig {
   );
 }
 
-/** Parse ASO_LOCALES env var into locale list (fallback when no settings provided) */
-function getConfiguredLocales(): string[] {
-  return env.ASO_LOCALES.split(",")
-    .map((l) => l.trim())
-    .filter(Boolean);
-}
-
-// ─── AI Provider Abstraction ────────────────────────────────────────────
-
 interface AIResponse {
   content: string;
   provider: string;
@@ -381,8 +370,7 @@ export class AIAnalyzer {
   async analyzeAndSuggest(
     locales?: string[],
   ): Promise<Map<string, ASOAnalysis>> {
-    const targetLocales =
-      locales ?? this.settings?.asoLocales ?? getConfiguredLocales();
+    const targetLocales = locales ?? this.settings?.asoLocales ?? "en-US";
     const results = new Map<string, ASOAnalysis>();
     const appData = await this.gatherAppData();
 
@@ -594,8 +582,6 @@ Generate detailed ASO optimization suggestions in ${lc.promptLang} for the ${lc.
       `Saved ${suggestions.length} ASO suggestions for locale ${locale}`,
     );
   }
-
-  // ─── Keyword Extraction ───────────────────────────────────────────
 
   async extractKeywordsFromCompetitors(): Promise<
     Array<{ keyword: string; frequency: number; relevance: number }>

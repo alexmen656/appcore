@@ -103,7 +103,6 @@ function langForCountry(country: string): string {
 }
 
 // ─── Apple Store-Front IDs (for search hints API) ───────────────────────
-// Format: "storeFrontId-languageParam,version"
 const STOREFRONT: Record<string, string> = {
   us: "143441-1,29",
   gb: "143444-2,29",

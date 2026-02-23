@@ -5,18 +5,10 @@ import type { EffectiveSettings } from "../config";
 import { ScrapeType, JobStatus } from "@prisma/client";
 import { AppStoreScraper } from "./appstore-scraper";
 
-// ─── Tuning constants ────────────────────────────────────────────────────────
-
-/** Minimum popularity score (0–100) to accept a discovered keyword */
 const MIN_POPULARITY = 15;
-/** Minimum App Store result count to accept a discovered keyword */
 const MIN_RESULTS = 3;
-/** Max candidates scored per run (each costs 2 Apple API calls) */
 const MAX_SCORE_PER_RUN = 25;
-/** Max existing keywords used as autocomplete seeds per run */
 const MAX_AUTOCOMPLETE_SEEDS = 20;
-
-// ─── Keyword Discovery Agent ─────────────────────────────────────────────────
 
 /**
  * Continuously discovers new relevant keywords to track using three strategies:
@@ -35,6 +27,7 @@ const MAX_AUTOCOMPLETE_SEEDS = 20;
  * App Store analyzer. Only keywords that meet the minimum popularity and
  * result-count thresholds are added to tracking.
  */
+
 export class KeywordDiscoveryAgent {
   private readonly scraper: AppStoreScraper;
   private readonly country: string;
@@ -54,8 +47,6 @@ export class KeywordDiscoveryAgent {
     if (openaiKey) this.openai = new OpenAI({ apiKey: openaiKey });
     if (anthropicKey) this.anthropic = new Anthropic({ apiKey: anthropicKey });
   }
-
-  // ── Public entry point ────────────────────────────────────────────────────
 
   async run(): Promise<{ discovered: number; scored: number; added: number }> {
     const job = await prisma.scrapeJob.create({
@@ -94,8 +85,6 @@ export class KeywordDiscoveryAgent {
     }
   }
 
-  // ── Core discovery loop ───────────────────────────────────────────────────
-
   private async discover(): Promise<{
     discovered: number;
     scored: number;
@@ -106,7 +95,6 @@ export class KeywordDiscoveryAgent {
       `[Discovery] Starting – ${existingTerms.size} keywords already tracked`,
     );
 
-    // Run all three strategies in parallel (each is independently rate-limited)
     const [fromCompetitors, fromAutocomplete, fromSemantic] = await Promise.all(
       [
         this.discoverFromCompetitorTexts(existingTerms),
@@ -115,7 +103,6 @@ export class KeywordDiscoveryAgent {
       ],
     );
 
-    // Merge, normalise, deduplicate
     const candidates = new Set<string>();
     for (const term of [
       ...fromCompetitors,
@@ -133,10 +120,8 @@ export class KeywordDiscoveryAgent {
         `(competitors=${fromCompetitors.length} autocomplete=${fromAutocomplete.length} semantic=${fromSemantic.length})`,
     );
 
-    // Score via App Store analyzer and filter by quality
     const qualified = await this.scoreAndFilter([...candidates]);
 
-    // Persist qualified keywords
     let added = 0;
     const ownApp = await prisma.app.findUnique({
       where: { bundleId: this.bundleId },
@@ -149,7 +134,6 @@ export class KeywordDiscoveryAgent {
         update: {},
       });
 
-      // Link keyword to the specific app so it appears in the keywords list
       if (ownApp) {
         const existingRanking = await prisma.keywordRanking.findFirst({
           where: { keywordId: keyword.id, appId: ownApp.id },
@@ -171,8 +155,6 @@ export class KeywordDiscoveryAgent {
 
     return { discovered: candidates.size, scored: qualified.length, added };
   }
-
-  // ── Strategy 1: Competitor text mining ───────────────────────────────────
 
   private async discoverFromCompetitorTexts(
     existing: Set<string>,
@@ -252,12 +234,9 @@ Return the 25 most valuable keyword candidates not yet tracked. Respond with JSO
     }
   }
 
-  // ── Strategy 2: Autocomplete expansion ───────────────────────────────────
-
   private async discoverFromAutocompleteExpansion(
     existing: Set<string>,
   ): Promise<string[]> {
-    // Prefer higher-popularity seeds so Apple returns the richest suggestions
     const seeds = [...existing].slice(0, MAX_AUTOCOMPLETE_SEEDS);
     const discovered = new Set<string>();
 
@@ -283,8 +262,6 @@ Return the 25 most valuable keyword candidates not yet tracked. Respond with JSO
     );
     return [...discovered];
   }
-
-  // ── Strategy 3: AI semantic expansion ────────────────────────────────────
 
   private async discoverFromSemanticExpansion(
     existing: Set<string>,
@@ -336,8 +313,6 @@ Return JSON only.`;
     }
   }
 
-  // ── Scoring & filtering ───────────────────────────────────────────────────
-
   private async scoreAndFilter(candidates: string[]): Promise<string[]> {
     const toScore = candidates.slice(0, MAX_SCORE_PER_RUN);
     const qualified: string[] = [];
@@ -348,8 +323,10 @@ Return JSON only.`;
 
     for (const candidate of toScore) {
       try {
-        const { popularity, searchVolume } =
-          await this.scraper.analyzeKeyword(candidate, 25);
+        const { popularity, searchVolume } = await this.scraper.analyzeKeyword(
+          candidate,
+          25,
+        );
 
         if (popularity >= MIN_POPULARITY && searchVolume >= MIN_RESULTS) {
           qualified.push(candidate);
@@ -372,8 +349,6 @@ Return JSON only.`;
     );
     return qualified;
   }
-
-  // ── Helpers ───────────────────────────────────────────────────────────────
 
   private async loadExistingTerms(): Promise<Set<string>> {
     const ownApp = await prisma.app.findUnique({
@@ -426,11 +401,6 @@ Return JSON only.`;
     throw new Error("No AI provider configured");
   }
 
-  /**
-   * Robustly parse a keyword array from an AI response.
-   * Handles: bare JSON arrays, {"keywords":[...]}, {"results":[...]},
-   * {"candidates":[...]}, and markdown code-fence wrapping.
-   */
   private parseKeywordArray(raw: string, source: string): string[] {
     try {
       let jsonStr = raw.trim();

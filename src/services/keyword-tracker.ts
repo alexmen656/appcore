@@ -4,7 +4,6 @@ import { AppStoreScraper } from "./appstore-scraper";
 import { AppleSearchAdsClient } from "./search-ads";
 import { ScrapeType, JobStatus } from "@prisma/client";
 
-// ─── Keyword Tracking Service ───────────────────────────────────────────
 export class KeywordTracker {
   private scraper: AppStoreScraper;
   private searchAds: AppleSearchAdsClient | null = null;
@@ -92,7 +91,6 @@ export class KeywordTracker {
       return null;
     }
 
-    // ── Analyze keyword using Apple data (search results + autocomplete) ──
     const { results, popularity, difficulty, searchVolume } =
       await this.scraper.analyzeKeyword(keywordTerm, 50);
 

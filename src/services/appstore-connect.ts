@@ -3,9 +3,6 @@ import fs from "fs";
 import axios, { AxiosInstance } from "axios";
 import { logger, env } from "../config";
 
-// ─── App Store Connect API Client ───────────────────────────────────────
-// Docs: https://developer.apple.com/documentation/appstoreconnectapi
-
 interface ASCAppInfo {
   id: string;
   type: string;
@@ -60,7 +57,6 @@ export class AppStoreConnectClient {
   private client: AxiosInstance;
   private token: string | null = null;
   private tokenExpiry: number = 0;
-
   private readonly issuerId: string;
   private readonly keyId: string;
   private readonly privateKey: string;
@@ -130,8 +126,6 @@ export class AppStoreConnectClient {
     return this.token;
   }
 
-  // ─── App Info ──────────────────────────────────────────────────────
-
   async listApps(): Promise<ASCAppInfo[]> {
     const { data } = await this.client.get("/apps", {
       params: {
@@ -176,8 +170,6 @@ export class AppStoreConnectClient {
     return data.data ?? [];
   }
 
-  // ─── App Store Versions ────────────────────────────────────────────
-
   async getLiveVersion(appId: string): Promise<ASCAppStoreVersion | null> {
     const { data } = await this.client.get(`/apps/${appId}/appStoreVersions`, {
       params: {
@@ -209,8 +201,6 @@ export class AppStoreConnectClient {
 
     return data.data ?? [];
   }
-
-  // ─── Update Operations ────────────────────────────────────────────
 
   async updateAppInfoLocalization(
     localizationId: string,
@@ -244,8 +234,6 @@ export class AppStoreConnectClient {
     });
     logger.info(`Updated version localization ${localizationId}`, updates);
   }
-
-  // ─── Editable Version Handling ──────────────────────────────────
 
   async getEditableVersion(appId: string): Promise<ASCAppStoreVersion | null> {
     const editableStates = [
@@ -323,8 +311,6 @@ export class AppStoreConnectClient {
     return this.createNewVersion(appId, nextVersion);
   }
 
-  // ─── Convenience: Get full current ASO state ──────────────────────
-
   async getCurrentASOState(locale = "en-US"): Promise<{
     title?: string;
     subtitle?: string;
@@ -380,8 +366,6 @@ export class AppStoreConnectClient {
     };
   }
 
-  // ─── Apply ASO changes ────────────────────────────────────────────
-
   async applyASOChanges(
     changes: {
       title?: string;
@@ -414,7 +398,6 @@ export class AppStoreConnectClient {
       `Applying ASO changes to version ${versionString} (${version.attributes.appStoreState})`,
     );
 
-    // ── Update title/subtitle via appInfoLocalizations ──────────
     if (changes.title || changes.subtitle) {
       try {
         const infoLocalizations = await this.getAppInfoLocalizations(app.id);
@@ -444,7 +427,6 @@ export class AppStoreConnectClient {
       }
     }
 
-    // ── Update description/keywords/whatsNew via versionLocalizations ──
     if (
       changes.description ||
       changes.keywords ||

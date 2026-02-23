@@ -5,8 +5,6 @@ import { KeywordTracker } from "../services/keyword-tracker";
 import { AIAnalyzer } from "../services/ai-analyzer";
 import { KeywordDiscoveryAgent } from "../services/keyword-discovery-agent";
 
-// ─── Job Definition ───────────────────────────────────────────────────
-
 export interface JobDefinition {
   id: string;
   name: string;
@@ -14,8 +12,6 @@ export interface JobDefinition {
   timezone: string;
   execute: (userId: string, settings: EffectiveSettings) => Promise<void>;
 }
-
-// ─── Helpers ──────────────────────────────────────────────────────────
 
 export async function buildServices(settings: EffectiveSettings) {
   return {

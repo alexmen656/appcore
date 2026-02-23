@@ -4,11 +4,6 @@ import jwt from "jsonwebtoken";
 import { prisma, logger } from "../config";
 import type { EffectiveSettings } from "../config/userSettings";
 
-// ─── App Store Connect Analytics Service ────────────────────────────────────
-// Fetches Sales Reports (downloads/revenue) and Customer Reviews from ASC API.
-
-const ASC_BASE = "https://api.appstoreconnect.apple.com/v1";
-
 function makeToken(settings: EffectiveSettings): string {
   const now = Math.floor(Date.now() / 1000);
   return jwt.sign(
@@ -30,7 +25,6 @@ function authHeaders(settings: EffectiveSettings) {
   return { Authorization: `Bearer ${makeToken(settings)}` };
 }
 
-/** Parse TSV with a header row into array of objects keyed by column name. */
 function parseTsv(raw: string): Record<string, string>[] {
   const lines = raw.split("\n").filter((l) => l.trim());
   if (lines.length < 2) return [];
@@ -43,11 +37,19 @@ function parseTsv(raw: string): Record<string, string>[] {
   });
 }
 
+function getField(row: Record<string, string>, ...keys: string[]): string {
+  for (const key of keys) {
+    const found = Object.keys(row).find(
+      (k) => k.toLowerCase() === key.toLowerCase(),
+    );
+    if (found !== undefined) return row[found] ?? "";
+  }
+  return "";
+}
+
 function fmtDate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
-
-// ─── Sales Reports ───────────────────────────────────────────────────────────
 
 export async function fetchSalesReports(
   settings: EffectiveSettings,
@@ -55,7 +57,7 @@ export async function fetchSalesReports(
   daysBack = 60,
 ): Promise<number> {
   if (!settings.ascVendorNumber) {
-    logger.warn("ASC vendor number not configured – skipping sales reports");
+    logger.warn("ASC vendor number not configured - skipping sales reports");
     return 0;
   }
 
@@ -78,17 +80,20 @@ export async function fetchSalesReports(
     }
 
     try {
-      const resp = await axios.get(`${ASC_BASE}/salesReports`, {
-        headers: { ...headers, Accept: "application/a-gzip" },
-        params: {
-          "filter[frequency]": "DAILY",
-          "filter[reportType]": "SALES",
-          "filter[reportSubType]": "SUMMARY",
-          "filter[vendorNumber]": settings.ascVendorNumber,
-          "filter[reportDate]": dateStr,
+      const resp = await axios.get(
+        `https://api.appstoreconnect.apple.com/v1/salesReports`,
+        {
+          headers: { ...headers, Accept: "application/a-gzip" },
+          params: {
+            "filter[frequency]": "DAILY",
+            "filter[reportType]": "SALES",
+            "filter[reportSubType]": "SUMMARY",
+            "filter[vendorNumber]": settings.ascVendorNumber,
+            "filter[reportDate]": dateStr,
+          },
+          responseType: "arraybuffer",
         },
-        responseType: "arraybuffer",
-      });
+      );
 
       const raw = zlib.gunzipSync(Buffer.from(resp.data)).toString("utf-8");
       const rows = parseTsv(raw);
@@ -107,8 +112,10 @@ export async function fetchSalesReports(
         const typeId = row["Product Type Identifier"] ?? "";
         const units = parseInt(row["Units"] ?? "0", 10) || 0;
         const proceeds = parseFloat(row["Developer Proceeds"] ?? "0") || 0;
-        const country =
-          (row["Country Of Sale"] ?? "").toUpperCase() || "UNKNOWN";
+        const country = getField(row, "Country Of Sale", "Country of Sale")
+          .toUpperCase()
+          .trim();
+        if (!country) continue;
 
         if (!byCountry[country]) {
           byCountry[country] = {
@@ -119,17 +126,12 @@ export async function fetchSalesReports(
           };
         }
 
-        // 1 = paid app, 1F = free app install (new)
         if (typeId === "1" || typeId === "1F") {
           byCountry[country].downloads += units;
           byCountry[country].proceeds += proceeds;
-        }
-        // 1T = update
-        else if (typeId === "1T") {
+        } else if (typeId === "1T") {
           byCountry[country].updates += units;
-        }
-        // 7 = in-app purchase; we track proceeds only
-        else if (typeId === "7") {
+        } else if (typeId === "7") {
           byCountry[country].proceeds += proceeds;
         }
       }
@@ -150,7 +152,6 @@ export async function fetchSalesReports(
         `Sales report stored: ${dateStr} (${Object.keys(byCountry).length} countries)`,
       );
     } catch (err: any) {
-      // 404 means no report for that day yet – normal for recent dates
       if (err?.response?.status === 404 || err?.response?.status === 400) {
         logger.debug(`No sales report for ${dateStr}`);
         continue;
@@ -163,8 +164,6 @@ export async function fetchSalesReports(
 
   return storedDays;
 }
-
-// ─── Customer Reviews ─────────────────────────────────────────────────────────
 
 export async function fetchReviews(
   settings: EffectiveSettings,
@@ -186,7 +185,7 @@ export async function fetchReviews(
     if (cursor) params["cursor"] = cursor;
 
     const resp = await axios.get(
-      `${ASC_BASE}/apps/${ascAppId}/customerReviews`,
+      `https://api.appstoreconnect.apple.com/v1/apps/${ascAppId}/customerReviews`,
       {
         headers,
         params,
@@ -230,8 +229,6 @@ export async function fetchReviews(
 
   return total;
 }
-
-// ─── Orchestrator ─────────────────────────────────────────────────────────────
 
 export interface AnalyticsSyncResult {
   downloadDays: number;

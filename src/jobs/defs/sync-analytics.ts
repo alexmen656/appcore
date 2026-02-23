@@ -1,6 +1,3 @@
-// ─── ASC Analytics Sync Job ──────────────────────────────────────────────
-// Syncs sales reports, download stats, and reviews from App Store Connect.
-
 import { logger, prisma } from "../../config";
 import { syncAllAnalytics } from "../../services/asc-analytics";
 import { JobDefinition } from "../types";

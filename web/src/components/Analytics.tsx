@@ -40,7 +40,7 @@ const TH =
 const TD = "px-3.5 py-3 border-b border-[#f0f0f0] text-[13px] align-middle";
 
 function countryFlag(code: string): string {
-  if (code.length !== 2) return "🌍";
+  if (code.length !== 2 || !/^[A-Z]{2}$/.test(code.toUpperCase())) return "🌍";
   return [...code.toUpperCase()]
     .map((c) => String.fromCodePoint(0x1f1e6 + c.charCodeAt(0) - 65))
     .join("");
@@ -48,11 +48,16 @@ function countryFlag(code: string): string {
 
 const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
 function countryName(code: string): string {
+  if (code.length !== 2 || !/^[A-Z]{2}$/.test(code.toUpperCase())) return "Unknown";
   try {
-    return regionNames.of(code) ?? code;
+    return regionNames.of(code.toUpperCase()) ?? code;
   } catch {
     return code;
   }
+}
+
+function countryCodeLabel(code: string): string {
+  return code.length === 2 && /^[A-Z]{2}$/i.test(code) ? code.toUpperCase() : "";
 }
 
 function StatCard({
@@ -380,9 +385,11 @@ export default function Analytics({ addToast }: Props) {
                       <span className="font-medium text-[#1a1a2e]">
                         {countryName(r.country)}
                       </span>
-                      <span className="ml-1.5 text-[11px] text-[#9ca3af]">
-                        {r.country}
-                      </span>
+                      {countryCodeLabel(r.country) && (
+                        <span className="ml-1.5 text-[11px] text-[#9ca3af]">
+                          {countryCodeLabel(r.country)}
+                        </span>
+                      )}
                     </td>
                     <td className={`${TD} text-right tabular-nums`}>
                       {fmtNumber(r.downloads)}

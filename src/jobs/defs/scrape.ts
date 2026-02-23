@@ -1,6 +1,3 @@
-// ─── Scrape Job ─────────────────────────────────────────────────────────
-// Scrapes the iTunes API for own app + all competitors, saves snapshots.
-
 import { logger } from "../../config";
 import { JobDefinition, buildServices } from "../types";
 

@@ -1,6 +1,3 @@
-// ─── Keyword Tracking Job ────────────────────────────────────────────────
-// Checks current App Store rankings for all tracked keywords.
-
 import { logger } from "../../config";
 import { JobDefinition, buildServices } from "../types";
 

@@ -4,8 +4,6 @@ import * as fs from "fs";
 import * as path from "path";
 import { logger, env } from "../config";
 
-// ─── Apple Search Ads API Client ────────────────────────────────────────
-
 interface SearchAdsToken {
   access_token: string;
   token_type: string;

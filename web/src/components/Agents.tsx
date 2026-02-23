@@ -112,7 +112,7 @@ export default function Agents({ addToast }: Props) {
 
   const appDir =
     typeof window !== "undefined"
-      ? window.location.origin.replace(/:\d+$/, "") // strip port — just a hint
+      ? window.location.origin.replace(/:\d+$/, "")
       : "/path/to/appcore";
 
   const claudeDesktopStdioJson = JSON.stringify(
@@ -144,7 +144,6 @@ export default function Agents({ addToast }: Props) {
           </p>
         </div>
 
-        {/* ── Status ── */}
         <SectionCard
           title="MCP Server"
           desc="Expose AppCore as an MCP server so Claude Desktop and other MCP clients can read your ASO data and trigger jobs."
@@ -176,7 +175,6 @@ export default function Agents({ addToast }: Props) {
           </div>
         </SectionCard>
 
-        {/* ── Connection Details ── */}
         <SectionCard
           title="Connection Details"
           desc="Use these credentials when configuring your MCP client. Treat the API key like a password."
@@ -184,11 +182,7 @@ export default function Agents({ addToast }: Props) {
           <div className="flex flex-col gap-4">
             <Field label="Server URL">
               <div className="flex gap-2">
-                <input
-                  readOnly
-                  className={inputCls}
-                  value={mcpUrl}
-                />
+                <input readOnly className={inputCls} value={mcpUrl} />
                 <button
                   onClick={() => copyToClipboard(mcpUrl)}
                   className={btnSecondary}
@@ -250,7 +244,6 @@ export default function Agents({ addToast }: Props) {
           </div>
         </SectionCard>
 
-        {/* ── Available Tools ── */}
         <SectionCard
           title="Available MCP Tools"
           desc="These tools are exposed to your MCP client and can be called by Claude."
@@ -264,18 +257,18 @@ export default function Agents({ addToast }: Props) {
                 <code className="text-[12px] font-mono font-semibold text-[#ea0e2b] shrink-0 mt-0.5">
                   {tool.name}
                 </code>
-                <span className="text-xs text-gray-500 mt-0.5">{tool.desc}</span>
+                <span className="text-xs text-gray-500 mt-0.5">
+                  {tool.desc}
+                </span>
               </div>
             ))}
           </div>
         </SectionCard>
 
-        {/* ── Claude Desktop Setup ── */}
         <SectionCard
           title="Claude Desktop Configuration"
           desc='Add this snippet to your claude_desktop_config.json under "mcpServers" and restart Claude Desktop.'
         >
-          {/* Tab switcher */}
           <div className="flex gap-1 mb-4 bg-[#f7f8fa] p-1 rounded-lg border border-[#e5e7eb] w-fit">
             <button
               onClick={() => setConfigTab("http")}

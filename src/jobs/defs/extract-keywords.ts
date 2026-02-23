@@ -1,6 +1,3 @@
-// ─── Competitor Keyword Extraction Job ───────────────────────────────────
-// Extracts keywords from competitor metadata via AI and adds them to tracking.
-
 import { logger } from "../../config";
 import { JobDefinition, buildServices } from "../types";
 

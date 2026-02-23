@@ -1,7 +1,3 @@
-// ─── AppCore ASO Engine ─────────────────────────────────────────────────
-// All functionality is now served via the web server.
-// Start with: npm start (or npm run dev for development)
-
 export { Scheduler } from "./jobs/scheduler";
 export {
   AppStoreScraper,

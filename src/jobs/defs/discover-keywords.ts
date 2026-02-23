@@ -1,7 +1,3 @@
-// ─── Keyword Discovery Job ───────────────────────────────────────────────
-// Discovers new keywords via AI semantic expansion, autocomplete mining,
-// and competitor text analysis.
-
 import { logger } from "../../config";
 import { JobDefinition, buildServices } from "../types";
 

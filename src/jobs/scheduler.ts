@@ -3,9 +3,6 @@ import { logger, getEffectiveSettings } from "../config";
 import { allJobs } from "./defs";
 import { forAllUsers } from "./types";
 
-// ─── Scheduled Job Orchestrator ─────────────────────────────────────────
-// Jobs are defined in src/jobs/defs/*.ts
-
 export class Scheduler {
   private tasks: cron.ScheduledTask[] = [];
   private _running = false;

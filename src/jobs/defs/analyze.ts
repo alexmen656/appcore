@@ -1,6 +1,3 @@
-// ─── AI Analysis Job ────────────────────────────────────────────────────
-// Runs AI-powered ASO analysis and generates optimization suggestions.
-
 import { logger } from "../../config";
 import { JobDefinition, buildServices } from "../types";
 

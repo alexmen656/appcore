@@ -489,7 +489,6 @@ function AppSwitcher({
   );
 }
 
-// ─── Profile dropdown ─────────────────────────────────────────────────────────
 function ProfileMenu({
   user,
   onLogout,
