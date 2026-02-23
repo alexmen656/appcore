@@ -21,27 +21,51 @@ interface Props {
   onAction: (id: string, action: "approve" | "reject" | "apply") => void;
 }
 
+const typeBadge: Record<string, string> = {
+  title: "bg-violet-100 text-violet-700",
+  subtitle: "bg-blue-100 text-blue-700",
+  keywords: "bg-amber-100 text-amber-700",
+  description: "bg-green-100 text-green-700",
+};
+
+const statusBadge: Record<string, string> = {
+  pending: "bg-yellow-100 text-yellow-700",
+  approved: "bg-emerald-100 text-emerald-700",
+  applied: "bg-blue-100 text-blue-800",
+  rejected: "bg-red-100 text-red-800",
+};
+
+const badgeBase =
+  "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide";
+
+const btnBase =
+  "inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
+
 export default function SuggestionCard({
   suggestion: s,
   acting,
   onAction,
 }: Props) {
   return (
-    <div className="card !mb-0 hover:shadow-md transition-shadow">
+    <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className={`badge badge-${s.type.toLowerCase()}`}>
+          <span
+            className={`${badgeBase} ${typeBadge[s.type.toLowerCase()] ?? "bg-gray-100 text-gray-600"}`}
+          >
             {s.type}
           </span>
-          <span className={`badge badge-${s.status.toLowerCase()}`}>
+          <span
+            className={`${badgeBase} ${statusBadge[s.status.toLowerCase()] ?? "bg-gray-100 text-gray-600"}`}
+          >
             {s.status}
           </span>
           {s.confidenceScore != null && (
             <span className="flex items-center gap-1 text-xs text-gray-400">
               {Math.round(s.confidenceScore * 100)}% confidence
-              <span className="confidence-bar">
+              <span className="inline-block w-10 h-1 rounded-full bg-gray-200 overflow-hidden align-middle">
                 <span
-                  className="confidence-fill bg-emerald-500"
+                  className="block h-full rounded-full bg-emerald-500"
                   style={{ width: `${s.confidenceScore * 100}%` }}
                 />
               </span>
@@ -77,21 +101,21 @@ export default function SuggestionCard({
       {s.status === "PENDING" && (
         <div className="flex gap-2">
           <button
-            className="btn-success btn-sm"
+            className={`${btnBase} bg-emerald-500 text-white hover:bg-emerald-600`}
             disabled={acting === s.id}
             onClick={() => onAction(s.id, "approve")}
           >
             ✓ Approve
           </button>
           <button
-            className="btn-danger btn-sm"
+            className={`${btnBase} bg-red-500 text-white hover:bg-red-600`}
             disabled={acting === s.id}
             onClick={() => onAction(s.id, "reject")}
           >
             ✗ Reject
           </button>
           <button
-            className="btn-primary btn-sm"
+            className={`${btnBase} bg-blue-500 text-white hover:bg-blue-600`}
             disabled={acting === s.id}
             onClick={() => onAction(s.id, "apply")}
           >
@@ -102,7 +126,7 @@ export default function SuggestionCard({
       {s.status === "APPROVED" && (
         <div className="flex gap-2">
           <button
-            className="btn-primary btn-sm"
+            className={`${btnBase} bg-blue-500 text-white hover:bg-blue-600`}
             disabled={acting === s.id}
             onClick={() => onAction(s.id, "apply")}
           >

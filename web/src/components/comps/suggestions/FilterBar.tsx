@@ -18,7 +18,7 @@ export default function FilterBar({
   return (
     <div className="flex items-center gap-3 flex-wrap mb-5">
       <select
-        className="filter-select"
+        className="px-3 py-1.5 border border-gray-200 rounded-md bg-white text-sm text-gray-800 outline-none cursor-pointer focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
         value={statusFilter}
         onChange={(e) => setStatusFilter(e.target.value)}
       >
@@ -29,7 +29,7 @@ export default function FilterBar({
         <option value="REJECTED">Rejected</option>
       </select>
       <select
-        className="filter-select"
+        className="px-3 py-1.5 border border-gray-200 rounded-md bg-white text-sm text-gray-800 outline-none cursor-pointer focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
         value={typeFilter}
         onChange={(e) => setTypeFilter(e.target.value)}
       >
@@ -40,7 +40,10 @@ export default function FilterBar({
         <option value="DESCRIPTION">Description</option>
       </select>
       <div className="flex-1" />
-      <button className="btn-secondary btn-sm" onClick={onBulkApprove}>
+      <button
+        className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium bg-white text-gray-800 border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
+        onClick={onBulkApprove}
+      >
         Approve All Pending ({currentLocale})
       </button>
     </div>
