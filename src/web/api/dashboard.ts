@@ -11,8 +11,15 @@ dashboardRouter.get("/", async (req, res) => {
     const activeBundleId =
       (req.query.bundleId as string | undefined) || settings.ascBundleId;
 
+    const ownApp = await prisma.app.findUnique({
+      where: { bundleId: activeBundleId },
+      include: { snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 } },
+    });
+
+    const appId = ownApp?.id;
+
     const [
-      appCount,
+      competitorCount,
       snapshotCount,
       keywordCount,
       rankingCount,
@@ -20,25 +27,41 @@ dashboardRouter.get("/", async (req, res) => {
       appliedSuggestions,
       jobCount,
     ] = await Promise.all([
-      prisma.app.count(),
-      prisma.appSnapshot.count(),
-      prisma.keyword.count(),
-      prisma.keywordRanking.count(),
-      prisma.aSOSuggestion.count({ where: { status: "PENDING" } }),
-      prisma.aSOSuggestion.count({ where: { status: "APPLIED" } }),
+      appId
+        ? prisma.competitorRelation.count({
+            where: { OR: [{ appId }, { competitorId: appId }] },
+          })
+        : Promise.resolve(0),
+      appId
+        ? prisma.appSnapshot.count({ where: { appId } })
+        : Promise.resolve(0),
+      appId
+        ? prisma.keyword.count({
+            where: { rankings: { some: { appId } } },
+          })
+        : Promise.resolve(0),
+      appId
+        ? prisma.keywordRanking.count({ where: { appId } })
+        : Promise.resolve(0),
+      activeBundleId
+        ? prisma.aSOSuggestion.count({
+            where: { status: "PENDING", appBundleId: activeBundleId },
+          })
+        : Promise.resolve(0),
+      activeBundleId
+        ? prisma.aSOSuggestion.count({
+            where: { status: "APPLIED", appBundleId: activeBundleId },
+          })
+        : Promise.resolve(0),
       prisma.scrapeJob.count(),
     ]);
-
-    const ownApp = await prisma.app.findUnique({
-      where: { bundleId: activeBundleId },
-      include: { snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 } },
-    });
 
     const lastJob = await prisma.scrapeJob.findFirst({
       orderBy: { createdAt: "desc" },
     });
 
     const recentSuggestions = await prisma.aSOSuggestion.findMany({
+      where: activeBundleId ? { appBundleId: activeBundleId } : {},
       orderBy: { createdAt: "desc" },
       take: 5,
     });
@@ -57,7 +80,7 @@ dashboardRouter.get("/", async (req, res) => {
           }
         : null,
       stats: {
-        apps: appCount,
+        apps: competitorCount,
         snapshots: snapshotCount,
         keywords: keywordCount,
         rankings: rankingCount,

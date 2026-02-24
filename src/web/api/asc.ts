@@ -1,6 +1,6 @@
 import { Router } from "express";
 import axios from "axios";
-import { prisma, logger } from "../../config";
+import { prisma, logger, getEffectiveSettings } from "../../config";
 import { requireAuth } from "../auth";
 import { AppStoreConnectClient } from "../../services/appstore-connect";
 
@@ -103,6 +103,21 @@ ascRouter.post("/import", async (req, res) => {
         isOwnApp: app.isOwnApp,
       },
     });
+
+    // Fire-and-forget scrape for the newly imported app
+    getEffectiveSettings(req.user!.userId)
+      .then(async (settings) => {
+        const effectiveSettings = { ...settings, ascBundleId: bundleId };
+        const { AppStoreScraper } = await import(
+          "../../services/appstore-scraper"
+        );
+        const scraper = new AppStoreScraper(effectiveSettings);
+        await scraper.runFullScrapeJob();
+        logger.info(`Post-import scrape completed for ${bundleId}`);
+      })
+      .catch((err) =>
+        logger.error(`Post-import scrape failed for ${bundleId}`, err),
+      );
   } catch (err: any) {
     logger.error("ASC import failed", err);
     res.status(500).json({ error: err.message ?? String(err) });
