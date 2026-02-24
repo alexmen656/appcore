@@ -37,16 +37,6 @@ function parseTsv(raw: string): Record<string, string>[] {
   });
 }
 
-function getField(row: Record<string, string>, ...keys: string[]): string {
-  for (const key of keys) {
-    const found = Object.keys(row).find(
-      (k) => k.toLowerCase() === key.toLowerCase(),
-    );
-    if (found !== undefined) return row[found] ?? "";
-  }
-  return "";
-}
-
 function fmtDate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
@@ -103,7 +93,6 @@ export async function fetchSalesReports(
         {
           downloads: number;
           updates: number;
-          reDownloads: number;
           proceeds: number;
         }
       > = {};
@@ -112,16 +101,13 @@ export async function fetchSalesReports(
         const typeId = row["Product Type Identifier"] ?? "";
         const units = parseInt(row["Units"] ?? "0", 10) || 0;
         const proceeds = parseFloat(row["Developer Proceeds"] ?? "0") || 0;
-        const country = getField(row, "Country Of Sale", "Country of Sale")
-          .toUpperCase()
-          .trim();
+        const country = (row["Country Code"] ?? "").toUpperCase().trim();
         if (!country) continue;
 
         if (!byCountry[country]) {
           byCountry[country] = {
             downloads: 0,
             updates: 0,
-            reDownloads: 0,
             proceeds: 0,
           };
         }
@@ -137,6 +123,7 @@ export async function fetchSalesReports(
       }
 
       const reportDate = new Date(dateStr);
+      const countryCount = Object.keys(byCountry).length;
       for (const [country, agg] of Object.entries(byCountry)) {
         await prisma.appStoreAnalytics.upsert({
           where: {
@@ -147,10 +134,12 @@ export async function fetchSalesReports(
         });
       }
 
-      storedDays++;
-      logger.debug(
-        `Sales report stored: ${dateStr} (${Object.keys(byCountry).length} countries)`,
-      );
+      if (countryCount > 0) {
+        storedDays++;
+        logger.debug(
+          `Sales report stored: ${bundleId} ${dateStr} (${countryCount} countries)`,
+        );
+      }
     } catch (err: any) {
       if (err?.response?.status === 404 || err?.response?.status === 400) {
         logger.debug(`No sales report for ${dateStr}`);
