@@ -211,7 +211,7 @@ export async function fetchEngagementReport(
       return { rows: 0, requestId };
     } catch (err: any) {
       logger.warn(
-        `Creating analytics report request failed: ${err?.response?.data ? JSON.stringify(err.response.data) : err?.message ?? err}`,
+        `Creating analytics report request failed: ${err?.response?.data ? JSON.stringify(err.response.data) : (err?.message ?? err)}`,
       );
       return { rows: 0, requestId: null };
     }
@@ -248,7 +248,7 @@ export async function fetchEngagementReport(
     }
   } catch (err: any) {
     logger.warn(
-      `Listing reports for request ${requestId}: ${err?.response?.data ? JSON.stringify(err.response.data) : err?.message ?? err}`,
+      `Listing reports for request ${requestId}: ${err?.response?.data ? JSON.stringify(err.response.data) : (err?.message ?? err)}`,
     );
     return { rows: 0, requestId };
   }
@@ -275,7 +275,7 @@ export async function fetchEngagementReport(
       );
     } catch (err: any) {
       logger.warn(
-        `Fetching instances for report ${reportId}: ${err?.response?.data ? JSON.stringify(err.response.data) : err?.message ?? err}`,
+        `Fetching instances for report ${reportId}: ${err?.response?.data ? JSON.stringify(err.response.data) : (err?.message ?? err)}`,
       );
       continue;
     }
@@ -301,7 +301,9 @@ export async function fetchEngagementReport(
         try {
           // Segment URLs are pre-signed – no Authorization header needed
           const dlResp = await axios.get(url, { responseType: "arraybuffer" });
-          const raw = zlib.gunzipSync(Buffer.from(dlResp.data)).toString("utf-8");
+          const raw = zlib
+            .gunzipSync(Buffer.from(dlResp.data))
+            .toString("utf-8");
           const rows = raw.includes("\t") ? parseTsv(raw) : parseCsv(raw);
 
           if (rows.length === 0) continue;
@@ -325,42 +327,48 @@ export async function fetchEngagementReport(
             ).slice(0, 10);
             if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) continue;
 
-            const territory = (
-              row["Territory"] ??
-              row["territory"] ??
-              row["Country Code"] ??
-              row["Region"] ??
-              "WW"
-            ).toUpperCase().trim() || "WW";
+            const territory =
+              (
+                row["Territory"] ??
+                row["territory"] ??
+                row["Country Code"] ??
+                row["Region"] ??
+                "WW"
+              )
+                .toUpperCase()
+                .trim() || "WW";
 
             const key = `${dateStr}::${territory}`;
             if (!dayCountry[key])
               dayCountry[key] = { impressions: 0, pageViews: 0, sessions: 0 };
 
-            dayCountry[key].impressions += parseInt(
-              row["Impressions"] ??
-                row["impressions"] ??
-                row["Total Impressions"] ??
-                row["Impressions Unique Devices"] ??
-                "0",
-              10,
-            ) || 0;
-            dayCountry[key].pageViews += parseInt(
-              row["Product Page Views"] ??
-                row["productPageViews"] ??
-                row["Page Views"] ??
-                row["Product Page Views Unique Devices"] ??
-                "0",
-              10,
-            ) || 0;
-            dayCountry[key].sessions += parseInt(
-              row["Sessions"] ??
-                row["sessions"] ??
-                row["Unique Device Sessions"] ??
-                row["Active Devices"] ??
-                "0",
-              10,
-            ) || 0;
+            dayCountry[key].impressions +=
+              parseInt(
+                row["Impressions"] ??
+                  row["impressions"] ??
+                  row["Total Impressions"] ??
+                  row["Impressions Unique Devices"] ??
+                  "0",
+                10,
+              ) || 0;
+            dayCountry[key].pageViews +=
+              parseInt(
+                row["Product Page Views"] ??
+                  row["productPageViews"] ??
+                  row["Page Views"] ??
+                  row["Product Page Views Unique Devices"] ??
+                  "0",
+                10,
+              ) || 0;
+            dayCountry[key].sessions +=
+              parseInt(
+                row["Sessions"] ??
+                  row["sessions"] ??
+                  row["Unique Device Sessions"] ??
+                  row["Active Devices"] ??
+                  "0",
+                10,
+              ) || 0;
           }
 
           for (const [key, metrics] of Object.entries(dayCountry)) {
@@ -376,7 +384,9 @@ export async function fetchEngagementReport(
             storedRows++;
           }
         } catch (err: any) {
-          logger.warn(`Downloading/parsing engagement segment: ${err?.message ?? err}`);
+          logger.warn(
+            `Downloading/parsing engagement segment: ${err?.message ?? err}`,
+          );
         }
       }
     }
@@ -470,7 +480,7 @@ export async function syncAllAnalytics(
   });
 
   try {
-    const downloadDays = await fetchSalesReports(settings, bundleId, 60);
+    const downloadDays = await fetchSalesReports(settings, bundleId, 365);
 
     let reviewsFetched = 0;
     if (ascAppId) {
@@ -480,18 +490,29 @@ export async function syncAllAnalytics(
     let engagementRows = 0;
     if (ascAppId) {
       try {
-        const result = await fetchEngagementReport(settings, ascAppId, bundleId, 60);
+        const result = await fetchEngagementReport(
+          settings,
+          ascAppId,
+          bundleId,
+          60,
+        );
         engagementRows = result.rows;
-        // Persist the requestId so subsequent syncs reuse it
-        if (result.requestId && result.requestId !== settings.ascAnalyticsRequestId) {
+        if (
+          result.requestId &&
+          result.requestId !== settings.ascAnalyticsRequestId
+        ) {
           await prisma.userSettings.update({
             where: { userId },
             data: { ascAnalyticsRequestId: result.requestId },
           });
-          logger.info(`Stored analytics request ID ${result.requestId} for user ${userId}`);
+          logger.info(
+            `Stored analytics request ID ${result.requestId} for user ${userId}`,
+          );
         }
       } catch (err: any) {
-        logger.warn(`Engagement report fetch error (non-fatal): ${err?.message ?? err}`);
+        logger.warn(
+          `Engagement report fetch error (non-fatal): ${err?.message ?? err}`,
+        );
       }
     }
 
@@ -501,7 +522,11 @@ export async function syncAllAnalytics(
         status: "COMPLETED",
         completedAt: new Date(),
         itemsCount: downloadDays + reviewsFetched,
-        result: JSON.stringify({ downloadDays, reviewsFetched, engagementRows }),
+        result: JSON.stringify({
+          downloadDays,
+          reviewsFetched,
+          engagementRows,
+        }),
       },
     });
 
