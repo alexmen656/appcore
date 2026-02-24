@@ -1,30 +1,6 @@
-const TH =
-  "text-left text-[11px] font-medium uppercase tracking-wide text-[#9ca3af] px-4 py-3 border-b border-[#f3f4f6] whitespace-nowrap";
-const TD = "px-4 py-3.5 border-b border-[#f3f4f6] text-[13px] align-middle";
-const btnSecSm =
-  "inline-flex items-center gap-1.5 px-2.5 py-[5px] rounded-xl text-xs font-medium border border-[#eef0f3] bg-white text-[#111827] hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap";
-
-const badgeVariants: Record<string, string> = {
-  pending: "bg-amber-50 text-amber-700",
-  approved: "bg-emerald-50 text-emerald-700",
-  applied: "bg-blue-50 text-blue-700",
-  rejected: "bg-red-50 text-red-600",
-  running: "bg-blue-50 text-blue-700",
-};
-const badge = (v: string) =>
-  `inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium ${badgeVariants[v.toLowerCase()] ?? "bg-gray-50 text-gray-600"}`;
-
-export interface Job {
-  id: string;
-  type: string;
-  status: string;
-  result: string | null;
-  error: string | null;
-  itemsCount: number;
-  startedAt: string | null;
-  completedAt: string | null;
-  createdAt: string;
-}
+import { TH, TD, btnSecSm, badge } from "../../../styles";
+import type { Job } from "../../../types";
+export type { Job };
 
 interface Props {
   jobs: Job[] | null;

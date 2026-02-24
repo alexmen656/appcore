@@ -9,9 +9,10 @@ import {
   Legend,
 } from "recharts";
 import { Keyword } from "./KeywordTable";
+import { btnSecSm } from "../../../styles";
+import type { RankingEntry, KeywordHistoryData } from "../../../types";
 
-const btnSecSm =
-  "inline-flex items-center gap-1.5 px-2.5 py-[5px] rounded-xl text-xs font-medium border border-[#eef0f3] bg-white text-[#111827] hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap";
+export type { KeywordHistoryData as HistoryData };
 
 const CHART_COLORS = [
   "#ea0e2b",
@@ -24,28 +25,11 @@ const CHART_COLORS = [
   "#84cc16",
 ];
 
-export interface RankingEntry {
-  rank: number | null;
-  appName: string;
-  appBundleId: string;
-  country: string;
-  trackedAt: string;
-}
-
-export interface HistoryData {
-  keyword: {
-    id: string;
-    term: string;
-    popularity: number | null;
-    difficulty: number | null;
-  };
-  rankings: RankingEntry[];
-}
-
 interface Props {
   keyword: Keyword;
-  history: HistoryData | null;
+  history: KeywordHistoryData | null;
   loading: boolean;
+  ownBundleId?: string | null;
   onClose: () => void;
 }
 
@@ -53,8 +37,10 @@ export default function RankingHistoryChart({
   keyword,
   history,
   loading,
+  ownBundleId,
   onClose,
 }: Props) {
+  const ownLabel = "Your App";
   const chartData = (() => {
     if (!history?.rankings?.length) return [];
     const byTime = new Map<string, Record<string, number | null>>();
@@ -67,10 +53,10 @@ export default function RankingHistoryChart({
       });
       if (!byTime.has(date)) byTime.set(date, {});
       const label =
-        r.appBundleId === "eu.control-center.sites.kaloriq"
-          ? "Kalbuddy"
+        ownBundleId && r.appBundleId === ownBundleId
+          ? ownLabel
           : r.appName.length > 20
-            ? r.appName.substring(0, 20) + "…"
+            ? r.appName.substring(0, 20) + "\u2026"
             : r.appName;
       byTime.get(date)![label] = r.rank;
     }
@@ -84,18 +70,18 @@ export default function RankingHistoryChart({
     const seen = new Set<string>();
     for (const r of history.rankings) {
       seen.add(
-        r.appBundleId === "eu.control-center.sites.kaloriq"
-          ? "Kalbuddy"
+        ownBundleId && r.appBundleId === ownBundleId
+          ? ownLabel
           : r.appName.length > 20
-            ? r.appName.substring(0, 20) + "…"
+            ? r.appName.substring(0, 20) + "\u2026"
             : r.appName,
       );
     }
     const arr = Array.from(seen);
-    const idx = arr.indexOf("Kalbuddy");
+    const idx = arr.indexOf(ownLabel);
     if (idx > 0) {
       arr.splice(idx, 1);
-      arr.unshift("Kalbuddy");
+      arr.unshift(ownLabel);
     }
     return arr;
   })();

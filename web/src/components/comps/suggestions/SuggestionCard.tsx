@@ -1,19 +1,5 @@
-export interface Suggestion {
-  id: string;
-  type: string;
-  locale: string;
-  suggestedValue: string;
-  currentValue: string | null;
-  reasoning: string;
-  confidenceScore: number | null;
-  estimatedImpact: number | null;
-  status: string;
-  aiProvider: string;
-  aiModel: string;
-  keyword: string | null;
-  createdAt: string;
-  appliedAt: string | null;
-}
+import type { Suggestion } from "../../../types";
+export type { Suggestion };
 
 interface Props {
   suggestion: Suggestion;

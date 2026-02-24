@@ -1,23 +1,7 @@
-const TH =
-  "text-left text-[11px] font-medium uppercase tracking-wide text-[#9ca3af] px-4 py-3 border-b border-[#f3f4f6] whitespace-nowrap";
-const TD = "px-4 py-3.5 border-b border-[#f3f4f6] text-[13px] align-middle";
-const btnSecSm =
-  "inline-flex items-center gap-1.5 px-2.5 py-[5px] rounded-xl text-xs font-medium border border-[#eef0f3] bg-white text-[#111827] hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap";
+import { TH, TD, btnSecSm } from "../../../styles";
+import type { Keyword } from "../../../types";
 
-export interface Keyword {
-  id: string;
-  term: string;
-  country: string;
-  language: string;
-  popularity: number | null;
-  difficulty: number | null;
-  searchVolume: number | null;
-  ourRank: number | null;
-  topCompetitor: { name: string; rank: number } | null;
-  trackingCount: number;
-  suggestionCount: number;
-  updatedAt: string;
-}
+export type { Keyword };
 
 const rankColor = (rank: number | null) => {
   if (rank == null) return "text-gray-400";

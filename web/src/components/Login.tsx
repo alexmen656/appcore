@@ -1,15 +1,13 @@
 import { useState } from "react";
 import { setToken } from "../hooks/useApi";
 import AuthHeader from "./comps/login/AuthHeader";
+import type { AuthUser } from "../types";
+import { inputCls, btnPrimary } from "../styles";
+
+export type { AuthUser };
 
 interface Props {
   onAuth: (user: AuthUser) => void;
-}
-export interface AuthUser {
-  id: string;
-  email: string;
-  name: string | null;
-  role: string;
 }
 
 export default function Login({ onAuth }: Props) {
@@ -54,7 +52,7 @@ export default function Login({ onAuth }: Props) {
             <label className="flex flex-col gap-1.5">
               <span className="text-sm font-medium text-[#111827]">Name</span>
               <input
-                className="settings-input"
+                className={inputCls}
                 type="text"
                 placeholder="Your name"
                 value={name}
@@ -66,7 +64,7 @@ export default function Login({ onAuth }: Props) {
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-[#111827]">Email</span>
             <input
-              className="settings-input"
+              className={inputCls}
               type="email"
               placeholder="you@example.com"
               value={email}
@@ -78,7 +76,7 @@ export default function Login({ onAuth }: Props) {
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-[#111827]">Password</span>
             <input
-              className="settings-input"
+              className={inputCls}
               type="password"
               placeholder="••••••••"
               value={password}
@@ -98,7 +96,7 @@ export default function Login({ onAuth }: Props) {
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary w-full justify-center mt-1"
+            className={`${btnPrimary} w-full justify-center mt-1`}
           >
             {loading
               ? "Please wait…"

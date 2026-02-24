@@ -1,30 +1,6 @@
-const card = "bg-white border border-[#eef0f3] rounded-2xl p-6 shadow-[0_1px_2px_rgba(0,0,0,0.03)]";
-const TH =
-  "text-left text-[11px] font-medium uppercase tracking-wide text-[#9ca3af] px-3.5 py-2.5 border-b border-[#f3f4f6] whitespace-nowrap";
-const TD = "px-3.5 py-3 border-b border-[#f3f4f6] text-[13px] align-middle";
-
-const badgeVariants: Record<string, string> = {
-  pending: "bg-amber-50 text-amber-700",
-  approved: "bg-emerald-50 text-emerald-700",
-  applied: "bg-blue-50 text-blue-700",
-  rejected: "bg-red-50 text-red-600",
-  title: "bg-violet-50 text-violet-700",
-  subtitle: "bg-sky-50 text-sky-700",
-  keywords: "bg-pink-50 text-pink-700",
-  description: "bg-emerald-50 text-emerald-700",
-};
-const badge = (v: string) =>
-  `inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium ${badgeVariants[v.toLowerCase()] ?? "bg-gray-50 text-gray-600"}`;
-
-export interface RecentSuggestion {
-  id: string;
-  type: string;
-  locale: string;
-  value: string;
-  confidence: number;
-  status: string;
-  createdAt: string;
-}
+import { cardCls, TH, TD, badge } from "../../../styles";
+import type { RecentSuggestion } from "../../../types";
+export type { RecentSuggestion };
 
 interface Props {
   suggestions: RecentSuggestion[];
@@ -32,7 +8,7 @@ interface Props {
 
 export default function RecentSuggestionsTable({ suggestions }: Props) {
   return (
-    <div className={card}>
+    <div className={cardCls}>
       <div className="text-xs font-medium uppercase tracking-wide text-[#9ca3af] mb-4">
         Recent Suggestions
       </div>

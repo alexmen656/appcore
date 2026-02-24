@@ -1,32 +1,11 @@
 import { useApi } from "../hooks/useApi";
-import StatsGrid, { Stats } from "./comps/dashboard/StatsGrid";
-import AppInfoCard, { AppInfo } from "./comps/dashboard/AppInfoCard";
-import ConfigurationTable, {
-  Config,
-} from "./comps/dashboard/ConfigurationTable";
-import RecentSuggestionsTable, {
-  RecentSuggestion,
-} from "./comps/dashboard/RecentSuggestionsTable";
-import LastJobStatus, { LastJob } from "./comps/dashboard/LastJobStatus";
+import StatsGrid from "./comps/dashboard/StatsGrid";
+import AppInfoCard from "./comps/dashboard/AppInfoCard";
+import ConfigurationTable from "./comps/dashboard/ConfigurationTable";
+import RecentSuggestionsTable from "./comps/dashboard/RecentSuggestionsTable";
+import LastJobStatus from "./comps/dashboard/LastJobStatus";
 import DownloadsChart from "./comps/analytics/DownloadsChart";
-
-interface DashboardData {
-  app: AppInfo | null;
-  stats: Stats;
-  config: Config;
-  lastJob: LastJob | null;
-  recentSuggestions: RecentSuggestion[];
-}
-
-interface DownloadsData {
-  byDay: {
-    date: string;
-    downloads: number;
-    updates: number;
-    proceeds: number;
-  }[];
-  byCountry: { country: string; downloads: number }[];
-}
+import type { DashboardData, DownloadsData } from "../types";
 
 export default function Dashboard() {
   const { data, loading, error } = useApi<DashboardData>("/dashboard");

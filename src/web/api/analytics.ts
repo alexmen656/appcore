@@ -89,9 +89,6 @@ analyticsRouter.get("/summary", async (req, res) => {
       avgRating: reviewAgg._avg.rating ?? null,
       reviewCount: reviewAgg._count.id,
       lastSyncAt: lastSync?.completedAt ?? null,
-      // Legacy compatibility
-      totalDownloads30d: downloads,
-      totalProceeds30d: metricAgg._sum.proceeds ?? 0,
     });
   } catch (err) {
     res.status(500).json({ error: String(err) });

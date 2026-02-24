@@ -10,16 +10,9 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-
-export interface DayData {
-  date: string;
-  downloads: number;
-  updates: number;
-  proceeds: number;
-  impressions: number;
-  pageViews: number;
-  sessions: number;
-}
+import type { DayData } from "../../../types";
+import { fmtShortDate, fmtLargeNum, fmtRevenueShort } from "../../../utils/formatters";
+export type { DayData };
 
 interface Props {
   data: DayData[];
@@ -35,22 +28,6 @@ const METRICS = [
 
 type MetricKey = (typeof METRICS)[number]["key"];
 
-function fmtAxisDate(iso: string) {
-  const d = new Date(iso);
-  return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function fmtLargeNum(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}k`;
-  return String(n);
-}
-
-function fmtRevenue(n: number): string {
-  if (n >= 1000) return `$${(n / 1000).toFixed(1)}k`;
-  return `$${n.toFixed(0)}`;
-}
-
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
@@ -58,7 +35,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       className="bg-white border border-[#eef0f3] rounded-2xl px-4 py-3"
       style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.08)", minWidth: 160 }}
     >
-      <div className="text-[11px] text-[#9ca3af] mb-2 font-medium">{fmtAxisDate(String(label))}</div>
+      <div className="text-[11px] text-[#9ca3af] mb-2 font-medium">{fmtShortDate(String(label))}</div>
       {payload.map((p: any) => (
         <div key={p.dataKey} className="flex items-center justify-between gap-3 text-[12px] mb-1">
           <span className="flex items-center gap-1.5 text-[#6b7280]">
@@ -162,7 +139,7 @@ export default function MetricsChart({ data }: Props) {
             <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
             <XAxis
               dataKey="date"
-              tickFormatter={fmtAxisDate}
+              tickFormatter={fmtShortDate}
               tick={{ fontSize: 11, fill: "#9ca3af" }}
               tickLine={false}
               axisLine={false}
@@ -184,7 +161,7 @@ export default function MetricsChart({ data }: Props) {
                 tickLine={false}
                 axisLine={false}
                 width={52}
-                tickFormatter={fmtRevenue}
+                tickFormatter={fmtRevenueShort}
               />
             )}
             <Tooltip content={<CustomTooltip />} />

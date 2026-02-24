@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useApi, apiPost, apiDelete, authHeaders } from "../hooks/useApi";
+import { useApi, apiPost, apiDelete, authHeaders, getActiveBundleId } from "../hooks/useApi";
 import KeywordForm, { COUNTRIES } from "./comps/keywords/KeywordForm";
 import KeywordTable, { Keyword } from "./comps/keywords/KeywordTable";
 import RankingHistoryChart, {
@@ -139,6 +139,7 @@ export default function Keywords({ addToast }: Props) {
           keyword={selectedKeyword}
           history={history}
           loading={historyLoading}
+          ownBundleId={getActiveBundleId()}
           onClose={() => {
             setSelectedKeyword(null);
             setHistory(null);

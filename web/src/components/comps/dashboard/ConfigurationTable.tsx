@@ -1,33 +1,15 @@
-const card = "bg-white border border-[#eef0f3] rounded-2xl p-6 shadow-[0_1px_2px_rgba(0,0,0,0.03)]";
+import { cardCls, badge } from "../../../styles";
+import type { DashboardConfig } from "../../../types";
 
-const badgeVariants: Record<string, string> = {
-  applied: "bg-blue-50 text-blue-700",
-  approved: "bg-emerald-50 text-emerald-700",
-  title: "bg-violet-50 text-violet-700",
-  keywords: "bg-pink-50 text-pink-700",
-};
-const badge = (v: string) =>
-  `inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium ${badgeVariants[v.toLowerCase()] ?? "bg-gray-50 text-gray-600"}`;
-
-export interface Config {
-  bundleId: string;
-  country: string;
-  locales: string;
-  aiProvider: string;
-  hasOpenAI: boolean;
-  hasAnthropic: boolean;
-  hasASC: boolean;
-  hasSearchAds: boolean;
-  scrapeInterval: number;
-}
+export type Config = DashboardConfig;
 
 interface Props {
-  config: Config;
+  config: DashboardConfig;
 }
 
 export default function ConfigurationTable({ config }: Props) {
   return (
-    <div className={card}>
+    <div className={cardCls}>
       <div className="text-xs font-medium uppercase tracking-wide text-[#9ca3af] mb-4">
         Configuration
       </div>

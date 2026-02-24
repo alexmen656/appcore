@@ -1,12 +1,5 @@
-export interface Stats {
-  apps: number;
-  snapshots: number;
-  keywords: number;
-  rankings: number;
-  pendingSuggestions: number;
-  appliedSuggestions: number;
-  jobs: number;
-}
+import type { Stats } from "../../../types";
+export type { Stats };
 
 interface Props {
   stats: Stats;

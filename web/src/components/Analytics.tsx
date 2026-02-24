@@ -2,56 +2,12 @@ import { useState, useMemo } from "react";
 import { useApi, apiPost, getActiveBundleId } from "../hooks/useApi";
 import MetricsChart from "./comps/analytics/MetricsChart";
 import ReviewsList from "./comps/analytics/ReviewsList";
+import type { AnalyticsSummary, DayData, CountryData, DownloadsData, Review } from "../types";
+import { TH, TD } from "../styles";
+import { fmtNumber, fmtRevenue, fmtDateTime, fmtPct, countryName } from "../utils/formatters";
 
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
-}
-
-interface Summary {
-  totalDownloads: number;
-  totalProceeds: number;
-  totalImpressions: number;
-  totalPageViews: number;
-  totalSessions: number;
-  conversionRate: number | null;
-  avgRating: number | null;
-  reviewCount: number;
-  lastSyncAt: string | null;
-  // legacy
-  totalDownloads30d: number;
-  totalProceeds30d: number;
-}
-
-interface DayData {
-  date: string;
-  downloads: number;
-  updates: number;
-  proceeds: number;
-  impressions: number;
-  pageViews: number;
-  sessions: number;
-}
-
-interface CountryData {
-  country: string;
-  downloads: number;
-  impressions: number;
-  pageViews: number;
-}
-
-interface DownloadsData {
-  byDay: DayData[];
-  byCountry: CountryData[];
-}
-
-interface Review {
-  id: string;
-  rating: number;
-  title: string | null;
-  body: string | null;
-  reviewerNickname: string | null;
-  territory: string | null;
-  reviewedAt: string;
 }
 
 // ─── Time range types ─────────────────────────────────────────────────────────
@@ -113,20 +69,7 @@ function rangeLabel(range: RangeKey): string {
 
 // ─── Helper components ────────────────────────────────────────────────────────
 
-const TH =
-  "text-left text-[11px] font-medium uppercase tracking-wide text-[#9ca3af] px-4 py-3 border-b border-[#f3f4f6]";
-const TD = "px-4 py-3 border-b border-[#f3f4f6] text-[13px] align-middle";
 
-const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
-function countryName(code: string): string {
-  if (code === "WW") return "Worldwide";
-  if (code.length !== 2 || !/^[A-Z]{2}$/.test(code.toUpperCase())) return code;
-  try {
-    return regionNames.of(code.toUpperCase()) ?? code;
-  } catch {
-    return code;
-  }
-}
 
 function StatCard({
   label,
@@ -169,33 +112,7 @@ function StatCard({
   );
 }
 
-function fmtNumber(n: number | null | undefined) {
-  if (n == null) return "—";
-  return n.toLocaleString();
-}
 
-function fmtRevenue(n: number | null | undefined) {
-  if (n == null) return "—";
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2,
-  }).format(n);
-}
-
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleString(undefined, {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function fmtPct(n: number | null | undefined) {
-  if (n == null) return "—";
-  return `${n.toFixed(1)}%`;
-}
 
 // ─── Funnel bar ───────────────────────────────────────────────────────────────
 
@@ -255,7 +172,7 @@ export default function Analytics({ addToast }: Props) {
     data: summary,
     loading: sumLoading,
     refetch: refetchSummary,
-  } = useApi<Summary>(`/analytics/summary?bundleId=${bundleId}${params}`);
+  } = useApi<AnalyticsSummary>(`/analytics/summary?bundleId=${bundleId}${params}`);
 
   const {
     data: downloads,
@@ -305,7 +222,7 @@ export default function Analytics({ addToast }: Props) {
             App Store performance metrics
             {summary?.lastSyncAt && (
               <span className="ml-2">
-                · Last synced {fmtDate(summary.lastSyncAt)}
+                · Last synced {fmtDateTime(summary.lastSyncAt)}
               </span>
             )}
           </p>

@@ -1,7 +1,4 @@
-const inputCls =
-  "px-3 py-[7px] rounded-xl border border-[#eef0f3] bg-white text-[#111827] text-[13px] outline-none focus:border-[#ea0e2b] transition-colors font-[inherit]";
-const btnPrimSm =
-  "inline-flex items-center gap-1.5 px-3 py-[7px] rounded-xl text-xs font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed";
+import { inputCls, btnPrimSm } from "../../../styles";
 
 export const COUNTRIES: { code: string; label: string; lang: string }[] = [
   { code: "de", label: "DE — Deutschland", lang: "de" },

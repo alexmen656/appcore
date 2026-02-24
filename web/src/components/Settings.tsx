@@ -5,6 +5,7 @@ import AiProviderSection from "./comps/settings/AiProviderSection";
 import ScrapingConfigSection from "./comps/settings/ScrapingConfigSection";
 import AsoLocalesSection from "./comps/settings/AsoLocalesSection";
 import { SettingsData } from "./comps/settings/types";
+import { inputCls, textareaCls, btnSecondary, btnPrimary } from "../styles";
 
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
@@ -43,14 +44,7 @@ export default function Settings({ addToast }: Props) {
       </div>
     );
 
-  const inputCls =
-    "w-full px-3.5 py-[9px] rounded-xl border border-[#eef0f3] bg-white text-[#111827] text-[13px] outline-none transition-colors focus:border-[#ea0e2b] font-[inherit]";
-  const textareaCls = `${inputCls} resize-y font-mono text-xs`;
-  const btnSecondary =
-    "inline-flex items-center gap-1.5 px-4 py-[7px] rounded-xl border border-[#eef0f3] bg-transparent text-[#111827] text-[13px] font-medium transition-all hover:border-[#ea0e2b] hover:text-[#ea0e2b] disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap";
   const btnSecondarySmall = `${btnSecondary} !px-[10px] !py-[5px] !text-xs`;
-  const btnPrimary =
-    "inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed";
 
   return (
     <div className="max-w-3xl">

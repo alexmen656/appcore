@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Routes, Route, NavLink, Navigate } from "react-router-dom";
 import {
   useApi,
@@ -8,6 +8,7 @@ import {
   setActiveBundleId,
   getActiveBundleId,
 } from "./hooks/useApi";
+import { useClickOutside } from "./hooks/useClickOutside";
 import { useToast, ToastContainer } from "./hooks/useToast";
 import Dashboard from "./components/Dashboard";
 import Suggestions from "./components/Suggestions";
@@ -17,7 +18,8 @@ import Actions from "./components/Actions";
 import Agents from "./components/Agents";
 import Settings from "./components/Settings";
 import Analytics from "./components/Analytics";
-import Login, { AuthUser } from "./components/Login";
+import Login from "./components/Login";
+import type { AuthUser, DashboardData, AppItem, AscApp } from "./types";
 
 const IconDashboard = () => (
   <svg
@@ -145,33 +147,6 @@ const sidebarOperations = [
   { to: "/settings", label: "Settings", icon: IconSettings },
 ];
 
-interface DashboardData {
-  app: {
-    name: string;
-    bundleId: string;
-    iconUrl?: string;
-  } | null;
-  stats: Record<string, number>;
-  config: Record<string, any>;
-}
-
-interface AppItem {
-  id: string;
-  name: string;
-  bundleId: string;
-  iconUrl: string | null;
-  isOwnApp: boolean;
-}
-
-interface AscApp {
-  ascId: string;
-  name: string;
-  bundleId: string;
-  sku: string | null;
-  primaryLocale: string | null;
-  iconUrl: string | null;
-}
-
 function AppAvatar({
   url,
   name,
@@ -215,15 +190,8 @@ function AppSwitcher({
   const [ascLoading, setAscLoading] = useState(false);
   const [importing, setImporting] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node))
-        setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  const closeDropdown = useCallback(() => setOpen(false), []);
+  useClickOutside(ref, closeDropdown);
 
   const ownApps = apps?.filter((a) => a.isOwnApp) ?? [];
   const activeBundleResolved = activeBundleId ?? current?.bundleId ?? null;
@@ -504,15 +472,8 @@ function ProfileMenu({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node))
-        setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  const closeMenu = useCallback(() => setOpen(false), []);
+  useClickOutside(ref, closeMenu);
 
   const displayName = user.name || user.email || "User";
   const initials = displayName

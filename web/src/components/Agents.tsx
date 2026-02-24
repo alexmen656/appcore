@@ -2,21 +2,12 @@ import { useState } from "react";
 import { useApi, apiPut, apiPost } from "../hooks/useApi";
 import SectionCard from "./comps/settings/SectionCard";
 import Field from "./comps/settings/Field";
-
-interface McpConfig {
-  mcpEnabled: boolean;
-  mcpApiKey: string | null;
-}
+import type { McpConfig } from "../types";
+import { inputCls, btnSecondary } from "../styles";
 
 interface Props {
   addToast: (msg: string, type?: "success" | "error") => void;
 }
-
-const inputCls =
-  "w-full px-3.5 py-2 rounded-xl border border-[#eef0f3] bg-white text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#ea0e2b]/20 focus:border-[#ea0e2b] transition-all";
-
-const btnSecondary =
-  "inline-flex items-center gap-1.5 px-3 py-[7px] rounded-xl border border-[#eef0f3] bg-transparent text-[#111827] text-[13px] font-medium transition-all hover:border-[#ea0e2b] hover:text-[#ea0e2b] disabled:opacity-50 disabled:cursor-not-allowed";
 
 const MCP_TOOLS = [
   {

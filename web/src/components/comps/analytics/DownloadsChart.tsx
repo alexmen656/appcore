@@ -9,16 +9,11 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-
-interface DayData {
-  date: string;
-  downloads: number;
-  updates: number;
-  proceeds: number;
-}
+import type { DownloadsDayData } from "../../../types";
+import { fmtShortDate } from "../../../utils/formatters";
 
 interface Props {
-  data: DayData[];
+  data: DownloadsDayData[];
 }
 
 const RANGES = [
@@ -27,10 +22,6 @@ const RANGES = [
   { label: "90d", days: 90 },
 ];
 
-function fmtDate(iso: string) {
-  const d = new Date(iso);
-  return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
 
 export default function DownloadsChart({ data }: Props) {
   const [range, setRange] = useState(30);
@@ -71,7 +62,7 @@ export default function DownloadsChart({ data }: Props) {
             <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
             <XAxis
               dataKey="date"
-              tickFormatter={fmtDate}
+              tickFormatter={fmtShortDate}
               tick={{ fontSize: 11, fill: "#9ca3af" }}
               tickLine={false}
               axisLine={false}
@@ -89,7 +80,7 @@ export default function DownloadsChart({ data }: Props) {
                 border: "1px solid #eef0f3",
                 boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
               }}
-              labelFormatter={(label) => fmtDate(String(label))}
+              labelFormatter={(label) => fmtShortDate(String(label))}
             />
             <Legend
               wrapperStyle={{ fontSize: 12, paddingTop: 8 }}

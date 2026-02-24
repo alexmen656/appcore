@@ -1,14 +1,6 @@
 import { useState } from "react";
-
-interface Review {
-  id: string;
-  rating: number;
-  title: string | null;
-  body: string | null;
-  reviewerNickname: string | null;
-  territory: string | null;
-  reviewedAt: string;
-}
+import type { Review } from "../../../types";
+import { fmtMediumDate } from "../../../utils/formatters";
 
 interface Props {
   reviews: Review[];
@@ -26,13 +18,6 @@ function Stars({ rating }: { rating: number }) {
   );
 }
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
 
 const PAGE_SIZE = 20;
 
@@ -75,7 +60,7 @@ export default function ReviewsList({ reviews }: Props) {
                     {r.territory.slice(0, 2)}
                   </span>
                 )}
-                <span className="text-[11px] text-[#9ca3af]">{fmtDate(r.reviewedAt)}</span>
+                <span className="text-[11px] text-[#9ca3af]">{fmtMediumDate(r.reviewedAt)}</span>
               </div>
             </div>
             {r.body && (

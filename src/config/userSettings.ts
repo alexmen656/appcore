@@ -33,7 +33,7 @@ const DEFAULTS: EffectiveSettings = {
   openaiApiKey: "",
   anthropicApiKey: "",
   aiProvider: "openai",
-  scrapeCountry: "us",
+  scrapeCountry: "de",
   scrapeIntervalHours: 24,
   maxCompetitors: 20,
   asoLocales: ["en-US"],

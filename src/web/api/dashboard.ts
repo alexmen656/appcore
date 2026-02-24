@@ -95,7 +95,11 @@ dashboardRouter.get("/", async (req, res) => {
         aiProvider: settings.aiProvider,
         hasOpenAI: !!settings.openaiApiKey,
         hasAnthropic: !!settings.anthropicApiKey,
-        hasASC: !!(settings.ascIssuerId && settings.ascKeyId && settings.ascPrivateKey),
+        hasASC: !!(
+          settings.ascIssuerId &&
+          settings.ascKeyId &&
+          settings.ascPrivateKey
+        ),
         hasSearchAds: !!env.APPLE_ADS_CLIENT_ID,
         scrapeInterval: settings.scrapeIntervalHours,
       },

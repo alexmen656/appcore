@@ -1,15 +1,6 @@
-const card = "bg-white border border-[#eef0f3] rounded-2xl p-6 shadow-[0_1px_2px_rgba(0,0,0,0.03)]";
-
-export interface AppInfo {
-  name: string;
-  bundleId: string;
-  title: string;
-  subtitle: string;
-  keywords: string;
-  rating: number;
-  ratingsCount: number;
-  iconUrl: string;
-}
+import { cardCls } from "../../../styles";
+import type { AppInfo } from "../../../types";
+export type { AppInfo };
 
 interface Props {
   app: AppInfo;
@@ -17,7 +8,7 @@ interface Props {
 
 export default function AppInfoCard({ app }: Props) {
   return (
-    <div className={`${card} mb-5`}>
+    <div className={`${cardCls} mb-5`}>
       <div className="text-xs font-medium uppercase tracking-wide text-[#9ca3af] mb-4">Your App</div>
       <div className="flex gap-5 items-start">
         {app.iconUrl && (
