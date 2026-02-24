@@ -17,7 +17,7 @@ export const setActiveBundleId = (bundleId: string | null) => {
   window.dispatchEvent(new Event("app-changed"));
 };
 
-function authHeaders(): HeadersInit {
+export function authHeaders(): HeadersInit {
   const t = getToken();
   return t ? { Authorization: `Bearer ${t}` } : {};
 }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useApi, apiPost, apiDelete } from "../hooks/useApi";
+import { useApi, apiPost, apiDelete, authHeaders } from "../hooks/useApi";
 import KeywordForm, { COUNTRIES } from "./comps/keywords/KeywordForm";
 import KeywordTable, { Keyword } from "./comps/keywords/KeywordTable";
 import RankingHistoryChart, {
@@ -81,7 +81,7 @@ export default function Keywords({ addToast }: Props) {
     setSelectedKeyword(kw);
     setHistoryLoading(true);
     try {
-      const res = await fetch(`/api/keywords/${kw.id}/history`);
+      const res = await fetch(`/api/keywords/${kw.id}/history`, { headers: authHeaders() });
       setHistory(await res.json());
     } catch {
       addToast("Failed to load history", "error");

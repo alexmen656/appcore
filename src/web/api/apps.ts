@@ -12,17 +12,15 @@ appsRouter.get("/", async (req, res) => {
       const activeApp = await prisma.app.findUnique({ where: { bundleId } });
       if (activeApp) {
         const rels = await prisma.competitorRelation.findMany({
-          where: { OR: [{ appId: activeApp.id }, { competitorId: activeApp.id }] },
+          where: {
+            OR: [{ appId: activeApp.id }, { competitorId: activeApp.id }],
+          },
         });
         const relatedIds = rels.map((r) =>
-          r.appId === activeApp.id ? r.competitorId : r.appId
+          r.appId === activeApp.id ? r.competitorId : r.appId,
         );
         whereClause = {
-          OR: [
-            { id: activeApp.id },
-            { id: { in: relatedIds } },
-            { isOwnApp: true },
-          ],
+          OR: [{ id: activeApp.id }, { id: { in: relatedIds } }],
         };
       }
     }
