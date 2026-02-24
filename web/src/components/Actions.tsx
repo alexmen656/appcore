@@ -110,22 +110,22 @@ export default function Actions({ addToast }: Props) {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold tracking-tight text-[#1a1a2e] mb-1">
+      <h1 className="text-2xl font-semibold tracking-tight text-[#111827] mb-1">
         Actions
       </h1>
-      <p className="text-base text-gray-500 mb-7">
+      <p className="text-sm text-[#9ca3af] mb-8">
         Trigger jobs, manage the scheduler, and auto-apply suggestions
       </p>
 
       {/* ─── Scheduler Control ─────────────────────────────────────── */}
-      <div className="bg-white border border-[#e5e7eb] rounded-lg p-5 mb-6 flex flex-wrap items-center gap-4">
+      <div className="bg-white border border-[#eef0f3] rounded-2xl p-5 mb-6 flex flex-wrap items-center gap-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
         <div className="flex items-center gap-2 mr-auto">
           <span
-            className={`inline-block w-2.5 h-2.5 rounded-full ${
-              schedulerStatus?.running ? "bg-green-500" : "bg-gray-300"
+            className={`inline-block w-2 h-2 rounded-full ${
+              schedulerStatus?.running ? "bg-emerald-500" : "bg-[#d1d5db]"
             }`}
           />
-          <span className="text-sm font-medium text-[#1a1a2e]">
+          <span className="text-sm font-medium text-[#111827]">
             Scheduler:{" "}
             {schedulerStatus?.running
               ? `Running (${schedulerStatus.jobCount} jobs)`
@@ -133,24 +133,24 @@ export default function Actions({ addToast }: Props) {
           </span>
         </div>
         <button
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-[#e5e7eb] bg-white text-[#1a1a2e] hover:bg-gray-50 transition-all disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-[#eef0f3] bg-white text-[#111827] hover:bg-gray-50 transition-all disabled:opacity-50"
           onClick={toggleScheduler}
         >
-          {schedulerStatus?.running ? "⏹ Stop" : "▶ Start"}
+          {schedulerStatus?.running ? "Stop" : "Start"}
         </button>
         <button
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-[#e5e7eb] bg-white text-[#1a1a2e] hover:bg-gray-50 transition-all disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-[#eef0f3] bg-white text-[#111827] hover:bg-gray-50 transition-all disabled:opacity-50"
           disabled={!!running}
           onClick={runAll}
         >
-          {running === "run-all" ? "⏳ Running…" : "🔄 Run All Now"}
+          {running === "run-all" ? "Running..." : "Run All Now"}
         </button>
         <button
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50"
           disabled={!!running}
           onClick={autoApply}
         >
-          {running === "auto-apply" ? "⏳ Applying…" : "⚡ Auto-Apply (≥80%)"}
+          {running === "auto-apply" ? "Applying..." : "Auto-Apply"}
         </button>
       </div>
 

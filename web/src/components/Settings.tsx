@@ -44,20 +44,20 @@ export default function Settings({ addToast }: Props) {
     );
 
   const inputCls =
-    "w-full px-3 py-[9px] rounded-lg border border-[#e5e7eb] bg-white text-[#1a1a2e] text-[13px] outline-none transition-colors focus:border-[#ea0e2b] font-[inherit]";
+    "w-full px-3.5 py-[9px] rounded-xl border border-[#eef0f3] bg-white text-[#111827] text-[13px] outline-none transition-colors focus:border-[#ea0e2b] font-[inherit]";
   const textareaCls = `${inputCls} resize-y font-mono text-xs`;
   const btnSecondary =
-    "inline-flex items-center gap-1.5 px-4 py-[7px] rounded-lg border border-[#e5e7eb] bg-transparent text-[#1a1a2e] text-[13px] font-medium transition-all hover:border-[#ea0e2b] hover:text-[#ea0e2b] disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap";
+    "inline-flex items-center gap-1.5 px-4 py-[7px] rounded-xl border border-[#eef0f3] bg-transparent text-[#111827] text-[13px] font-medium transition-all hover:border-[#ea0e2b] hover:text-[#ea0e2b] disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap";
   const btnSecondarySmall = `${btnSecondary} !px-[10px] !py-[5px] !text-xs`;
   const btnPrimary =
-    "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed";
+    "inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed";
 
   return (
     <div className="max-w-3xl">
-      <h1 className="text-3xl font-bold tracking-tight text-[#1a1a2e] mb-1">
+      <h1 className="text-2xl font-semibold tracking-tight text-[#111827] mb-1">
         Settings
       </h1>
-      <p className="text-base text-gray-500 mb-7">
+      <p className="text-sm text-[#9ca3af] mb-8">
         Configure your personal API keys and preferences.
       </p>
 

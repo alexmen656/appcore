@@ -1,12 +1,12 @@
-const card = "bg-white border border-[#e5e7eb] rounded-lg p-5";
+const card = "bg-white border border-[#eef0f3] rounded-2xl p-6 shadow-[0_1px_2px_rgba(0,0,0,0.03)]";
 
 const badgeVariants: Record<string, string> = {
-  pending: "bg-amber-100 text-amber-800",
-  approved: "bg-emerald-100 text-emerald-800",
-  rejected: "bg-red-100 text-red-700",
+  pending: "bg-amber-50 text-amber-700",
+  approved: "bg-emerald-50 text-emerald-700",
+  rejected: "bg-red-50 text-red-600",
 };
 const badge = (v: string) =>
-  `inline-block px-2 py-0.5 rounded text-[11px] font-semibold tracking-[0.3px] ${badgeVariants[v.toLowerCase()] ?? "bg-gray-100 text-gray-700"}`;
+  `inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium ${badgeVariants[v.toLowerCase()] ?? "bg-gray-50 text-gray-600"}`;
 
 export interface LastJob {
   type: string;
@@ -22,8 +22,8 @@ interface Props {
 export default function LastJobStatus({ lastJob }: Props) {
   return (
     <div className={card}>
-      <div className="text-sm font-semibold text-[#1a1a2e] mb-2">Last Job</div>
-      <div className="text-sm text-gray-500 flex items-center gap-2">
+      <div className="text-xs font-medium uppercase tracking-wide text-[#9ca3af] mb-2">Last Job</div>
+      <div className="text-sm text-[#6b7280] flex items-center gap-2">
         <span
           className={badge(
             lastJob.status === "COMPLETED"

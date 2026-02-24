@@ -20,15 +20,15 @@ interface Props {
 export default function OwnAppCard({ app }: Props) {
   return (
     <div className="mb-6">
-      <div className="text-sm font-semibold text-[#1a1a2e] mb-3">Your App</div>
-      <div className="bg-white border-2 border-[#ea0e2b] rounded-lg p-5 inline-flex items-center gap-3">
+      <div className="text-xs font-medium uppercase tracking-wide text-[#9ca3af] mb-3">Your App</div>
+      <div className="bg-white border-2 border-[#ea0e2b] rounded-2xl p-5 inline-flex items-center gap-3">
         <AppIcon url={app.iconUrl} name={app.name} own />
         <div>
-          <div className="text-sm font-semibold text-[#1a1a2e]">{app.name}</div>
-          <div className="text-xs text-gray-400">{app.bundleId}</div>
+          <div className="text-sm font-semibold text-[#111827]">{app.name}</div>
+          <div className="text-xs text-[#9ca3af]">{app.bundleId}</div>
           {app.rating != null && (
-            <div className="text-xs text-gray-500 mt-0.5">
-              ⭐ {app.rating.toFixed(1)} ({app.ratingsCount?.toLocaleString()})
+            <div className="text-xs text-[#6b7280] mt-0.5 flex items-center gap-1">
+              <span className="text-amber-400">&#9733;</span> {app.rating.toFixed(1)} ({app.ratingsCount?.toLocaleString()})
             </div>
           )}
         </div>

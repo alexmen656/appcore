@@ -9,11 +9,11 @@ export default function AppIcon({ url, name, own }: Props) {
     <img
       src={url}
       alt=""
-      className="w-11 h-11 rounded-xl object-cover shrink-0"
+      className="w-11 h-11 rounded-2xl object-cover shrink-0"
     />
   ) : (
     <div
-      className={`w-11 h-11 rounded-xl flex items-center justify-center font-bold text-base shrink-0 ${own ? "bg-[#ea0e2b] text-white" : "bg-gray-200 text-gray-500"}`}
+      className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-base shrink-0 ${own ? "bg-[#ea0e2b] text-white" : "bg-[#f3f4f6] text-[#6b7280]"}`}
     >
       {name.charAt(0)}
     </div>

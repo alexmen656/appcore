@@ -412,7 +412,7 @@ function AppSwitcher({
           >
             <div className="px-6 pt-5 pb-4 border-b border-gray-100 flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold text-[#1a1a2e]">
+                <h2 className="text-lg font-bold text-[#111827]">
                   Add project
                 </h2>
                 <p className="text-sm text-gray-500 mt-0.5">
@@ -466,7 +466,7 @@ function AppSwitcher({
                           accent
                         />
                         <div className="min-w-0">
-                          <div className="text-sm font-semibold text-[#1a1a2e] truncate">
+                          <div className="text-sm font-semibold text-[#111827] truncate">
                             {app.name}
                           </div>
                           <div className="text-[11px] text-gray-400 font-mono">
@@ -479,7 +479,7 @@ function AppSwitcher({
                         type="button"
                         disabled={importing === app.ascId}
                         onClick={() => importApp(app)}
-                        className="shrink-0 px-3 py-1.5 rounded-lg border border-[#e5e7eb] bg-transparent text-[#1a1a2e] text-xs font-medium hover:border-[#ea0e2b] hover:text-[#ea0e2b] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="shrink-0 px-3 py-1.5 rounded-xl border border-[#eef0f3] bg-transparent text-[#111827] text-xs font-medium hover:border-[#ea0e2b] hover:text-[#ea0e2b] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {importing === app.ascId ? "Importing…" : "Import"}
                       </button>
@@ -694,7 +694,7 @@ export default function App() {
         <ProfileMenu user={user} onLogout={handleLogout} />
       </aside>
 
-      <main className="flex-1 overflow-y-auto px-8 py-6 bg-white">
+      <main className="flex-1 overflow-y-auto px-10 py-8 bg-[#f8f9fb]">
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />

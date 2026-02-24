@@ -11,11 +11,11 @@ export default function Field({
 }) {
   return (
     <div className={fullWidth ? "col-span-2" : ""}>
-      <label className="text-sm font-medium text-[#1a1a2e] block mb-1">
+      <label className="text-sm font-medium text-[#111827] block mb-1">
         {label}
       </label>
       {children}
-      {hint && <p className="text-[11px] text-gray-400 mb-1.5">{hint}</p>}
+      {hint && <p className="text-[11px] text-[#9ca3af] mb-1.5">{hint}</p>}
     </div>
   );
 }

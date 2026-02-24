@@ -13,10 +13,10 @@ interface Props {
 }
 
 const inputCls =
-  "w-full px-3 py-2 rounded-lg border border-[#e5e7eb] bg-white text-[13px] text-[#1a1a2e] outline-none focus:ring-2 focus:ring-[#ea0e2b]/20 focus:border-[#ea0e2b] transition-all";
+  "w-full px-3.5 py-2 rounded-xl border border-[#eef0f3] bg-white text-[13px] text-[#111827] outline-none focus:ring-2 focus:ring-[#ea0e2b]/20 focus:border-[#ea0e2b] transition-all";
 
 const btnSecondary =
-  "inline-flex items-center gap-1.5 px-3 py-[7px] rounded-lg border border-[#e5e7eb] bg-transparent text-[#1a1a2e] text-[13px] font-medium transition-all hover:border-[#ea0e2b] hover:text-[#ea0e2b] disabled:opacity-50 disabled:cursor-not-allowed";
+  "inline-flex items-center gap-1.5 px-3 py-[7px] rounded-xl border border-[#eef0f3] bg-transparent text-[#111827] text-[13px] font-medium transition-all hover:border-[#ea0e2b] hover:text-[#ea0e2b] disabled:opacity-50 disabled:cursor-not-allowed";
 
 const MCP_TOOLS = [
   {
@@ -136,9 +136,9 @@ export default function Agents({ addToast }: Props) {
   return (
     <div className="flex-1 overflow-auto">
       <div className="max-w-3xl mx-auto px-8 py-8">
-        <div className="mb-7">
-          <h1 className="text-[22px] font-bold text-[#1a1a2e]">Agents</h1>
-          <p className="text-sm text-gray-400 mt-1">
+        <div className="mb-8">
+          <h1 className="text-2xl font-semibold tracking-tight text-[#111827]">Agents</h1>
+          <p className="text-sm text-[#9ca3af] mt-1">
             Connect AI agents like Claude to your AppCore data via the Model
             Context Protocol (MCP).
           </p>
@@ -150,10 +150,10 @@ export default function Agents({ addToast }: Props) {
         >
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-medium text-[#1a1a2e]">
+              <div className="text-sm font-medium text-[#111827]">
                 MCP Server Status
               </div>
-              <div className="text-xs text-gray-400 mt-0.5">
+              <div className="text-xs text-[#9ca3af] mt-0.5">
                 {config?.mcpEnabled
                   ? `Active — endpoint available at ${mcpUrl}`
                   : "Disabled — no MCP connections are accepted"}
@@ -252,7 +252,7 @@ export default function Agents({ addToast }: Props) {
             {MCP_TOOLS.map((tool) => (
               <div
                 key={tool.name}
-                className="flex items-start gap-3 p-3 bg-[#f7f8fa] rounded-lg border border-[#e5e7eb]"
+                className="flex items-start gap-3 p-3 bg-[#f8f9fb] rounded-xl border border-[#eef0f3]"
               >
                 <code className="text-[12px] font-mono font-semibold text-[#ea0e2b] shrink-0 mt-0.5">
                   {tool.name}
@@ -269,23 +269,23 @@ export default function Agents({ addToast }: Props) {
           title="Claude Desktop Configuration"
           desc='Add this snippet to your claude_desktop_config.json under "mcpServers" and restart Claude Desktop.'
         >
-          <div className="flex gap-1 mb-4 bg-[#f7f8fa] p-1 rounded-lg border border-[#e5e7eb] w-fit">
+          <div className="flex gap-1 mb-4 bg-[#f8f9fb] p-1 rounded-xl border border-[#eef0f3] w-fit">
             <button
               onClick={() => setConfigTab("http")}
-              className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
                 configTab === "http"
-                  ? "bg-white text-[#1a1a2e] shadow-sm border border-[#e5e7eb]"
-                  : "text-gray-400 hover:text-[#1a1a2e]"
+                  ? "bg-white text-[#111827] shadow-sm border border-[#eef0f3]"
+                  : "text-[#9ca3af] hover:text-[#111827]"
               }`}
             >
               HTTP (Remote)
             </button>
             <button
               onClick={() => setConfigTab("stdio")}
-              className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
                 configTab === "stdio"
-                  ? "bg-white text-[#1a1a2e] shadow-sm border border-[#e5e7eb]"
-                  : "text-gray-400 hover:text-[#1a1a2e]"
+                  ? "bg-white text-[#111827] shadow-sm border border-[#eef0f3]"
+                  : "text-[#9ca3af] hover:text-[#111827]"
               }`}
             >
               Local (stdio)
@@ -293,7 +293,7 @@ export default function Agents({ addToast }: Props) {
           </div>
 
           {configTab === "stdio" && (
-            <p className="text-[11px] text-[#ea0e2b] bg-[#ea0e2b]/5 border border-[#ea0e2b]/20 rounded-lg px-3 py-2 mb-3">
+            <p className="text-[11px] text-[#ea0e2b] bg-[#ea0e2b]/5 border border-[#ea0e2b]/20 rounded-xl px-3 py-2 mb-3">
               Replace <code className="font-mono">/path/to/appcore</code> with
               the absolute path to your AppCore directory and set{" "}
               <code className="font-mono">DATABASE_URL</code> to your PostgreSQL
@@ -302,7 +302,7 @@ export default function Agents({ addToast }: Props) {
           )}
 
           <div className="relative">
-            <pre className="bg-[#1a1a2e] text-[#e5e7eb] text-[12px] font-mono p-4 rounded-lg overflow-x-auto leading-relaxed">
+            <pre className="bg-[#111827] text-[#e5e7eb] text-[12px] font-mono p-4 rounded-xl overflow-x-auto leading-relaxed">
               {activeJson}
             </pre>
             <button
@@ -312,9 +312,9 @@ export default function Agents({ addToast }: Props) {
               Copy
             </button>
           </div>
-          <p className="text-[11px] text-gray-400 mt-3">
+          <p className="text-[11px] text-[#9ca3af] mt-3">
             Config file location on macOS:{" "}
-            <code className="font-mono text-[#1a1a2e]">
+            <code className="font-mono text-[#111827]">
               ~/Library/Application Support/Claude/claude_desktop_config.json
             </code>
           </p>

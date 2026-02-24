@@ -38,7 +38,7 @@ export function ToastContainer({ toasts }: { toasts: Toast[] }) {
       {toasts.map((t) => (
         <div
           key={t.id}
-          className={`px-4 py-3 rounded-lg text-sm font-medium shadow-lg slide-in ${toastCls[t.type]}`}
+          className={`px-4 py-3 rounded-2xl text-sm font-medium shadow-lg slide-in ${toastCls[t.type]}`}
         >
           {t.message}
         </div>

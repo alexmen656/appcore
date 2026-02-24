@@ -1,20 +1,20 @@
-const card = "bg-white border border-[#e5e7eb] rounded-lg p-5";
+const card = "bg-white border border-[#eef0f3] rounded-2xl p-6 shadow-[0_1px_2px_rgba(0,0,0,0.03)]";
 const TH =
-  "text-left text-[11px] font-semibold uppercase tracking-[0.5px] text-gray-400 px-3.5 py-2.5 border-b border-[#e5e7eb] whitespace-nowrap";
-const TD = "px-3.5 py-3 border-b border-[#f0f0f0] text-[13px] align-middle";
+  "text-left text-[11px] font-medium uppercase tracking-wide text-[#9ca3af] px-3.5 py-2.5 border-b border-[#f3f4f6] whitespace-nowrap";
+const TD = "px-3.5 py-3 border-b border-[#f3f4f6] text-[13px] align-middle";
 
 const badgeVariants: Record<string, string> = {
-  pending: "bg-amber-100 text-amber-800",
-  approved: "bg-emerald-100 text-emerald-800",
-  applied: "bg-blue-100 text-blue-800",
-  rejected: "bg-red-100 text-red-700",
-  title: "bg-violet-100 text-violet-800",
-  subtitle: "bg-sky-100 text-sky-800",
-  keywords: "bg-pink-100 text-pink-800",
+  pending: "bg-amber-50 text-amber-700",
+  approved: "bg-emerald-50 text-emerald-700",
+  applied: "bg-blue-50 text-blue-700",
+  rejected: "bg-red-50 text-red-600",
+  title: "bg-violet-50 text-violet-700",
+  subtitle: "bg-sky-50 text-sky-700",
+  keywords: "bg-pink-50 text-pink-700",
   description: "bg-emerald-50 text-emerald-700",
 };
 const badge = (v: string) =>
-  `inline-block px-2 py-0.5 rounded text-[11px] font-semibold tracking-[0.3px] ${badgeVariants[v.toLowerCase()] ?? "bg-gray-100 text-gray-700"}`;
+  `inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium ${badgeVariants[v.toLowerCase()] ?? "bg-gray-50 text-gray-600"}`;
 
 export interface RecentSuggestion {
   id: string;
@@ -33,11 +33,11 @@ interface Props {
 export default function RecentSuggestionsTable({ suggestions }: Props) {
   return (
     <div className={card}>
-      <div className="text-sm font-semibold text-[#1a1a2e] mb-4">
+      <div className="text-xs font-medium uppercase tracking-wide text-[#9ca3af] mb-4">
         Recent Suggestions
       </div>
       {suggestions.length === 0 ? (
-        <div className="py-8 text-center text-gray-400 text-sm">
+        <div className="py-8 text-center text-[#9ca3af] text-sm">
           No suggestions yet — run an AI analysis first
         </div>
       ) : (
@@ -56,7 +56,7 @@ export default function RecentSuggestionsTable({ suggestions }: Props) {
                 <td className={TD}>
                   <span className={badge(s.type.toLowerCase())}>{s.type}</span>
                 </td>
-                <td className={`${TD} text-gray-500`}>{s.locale}</td>
+                <td className={`${TD} text-[#6b7280]`}>{s.locale}</td>
                 <td className={TD}>
                   {s.confidence != null ? (
                     <span className="flex items-center gap-1.5">

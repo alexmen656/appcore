@@ -18,7 +18,7 @@ export default function AuthHeader({ mode }: Props) {
           <div className="text-xs text-gray-400">ASO Engine by Fringelo</div>
         </div>
       </div>
-      <h2 className="text-[22px] font-bold text-[#1a1a2e] mb-6 tracking-tight">
+      <h2 className="text-[22px] font-bold text-[#111827] mb-6 tracking-tight">
         {mode === "login" ? "Sign in to your account" : "Create an account"}
       </h2>
     </>

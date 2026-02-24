@@ -104,13 +104,11 @@ ascRouter.post("/import", async (req, res) => {
       },
     });
 
-    // Fire-and-forget scrape for the newly imported app
     getEffectiveSettings(req.user!.userId)
       .then(async (settings) => {
         const effectiveSettings = { ...settings, ascBundleId: bundleId };
-        const { AppStoreScraper } = await import(
-          "../../services/appstore-scraper"
-        );
+        const { AppStoreScraper } =
+          await import("../../services/appstore-scraper");
         const scraper = new AppStoreScraper(effectiveSettings);
         await scraper.runFullScrapeJob();
         logger.info(`Post-import scrape completed for ${bundleId}`);

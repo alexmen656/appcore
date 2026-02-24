@@ -36,15 +36,8 @@ interface Review {
 }
 
 const TH =
-  "text-left text-[11px] font-semibold uppercase tracking-[0.5px] text-gray-400 px-3.5 py-2.5 border-b border-[#e5e7eb]";
-const TD = "px-3.5 py-3 border-b border-[#f0f0f0] text-[13px] align-middle";
-
-function countryFlag(code: string): string {
-  if (code.length !== 2 || !/^[A-Z]{2}$/.test(code.toUpperCase())) return "🌍";
-  return [...code.toUpperCase()]
-    .map((c) => String.fromCodePoint(0x1f1e6 + c.charCodeAt(0) - 65))
-    .join("");
-}
+  "text-left text-[11px] font-medium uppercase tracking-wide text-[#9ca3af] px-4 py-3 border-b border-[#f3f4f6]";
+const TD = "px-4 py-3.5 border-b border-[#f3f4f6] text-[13px] align-middle";
 
 const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
 function countryName(code: string): string {
@@ -70,11 +63,11 @@ function StatCard({
   sub?: string;
 }) {
   return (
-    <div className="bg-white border border-[#e5e7eb] rounded-xl p-5">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.5px] text-[#9ca3af] mb-1.5">
+    <div className="bg-white border border-[#eef0f3] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+      <div className="text-[11px] font-medium uppercase tracking-wide text-[#9ca3af] mb-2">
         {label}
       </div>
-      <div className="text-[26px] font-bold text-[#1a1a2e] leading-none">
+      <div className="text-[26px] font-semibold text-[#111827] leading-none">
         {value}
       </div>
       {sub && <div className="text-[12px] text-[#9ca3af] mt-1.5">{sub}</div>}
@@ -148,10 +141,10 @@ export default function Analytics({ addToast }: Props) {
     <div>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#1a1a2e] mb-1">
+          <h1 className="text-2xl font-semibold tracking-tight text-[#111827] mb-1">
             Analytics
           </h1>
-          <p className="text-base text-gray-500 mb-7">
+          <p className="text-sm text-[#9ca3af] mb-8">
             Downloads, revenue and reviews from App Store Connect
             {summary?.lastSyncAt && (
               <span className="ml-2">
@@ -163,7 +156,7 @@ export default function Analytics({ addToast }: Props) {
         <button
           onClick={handleSync}
           disabled={syncing}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] disabled:opacity-60 transition-colors"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] disabled:opacity-60 transition-colors"
         >
           {syncing ? (
             <>
@@ -191,7 +184,7 @@ export default function Analytics({ addToast }: Props) {
       </div>
 
       {!loading && !summary?.totalDownloads30d && reviews?.length === 0 && (
-        <div className="mb-5 px-4 py-3.5 rounded-xl bg-amber-50 border border-amber-200 text-[13px] text-amber-800">
+        <div className="mb-5 px-4 py-3.5 rounded-2xl bg-amber-50 border border-amber-100 text-[13px] text-amber-800">
           <strong>No analytics data yet.</strong> Make sure your{" "}
           <a href="/settings" className="underline font-medium">
             Vendor Number
@@ -232,9 +225,9 @@ export default function Analytics({ addToast }: Props) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
-        <div className="bg-white border border-[#e5e7eb] rounded-xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-[#e5e7eb]">
-            <div className="text-[15px] font-semibold text-[#1a1a2e]">
+        <div className="bg-white border border-[#eef0f3] rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+          <div className="px-5 py-4 border-b border-[#f3f4f6]">
+            <div className="text-[15px] font-semibold text-[#111827]">
               Top Countries
             </div>
             <div className="text-[12px] text-[#9ca3af] mt-0.5">
@@ -266,7 +259,7 @@ export default function Analytics({ addToast }: Props) {
                       className="hover:bg-[#f7f8fa] transition-colors"
                     >
                       <td className={TD}>
-                        <span className="font-medium text-[#1a1a2e]">
+                        <span className="font-medium text-[#111827]">
                           {r.country}
                         </span>
                       </td>
@@ -275,7 +268,7 @@ export default function Analytics({ addToast }: Props) {
                       </td>
                       <td className={`${TD} text-right pr-5`}>
                         <div className="flex items-center justify-end gap-2">
-                          <div className="w-16 h-1.5 bg-[#f0f0f0] rounded-full overflow-hidden">
+                          <div className="w-16 h-1.5 bg-[#f3f4f6] rounded-full overflow-hidden">
                             <div
                               className="h-full bg-[#ea0e2b] rounded-full"
                               style={{
@@ -299,8 +292,8 @@ export default function Analytics({ addToast }: Props) {
           )}
         </div>
 
-        <div className="bg-white border border-[#e5e7eb] rounded-xl p-5">
-          <div className="text-[15px] font-semibold text-[#1a1a2e] mb-1">
+        <div className="bg-white border border-[#eef0f3] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+          <div className="text-[15px] font-semibold text-[#111827] mb-1">
             Rating Distribution
           </div>
           <div className="text-[12px] text-[#9ca3af] mb-4">
@@ -322,11 +315,11 @@ export default function Analytics({ addToast }: Props) {
                     : 0;
                 return (
                   <div key={star} className="flex items-center gap-3">
-                    <span className="text-[13px] text-[#1a1a2e] w-5 text-right">
+                    <span className="text-[13px] text-[#111827] w-5 text-right">
                       {star}
                     </span>
-                    <span className="text-amber-400 text-[13px]">★</span>
-                    <div className="flex-1 h-2 bg-[#f0f0f0] rounded-full overflow-hidden">
+                    <span className="text-amber-400 text-[13px]">&#9733;</span>
+                    <div className="flex-1 h-2 bg-[#f3f4f6] rounded-full overflow-hidden">
                       <div
                         className="h-full bg-amber-400 rounded-full transition-all"
                         style={{ width: `${pct}%` }}
@@ -345,9 +338,9 @@ export default function Analytics({ addToast }: Props) {
 
       <ReviewsList reviews={reviews ?? []} />
 
-      <div className="bg-white border border-[#e5e7eb] rounded-xl overflow-hidden mt-5">
-        <div className="px-5 py-4 border-b border-[#e5e7eb]">
-          <div className="text-[15px] font-semibold text-[#1a1a2e]">
+      <div className="bg-white border border-[#eef0f3] rounded-2xl overflow-hidden mt-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+        <div className="px-5 py-4 border-b border-[#f3f4f6]">
+          <div className="text-[15px] font-semibold text-[#111827]">
             Downloads by Country
           </div>
           <div className="text-[12px] text-[#9ca3af] mt-0.5">
@@ -379,10 +372,7 @@ export default function Analytics({ addToast }: Props) {
                     className="hover:bg-[#f7f8fa] transition-colors"
                   >
                     <td className={TD}>
-                      <span className="mr-2 text-base leading-none">
-                        {countryFlag(r.country)}
-                      </span>
-                      <span className="font-medium text-[#1a1a2e]">
+                      <span className="font-medium text-[#111827]">
                         {countryName(r.country)}
                       </span>
                       {countryCodeLabel(r.country) && (
@@ -396,7 +386,7 @@ export default function Analytics({ addToast }: Props) {
                     </td>
                     <td className={`${TD} text-right pr-5`}>
                       <div className="flex items-center justify-end gap-2">
-                        <div className="w-16 h-1.5 bg-[#f0f0f0] rounded-full overflow-hidden">
+                        <div className="w-16 h-1.5 bg-[#f3f4f6] rounded-full overflow-hidden">
                           <div
                             className="h-full bg-[#ea0e2b] rounded-full"
                             style={{

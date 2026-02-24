@@ -38,10 +38,10 @@ export default function DownloadsChart({ data }: Props) {
   const filtered = data.slice(-range);
 
   return (
-    <div className="bg-white border border-[#e5e7eb] rounded-xl p-5">
+    <div className="bg-white border border-[#eef0f3] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <div className="text-[15px] font-semibold text-[#1a1a2e]">Downloads over time</div>
+          <div className="text-[15px] font-semibold text-[#111827]">Downloads over time</div>
           <div className="text-[12px] text-[#9ca3af] mt-0.5">Daily installs and updates</div>
         </div>
         <div className="flex gap-1">
@@ -49,10 +49,10 @@ export default function DownloadsChart({ data }: Props) {
             <button
               key={r.label}
               onClick={() => setRange(r.days)}
-              className={`px-2.5 py-1 rounded-[5px] text-[12px] font-medium transition-colors ${
+              className={`px-2.5 py-1 rounded-lg text-[12px] font-medium transition-colors ${
                 range === r.days
                   ? "bg-[#ea0e2b] text-white"
-                  : "bg-[#f7f8fa] text-[#6b7280] hover:bg-[#e5e7eb]"
+                  : "bg-[#f3f4f6] text-[#6b7280] hover:bg-[#e5e7eb]"
               }`}
             >
               {r.label}
@@ -68,7 +68,7 @@ export default function DownloadsChart({ data }: Props) {
       ) : (
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={filtered} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
             <XAxis
               dataKey="date"
               tickFormatter={fmtDate}
@@ -85,9 +85,9 @@ export default function DownloadsChart({ data }: Props) {
             <Tooltip
               contentStyle={{
                 fontSize: 12,
-                borderRadius: 8,
-                border: "1px solid #e5e7eb",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                borderRadius: 12,
+                border: "1px solid #eef0f3",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
               }}
               labelFormatter={(label) => fmtDate(String(label))}
             />

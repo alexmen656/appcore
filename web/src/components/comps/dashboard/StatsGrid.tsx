@@ -33,13 +33,13 @@ export default function StatsGrid({ stats }: Props) {
       ].map(({ label, value, color }) => (
         <div
           key={label}
-          className="bg-white border border-[#e5e7eb] rounded-lg px-5 py-[18px]"
+          className="bg-white border border-[#eef0f3] rounded-2xl px-5 py-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
         >
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-1.5">
+          <div className="text-[11px] font-medium uppercase tracking-wide text-[#9ca3af] mb-2">
             {label}
           </div>
           <div
-            className={`text-[28px] font-bold tracking-tight ${color || "text-[#1a1a2e]"}`}
+            className={`text-[26px] font-semibold tracking-tight ${color || "text-[#111827]"}`}
           >
             {value}
           </div>

@@ -1,13 +1,13 @@
-const card = "bg-white border border-[#e5e7eb] rounded-lg p-5";
+const card = "bg-white border border-[#eef0f3] rounded-2xl p-6 shadow-[0_1px_2px_rgba(0,0,0,0.03)]";
 
 const badgeVariants: Record<string, string> = {
-  applied: "bg-blue-100 text-blue-800",
-  approved: "bg-emerald-100 text-emerald-800",
-  title: "bg-violet-100 text-violet-800",
-  keywords: "bg-pink-100 text-pink-800",
+  applied: "bg-blue-50 text-blue-700",
+  approved: "bg-emerald-50 text-emerald-700",
+  title: "bg-violet-50 text-violet-700",
+  keywords: "bg-pink-50 text-pink-700",
 };
 const badge = (v: string) =>
-  `inline-block px-2 py-0.5 rounded text-[11px] font-semibold tracking-[0.3px] ${badgeVariants[v.toLowerCase()] ?? "bg-gray-100 text-gray-700"}`;
+  `inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium ${badgeVariants[v.toLowerCase()] ?? "bg-gray-50 text-gray-600"}`;
 
 export interface Config {
   bundleId: string;
@@ -28,7 +28,7 @@ interface Props {
 export default function ConfigurationTable({ config }: Props) {
   return (
     <div className={card}>
-      <div className="text-sm font-semibold text-[#1a1a2e] mb-4">
+      <div className="text-xs font-medium uppercase tracking-wide text-[#9ca3af] mb-4">
         Configuration
       </div>
       <table className="w-full border-collapse">
@@ -47,15 +47,15 @@ export default function ConfigurationTable({ config }: Props) {
                 key={label}
                 className="border-b border-[#f0f0f0] last:border-0"
               >
-                <td className="w-40 py-3 pr-4 text-[13px] font-medium text-[#1a1a2e]">
+                <td className="w-40 py-3 pr-4 text-[13px] font-medium text-[#111827]">
                   {label}
                 </td>
-                <td className="py-3 text-[13px] text-gray-600">{val}</td>
+                <td className="py-3 text-[13px] text-[#6b7280]">{val}</td>
               </tr>
             );
           })}
           <tr>
-            <td className="py-3 pr-4 text-[13px] font-medium text-[#1a1a2e]">
+            <td className="py-3 pr-4 text-[13px] font-medium text-[#111827]">
               Integrations
             </td>
             <td className="py-3 flex gap-1.5 flex-wrap">

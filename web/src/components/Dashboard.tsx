@@ -47,10 +47,10 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold tracking-tight text-[#1a1a2e] mb-1">
+      <h1 className="text-2xl font-semibold tracking-tight text-[#111827] mb-1">
         Dashboard
       </h1>
-      <p className="text-base text-gray-500 mb-7">
+      <p className="text-sm text-[#9ca3af] mb-8">
         Overview of your ASO engine
       </p>
 

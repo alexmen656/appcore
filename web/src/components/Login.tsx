@@ -46,13 +46,13 @@ export default function Login({ onAuth }: Props) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#eff3f6]">
-      <div className="w-[400px] bg-white rounded-2xl shadow-xl border border-gray-200 p-10">
+    <div className="min-h-screen flex items-center justify-center bg-[#f8f9fb]">
+      <div className="w-[400px] bg-white rounded-2xl shadow-xl border border-[#eef0f3] p-10">
         <AuthHeader mode={mode} />
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {mode === "register" && (
             <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-[#1a1a2e]">Name</span>
+              <span className="text-sm font-medium text-[#111827]">Name</span>
               <input
                 className="settings-input"
                 type="text"
@@ -64,7 +64,7 @@ export default function Login({ onAuth }: Props) {
             </label>
           )}
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-[#1a1a2e]">Email</span>
+            <span className="text-sm font-medium text-[#111827]">Email</span>
             <input
               className="settings-input"
               type="email"
@@ -76,7 +76,7 @@ export default function Login({ onAuth }: Props) {
             />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-[#1a1a2e]">Password</span>
+            <span className="text-sm font-medium text-[#111827]">Password</span>
             <input
               className="settings-input"
               type="password"
@@ -91,7 +91,7 @@ export default function Login({ onAuth }: Props) {
             />
           </label>
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-2.5">
+            <div className="bg-red-50 border border-red-100 text-red-700 text-sm rounded-xl px-4 py-2.5">
               {error}
             </div>
           )}

@@ -8,9 +8,9 @@ export default function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white border border-[#e5e7eb] rounded-xl p-6 mb-5">
-      <h2 className="text-[15px] font-semibold text-[#1a1a2e] mb-1">{title}</h2>
-      {desc && <p className="text-xs text-gray-400 mb-5">{desc}</p>}
+    <div className="bg-white border border-[#eef0f3] rounded-2xl p-6 mb-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+      <h2 className="text-[15px] font-semibold text-[#111827] mb-1">{title}</h2>
+      {desc && <p className="text-xs text-[#9ca3af] mb-5">{desc}</p>}
       {children}
     </div>
   );

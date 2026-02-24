@@ -22,24 +22,24 @@ interface Props {
 }
 
 const typeBadge: Record<string, string> = {
-  title: "bg-violet-100 text-violet-700",
-  subtitle: "bg-blue-100 text-blue-700",
-  keywords: "bg-amber-100 text-amber-700",
-  description: "bg-green-100 text-green-700",
+  title: "bg-violet-50 text-violet-700",
+  subtitle: "bg-blue-50 text-blue-700",
+  keywords: "bg-amber-50 text-amber-700",
+  description: "bg-green-50 text-green-700",
 };
 
 const statusBadge: Record<string, string> = {
-  pending: "bg-yellow-100 text-yellow-700",
-  approved: "bg-emerald-100 text-emerald-700",
-  applied: "bg-blue-100 text-blue-800",
-  rejected: "bg-red-100 text-red-800",
+  pending: "bg-yellow-50 text-yellow-700",
+  approved: "bg-emerald-50 text-emerald-700",
+  applied: "bg-blue-50 text-blue-700",
+  rejected: "bg-red-50 text-red-700",
 };
 
 const badgeBase =
-  "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide";
+  "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium";
 
 const btnBase =
-  "inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
+  "inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
 
 export default function SuggestionCard({
   suggestion: s,
@@ -47,7 +47,7 @@ export default function SuggestionCard({
   onAction,
 }: Props) {
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-white border border-[#eef0f3] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-shadow">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-2 flex-wrap">
           <span
@@ -61,7 +61,7 @@ export default function SuggestionCard({
             {s.status}
           </span>
           {s.confidenceScore != null && (
-            <span className="flex items-center gap-1 text-xs text-gray-400">
+            <span className="flex items-center gap-1 text-xs text-[#9ca3af]">
               {Math.round(s.confidenceScore * 100)}% confidence
               <span className="inline-block w-10 h-1 rounded-full bg-gray-200 overflow-hidden align-middle">
                 <span
@@ -72,30 +72,30 @@ export default function SuggestionCard({
             </span>
           )}
         </div>
-        <div className="text-[11px] text-gray-400 shrink-0 whitespace-nowrap">
+        <div className="text-[11px] text-[#9ca3af] shrink-0 whitespace-nowrap">
           {new Date(s.createdAt).toLocaleDateString()} · {s.aiProvider}/
           {s.aiModel}
         </div>
       </div>
       <div className="flex flex-col gap-2 mb-3">
         {s.currentValue && (
-          <div className="bg-red-50 rounded-lg px-4 py-3 text-xs text-gray-600">
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1">
+          <div className="bg-red-50/60 rounded-xl px-4 py-3 text-xs text-[#4b5563]">
+            <div className="text-[10px] font-medium uppercase tracking-wide text-[#9ca3af] mb-1">
               Current
             </div>
             {s.currentValue}
           </div>
         )}
-        <div className="bg-emerald-50 rounded-lg px-4 py-3 text-xs text-[#1a1a2e]">
-          <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 mb-1">
+        <div className="bg-emerald-50/60 rounded-xl px-4 py-3 text-xs text-[#111827]">
+          <div className="text-[10px] font-medium uppercase tracking-wide text-[#9ca3af] mb-1">
             Suggested
           </div>
           {s.suggestedValue}
         </div>
       </div>
       {s.reasoning && (
-        <div className="text-xs text-gray-500 leading-relaxed mb-3">
-          💡 {s.reasoning}
+        <div className="text-xs text-[#6b7280] leading-relaxed mb-3">
+          {s.reasoning}
         </div>
       )}
       {s.status === "PENDING" && (
@@ -105,21 +105,21 @@ export default function SuggestionCard({
             disabled={acting === s.id}
             onClick={() => onAction(s.id, "approve")}
           >
-            ✓ Approve
+            Approve
           </button>
           <button
             className={`${btnBase} bg-red-500 text-white hover:bg-red-600`}
             disabled={acting === s.id}
             onClick={() => onAction(s.id, "reject")}
           >
-            ✗ Reject
+            Reject
           </button>
           <button
             className={`${btnBase} bg-blue-500 text-white hover:bg-blue-600`}
             disabled={acting === s.id}
             onClick={() => onAction(s.id, "apply")}
           >
-            ⚡ Apply to ASC
+            Apply to ASC
           </button>
         </div>
       )}
@@ -130,7 +130,7 @@ export default function SuggestionCard({
             disabled={acting === s.id}
             onClick={() => onAction(s.id, "apply")}
           >
-            ⚡ Apply to ASC
+            Apply to ASC
           </button>
         </div>
       )}

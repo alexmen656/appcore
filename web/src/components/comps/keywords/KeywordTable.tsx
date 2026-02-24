@@ -1,8 +1,8 @@
 const TH =
-  "text-left text-[11px] font-semibold uppercase tracking-[0.5px] text-gray-400 px-3.5 py-2.5 border-b border-[#e5e7eb] whitespace-nowrap";
-const TD = "px-3.5 py-3 border-b border-[#f0f0f0] text-[13px] align-middle";
+  "text-left text-[11px] font-medium uppercase tracking-wide text-[#9ca3af] px-4 py-3 border-b border-[#f3f4f6] whitespace-nowrap";
+const TD = "px-4 py-3.5 border-b border-[#f3f4f6] text-[13px] align-middle";
 const btnSecSm =
-  "inline-flex items-center gap-1.5 px-2.5 py-[5px] rounded-lg text-xs font-medium border border-[#e5e7eb] bg-white text-[#1a1a2e] hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap";
+  "inline-flex items-center gap-1.5 px-2.5 py-[5px] rounded-xl text-xs font-medium border border-[#eef0f3] bg-white text-[#111827] hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap";
 
 export interface Keyword {
   id: string;
@@ -49,7 +49,7 @@ export default function KeywordTable({
   onDelete,
 }: Props) {
   return (
-    <div className="bg-white border border-[#e5e7eb] rounded-lg overflow-hidden mb-5">
+    <div className="bg-white border border-[#eef0f3] rounded-2xl overflow-hidden mb-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
       <table className="w-full border-collapse">
         <thead>
           <tr>
@@ -71,8 +71,8 @@ export default function KeywordTable({
               onClick={() => onRowClick(k)}
               className={`cursor-pointer hover:bg-gray-50/60 ${selectedKeyword?.id === k.id ? "!bg-blue-50/60" : ""}`}
             >
-              <td className={`${TD} font-medium text-[#1a1a2e]`}>{k.term}</td>
-              <td className={`${TD} text-gray-500`}>{k.country}</td>
+              <td className={`${TD} font-medium text-[#111827]`}>{k.term}</td>
+              <td className={`${TD} text-[#6b7280]`}>{k.country}</td>
               <td className={TD}>
                 {k.popularity != null ? (
                   <span className="flex items-center gap-1.5">
@@ -105,18 +105,18 @@ export default function KeywordTable({
                   )}
                 </span>
               </td>
-              <td className={`${TD} text-gray-500`}>
+              <td className={`${TD} text-[#6b7280]`}>
                 {k.searchVolume != null ? (
                   k.searchVolume
                 ) : (
-                  <span className="text-gray-400">—</span>
+                  <span className="text-[#9ca3af]">--</span>
                 )}
               </td>
               <td className={TD}>
                 {k.ourRank != null ? (
                   <span className={rankColor(k.ourRank)}>#{k.ourRank}</span>
                 ) : (
-                  <span className="text-gray-400 text-xs">not ranked</span>
+                  <span className="text-[#9ca3af] text-xs">not ranked</span>
                 )}
               </td>
               <td className={TD}>
@@ -133,12 +133,12 @@ export default function KeywordTable({
                   <span className="text-gray-400">—</span>
                 )}
               </td>
-              <td className={`${TD} text-gray-400 text-xs`}>
+              <td className={`${TD} text-[#9ca3af] text-xs`}>
                 {k.trackingCount}×
               </td>
               <td className={TD}>
                 <button
-                  className={`${btnSecSm} !text-red-500 !border-red-200 hover:!bg-red-50`}
+                  className={`${btnSecSm} !text-red-500 !border-red-100 hover:!bg-red-50`}
                   onClick={(e) => {
                     e.stopPropagation();
                     onDelete(k.id, k.term);

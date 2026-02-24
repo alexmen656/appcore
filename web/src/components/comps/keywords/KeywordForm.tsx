@@ -1,27 +1,27 @@
 const inputCls =
-  "px-3 py-[7px] rounded-lg border border-[#e5e7eb] bg-white text-[#1a1a2e] text-[13px] outline-none focus:border-[#ea0e2b] transition-colors font-[inherit]";
+  "px-3 py-[7px] rounded-xl border border-[#eef0f3] bg-white text-[#111827] text-[13px] outline-none focus:border-[#ea0e2b] transition-colors font-[inherit]";
 const btnPrimSm =
-  "inline-flex items-center gap-1.5 px-2.5 py-[5px] rounded-lg text-xs font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed";
+  "inline-flex items-center gap-1.5 px-3 py-[7px] rounded-xl text-xs font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed";
 
 export const COUNTRIES: { code: string; label: string; lang: string }[] = [
-  { code: "de", label: "🇩🇪 Deutschland", lang: "de" },
-  { code: "us", label: "🇺🇸 United States", lang: "en" },
-  { code: "gb", label: "🇬🇧 United Kingdom", lang: "en" },
-  { code: "at", label: "🇦🇹 Österreich", lang: "de" },
-  { code: "ch", label: "🇨🇭 Schweiz", lang: "de" },
-  { code: "fr", label: "🇫🇷 France", lang: "fr" },
-  { code: "es", label: "🇪🇸 España", lang: "es" },
-  { code: "it", label: "🇮🇹 Italia", lang: "it" },
-  { code: "nl", label: "🇳🇱 Netherlands", lang: "nl" },
-  { code: "pl", label: "🇵🇱 Poland", lang: "pl" },
-  { code: "tr", label: "🇹🇷 Türkiye", lang: "tr" },
-  { code: "br", label: "🇧🇷 Brasil", lang: "pt" },
-  { code: "mx", label: "🇲🇽 México", lang: "es" },
-  { code: "ca", label: "🇨🇦 Canada", lang: "en" },
-  { code: "au", label: "🇦🇺 Australia", lang: "en" },
-  { code: "jp", label: "🇯🇵 Japan", lang: "ja" },
-  { code: "kr", label: "🇰🇷 Korea", lang: "ko" },
-  { code: "cn", label: "🇨🇳 China", lang: "zh" },
+  { code: "de", label: "DE — Deutschland", lang: "de" },
+  { code: "us", label: "US — United States", lang: "en" },
+  { code: "gb", label: "GB — United Kingdom", lang: "en" },
+  { code: "at", label: "AT — Österreich", lang: "de" },
+  { code: "ch", label: "CH — Schweiz", lang: "de" },
+  { code: "fr", label: "FR — France", lang: "fr" },
+  { code: "es", label: "ES — España", lang: "es" },
+  { code: "it", label: "IT — Italia", lang: "it" },
+  { code: "nl", label: "NL — Netherlands", lang: "nl" },
+  { code: "pl", label: "PL — Poland", lang: "pl" },
+  { code: "tr", label: "TR — Türkiye", lang: "tr" },
+  { code: "br", label: "BR — Brasil", lang: "pt" },
+  { code: "mx", label: "MX — México", lang: "es" },
+  { code: "ca", label: "CA — Canada", lang: "en" },
+  { code: "au", label: "AU — Australia", lang: "en" },
+  { code: "jp", label: "JP — Japan", lang: "ja" },
+  { code: "kr", label: "KR — Korea", lang: "ko" },
+  { code: "cn", label: "CN — China", lang: "zh" },
 ];
 
 interface Props {

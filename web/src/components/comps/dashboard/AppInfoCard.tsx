@@ -1,4 +1,4 @@
-const card = "bg-white border border-[#e5e7eb] rounded-lg p-5";
+const card = "bg-white border border-[#eef0f3] rounded-2xl p-6 shadow-[0_1px_2px_rgba(0,0,0,0.03)]";
 
 export interface AppInfo {
   name: string;
@@ -18,7 +18,7 @@ interface Props {
 export default function AppInfoCard({ app }: Props) {
   return (
     <div className={`${card} mb-5`}>
-      <div className="text-sm font-semibold text-[#1a1a2e] mb-4">Your App</div>
+      <div className="text-xs font-medium uppercase tracking-wide text-[#9ca3af] mb-4">Your App</div>
       <div className="flex gap-5 items-start">
         {app.iconUrl && (
           <img
@@ -28,25 +28,25 @@ export default function AppInfoCard({ app }: Props) {
           />
         )}
         <div>
-          <div className="font-semibold text-base text-[#1a1a2e] mb-1">
+          <div className="font-semibold text-base text-[#111827] mb-1">
             {app.title || app.name}
           </div>
           {app.subtitle && (
-            <div className="text-sm text-gray-500 mb-1">{app.subtitle}</div>
+            <div className="text-sm text-[#6b7280] mb-1">{app.subtitle}</div>
           )}
-          <div className="text-xs text-gray-400 mb-2">{app.bundleId}</div>
+          <div className="text-xs text-[#9ca3af] mb-2">{app.bundleId}</div>
           {app.rating != null && (
-            <div className="text-sm text-[#1a1a2e]">
-              ⭐ {app.rating.toFixed(1)} ({app.ratingsCount?.toLocaleString()}{" "}
+            <div className="text-sm text-[#111827] flex items-center gap-1">
+              <span className="text-amber-400">&#9733;</span> {app.rating.toFixed(1)} ({app.ratingsCount?.toLocaleString()}{" "}
               ratings)
             </div>
           )}
           {app.keywords && (
             <div className="mt-3">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-1">
+              <div className="text-[11px] font-medium uppercase tracking-wide text-[#9ca3af] mb-1">
                 Keywords
               </div>
-              <div className="text-xs text-gray-500 leading-relaxed">
+              <div className="text-xs text-[#6b7280] leading-relaxed">
                 {app.keywords}
               </div>
             </div>

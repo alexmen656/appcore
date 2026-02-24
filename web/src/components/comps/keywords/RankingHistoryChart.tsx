@@ -11,7 +11,7 @@ import {
 import { Keyword } from "./KeywordTable";
 
 const btnSecSm =
-  "inline-flex items-center gap-1.5 px-2.5 py-[5px] rounded-lg text-xs font-medium border border-[#e5e7eb] bg-white text-[#1a1a2e] hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap";
+  "inline-flex items-center gap-1.5 px-2.5 py-[5px] rounded-xl text-xs font-medium border border-[#eef0f3] bg-white text-[#111827] hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap";
 
 const CHART_COLORS = [
   "#ea0e2b",
@@ -101,20 +101,20 @@ export default function RankingHistoryChart({
   })();
 
   return (
-    <div className="bg-white border border-[#e5e7eb] rounded-lg p-5">
+    <div className="bg-white border border-[#eef0f3] rounded-2xl p-6 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
       <div className="flex items-start justify-between mb-5">
         <div>
-          <h3 className="text-base font-semibold text-[#1a1a2e]">
+          <h3 className="text-base font-semibold text-[#111827]">
             Ranking History:{" "}
             <span className="text-[#ea0e2b]">{keyword.term}</span>
           </h3>
-          <div className="text-xs text-gray-400 mt-1">
+          <div className="text-xs text-[#9ca3af] mt-1">
             {keyword.country.toUpperCase()} · Popularity{" "}
             {keyword.popularity ?? "—"} · Difficulty {keyword.difficulty ?? "—"}
           </div>
         </div>
         <button className={btnSecSm} onClick={onClose}>
-          ✕ Close
+          Close
         </button>
       </div>
 
@@ -132,7 +132,7 @@ export default function RankingHistoryChart({
             data={chartData}
             margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
             <XAxis
               dataKey="date"
               tick={{ fontSize: 11, fill: "#9ca3af" }}
@@ -154,10 +154,10 @@ export default function RankingHistoryChart({
             <Tooltip
               contentStyle={{
                 background: "#fff",
-                border: "1px solid #e5e7eb",
-                borderRadius: 8,
+                border: "1px solid #eef0f3",
+                borderRadius: 12,
                 fontSize: 12,
-                boxShadow: "0 2px 8px rgba(0,0,0,.1)",
+                boxShadow: "0 4px 12px rgba(0,0,0,.06)",
               }}
               labelStyle={{ fontWeight: 600, marginBottom: 4 }}
             />

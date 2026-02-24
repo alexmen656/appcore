@@ -18,29 +18,29 @@ export default function Competitors() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold tracking-tight text-[#1a1a2e] mb-1">
+      <h1 className="text-2xl font-semibold tracking-tight text-[#111827] mb-1">
         Competitors
       </h1>
-      <p className="text-base text-gray-500 mb-7">
+      <p className="text-sm text-[#9ca3af] mb-8">
         {competitors.length} competitor{competitors.length !== 1 ? "s" : ""}{" "}
         discovered and tracked
       </p>
 
       {ownApp && <OwnAppCard app={ownApp} />}
 
-      <div className="text-sm font-semibold text-[#1a1a2e] mb-3">
+      <div className="text-xs font-medium uppercase tracking-wide text-[#9ca3af] mb-3">
         Competitor Apps
       </div>
       {competitors.length === 0 ? (
         <div className="py-16 text-center">
-          <div className="text-4xl flex justify-center mb-3 opacity-30">
+          <div className="flex justify-center mb-3 opacity-20">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={1.5}
               stroke="currentColor"
-              className="size-12"
+              className="w-12 h-12 text-[#9ca3af]"
             >
               <path
                 strokeLinecap="round"
@@ -49,10 +49,10 @@ export default function Competitors() {
               />
             </svg>
           </div>
-          <div className="text-md font-medium text-gray-500 mb-1">
+          <div className="text-sm font-medium text-[#6b7280] mb-1">
             No competitors discovered yet
           </div>
-          <div className="text-sm text-gray-400">
+          <div className="text-xs text-[#9ca3af]">
             Run a scrape from the Actions page
           </div>
         </div>

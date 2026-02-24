@@ -19,8 +19,8 @@ export default function LocalePills({
           key={loc}
           className={
             currentLocale === loc
-              ? "px-3 py-1 rounded-full border text-[13px] font-medium cursor-pointer transition-colors bg-[#1a1a2e] border-[#1a1a2e] text-white"
-              : "px-3 py-1 rounded-full border text-[13px] font-medium cursor-pointer transition-colors bg-white border-gray-200 text-gray-500 hover:border-gray-400 hover:text-gray-800"
+              ? "px-3.5 py-1.5 rounded-full border text-[13px] font-medium cursor-pointer transition-colors bg-[#111827] border-[#111827] text-white"
+              : "px-3.5 py-1.5 rounded-full border text-[13px] font-medium cursor-pointer transition-colors bg-white border-[#eef0f3] text-[#6b7280] hover:border-[#d1d5db] hover:text-[#111827]"
           }
           onClick={() => onSelect(loc)}
         >
