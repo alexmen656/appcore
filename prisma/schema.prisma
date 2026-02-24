@@ -55,7 +55,8 @@ model UserSettings {
   asoLocales String? @default("en-US") // comma-separated, e.g. "en-US,de-DE"
 
   // ── Analytics ────────────────────────────────────────────────────────
-  ascVendorNumber String? // required for Sales Reports API (found in Payments & Financial Reports)
+  ascVendorNumber          String? // required for Sales Reports API
+  ascAnalyticsRequestId    String? // ONGOING Analytics Reports API request ID
 
   // ── MCP Integration ───────────────────────────────────────────────────
   mcpEnabled  Boolean @default(false)
@@ -270,15 +271,21 @@ enum ScrapeType {
 // ─── App Store Connect Analytics ────────────────────────────────────────────
 
 model AppStoreAnalytics {
-  id         String   @id @default(cuid())
-  bundleId   String
-  reportDate DateTime // the day this row represents (midnight UTC)
-  country    String   // 2-letter country code, e.g. "DE", "US"
-  downloads  Int      @default(0) // new installs (product type 1 / 1F)
-  updates    Int      @default(0) // re-downloads / updates (product type 1T)
-  reDownloads Int     @default(0) // re-downloads counted separately
-  proceeds   Float    @default(0) // Developer Proceeds (revenue in USD)
-  createdAt  DateTime @default(now())
+  id          String   @id @default(cuid())
+  bundleId    String
+  reportDate  DateTime // the day this row represents (midnight UTC)
+  country     String   // 2-letter country code, e.g. "DE", "US"
+  downloads   Int      @default(0) // new installs (product type 1 / 1F)
+  updates     Int      @default(0) // re-downloads / updates (product type 1T)
+  reDownloads Int      @default(0) // re-downloads counted separately
+  proceeds    Float    @default(0) // Developer Proceeds (revenue in USD)
+
+  // From Apple Analytics Reports API (App Store Engagement report)
+  impressions Int      @default(0) // total impressions (search + browse)
+  pageViews   Int      @default(0) // product page views
+  sessions    Int      @default(0) // unique sessions / active devices
+
+  createdAt   DateTime @default(now())
 
   @@unique([bundleId, reportDate, country])
   @@index([bundleId, reportDate])

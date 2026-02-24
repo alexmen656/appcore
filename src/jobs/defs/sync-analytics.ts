@@ -8,7 +8,7 @@ const syncAnalyticsJob: JobDefinition = {
   schedule: "0 2,6,10,14,18,22 * * *",
   timezone: "Europe/Berlin",
 
-  async execute(_userId, settings) {
+  async execute(userId, settings) {
     logger.info("[CRON] Starting ASC analytics sync...");
 
     if (!settings.ascIssuerId || !settings.ascVendorNumber) return;
@@ -21,7 +21,7 @@ const syncAnalyticsJob: JobDefinition = {
     for (const app of ownApps) {
       const ascAppId = app.trackId?.toString() ?? settings.ascAppId;
       if (!ascAppId) continue;
-      await syncAllAnalytics(settings, app.bundleId, ascAppId);
+      await syncAllAnalytics(settings, app.bundleId, ascAppId, userId);
     }
 
     logger.info("[CRON] ASC analytics sync completed");

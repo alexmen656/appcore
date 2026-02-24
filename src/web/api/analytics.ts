@@ -5,6 +5,40 @@ import { requireAuth } from "../auth";
 export const analyticsRouter = Router();
 analyticsRouter.use(requireAuth);
 
+/** Resolve a date range from query params.
+ *  Supports: ?days=N  |  ?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD  |  ?period=ytd|all
+ *  Returns { since: Date | null } — null means "all time"
+ */
+function resolveSince(query: Record<string, any>): Date | null {
+  if (query.period === "all") return null;
+
+  if (query.startDate) {
+    return new Date(query.startDate as string);
+  }
+
+  if (query.period === "ytd") {
+    const now = new Date();
+    return new Date(now.getFullYear(), 0, 1);
+  }
+
+  const days = parseInt(query.days as string, 10);
+  if (!isNaN(days) && days > 0) {
+    const d = new Date();
+    d.setDate(d.getDate() - days);
+    return d;
+  }
+
+  // default: 30d
+  const def = new Date();
+  def.setDate(def.getDate() - 30);
+  return def;
+}
+
+function resolveUntil(query: Record<string, any>): Date | null {
+  if (query.endDate) return new Date(query.endDate as string);
+  return null; // up to now
+}
+
 // ─── GET /api/analytics/summary ──────────────────────────────────────────────
 analyticsRouter.get("/summary", async (req, res) => {
   try {
@@ -14,13 +48,25 @@ analyticsRouter.get("/summary", async (req, res) => {
       return;
     }
 
-    const since30d = new Date();
-    since30d.setDate(since30d.getDate() - 30);
+    const since = resolveSince(req.query);
+    const until = resolveUntil(req.query);
+    const dateFilter: Record<string, Date> = {};
+    if (since) dateFilter.gte = since;
+    if (until) dateFilter.lte = until;
 
-    const [downloadAgg, reviewAgg, lastSync] = await Promise.all([
+    const [metricAgg, reviewAgg, lastSync] = await Promise.all([
       prisma.appStoreAnalytics.aggregate({
-        where: { bundleId, reportDate: { gte: since30d } },
-        _sum: { downloads: true, proceeds: true },
+        where: {
+          bundleId,
+          ...(Object.keys(dateFilter).length ? { reportDate: dateFilter } : {}),
+        },
+        _sum: {
+          downloads: true,
+          proceeds: true,
+          impressions: true,
+          pageViews: true,
+          sessions: true,
+        },
       }),
       prisma.appReview.aggregate({
         where: { bundleId },
@@ -34,12 +80,24 @@ analyticsRouter.get("/summary", async (req, res) => {
       }),
     ]);
 
+    const downloads = metricAgg._sum.downloads ?? 0;
+    const impressions = metricAgg._sum.impressions ?? 0;
+    const pageViews = metricAgg._sum.pageViews ?? 0;
+
     res.json({
-      totalDownloads30d: downloadAgg._sum.downloads ?? 0,
-      totalProceeds30d: downloadAgg._sum.proceeds ?? 0,
+      totalDownloads: downloads,
+      totalProceeds: metricAgg._sum.proceeds ?? 0,
+      totalImpressions: impressions,
+      totalPageViews: pageViews,
+      totalSessions: metricAgg._sum.sessions ?? 0,
+      // conversion: downloads / impressions (if impressions available)
+      conversionRate: impressions > 0 ? (downloads / impressions) * 100 : null,
       avgRating: reviewAgg._avg.rating ?? null,
       reviewCount: reviewAgg._count.id,
       lastSyncAt: lastSync?.completedAt ?? null,
+      // Legacy compatibility
+      totalDownloads30d: downloads,
+      totalProceeds30d: metricAgg._sum.proceeds ?? 0,
     });
   } catch (err) {
     res.status(500).json({ error: String(err) });
@@ -50,39 +108,71 @@ analyticsRouter.get("/summary", async (req, res) => {
 analyticsRouter.get("/downloads", async (req, res) => {
   try {
     const bundleId = (req.query.bundleId as string) || "";
-    const days = Math.min(parseInt(req.query.days as string, 10) || 30, 365);
     if (!bundleId) {
       res.status(400).json({ error: "bundleId required" });
       return;
     }
 
-    const since = new Date();
-    since.setDate(since.getDate() - days);
+    const since = resolveSince(req.query);
+    const until = resolveUntil(req.query);
+    const dateFilter: Record<string, Date> = {};
+    if (since) dateFilter.gte = since;
+    if (until) dateFilter.lte = until;
 
     const rows = await prisma.appStoreAnalytics.findMany({
-      where: { bundleId, reportDate: { gte: since } },
+      where: {
+        bundleId,
+        ...(Object.keys(dateFilter).length ? { reportDate: dateFilter } : {}),
+      },
       orderBy: { reportDate: "asc" },
     });
 
     const byDayMap: Record<
       string,
-      { date: string; downloads: number; updates: number; proceeds: number }
+      {
+        date: string;
+        downloads: number;
+        updates: number;
+        proceeds: number;
+        impressions: number;
+        pageViews: number;
+        sessions: number;
+      }
     > = {};
     for (const r of rows) {
       const key = r.reportDate.toISOString().slice(0, 10);
       if (!byDayMap[key])
-        byDayMap[key] = { date: key, downloads: 0, updates: 0, proceeds: 0 };
+        byDayMap[key] = {
+          date: key,
+          downloads: 0,
+          updates: 0,
+          proceeds: 0,
+          impressions: 0,
+          pageViews: 0,
+          sessions: 0,
+        };
       byDayMap[key].downloads += r.downloads;
       byDayMap[key].updates += r.updates;
       byDayMap[key].proceeds += r.proceeds;
+      byDayMap[key].impressions += r.impressions;
+      byDayMap[key].pageViews += r.pageViews;
+      byDayMap[key].sessions += r.sessions;
     }
 
-    const byCountryMap: Record<string, number> = {};
+    const byCountryMap: Record<
+      string,
+      { downloads: number; impressions: number; pageViews: number }
+    > = {};
     for (const r of rows) {
-      byCountryMap[r.country] = (byCountryMap[r.country] ?? 0) + r.downloads;
+      if (!byCountryMap[r.country]) {
+        byCountryMap[r.country] = { downloads: 0, impressions: 0, pageViews: 0 };
+      }
+      byCountryMap[r.country].downloads += r.downloads;
+      byCountryMap[r.country].impressions += r.impressions;
+      byCountryMap[r.country].pageViews += r.pageViews;
     }
     const byCountry = Object.entries(byCountryMap)
-      .map(([country, downloads]) => ({ country, downloads }))
+      .map(([country, v]) => ({ country, ...v }))
       .sort((a, b) => b.downloads - a.downloads);
 
     res.json({
@@ -151,8 +241,9 @@ analyticsRouter.post("/sync", async (req, res) => {
 
     res.json({ ok: true, message: `Analytics sync started for ${bundleId}` });
 
+    const userId = req.user!.userId;
     const { syncAllAnalytics } = await import("../../services/asc-analytics");
-    syncAllAnalytics(settings, bundleId, ascAppId)
+    syncAllAnalytics(settings, bundleId, ascAppId, userId)
       .then((r) => logger.info("Analytics sync completed", r))
       .catch((err) => logger.error("Analytics sync failed", err));
   } catch (err) {
