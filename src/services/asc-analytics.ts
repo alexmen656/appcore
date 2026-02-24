@@ -56,6 +56,7 @@ function fmtDate(d: Date): string {
 export async function fetchSalesReports(
   settings: EffectiveSettings,
   bundleId: string,
+  ascAppId: string,
   daysBack = 60,
 ): Promise<number> {
   if (!settings.ascVendorNumber) {
@@ -110,6 +111,9 @@ export async function fetchSalesReports(
       > = {};
 
       for (const row of rows) {
+        const rowAppId = (row["Apple Identifier"] ?? "").trim();
+        if (ascAppId && rowAppId && rowAppId !== ascAppId) continue;
+
         const typeId = row["Product Type Identifier"] ?? "";
         const units = parseInt(row["Units"] ?? "0", 10) || 0;
         const proceeds = parseFloat(row["Developer Proceeds"] ?? "0") || 0;
@@ -166,14 +170,11 @@ export async function fetchSalesReports(
   return storedDays;
 }
 
-// ─── Fetch App Store Engagement (impressions, page views, sessions) ───────────
-// Uses Apple's Analytics Reports API v1 with ONGOING access type.
-// The requestId is persisted in UserSettings after first creation so it
-// is reused on every subsequent sync (Apple populates it with daily data).
 export async function fetchEngagementReport(
   settings: EffectiveSettings,
   ascAppId: string,
   bundleId: string,
+  requestId: string | null,
   daysBack = 60,
 ): Promise<{ rows: number; requestId: string | null }> {
   if (!ascAppId) {
@@ -183,9 +184,6 @@ export async function fetchEngagementReport(
 
   const headers = authHeaders(settings);
   const BASE = "https://api.appstoreconnect.apple.com/v1";
-
-  // ── Step 1: Use persisted requestId or create a new ONGOING request ───────
-  let requestId: string | null = settings.ascAnalyticsRequestId || null;
 
   if (!requestId) {
     try {
@@ -207,7 +205,7 @@ export async function fetchEngagementReport(
       logger.info(
         `Created ONGOING analytics report request ${requestId} for ${bundleId} – data will appear in the next sync.`,
       );
-      // Return immediately – Apple hasn't generated any instances yet for a brand-new request.
+
       return { rows: 0, requestId };
     } catch (err: any) {
       logger.warn(
@@ -217,7 +215,6 @@ export async function fetchEngagementReport(
     }
   }
 
-  // ── Step 2: List all reports for this request ──────────────────────────────
   let reportIds: string[] = [];
   try {
     const reportsResp = await axios.get(
@@ -228,16 +225,17 @@ export async function fetchEngagementReport(
     logger.debug(
       `Analytics request ${requestId}: ${reports.length} report(s) – ${reports.map((r) => r.attributes?.reportType).join(", ")}`,
     );
-    // Accept any of the engagement-related report types Apple names
+
     const engagementTypes = new Set([
       "APP_STORE_ENGAGEMENT",
       "APP_STORE_DISCOVERY_AND_FUNNEL",
       "APP_STORE_INSTALLATION_AND_DELETION",
     ]);
+
     const relevant = reports.filter((r: any) =>
       engagementTypes.has(r.attributes?.reportType ?? ""),
     );
-    // Fallback: use all if none matched (handles renamed types Apple may introduce)
+
     const pool = relevant.length > 0 ? relevant : reports;
     reportIds = pool.map((r: any) => r.id).filter(Boolean);
     if (reportIds.length === 0) {
@@ -253,7 +251,6 @@ export async function fetchEngagementReport(
     return { rows: 0, requestId };
   }
 
-  // ── Step 3: Fetch daily instances and download segments ───────────────────
   const sinceCutoff = new Date();
   sinceCutoff.setDate(sinceCutoff.getDate() - daysBack);
   let storedRows = 0;
@@ -299,7 +296,6 @@ export async function fetchEngagementReport(
 
       for (const url of segmentUrls) {
         try {
-          // Segment URLs are pre-signed – no Authorization header needed
           const dlResp = await axios.get(url, { responseType: "arraybuffer" });
           const raw = zlib
             .gunzipSync(Buffer.from(dlResp.data))
@@ -308,7 +304,6 @@ export async function fetchEngagementReport(
 
           if (rows.length === 0) continue;
 
-          // Log header names once per segment to help diagnose column naming
           logger.debug(
             `Engagement segment columns: ${Object.keys(rows[0]).join(" | ")}`,
           );
@@ -473,14 +468,19 @@ export async function syncAllAnalytics(
   settings: EffectiveSettings,
   bundleId: string,
   ascAppId: string,
-  userId: string,
+  _userId?: string,
 ): Promise<AnalyticsSyncResult> {
   const job = await prisma.scrapeJob.create({
     data: { type: "ASC_ANALYTICS", status: "RUNNING", startedAt: new Date() },
   });
 
   try {
-    const downloadDays = await fetchSalesReports(settings, bundleId, 365);
+    const downloadDays = await fetchSalesReports(
+      settings,
+      bundleId,
+      ascAppId,
+      365,
+    );
 
     let reviewsFetched = 0;
     if (ascAppId) {
@@ -490,23 +490,28 @@ export async function syncAllAnalytics(
     let engagementRows = 0;
     if (ascAppId) {
       try {
+        const appRecord = await prisma.app.findUnique({
+          where: { bundleId },
+          select: { analyticsRequestId: true },
+        });
+        const currentRequestId = appRecord?.analyticsRequestId ?? null;
+
         const result = await fetchEngagementReport(
           settings,
           ascAppId,
           bundleId,
+          currentRequestId,
           60,
         );
         engagementRows = result.rows;
-        if (
-          result.requestId &&
-          result.requestId !== settings.ascAnalyticsRequestId
-        ) {
-          await prisma.userSettings.update({
-            where: { userId },
-            data: { ascAnalyticsRequestId: result.requestId },
+
+        if (result.requestId && result.requestId !== currentRequestId) {
+          await prisma.app.update({
+            where: { bundleId },
+            data: { analyticsRequestId: result.requestId },
           });
           logger.info(
-            `Stored analytics request ID ${result.requestId} for user ${userId}`,
+            `Stored analytics request ID ${result.requestId} for app ${bundleId}`,
           );
         }
       } catch (err: any) {

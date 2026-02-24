@@ -5,10 +5,6 @@ import { requireAuth } from "../auth";
 export const analyticsRouter = Router();
 analyticsRouter.use(requireAuth);
 
-/** Resolve a date range from query params.
- *  Supports: ?days=N  |  ?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD  |  ?period=ytd|all
- *  Returns { since: Date | null } — null means "all time"
- */
 function resolveSince(query: Record<string, any>): Date | null {
   if (query.period === "all") return null;
 
@@ -28,7 +24,6 @@ function resolveSince(query: Record<string, any>): Date | null {
     return d;
   }
 
-  // default: 30d
   const def = new Date();
   def.setDate(def.getDate() - 30);
   return def;
@@ -36,7 +31,7 @@ function resolveSince(query: Record<string, any>): Date | null {
 
 function resolveUntil(query: Record<string, any>): Date | null {
   if (query.endDate) return new Date(query.endDate as string);
-  return null; // up to now
+  return null;
 }
 
 // ─── GET /api/analytics/summary ──────────────────────────────────────────────
@@ -90,7 +85,6 @@ analyticsRouter.get("/summary", async (req, res) => {
       totalImpressions: impressions,
       totalPageViews: pageViews,
       totalSessions: metricAgg._sum.sessions ?? 0,
-      // conversion: downloads / impressions (if impressions available)
       conversionRate: impressions > 0 ? (downloads / impressions) * 100 : null,
       avgRating: reviewAgg._avg.rating ?? null,
       reviewCount: reviewAgg._count.id,
@@ -165,7 +159,11 @@ analyticsRouter.get("/downloads", async (req, res) => {
     > = {};
     for (const r of rows) {
       if (!byCountryMap[r.country]) {
-        byCountryMap[r.country] = { downloads: 0, impressions: 0, pageViews: 0 };
+        byCountryMap[r.country] = {
+          downloads: 0,
+          impressions: 0,
+          pageViews: 0,
+        };
       }
       byCountryMap[r.country].downloads += r.downloads;
       byCountryMap[r.country].impressions += r.impressions;
@@ -218,9 +216,8 @@ analyticsRouter.get("/reviews", async (req, res) => {
 // ─── POST /api/analytics/sync ─────────────────────────────────────────────────
 analyticsRouter.post("/sync", async (req, res) => {
   try {
-    const settings = await getEffectiveSettings(req.user!.userId);
-    const bundleId = (req.body.bundleId as string) || settings.ascBundleId;
-    const ascAppId = settings.ascAppId;
+    const userId = req.user!.userId;
+    const settings = await getEffectiveSettings(userId);
 
     if (
       !settings.ascIssuerId ||
@@ -239,13 +236,46 @@ analyticsRouter.post("/sync", async (req, res) => {
       return;
     }
 
-    res.json({ ok: true, message: `Analytics sync started for ${bundleId}` });
+    const requestedBundleId = (req.body.bundleId as string) || null;
+    const ownApps = await prisma.app.findMany({
+      where: {
+        isOwnApp: true,
+        ...(requestedBundleId ? { bundleId: requestedBundleId } : {}),
+      },
+      select: { bundleId: true, trackId: true, name: true },
+    });
 
-    const userId = req.user!.userId;
+    if (ownApps.length === 0) {
+      res.status(400).json({
+        error:
+          "No own apps found. Add your app in the Apps section first and mark it as 'Own App'.",
+      });
+      return;
+    }
+
+    res.json({
+      ok: true,
+      message: `Analytics sync started for ${ownApps.map((a) => a.name).join(", ")}`,
+    });
+
     const { syncAllAnalytics } = await import("../../services/asc-analytics");
-    syncAllAnalytics(settings, bundleId, ascAppId, userId)
-      .then((r) => logger.info("Analytics sync completed", r))
-      .catch((err) => logger.error("Analytics sync failed", err));
+
+    (async () => {
+      for (const app of ownApps) {
+        const ascAppId = app.trackId?.toString() ?? settings.ascAppId ?? "";
+        try {
+          const r = await syncAllAnalytics(
+            settings,
+            app.bundleId,
+            ascAppId,
+            userId,
+          );
+          logger.info(`Analytics sync completed for ${app.bundleId}`, r);
+        } catch (err: any) {
+          logger.error(`Analytics sync failed for ${app.bundleId}`, err);
+        }
+      }
+    })();
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }

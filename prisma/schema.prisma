@@ -56,7 +56,6 @@ model UserSettings {
 
   // ── Analytics ────────────────────────────────────────────────────────
   ascVendorNumber          String? // required for Sales Reports API
-  ascAnalyticsRequestId    String? // ONGOING Analytics Reports API request ID
 
   // ── MCP Integration ───────────────────────────────────────────────────
   mcpEnabled  Boolean @default(false)
@@ -80,6 +79,9 @@ model App {
   currentSubtitle    String?
   currentKeywords    String?  // comma-separated
   currentDescription String?
+
+  // Per-app Apple Analytics ONGOING request ID (persisted across syncs)
+  analyticsRequestId String?
 
   // Tracking
   snapshots     AppSnapshot[]
