@@ -1,6 +1,3 @@
-// ─── Shared Tailwind class constants ──────────────────────────────────────────
-// Single source of truth for recurring CSS class strings across all components.
-
 // ─── Table styles ─────────────────────────────────────────────────────────────
 export const TH =
   "text-left text-[11px] font-medium uppercase tracking-wide text-[#9ca3af] px-4 py-3 border-b border-[#f3f4f6] whitespace-nowrap";
@@ -28,8 +25,7 @@ export const btnSecSm =
 export const inputCls =
   "w-full px-3.5 py-[9px] rounded-xl border border-[#eef0f3] bg-white text-[#111827] text-[13px] outline-none transition-colors focus:border-[#ea0e2b] font-[inherit]";
 
-export const textareaCls =
-  `${inputCls} resize-y font-mono text-xs`;
+export const textareaCls = `${inputCls} resize-y font-mono text-xs`;
 
 // ─── Badges ───────────────────────────────────────────────────────────────────
 export const badgeVariants: Record<string, string> = {

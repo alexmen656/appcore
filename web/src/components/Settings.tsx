@@ -48,7 +48,7 @@ export default function Settings({ addToast }: Props) {
 
   return (
     <div className="max-w-3xl">
-      <h1 className="text-2xl font-semibold tracking-tight text-[#111827] mb-1">
+      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] mb-1">
         Settings
       </h1>
       <p className="text-sm text-[#9ca3af] mb-8">

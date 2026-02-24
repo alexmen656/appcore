@@ -368,7 +368,6 @@ function AppSwitcher({
         )}
       </div>
 
-      {/* Import modal */}
       {importOpen && (
         <div
           className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40"
@@ -655,7 +654,7 @@ export default function App() {
         <ProfileMenu user={user} onLogout={handleLogout} />
       </aside>
 
-      <main className="flex-1 overflow-y-auto px-10 py-8 bg-[#f8f9fb]">
+      <main className="flex-1 overflow-y-auto px-8 py-7 bg-[#f8f9fb]">
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />

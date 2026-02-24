@@ -92,7 +92,7 @@ export default function Keywords({ addToast }: Props) {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold tracking-tight text-[#111827] mb-1">
+      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] mb-1">
         Keywords
       </h1>
       <p className="text-sm text-[#9ca3af] mb-8">

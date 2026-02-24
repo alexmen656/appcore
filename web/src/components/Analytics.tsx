@@ -2,15 +2,19 @@ import { useState, useMemo } from "react";
 import { useApi, apiPost, getActiveBundleId } from "../hooks/useApi";
 import MetricsChart from "./comps/analytics/MetricsChart";
 import ReviewsList from "./comps/analytics/ReviewsList";
-import type { AnalyticsSummary, DayData, CountryData, DownloadsData, Review } from "../types";
+import type { AnalyticsSummary, DownloadsData, Review } from "../types";
 import { TH, TD } from "../styles";
-import { fmtNumber, fmtRevenue, fmtDateTime, fmtPct, countryName } from "../utils/formatters";
+import {
+  fmtNumber,
+  fmtRevenue,
+  fmtDateTime,
+  fmtPct,
+  countryName,
+} from "../utils/formatters";
 
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }
-
-// ─── Time range types ─────────────────────────────────────────────────────────
 
 type RangeKey =
   | "7d"
@@ -69,8 +73,6 @@ function rangeLabel(range: RangeKey): string {
 
 // ─── Helper components ────────────────────────────────────────────────────────
 
-
-
 function StatCard({
   label,
   value,
@@ -112,8 +114,6 @@ function StatCard({
   );
 }
 
-
-
 // ─── Funnel bar ───────────────────────────────────────────────────────────────
 
 function FunnelRow({
@@ -151,8 +151,6 @@ function FunnelRow({
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
-
 export default function Analytics({ addToast }: Props) {
   const bundleId = getActiveBundleId() ?? "";
   const [syncing, setSyncing] = useState(false);
@@ -172,7 +170,9 @@ export default function Analytics({ addToast }: Props) {
     data: summary,
     loading: sumLoading,
     refetch: refetchSummary,
-  } = useApi<AnalyticsSummary>(`/analytics/summary?bundleId=${bundleId}${params}`);
+  } = useApi<AnalyticsSummary>(
+    `/analytics/summary?bundleId=${bundleId}${params}`,
+  );
 
   const {
     data: downloads,
@@ -212,10 +212,9 @@ export default function Analytics({ addToast }: Props) {
 
   return (
     <div>
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-[#111827] mb-1">
+          <h1 className="text-3xl font-semibold tracking-tight text-[#111827] mb-1">
             Analytics
           </h1>
           <p className="text-sm text-[#9ca3af]">
@@ -268,7 +267,6 @@ export default function Analytics({ addToast }: Props) {
         </div>
       )}
 
-      {/* ── Time range selector ─────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-2 mb-5">
         <div className="flex gap-1 p-1 bg-[#f3f4f6] rounded-xl">
           {RANGE_OPTIONS.map((opt) => (
@@ -304,7 +302,6 @@ export default function Analytics({ addToast }: Props) {
         )}
       </div>
 
-      {/* ── Stat cards — row 1 ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatCard
           label="Downloads"
@@ -365,7 +362,6 @@ export default function Analytics({ addToast }: Props) {
         />
       </div>
 
-      {/* ── Stat cards — row 2 ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
         <StatCard
           label="Revenue"
@@ -401,7 +397,6 @@ export default function Analytics({ addToast }: Props) {
         />
       </div>
 
-      {/* ── Conversion funnel ──────────────────────────────────────────────── */}
       {hasEngagementData && (
         <div className="bg-white border border-[#eef0f3] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] mb-5">
           <div className="text-[15px] font-semibold text-[#111827] mb-0.5">
@@ -433,14 +428,11 @@ export default function Analytics({ addToast }: Props) {
         </div>
       )}
 
-      {/* ── Metrics chart ──────────────────────────────────────────────────── */}
       <div className="mb-5">
         <MetricsChart data={downloads?.byDay ?? []} />
       </div>
 
-      {/* ── Countries + Rating distribution ───────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
-        {/* Countries table */}
         <div className="bg-white border border-[#eef0f3] rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
           <div className="px-5 py-4 border-b border-[#f3f4f6] flex items-center justify-between">
             <div>
@@ -451,7 +443,6 @@ export default function Analytics({ addToast }: Props) {
                 {rangeLabel(range)}
               </div>
             </div>
-            {/* Metric toggle for country table */}
             {hasEngagementData && (
               <div className="flex gap-1 p-0.5 bg-[#f3f4f6] rounded-lg">
                 {(["downloads", "impressions", "pageViews"] as const).map(
@@ -546,7 +537,6 @@ export default function Analytics({ addToast }: Props) {
           )}
         </div>
 
-        {/* Rating distribution */}
         <div className="bg-white border border-[#eef0f3] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
           <div className="text-[15px] font-semibold text-[#111827] mb-1">
             Rating Distribution
@@ -594,10 +584,8 @@ export default function Analytics({ addToast }: Props) {
         </div>
       </div>
 
-      {/* ── Reviews ────────────────────────────────────────────────────────── */}
       <ReviewsList reviews={reviews ?? []} />
 
-      {/* ── Full country breakdown ─────────────────────────────────────────── */}
       {(downloads?.byCountry ?? []).length > 0 && (
         <div className="bg-white border border-[#eef0f3] rounded-2xl overflow-hidden mt-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
           <div className="px-5 py-4 border-b border-[#f3f4f6]">
