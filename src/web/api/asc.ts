@@ -1,4 +1,5 @@
 import { Router } from "express";
+import axios from "axios";
 import { prisma, logger } from "../../config";
 import { requireAuth } from "../auth";
 import { AppStoreConnectClient } from "../../services/appstore-connect";
@@ -6,7 +7,6 @@ import { AppStoreConnectClient } from "../../services/appstore-connect";
 export const ascRouter = Router();
 ascRouter.use(requireAuth);
 
-/** Build an ASC client from the requesting user's DB settings, falling back to env. */
 async function ascClientForUser(
   userId: string,
 ): Promise<AppStoreConnectClient> {
@@ -26,6 +26,26 @@ ascRouter.get("/apps", async (req, res) => {
   try {
     const asc = await ascClientForUser(req.user!.userId);
     const apps = await asc.listApps();
+    const iconMap = new Map<string, string>();
+
+    if (apps.length > 0) {
+      try {
+        const ids = apps.map((a) => a.id).join(",");
+        const { data } = await axios.get(
+          `https://itunes.apple.com/lookup?id=${ids}`,
+        );
+        for (const r of data.results ?? []) {
+          if (r.trackId && r.artworkUrl100) {
+            iconMap.set(
+              String(r.trackId),
+              (r.artworkUrl100 as string).replace("100x100", "200x200"),
+            );
+          }
+        }
+      } catch {
+        // icons are optional
+      }
+    }
 
     res.json(
       apps.map((a) => ({
@@ -34,6 +54,7 @@ ascRouter.get("/apps", async (req, res) => {
         bundleId: a.attributes.bundleId,
         sku: a.attributes.sku ?? null,
         primaryLocale: a.attributes.primaryLocale ?? null,
+        iconUrl: iconMap.get(a.id) ?? null,
       })),
     );
   } catch (err: any) {
@@ -43,7 +64,6 @@ ascRouter.get("/apps", async (req, res) => {
 });
 
 // ─── POST /api/asc/import ──────────────────────────────────────────────────
-// Import an ASC app into the local DB and sync its ASO metadata
 ascRouter.post("/import", async (req, res) => {
   try {
     const { ascId, bundleId, name } = req.body as {
@@ -57,7 +77,6 @@ ascRouter.post("/import", async (req, res) => {
       return;
     }
 
-    // Upsert the App record
     const app = await prisma.app.upsert({
       where: { bundleId },
       create: {

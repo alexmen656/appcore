@@ -169,9 +169,9 @@ interface AscApp {
   bundleId: string;
   sku: string | null;
   primaryLocale: string | null;
+  iconUrl: string | null;
 }
 
-// ─── App icon helper ──────────────────────────────────────────────────────────
 function AppAvatar({
   url,
   name,
@@ -196,7 +196,6 @@ function AppAvatar({
   );
 }
 
-// ─── App Switcher dropdown ────────────────────────────────────────────────────
 function AppSwitcher({
   current,
   addToast,
@@ -231,6 +230,9 @@ function AppSwitcher({
   const activeApp =
     ownApps.find((a) => a.bundleId === activeBundleResolved) ??
     (ownApps[0] || null);
+  const importedBundleIds = new Set(ownApps.map((a) => a.bundleId));
+  const unimportedAscApps =
+    ascApps?.filter((a) => !importedBundleIds.has(a.bundleId)) ?? null;
 
   const handleSelect = (a: AppItem) => {
     setActiveBundleId(a.bundleId);
@@ -242,6 +244,7 @@ function AppSwitcher({
     setOpen(false);
     setAscApps(null);
     setImportOpen(true);
+    loadAscApps();
   };
 
   const closeImport = () => {
@@ -434,39 +437,42 @@ function AppSwitcher({
               </button>
             </div>
             <div className="px-6 py-5 flex-1 overflow-y-auto">
-              {!ascApps && !ascLoading && (
-                <button
-                  type="button"
-                  onClick={loadAscApps}
-                  className="w-full py-2.5 px-4 rounded-lg border border-[#e5e7eb] bg-transparent text-[#1a1a2e] text-[13px] font-medium hover:border-[#ea0e2b] hover:text-[#ea0e2b] transition-all"
-                >
-                  Load apps from App Store Connect
-                </button>
-              )}
               {ascLoading && (
                 <div className="flex items-center justify-center py-8 gap-2 text-gray-400 text-sm">
                   <div className="spinner" /> Loading…
                 </div>
               )}
-              {ascApps !== null && ascApps.length === 0 && (
-                <p className="text-xs text-gray-400 text-center py-6">
-                  No apps found. Check your ASC credentials in Settings.
-                </p>
-              )}
-              {ascApps && ascApps.length > 0 && (
+              {ascApps !== null &&
+                unimportedAscApps !== null &&
+                unimportedAscApps.length === 0 && (
+                  <p className="text-xs text-gray-400 text-center py-6">
+                    {ascApps.length === 0
+                      ? "No apps found. Check your ASC credentials in Settings."
+                      : "All apps are already imported."}
+                  </p>
+                )}
+              {unimportedAscApps !== null && unimportedAscApps.length > 0 && (
                 <div className="flex flex-col gap-2">
-                  {ascApps.map((app) => (
+                  {unimportedAscApps.map((app) => (
                     <div
                       key={app.ascId}
                       className="flex items-center justify-between gap-3 px-4 py-3 bg-[#eff3f6] rounded-xl border border-gray-200"
                     >
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold text-[#1a1a2e] truncate">
-                          {app.name}
-                        </div>
-                        <div className="text-[11px] text-gray-400 font-mono">
-                          {app.bundleId}
-                          {app.primaryLocale ? ` · ${app.primaryLocale}` : ""}
+                      <div className="flex items-center gap-3 min-w-0">
+                        <AppAvatar
+                          url={app.iconUrl}
+                          name={app.name}
+                          size={9}
+                          accent
+                        />
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-[#1a1a2e] truncate">
+                            {app.name}
+                          </div>
+                          <div className="text-[11px] text-gray-400 font-mono">
+                            {app.bundleId}
+                            {app.primaryLocale ? ` · ${app.primaryLocale}` : ""}
+                          </div>
                         </div>
                       </div>
                       <button
