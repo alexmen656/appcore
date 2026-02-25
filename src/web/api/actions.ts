@@ -145,6 +145,40 @@ actionsRouter.post("/discover-keywords", async (req, res) => {
   }
 });
 
+actionsRouter.post("/discover-competitors", async (req, res) => {
+  try {
+    const settings = await getEffectiveSettings(req.user!.userId);
+    const bundleId = req.body.bundleId || settings.ascBundleId;
+    const effectiveSettings = { ...settings, ascBundleId: bundleId };
+    const { AppStoreScraper } = await import("../../services/appstore-scraper");
+    const scraper = new AppStoreScraper(effectiveSettings);
+
+    const keywords = await prisma.keyword.findMany({
+      orderBy: { popularity: "desc" },
+      take: 10,
+    });
+    const searchTerms = keywords.map((k) => k.term);
+
+    if (searchTerms.length === 0) {
+      res.status(400).json({ error: "No keywords tracked yet. Add keywords first." });
+      return;
+    }
+
+    res.json({ ok: true, message: "Competitor discovery started" });
+
+    scraper
+      .discoverCompetitors(searchTerms, bundleId, 20)
+      .then((ids) =>
+        logger.info(`Web-triggered competitor discovery: ${ids.length} found`),
+      )
+      .catch((err) =>
+        logger.error("Web-triggered competitor discovery failed", err),
+      );
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 actionsRouter.get("/jobs", async (_req, res) => {
   try {
     const jobs = await prisma.scrapeJob.findMany({

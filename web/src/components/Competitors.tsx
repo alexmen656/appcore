@@ -1,9 +1,30 @@
-import { useApi } from "../hooks/useApi";
+import { useState } from "react";
+import { useApi, apiPost, getActiveBundleId } from "../hooks/useApi";
 import OwnAppCard, { AppItem } from "./comps/competitors/OwnAppCard";
 import CompetitorCard from "./comps/competitors/CompetitorCard";
 
-export default function Competitors() {
-  const { data, loading } = useApi<AppItem[]>("/apps");
+interface Props {
+  addToast: (msg: string, type: "success" | "error" | "info") => void;
+}
+
+export default function Competitors({ addToast }: Props) {
+  const { data, loading, refetch } = useApi<AppItem[]>("/apps");
+  const [discovering, setDiscovering] = useState(false);
+
+  const discoverCompetitors = async () => {
+    setDiscovering(true);
+    try {
+      const res = await apiPost("/actions/discover-competitors", {
+        bundleId: getActiveBundleId(),
+      });
+      addToast(res.message || "Competitor discovery started", "success");
+      setTimeout(refetch, 3000);
+    } catch (e: any) {
+      addToast(e.message, "error");
+    } finally {
+      setDiscovering(false);
+    }
+  };
 
   if (loading)
     return (
@@ -18,9 +39,39 @@ export default function Competitors() {
 
   return (
     <div>
-      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] mb-1">
-        Competitors
-      </h1>
+      <div className="flex items-start justify-between mb-1">
+        <h1 className="text-3xl font-semibold tracking-tight text-[#111827]">
+          Competitors
+        </h1>
+        <button
+          onClick={discoverCompetitors}
+          disabled={discovering}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {discovering ? (
+            <>
+              <div className="spinner" /> Discovering…
+            </>
+          ) : (
+            <>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-4 h-4"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+              Discover Competitors
+            </>
+          )}
+        </button>
+      </div>
       <p className="text-sm text-[#9ca3af] mb-8">
         {competitors.length} competitor{competitors.length !== 1 ? "s" : ""}{" "}
         discovered and tracked

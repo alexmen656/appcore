@@ -663,7 +663,7 @@ export default function App() {
             element={<Suggestions addToast={addToast} />}
           />
           <Route path="/keywords" element={<Keywords addToast={addToast} />} />
-          <Route path="/competitors" element={<Competitors />} />
+          <Route path="/competitors" element={<Competitors addToast={addToast} />} />
           <Route
             path="/analytics"
             element={<Analytics addToast={addToast} />}
