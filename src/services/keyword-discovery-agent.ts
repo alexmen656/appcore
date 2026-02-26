@@ -386,7 +386,7 @@ Return JSON only.`;
 
     if (this.openai) {
       const response = await this.openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-5.2",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },

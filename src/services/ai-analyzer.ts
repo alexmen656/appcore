@@ -324,7 +324,7 @@ export class AIAnalyzer {
     userPrompt: string,
   ): Promise<AIResponse> {
     const response = await this.openai!.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-5.2",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
@@ -337,7 +337,7 @@ export class AIAnalyzer {
     return {
       content: response.choices[0]?.message?.content ?? "",
       provider: "openai",
-      model: "gpt-4o",
+      model: "gpt-5.2",
       promptTokens: response.usage?.prompt_tokens,
       completionTokens: response.usage?.completion_tokens,
     };
