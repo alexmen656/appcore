@@ -127,16 +127,20 @@ suggestionsRouter.post("/bulk-approve", async (req, res) => {
 });
 
 // ─── POST /suggestions/auto-apply ────────────────────────────────────────
-// Automatically apply all high-confidence suggestions (≥ threshold) via ASC API
-// Replaces CLI's `optimize --auto` command
 suggestionsRouter.post("/auto-apply", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
     const minConfidence = parseFloat(req.body.minConfidence ?? "0.8");
     const locale = req.body.locale as string | undefined;
 
-    if (!settings.ascIssuerId || !settings.ascKeyId || !settings.ascPrivateKey) {
-      res.status(400).json({ error: "App Store Connect credentials not configured." });
+    if (
+      !settings.ascIssuerId ||
+      !settings.ascKeyId ||
+      !settings.ascPrivateKey
+    ) {
+      res
+        .status(400)
+        .json({ error: "App Store Connect credentials not configured." });
       return;
     }
 
@@ -152,11 +156,14 @@ suggestionsRouter.post("/auto-apply", async (req, res) => {
     });
 
     if (suggestions.length === 0) {
-      res.json({ ok: true, applied: 0, message: "No qualifying suggestions found." });
+      res.json({
+        ok: true,
+        applied: 0,
+        message: "No qualifying suggestions found.",
+      });
       return;
     }
 
-    // Group by locale, pick best per type
     const byLocale = new Map<string, typeof suggestions>();
     for (const s of suggestions) {
       const group = byLocale.get(s.locale) ?? [];
@@ -164,7 +171,8 @@ suggestionsRouter.post("/auto-apply", async (req, res) => {
       byLocale.set(s.locale, group);
     }
 
-    const { AppStoreConnectClient } = await import("../../services/appstore-connect");
+    const { AppStoreConnectClient } =
+      await import("../../services/appstore-connect");
     const asc = new AppStoreConnectClient({
       issuerId: settings.ascIssuerId,
       keyId: settings.ascKeyId,
@@ -172,14 +180,17 @@ suggestionsRouter.post("/auto-apply", async (req, res) => {
     });
 
     let totalApplied = 0;
-    const results: { locale: string; applied: string[]; errors: string[] }[] = [];
+    const results: { locale: string; applied: string[]; errors: string[] }[] =
+      [];
 
     for (const [loc, localeSuggestions] of byLocale) {
-      // Best per type
       const bestByType = new Map<string, (typeof localeSuggestions)[0]>();
       for (const s of localeSuggestions) {
         const existing = bestByType.get(s.type);
-        if (!existing || (s.confidenceScore ?? 0) > (existing.confidenceScore ?? 0)) {
+        if (
+          !existing ||
+          (s.confidenceScore ?? 0) > (existing.confidenceScore ?? 0)
+        ) {
           bestByType.set(s.type, s);
         }
       }
@@ -190,9 +201,12 @@ suggestionsRouter.post("/auto-apply", async (req, res) => {
       for (const [type, suggestion] of bestByType) {
         const key = type.toLowerCase();
         if (key === "title") changes.name = suggestion.suggestedValue;
-        else if (key === "subtitle") changes.subtitle = suggestion.suggestedValue;
-        else if (key === "keywords") changes.keywords = suggestion.suggestedValue;
-        else if (key === "description") changes.description = suggestion.suggestedValue;
+        else if (key === "subtitle")
+          changes.subtitle = suggestion.suggestedValue;
+        else if (key === "keywords")
+          changes.keywords = suggestion.suggestedValue;
+        else if (key === "description")
+          changes.description = suggestion.suggestedValue;
         appliedSuggestions.push(suggestion);
       }
 
@@ -218,7 +232,11 @@ suggestionsRouter.post("/auto-apply", async (req, res) => {
           if (wasApplied) totalApplied++;
         }
 
-        results.push({ locale: loc, applied: result.applied, errors: result.errors });
+        results.push({
+          locale: loc,
+          applied: result.applied,
+          errors: result.errors,
+        });
       } catch (err) {
         results.push({ locale: loc, applied: [], errors: [String(err)] });
       }

@@ -2,11 +2,9 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { prisma } from "../../config";
 import { signToken, requireAuth } from "../auth";
-
 export const authRouter = Router();
 
 // ─── POST /api/auth/register ─────────────────────────────────────────────────
-// Creates a new user. First user is automatically ADMIN.
 authRouter.post("/register", async (req, res) => {
   try {
     const { email, password, name } = req.body as {
@@ -30,11 +28,9 @@ authRouter.post("/register", async (req, res) => {
       return;
     }
 
-    // First user becomes ADMIN
-    const count = await prisma.user.count();
-    const role = count === 0 ? "ADMIN" : "USER";
-
     const passwordHash = await bcrypt.hash(password, 12);
+    const role = "USER";
+
     const user = await prisma.user.create({
       data: { email, name: name ?? email.split("@")[0], passwordHash, role },
     });
@@ -126,7 +122,6 @@ authRouter.get("/me", requireAuth, async (req, res) => {
 });
 
 // ─── GET /api/auth/users ─────────────────────────────────────────────────────
-// ADMIN only – list all users
 authRouter.get("/users", requireAuth, async (req, res) => {
   try {
     if (req.user!.role !== "ADMIN") {

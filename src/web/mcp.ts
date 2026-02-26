@@ -6,15 +6,12 @@ import { z } from "zod";
 import { prisma, logger, getEffectiveSettings } from "../config";
 
 // ─── MCP API Key Auth ─────────────────────────────────────────────────────────
-// Validates Authorization: Bearer <mcpApiKey>, attaches req.mcpUserId
-export async function mcpAuth(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) {
+export async function mcpAuth(req: Request, res: Response, next: NextFunction) {
   const header = req.headers.authorization;
   if (!header?.startsWith("Bearer ")) {
-    res.status(401).json({ error: "MCP: Missing or invalid Authorization header" });
+    res
+      .status(401)
+      .json({ error: "MCP: Missing or invalid Authorization header" });
     return;
   }
   const key = header.slice(7).trim();
@@ -39,8 +36,6 @@ export async function mcpAuth(
 }
 
 // ─── MCP Server Factory ───────────────────────────────────────────────────────
-// Creates a new McpServer per request with userId bound in tool closures.
-// Stateless per-request creation is correct for multi-user HTTP MCP servers.
 export function createMcpServer(userId: string): McpServer {
   const server = new McpServer({
     name: "AppCore ASO",
@@ -62,12 +57,23 @@ export function createMcpServer(userId: string): McpServer {
       const resolvedBundleId = bundleId || settings.ascBundleId;
       if (!resolvedBundleId) {
         return {
-          content: [{ type: "text", text: "No bundleId configured. Pass bundleId as argument." }],
+          content: [
+            {
+              type: "text",
+              text: "No bundleId configured. Pass bundleId as argument.",
+            },
+          ],
         };
       }
-      const app = await prisma.app.findUnique({ where: { bundleId: resolvedBundleId } });
+      const app = await prisma.app.findUnique({
+        where: { bundleId: resolvedBundleId },
+      });
       if (!app) {
-        return { content: [{ type: "text", text: `App not found: ${resolvedBundleId}` }] };
+        return {
+          content: [
+            { type: "text", text: `App not found: ${resolvedBundleId}` },
+          ],
+        };
       }
       return {
         content: [
@@ -98,7 +104,10 @@ export function createMcpServer(userId: string): McpServer {
     "get_keywords",
     "Get tracked keywords with current rankings and popularity scores for an app",
     {
-      bundleId: z.string().optional().describe("App bundle ID. Uses default if omitted."),
+      bundleId: z
+        .string()
+        .optional()
+        .describe("App bundle ID. Uses default if omitted."),
       limit: z
         .number()
         .int()
@@ -140,7 +149,9 @@ export function createMcpServer(userId: string): McpServer {
         trackedAt: k.rankings?.[0]?.trackedAt ?? null,
       }));
 
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      };
     },
   );
 
@@ -149,7 +160,10 @@ export function createMcpServer(userId: string): McpServer {
     "get_competitors",
     "Get competitor apps list with ratings and relevance scores",
     {
-      bundleId: z.string().optional().describe("App bundle ID. Uses default if omitted."),
+      bundleId: z
+        .string()
+        .optional()
+        .describe("App bundle ID. Uses default if omitted."),
     },
     async ({ bundleId }) => {
       const settings = await getEffectiveSettings(userId);
@@ -157,9 +171,15 @@ export function createMcpServer(userId: string): McpServer {
       if (!resolvedBundleId) {
         return { content: [{ type: "text", text: "No bundleId configured." }] };
       }
-      const app = await prisma.app.findUnique({ where: { bundleId: resolvedBundleId } });
+      const app = await prisma.app.findUnique({
+        where: { bundleId: resolvedBundleId },
+      });
       if (!app) {
-        return { content: [{ type: "text", text: `App not found: ${resolvedBundleId}` }] };
+        return {
+          content: [
+            { type: "text", text: `App not found: ${resolvedBundleId}` },
+          ],
+        };
       }
       const rels = await prisma.competitorRelation.findMany({
         where: { appId: app.id },
@@ -179,7 +199,9 @@ export function createMcpServer(userId: string): McpServer {
         title: r.competitor.snapshots[0]?.title ?? null,
         relevanceScore: r.relevanceScore,
       }));
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      };
     },
   );
 
@@ -188,11 +210,16 @@ export function createMcpServer(userId: string): McpServer {
     "get_suggestions",
     "Get AI-generated ASO suggestions filtered by status (PENDING, APPROVED, APPLIED, REJECTED, EXPIRED)",
     {
-      bundleId: z.string().optional().describe("App bundle ID. Uses default if omitted."),
+      bundleId: z
+        .string()
+        .optional()
+        .describe("App bundle ID. Uses default if omitted."),
       status: z
         .enum(["PENDING", "APPROVED", "APPLIED", "REJECTED", "EXPIRED"])
         .optional()
-        .describe("Filter by suggestion status. Returns all statuses if omitted."),
+        .describe(
+          "Filter by suggestion status. Returns all statuses if omitted.",
+        ),
       limit: z
         .number()
         .int()
@@ -229,7 +256,9 @@ export function createMcpServer(userId: string): McpServer {
         createdAt: s.createdAt,
       }));
 
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      };
     },
   );
 
@@ -238,7 +267,10 @@ export function createMcpServer(userId: string): McpServer {
     "get_analytics",
     "Get downloads and revenue summary for a configurable date range",
     {
-      bundleId: z.string().optional().describe("App bundle ID. Uses default if omitted."),
+      bundleId: z
+        .string()
+        .optional()
+        .describe("App bundle ID. Uses default if omitted."),
       days: z
         .number()
         .int()
@@ -299,27 +331,39 @@ export function createMcpServer(userId: string): McpServer {
     "Trigger a background job. Available: scrape, analyze, sync, track-keywords, discover-keywords",
     {
       job: z
-        .enum(["scrape", "analyze", "sync", "track-keywords", "discover-keywords"])
+        .enum([
+          "scrape",
+          "analyze",
+          "sync",
+          "track-keywords",
+          "discover-keywords",
+        ])
         .describe("Which job to trigger"),
-      bundleId: z.string().optional().describe("App bundle ID. Uses default if omitted."),
+      bundleId: z
+        .string()
+        .optional()
+        .describe("App bundle ID. Uses default if omitted."),
     },
     async ({ job, bundleId }) => {
       const settings = await getEffectiveSettings(userId);
       const resolvedBundleId = bundleId || settings.ascBundleId;
       const effectiveSettings = { ...settings, ascBundleId: resolvedBundleId };
 
-      // Fire-and-forget, identical pattern to actions.ts
       const jobId = randomUUID();
       (async () => {
         try {
           if (job === "scrape") {
-            const { AppStoreScraper } = await import("../services/appstore-scraper");
+            const { AppStoreScraper } =
+              await import("../services/appstore-scraper");
             await new AppStoreScraper(effectiveSettings).runFullScrapeJob();
           } else if (job === "analyze") {
             const { AIAnalyzer } = await import("../services/ai-analyzer");
-            await new AIAnalyzer(effectiveSettings).analyzeAndSuggest(settings.asoLocales);
+            await new AIAnalyzer(effectiveSettings).analyzeAndSuggest(
+              settings.asoLocales,
+            );
           } else if (job === "sync") {
-            const { AppStoreConnectClient } = await import("../services/appstore-connect");
+            const { AppStoreConnectClient } =
+              await import("../services/appstore-connect");
             const asc = new AppStoreConnectClient({
               issuerId: settings.ascIssuerId,
               keyId: settings.ascKeyId,
@@ -329,12 +373,12 @@ export function createMcpServer(userId: string): McpServer {
               await asc.getCurrentASOState(locale);
             }
           } else if (job === "track-keywords") {
-            const { KeywordTracker } = await import("../services/keyword-tracker");
+            const { KeywordTracker } =
+              await import("../services/keyword-tracker");
             await new KeywordTracker(effectiveSettings).trackAllKeywords();
           } else if (job === "discover-keywords") {
-            const { KeywordDiscoveryAgent } = await import(
-              "../services/keyword-discovery-agent"
-            );
+            const { KeywordDiscoveryAgent } =
+              await import("../services/keyword-discovery-agent");
             await new KeywordDiscoveryAgent(effectiveSettings).run();
           }
           logger.info(`MCP-triggered job "${job}" [${jobId}] completed`);
@@ -362,15 +406,13 @@ export function createMcpServer(userId: string): McpServer {
 }
 
 // ─── Express Handler Factory ──────────────────────────────────────────────────
-// Returns an Express request handler that processes MCP requests.
-// Creates a fresh server+transport per request (stateless mode, multi-user safe).
 export function createMcpHandler() {
   return async (req: Request, res: Response) => {
     const userId = (req as any).mcpUserId as string;
     try {
       const server = createMcpServer(userId);
       const transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: undefined, // stateless — no session tracking
+        sessionIdGenerator: undefined,
       });
       await server.connect(transport);
       await transport.handleRequest(req, res, req.body);

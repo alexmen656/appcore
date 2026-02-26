@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { prisma, env } from "../../config";
+import { prisma } from "../../config";
 
 export const appsRouter = Router();
 
