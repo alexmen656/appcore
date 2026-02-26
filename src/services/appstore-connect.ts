@@ -182,6 +182,17 @@ export class AppStoreConnectClient {
     return data.data?.[0] ?? null;
   }
 
+  async listVersions(appId: string): Promise<ASCAppStoreVersion[]> {
+    const { data } = await this.client.get(`/apps/${appId}/appStoreVersions`, {
+      params: {
+        "filter[platform]": "IOS",
+        "fields[appStoreVersions]": "versionString,appStoreState,platform,releaseType",
+        limit: 50,
+      },
+    });
+    return data.data ?? [];
+  }
+
   async getVersionLocalizations(
     versionId: string,
     locale?: string,

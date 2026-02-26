@@ -252,3 +252,35 @@ export interface McpConfig {
   mcpEnabled: boolean;
   mcpApiKey: string | null;
 }
+// ─── Versions / Metadata ──────────────────────────────────────────────────────
+
+export interface VersionSummary {
+  versionId: string;
+  versionString: string;
+  appStoreState: string;
+  platform: string;
+  isEditable: boolean;
+}
+
+export interface VersionLocalization {
+  locale: string;
+  appInfoLocalizationId: string | null;
+  versionLocalizationId: string | null;
+  name: string;
+  subtitle: string;
+  description: string;
+  keywords: string;
+  whatsNew: string;
+  promotionalText: string;
+}
+
+export interface VersionsData {
+  appId: string;
+  appName: string;
+  bundleId: string;
+  versionId: string | null;
+  versionString: string | null;
+  appStoreState: string | null;
+  isEditable: boolean;
+  localizations: VersionLocalization[];
+}

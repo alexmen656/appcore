@@ -121,3 +121,193 @@ ascRouter.post("/import", async (req, res) => {
     res.status(500).json({ error: err.message ?? String(err) });
   }
 });
+
+// ─── GET /api/asc/versions/list ───────────────────────────────────────────
+ascRouter.get("/versions/list", async (req, res) => {
+  try {
+    const bundleId = (req.query.bundleId as string) || undefined;
+    const asc = await ascClientForUser(req.user!.userId);
+    const app = await asc.getApp(bundleId);
+    if (!app) {
+      res.status(404).json({ error: "App not found in App Store Connect" });
+      return;
+    }
+
+    const editableStates = new Set([
+      "PREPARE_FOR_SUBMISSION",
+      "DEVELOPER_REJECTED",
+      "REJECTED",
+      "METADATA_REJECTED",
+      "WAITING_FOR_REVIEW",
+      "PENDING_DEVELOPER_RELEASE",
+    ]);
+
+    const versions = await asc.listVersions(app.id);
+    res.json(
+      versions.map((v) => ({
+        versionId: v.id,
+        versionString: v.attributes.versionString,
+        appStoreState: v.attributes.appStoreState,
+        platform: v.attributes.platform,
+        isEditable: editableStates.has(v.attributes.appStoreState),
+      })),
+    );
+  } catch (err: any) {
+    logger.error("ASC listVersions failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+// ─── GET /api/asc/versions ─────────────────────────────────────────────────
+ascRouter.get("/versions", async (req, res) => {
+  try {
+    const bundleId = (req.query.bundleId as string) || undefined;
+    const versionId = (req.query.versionId as string) || undefined;
+    const asc = await ascClientForUser(req.user!.userId);
+    const app = await asc.getApp(bundleId);
+    if (!app) {
+      res.status(404).json({ error: "App not found in App Store Connect" });
+      return;
+    }
+
+    const appInfoLocalizations = await asc.getAppInfoLocalizations(app.id);
+
+    const editableStates = new Set([
+      "PREPARE_FOR_SUBMISSION",
+      "DEVELOPER_REJECTED",
+      "REJECTED",
+      "METADATA_REJECTED",
+      "WAITING_FOR_REVIEW",
+      "PENDING_DEVELOPER_RELEASE",
+    ]);
+
+    let version: { id: string; attributes: { versionString: string; appStoreState: string; platform: string; releaseType: string } } | null = null;
+
+    if (versionId) {
+      const allVersions = await asc.listVersions(app.id);
+      version = allVersions.find((v) => v.id === versionId) ?? null;
+    } else {
+      version = await asc.getEditableVersion(app.id);
+      if (!version) version = await asc.getLiveVersion(app.id);
+    }
+
+    const isEditable = version ? editableStates.has(version.attributes.appStoreState) : false;
+
+    let versionLocalizations: any[] = [];
+    if (version) {
+      versionLocalizations = await asc.getVersionLocalizations(version.id);
+    }
+
+    const localeMap = new Map<string, any>();
+
+    for (const info of appInfoLocalizations) {
+      const loc = info.attributes.locale;
+      localeMap.set(loc, {
+        locale: loc,
+        appInfoLocalizationId: info.id,
+        name: info.attributes.name ?? "",
+        subtitle: info.attributes.subtitle ?? "",
+        description: "",
+        keywords: "",
+        whatsNew: "",
+        promotionalText: "",
+        versionLocalizationId: null,
+      });
+    }
+
+    for (const vl of versionLocalizations) {
+      const loc = vl.attributes.locale;
+      const existing = localeMap.get(loc) ?? {
+        locale: loc,
+        appInfoLocalizationId: null,
+        name: "",
+        subtitle: "",
+      };
+      localeMap.set(loc, {
+        ...existing,
+        versionLocalizationId: vl.id,
+        description: vl.attributes.description ?? "",
+        keywords: vl.attributes.keywords ?? "",
+        whatsNew: vl.attributes.whatsNew ?? "",
+        promotionalText: vl.attributes.promotionalText ?? "",
+      });
+    }
+
+    res.json({
+      appId: app.id,
+      appName: app.attributes.name,
+      bundleId: app.attributes.bundleId,
+      versionId: version?.id ?? null,
+      versionString: version?.attributes.versionString ?? null,
+      appStoreState: version?.attributes.appStoreState ?? null,
+      isEditable,
+      localizations: Array.from(localeMap.values()),
+    });
+  } catch (err: any) {
+    logger.error("ASC getVersions failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+// ─── PATCH /api/asc/versions/metadata ──────────────────────────────────────
+ascRouter.patch("/versions/metadata", async (req, res) => {
+  try {
+    const { appInfoLocalizationId, versionLocalizationId, field, value } =
+      req.body as {
+        appInfoLocalizationId?: string;
+        versionLocalizationId?: string;
+        field: string;
+        value: string;
+      };
+
+    if (!field || value === undefined) {
+      res.status(400).json({ error: "field and value are required" });
+      return;
+    }
+
+    const asc = await ascClientForUser(req.user!.userId);
+
+    if (field === "name" || field === "subtitle") {
+      if (!appInfoLocalizationId) {
+        res
+          .status(400)
+          .json({
+            error: "appInfoLocalizationId is required for name/subtitle",
+          });
+        return;
+      }
+      await asc.updateAppInfoLocalization(appInfoLocalizationId, {
+        [field]: value,
+      });
+      res.json({ ok: true, field, value });
+      return;
+    }
+
+    const versionFields = [
+      "description",
+      "keywords",
+      "whatsNew",
+      "promotionalText",
+    ];
+    if (versionFields.includes(field)) {
+      if (!versionLocalizationId) {
+        res
+          .status(400)
+          .json({
+            error: "versionLocalizationId is required for version fields",
+          });
+        return;
+      }
+      await asc.updateVersionLocalization(versionLocalizationId, {
+        [field]: value,
+      });
+      res.json({ ok: true, field, value });
+      return;
+    }
+
+    res.status(400).json({ error: `Unknown field: ${field}` });
+  } catch (err: any) {
+    logger.error("ASC updateMetadata failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
