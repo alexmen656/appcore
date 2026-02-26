@@ -392,7 +392,7 @@ Return JSON only.`;
           { role: "user", content: userPrompt },
         ],
         temperature: 0.6,
-        max_tokens: 1000,
+        max_completion_tokens: 1000,
         response_format: { type: "json_object" },
       });
       return response.choices[0]?.message?.content ?? "";

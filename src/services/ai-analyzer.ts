@@ -330,7 +330,7 @@ export class AIAnalyzer {
         { role: "user", content: userPrompt },
       ],
       temperature: 0.7,
-      max_tokens: 4000,
+      max_completion_tokens: 10000,
       response_format: { type: "json_object" },
     });
 
@@ -438,6 +438,7 @@ export class AIAnalyzer {
       keyword: r.keyword.term,
       rank: r.rank,
       popularity: r.keyword.popularity,
+      difficulty: r.keyword.difficulty,
     }));
 
     const systemPrompt = `You are an expert App Store Optimization (ASO) specialist.
@@ -450,8 +451,17 @@ TARGET MARKET: ${lc.market} market
 CRITICAL RULES:
 - App title: max 30 characters
 - Subtitle: max 30 characters
-- Keywords: max 100 characters, comma-separated, NO spaces after commas
-- Description: max 4000 characters, first 3 lines are most important
+- Keywords: max 100 characters total, comma-separated, NO spaces after commas, spaces allowed within multi-word phrases (e.g. "real estate,house search")
+- Keyword rules (Apple policy):
+  * Do NOT repeat words already in the app name, subtitle, or category
+  * Do NOT use plurals of already included words ("climb" covers "climbs")
+  * Do NOT use generic terms ("app", "game"), filler words ("the", "to"), or special characters (#, @)
+  * Do NOT include competitor app names, trademarked terms, or irrelevant/offensive terms
+  * Maximize unique terms — every character counts
+- Description: iOS descriptions are NOT indexed by the App Store algorithm — they affect conversion only, not search ranking
+  * Use the full 4000 characters for conversion: features, benefits, social proof, use cases, CTAs
+  * First ~250 characters (before "more" fold) are critical — hook the user with the core value proposition
+  * Do NOT stuff keywords for SEO purposes; write for humans, not algorithms
 - ALL suggestions (title, subtitle, keywords, description) MUST be written in ${lc.promptLang}
 - Use keywords natural in title and subtitle
 - Analyze what works for competitors
@@ -467,6 +477,13 @@ ALWAYS respond as valid JSON in this format:
   "competitorInsights": "...",
   "overallStrategy": "..."
 }
+
+IMPORTANT - "value" fields must ALWAYS contain the final, ready-to-use text:
+- titleSuggestions.value: the actual title text (e.g. "KalBuddy - Calorie Tracker")
+- subtitleSuggestions.value: the actual subtitle text (e.g. "Track Macros & Lose Weight")
+- keywordSuggestions.value: the actual keyword string (e.g. "calorie,macro,diet,weight loss")
+- descriptionSuggestions.value: the complete app store description text, ready to copy-paste into App Store Connect. Write it as marketing copy, NOT as advice or bullet points about what to change.
+- "reasoning" is for your analysis/explanation, never for the actual suggestion content.
 
 Write ALL suggestion values in ${lc.promptLang}. Reasoning can be in English.`;
 
@@ -487,7 +504,7 @@ ${
     ? keywordData
         .map(
           (k) =>
-            `- "${k.keyword}": Rank ${k.rank ?? "unranked"} (Popularity: ${k.popularity ?? "?"})`,
+            `- "${k.keyword}": Rank ${k.rank ?? "unranked"} (Popularity: ${k.popularity ?? "?"}, Difficulty: ${k.difficulty ?? "?"})`,
         )
         .join("\n")
     : "No keywords tracked yet"
