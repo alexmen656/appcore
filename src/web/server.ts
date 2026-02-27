@@ -13,6 +13,7 @@ import { ascRouter } from "./api/asc";
 import { analyticsRouter } from "./api/analytics";
 import { schedulerRouter, scheduler } from "./api/scheduler";
 import { mcpRouter } from "./api/mcp";
+import { submissionsRouter } from "./api/submissions";
 import { requireAuth } from "./auth";
 import { mcpAuth, createMcpHandler } from "./mcp";
 
@@ -32,6 +33,7 @@ app.use("/api/settings", requireAuth, settingsRouter);
 app.use("/api/asc", requireAuth, ascRouter);
 app.use("/api/analytics", requireAuth, analyticsRouter);
 app.use("/api/scheduler", requireAuth, schedulerRouter);
+app.use("/api/submissions", requireAuth, submissionsRouter);
 app.use("/api/mcp", mcpRouter);
 app.post("/mcp", mcpAuth, createMcpHandler());
 

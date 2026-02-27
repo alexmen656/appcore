@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { useApi, authHeaders } from "../hooks/useApi";
-import { cardCls, inputCls, textareaCls } from "../styles";
+import { useApi, apiPost, authHeaders, getActiveBundleId } from "../hooks/useApi";
+import { cardCls, inputCls, textareaCls, btnPrimary, btnSecondary, btnSecSm } from "../styles";
 import type { VersionsData, VersionLocalization } from "../types";
 
 interface Props {
@@ -287,6 +287,19 @@ export default function Versions({ addToast }: Props) {
   ]);
   const [activeLocale, setActiveLocale] = useState<string | null>(null);
 
+  // ─── Submission state ───────────────────────────────────────────────
+  const [submitting, setSubmitting] = useState<string | null>(null);
+  const [submitStatus, setSubmitStatus] = useState<{
+    active: boolean;
+    status: string;
+    logs: string[];
+    errors: string[];
+    jobId?: string;
+  } | null>(null);
+  const [showLogs, setShowLogs] = useState(false);
+  const logEndRef = useRef<HTMLDivElement>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     setActiveLocale(null);
   }, [versionId]);
@@ -297,6 +310,81 @@ export default function Versions({ addToast }: Props) {
       setActiveLocale(enUs?.locale ?? data.localizations[0].locale);
     }
   }, [data, activeLocale]);
+
+  // ─── Submission polling ─────────────────────────────────────────────
+  const pollStatus = useCallback(async () => {
+    try {
+      const res = await fetch("/api/submissions/status", { headers: authHeaders() });
+      if (res.ok) {
+        const s = await res.json();
+        setSubmitStatus(s);
+        if (!s.active && pollRef.current) {
+          clearInterval(pollRef.current);
+          pollRef.current = null;
+          // Refresh version data when submission finishes
+          refetch();
+        }
+      }
+    } catch { /* ignore */ }
+  }, [refetch]);
+
+  const startPolling = useCallback(() => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollStatus();
+    pollRef.current = setInterval(pollStatus, 2000);
+  }, [pollStatus]);
+
+  useEffect(() => {
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, []);
+
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [submitStatus?.logs?.length]);
+
+  // ─── Submit actions ─────────────────────────────────────────────────
+  const submitMetadata = async () => {
+    setSubmitting("metadata");
+    setShowLogs(true);
+    try {
+      const res = await apiPost("/submissions/metadata", { bundleId: getActiveBundleId() });
+      addToast(res.message || "Metadata push started", "success");
+      startPolling();
+    } catch (e: any) {
+      addToast(e.message, "error");
+    } finally {
+      setSubmitting(null);
+    }
+  };
+
+  const submitForReview = async () => {
+    setSubmitting("review");
+    setShowLogs(true);
+    try {
+      const res = await apiPost("/submissions/review", { bundleId: getActiveBundleId() });
+      addToast(res.message || "Submit for review started", "success");
+      startPolling();
+    } catch (e: any) {
+      addToast(e.message, "error");
+    } finally {
+      setSubmitting(null);
+    }
+  };
+
+  const submitForReviewAPI = async () => {
+    setSubmitting("review-api");
+    try {
+      const res = await apiPost("/submissions/review-api", { bundleId: getActiveBundleId() });
+      addToast(res.message || "Submitted", res.ok ? "success" : "error");
+      refetch();
+    } catch (e: any) {
+      addToast(e.message, "error");
+    } finally {
+      setSubmitting(null);
+    }
+  };
+
+  const isActive = submitStatus?.active === true;
 
   const handleSave = useCallback(
     async (field: string, value: string, loc: VersionLocalization) => {
@@ -417,7 +505,7 @@ export default function Versions({ addToast }: Props) {
 
       {/* Version info card */}
       <div className={`${cardCls} mb-6`}>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-4">
             <div>
               <div className="text-[11px] font-medium uppercase tracking-wide text-[#9ca3af] mb-0.5">
@@ -457,23 +545,110 @@ export default function Versions({ addToast }: Props) {
               )}
             </div>
           </div>
-          {!data.isEditable && data.appStoreState === "READY_FOR_SALE" && (
-            <div className="flex items-center gap-1.5 text-[11px] text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="w-3.5 h-3.5"
-              >
-                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                <line x1="12" y1="9" x2="12" y2="13" />
-                <line x1="12" y1="17" x2="12.01" y2="17" />
-              </svg>
-              Live version – some fields are read-only
-            </div>
-          )}
+
+          {/* ── Submit actions ── */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {!data.isEditable && data.appStoreState === "READY_FOR_SALE" && (
+              <div className="flex items-center gap-1.5 text-[11px] text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg mr-1">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                Live – read-only
+              </div>
+            )}
+            <button
+              onClick={submitMetadata}
+              disabled={!!submitting || isActive}
+              className={btnSecondary}
+            >
+              {submitting === "metadata" ? (
+                <><div className="spinner !w-3.5 !h-3.5" /> Pushing…</>
+              ) : (
+                <>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                  Push Metadata
+                </>
+              )}
+            </button>
+            {data.isEditable && data.appStoreState === "PREPARE_FOR_SUBMISSION" && (
+              <>
+                <button
+                  onClick={submitForReview}
+                  disabled={!!submitting || isActive}
+                  className={btnPrimary}
+                >
+                  {submitting === "review" ? (
+                    <><div className="spinner !w-3.5 !h-3.5" /> Submitting…</>
+                  ) : (
+                    <>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                        <path d="M22 2L11 13" /><path d="M22 2L15 22 11 13 2 9l20-7z" />
+                      </svg>
+                      Submit for Review
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={submitForReviewAPI}
+                  disabled={!!submitting}
+                  className={btnSecSm}
+                  title="Submit via App Store Connect API directly (no Fastlane needed)"
+                >
+                  {submitting === "review-api" ? "Submitting…" : "Review (API)"}
+                </button>
+              </>
+            )}
+          </div>
         </div>
+
+        {/* ── Submission progress ── */}
+        {submitStatus && submitStatus.status !== "idle" && (
+          <div className="mt-4 pt-4 border-t border-[#f3f4f6]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${
+                  submitStatus.status === "preparing" || submitStatus.status === "running"
+                    ? "bg-blue-500 animate-pulse"
+                    : submitStatus.status === "completed" ? "bg-emerald-500"
+                    : submitStatus.status === "failed" ? "bg-red-500" : "bg-gray-300"
+                }`} />
+                <span className={`text-sm font-medium capitalize ${
+                  submitStatus.status === "running" || submitStatus.status === "preparing" ? "text-blue-600"
+                  : submitStatus.status === "completed" ? "text-emerald-600"
+                  : submitStatus.status === "failed" ? "text-red-600" : "text-gray-500"
+                }`}>
+                  Fastlane: {submitStatus.status}
+                </span>
+              </div>
+              <button onClick={() => setShowLogs(!showLogs)} className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
+                {showLogs ? "Hide Logs" : "Show Logs"}
+              </button>
+            </div>
+            {submitStatus.errors.length > 0 && (
+              <div className="mt-2 p-2.5 bg-red-50 rounded-lg">
+                {submitStatus.errors.map((e, i) => (
+                  <p key={i} className="text-xs text-red-600">{e}</p>
+                ))}
+              </div>
+            )}
+            {showLogs && submitStatus.logs.length > 0 && (
+              <div className="mt-3 bg-[#1a1a2e] rounded-xl p-4 max-h-56 overflow-y-auto font-mono text-xs text-gray-300">
+                {submitStatus.logs.map((line, i) => (
+                  <div key={i} className={`py-0.5 ${
+                    line.startsWith("[stderr]") ? "text-yellow-400"
+                    : line.toLowerCase().includes("error") ? "text-red-400"
+                    : line.toLowerCase().includes("success") || line.toLowerCase().includes("completed") ? "text-emerald-400" : ""
+                  }`}>{line}</div>
+                ))}
+                <div ref={logEndRef} />
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Locale tabs */}

@@ -230,6 +230,8 @@ ascRouter.get("/versions", async (req, res) => {
         keywords: vl.attributes.keywords ?? "",
         whatsNew: vl.attributes.whatsNew ?? "",
         promotionalText: vl.attributes.promotionalText ?? "",
+        supportUrl: vl.attributes.supportUrl ?? "",
+        marketingUrl: vl.attributes.marketingUrl ?? "",
       });
     }
 

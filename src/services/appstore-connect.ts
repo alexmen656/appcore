@@ -199,7 +199,7 @@ export class AppStoreConnectClient {
   ): Promise<ASCVersionLocalization[]> {
     const params: Record<string, string> = {
       "fields[appStoreVersionLocalizations]":
-        "locale,description,keywords,whatsNew,promotionalText",
+        "locale,description,keywords,whatsNew,promotionalText,marketingUrl,supportUrl",
     };
     if (locale) {
       params["filter[locale]"] = locale;
@@ -329,6 +329,8 @@ export class AppStoreConnectClient {
     keywords?: string;
     whatsNew?: string;
     promotionalText?: string;
+    supportUrl?: string;
+    marketingUrl?: string;
     appInfoLocalizationId?: string;
     versionLocalizationId?: string;
     appId?: string;
@@ -368,6 +370,8 @@ export class AppStoreConnectClient {
       keywords: versionLoc?.attributes.keywords,
       whatsNew: versionLoc?.attributes.whatsNew,
       promotionalText: versionLoc?.attributes.promotionalText,
+      supportUrl: versionLoc?.attributes.supportUrl,
+      marketingUrl: versionLoc?.attributes.marketingUrl,
       appInfoLocalizationId: infoLoc?.id,
       versionLocalizationId: versionLoc?.id,
       appId: app.id,
@@ -483,5 +487,19 @@ export class AppStoreConnectClient {
     }
 
     return { applied, errors, versionId, versionString };
+  }
+
+  async submitForReview(versionId: string): Promise<void> {
+    await this.client.post("/appStoreVersionSubmissions", {
+      data: {
+        type: "appStoreVersionSubmissions",
+        relationships: {
+          appStoreVersion: {
+            data: { type: "appStoreVersions", id: versionId },
+          },
+        },
+      },
+    });
+    logger.info(`Submitted version ${versionId} for App Review`);
   }
 }
