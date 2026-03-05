@@ -20,6 +20,7 @@ import Agents from "./components/Agents";
 import Settings from "./components/Settings";
 import Analytics from "./components/Analytics";
 import Versions from "./components/Versions";
+import Screenshots from "./components/Screenshots";
 import Login from "./components/Login";
 import type { AuthUser, DashboardData, AppItem, AscApp, VersionSummary } from "./types";
 
@@ -150,6 +151,20 @@ const IconAgents = () => (
     <path d="M7 10h2M15 10h2" />
   </svg>
 );
+const IconScreenshots = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <circle cx="8.5" cy="8.5" r="1.5" />
+    <path d="m21 15-5-5L5 21" />
+  </svg>
+);
 
 const sidebarLinks = [
   { to: "/dashboard", label: "Dashboard", icon: IconDashboard },
@@ -157,6 +172,7 @@ const sidebarLinks = [
   { to: "/keywords", label: "Keywords", icon: IconKeywords },
   { to: "/competitors", label: "Competitors", icon: IconCompetitors },
   { to: "/suggestions", label: "Suggestions", icon: IconSuggestions },
+  { to: "/screenshots", label: "Screenshots", icon: IconScreenshots },
 ];
 
 const sidebarOperations = [
@@ -829,6 +845,7 @@ export default function App() {
           />
           <Route path="/versions/:versionId" element={<Versions addToast={addToast} />} />
           <Route path="/versions" element={<Versions addToast={addToast} />} />
+          <Route path="/screenshots" element={<Screenshots addToast={addToast} />} />
           <Route path="/agents" element={<Agents addToast={addToast} />} />
           <Route path="/actions" element={<Actions addToast={addToast} />} />
           <Route path="/settings" element={<Settings addToast={addToast} />} />

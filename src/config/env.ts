@@ -35,6 +35,11 @@ const envSchema = z.object({
   // Multi-locale ASO (comma-separated ASC locales, e.g. "en-US,de-DE,fr-FR")
   ASO_LOCALES: z.string().default("en-US"),
 
+  // GitHub OAuth
+  GITHUB_CLIENT_ID: z.string().optional(),
+  GITHUB_CLIENT_SECRET: z.string().optional(),
+  GITHUB_WEBHOOK_BASE_URL: z.string().optional(), // e.g. https://yourapp.com
+
   // Logging
   LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),
 });

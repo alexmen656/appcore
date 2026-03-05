@@ -4,6 +4,7 @@ import AscCredentialsSection from "./comps/settings/AscCredentialsSection";
 import AiProviderSection from "./comps/settings/AiProviderSection";
 import ScrapingConfigSection from "./comps/settings/ScrapingConfigSection";
 import AsoLocalesSection from "./comps/settings/AsoLocalesSection";
+import GitHubSection from "./comps/settings/GitHubSection";
 import { SettingsData } from "./comps/settings/types";
 import { inputCls, textareaCls, btnSecondary, btnPrimary } from "../styles";
 
@@ -71,6 +72,7 @@ export default function Settings({ addToast }: Props) {
         />
         <ScrapingConfigSection form={form} inputCls={inputCls} onChange={set} />
         <AsoLocalesSection form={form} inputCls={inputCls} onChange={set} />
+        <GitHubSection />
 
         <div className="flex justify-end pb-2">
           <button className={btnPrimary} type="submit" disabled={saving}>

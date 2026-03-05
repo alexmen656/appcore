@@ -61,6 +61,12 @@ model UserSettings {
   mcpEnabled  Boolean @default(false)
   mcpApiKey   String? // UUID-basierter Key, null bis erstmalig generiert
 
+  // ── GitHub Integration ────────────────────────────────────────────────
+  githubAccessToken  String?  // OAuth access token
+  githubUsername     String?  // GitHub login
+  githubAvatarUrl    String?  // avatar_url
+  githubConnectedAt  DateTime?
+
   updatedAt DateTime @updatedAt
 }
 
@@ -83,11 +89,19 @@ model App {
   // Per-app Apple Analytics ONGOING request ID (persisted across syncs)
   analyticsRequestId String?
 
+  // GitHub repo link
+  githubRepoOwner    String?   // e.g. "octocat"
+  githubRepoName     String?   // e.g. "my-ios-app"
+  githubRepoFullName String?   // e.g. "octocat/my-ios-app"
+  githubWebhookId    BigInt?   // GitHub webhook ID for cleanup
+  githubWebhookSecret String?  // random HMAC secret per app
+
   // Tracking
   snapshots     AppSnapshot[]
   rankings      KeywordRanking[]
   competitors   CompetitorRelation[] @relation("app_competitors")
   competitorOf  CompetitorRelation[] @relation("competitor_of")
+  screenshotJobs ScreenshotJob[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -314,4 +328,29 @@ enum JobStatus {
   RUNNING
   COMPLETED
   FAILED
+}
+
+// ─── Screenshot generation from GitHub pushes ──────────────────────────
+
+model ScreenshotJob {
+  id            String    @id @default(cuid())
+  appId         String
+  app           App       @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  commitSha     String
+  commitMessage String?
+  branch        String?
+  pusher        String?   // GitHub username who pushed
+
+  status        JobStatus @default(PENDING)
+  logs          String?   // JSON stringified log lines
+  error         String?
+  screenshotUrls String[] // resulting screenshot URLs / paths
+
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([appId, createdAt])
+  @@index([commitSha])
 }

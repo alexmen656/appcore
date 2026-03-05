@@ -231,6 +231,48 @@ export interface SettingsData {
   asoLocales: string;
 }
 
+// ─── GitHub ───────────────────────────────────────────────────────────────────
+
+export interface GitHubStatus {
+  connected: boolean;
+  username: string | null;
+  avatarUrl: string | null;
+  connectedAt: string | null;
+}
+
+export interface GitHubRepo {
+  id: number;
+  name: string;
+  fullName: string;
+  owner: string;
+  private: boolean;
+  defaultBranch: string;
+  htmlUrl: string;
+}
+
+export interface AppRepoLink {
+  linked: boolean;
+  repoFullName: string | null;
+  repoOwner: string | null;
+  repoName: string | null;
+}
+
+export interface ScreenshotJob {
+  id: string;
+  appId: string;
+  commitSha: string;
+  commitMessage: string | null;
+  branch: string | null;
+  pusher: string | null;
+  status: string;
+  logs: string[];
+  error: string | null;
+  screenshotUrls: string[];
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+}
+
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 export interface ActionCardDef {

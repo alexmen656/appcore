@@ -14,6 +14,7 @@ import { analyticsRouter } from "./api/analytics";
 import { schedulerRouter, scheduler } from "./api/scheduler";
 import { mcpRouter } from "./api/mcp";
 import { submissionsRouter } from "./api/submissions";
+import { githubRouter } from "./api/github";
 import { requireAuth } from "./auth";
 import { mcpAuth, createMcpHandler } from "./mcp";
 
@@ -34,6 +35,7 @@ app.use("/api/asc", requireAuth, ascRouter);
 app.use("/api/analytics", requireAuth, analyticsRouter);
 app.use("/api/scheduler", requireAuth, schedulerRouter);
 app.use("/api/submissions", requireAuth, submissionsRouter);
+app.use("/api/github", githubRouter);
 app.use("/api/mcp", mcpRouter);
 app.post("/mcp", mcpAuth, createMcpHandler());
 
@@ -54,6 +56,6 @@ function shutdown() {
   scheduler.stop();
   prisma.$disconnect().then(() => process.exit(0));
 }
-
+console.log(require('os').tmpdir())
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
