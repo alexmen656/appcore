@@ -1,5 +1,7 @@
 import { Router, Request, Response } from "express";
-import crypto from "crypto";
+//import crypto from "crypto";
+import fs from "fs";
+import path from "path";
 import { logger, prisma } from "../../config";
 import { requireAuth } from "../auth";
 import {
@@ -13,6 +15,7 @@ import {
   type GitHubWebhookPayload,
 } from "../../services/github";
 import { runScreenshotGeneration } from "../../jobs/defs/generate-screenshots";
+import { frameWithFastlane } from "../../services/frame-screenshots";
 
 export const githubRouter = Router();
 
@@ -307,3 +310,126 @@ githubRouter.post("/webhook", async (req: Request, res: Response) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// ─── Frame screenshots from a completed job ──────────────────────────────────
+// POST /api/github/screenshots/frame/:jobId
+githubRouter.post(
+  "/screenshots/frame/:jobId",
+  requireAuth,
+  async (req: Request, res: Response) => {
+    try {
+      const jobId = req.params.jobId as string;
+      const {
+        subtitle = "Your App",
+        bgColor1 = "#667eea",
+        bgColor2 = "#764ba2",
+        textColor = "#ffffff",
+      } = req.body;
+
+      const job = await prisma.screenshotJob.findUnique({
+        where: { id: jobId },
+      });
+      if (!job) {
+        res.status(404).json({ error: "Job not found" });
+        return;
+      }
+      if (job.status !== "COMPLETED") {
+        res.status(400).json({ error: "Job is not completed yet" });
+        return;
+      }
+
+      const screenshotsBase = path.join(process.cwd(), "screenshots");
+      const rawDir = path.join(screenshotsBase, jobId);
+      const framedDir = path.join(screenshotsBase, jobId, "framed");
+
+      if (!fs.existsSync(rawDir)) {
+        res.status(404).json({ error: "Screenshot directory not found on disk" });
+        return;
+      }
+
+      // Frame each device/locale subfolder separately so frameit detects the
+      // correct device frame from the screenshot filename.
+      const subDirs = fs
+        .readdirSync(rawDir, { withFileTypes: true })
+        .filter((e) => e.isDirectory() && e.name !== "framed")
+        .map((e) => path.join(rawDir, e.name));
+
+      const sourceDirs = subDirs.length > 0 ? subDirs : [rawDir];
+
+      const framedUrls: string[] = [];
+      for (const srcDir of sourceDirs) {
+        const rel = path.relative(rawDir, srcDir);
+        const outDir = path.join(framedDir, rel === "." ? "" : rel);
+        const outputPaths = await frameWithFastlane(srcDir, outDir, {
+          subtitle,
+          bgColor1,
+          bgColor2,
+          textColor,
+        });
+        for (const p of outputPaths) {
+          framedUrls.push(
+            "/screenshots/" +
+              path.relative(screenshotsBase, p).replace(/\\/g, "/"),
+          );
+        }
+      }
+
+      res.json({ ok: true, count: framedUrls.length, framedUrls });
+    } catch (err: any) {
+      logger.error(`Frame screenshots error: ${err.message}`);
+      res.status(500).json({ error: err.message });
+    }
+  },
+);
+
+// ─── Local test: frame screenshots from an arbitrary directory ───────────────
+// POST /api/github/screenshots/test-local
+githubRouter.post(
+  "/screenshots/test-local",
+  requireAuth,
+  async (req: Request, res: Response) => {
+    try {
+      const {
+        dirPath,
+        subtitle = "Your App",
+        bgColor1 = "#667eea",
+        bgColor2 = "#764ba2",
+        textColor = "#ffffff",
+      } = req.body;
+
+      if (!dirPath || typeof dirPath !== "string") {
+        res.status(400).json({ error: "dirPath is required" });
+        return;
+      }
+      if (!fs.existsSync(dirPath)) {
+        res.status(400).json({ error: `Directory not found: ${dirPath}` });
+        return;
+      }
+
+      const screenshotsBase = path.join(process.cwd(), "screenshots");
+      const outputDir = path.join(
+        screenshotsBase,
+        "local-test",
+        String(Date.now()),
+      );
+
+      const framedPaths = await frameWithFastlane(dirPath, outputDir, {
+        subtitle,
+        bgColor1,
+        bgColor2,
+        textColor,
+      });
+
+      const framedUrls = framedPaths.map(
+        (p) =>
+          "/screenshots/" +
+          path.relative(screenshotsBase, p).replace(/\\/g, "/"),
+      );
+
+      res.json({ ok: true, count: framedUrls.length, framedUrls, outputDir });
+    } catch (err: any) {
+      logger.error(`Test-local frame error: ${err.message}`);
+      res.status(500).json({ error: err.message });
+    }
+  },
+);

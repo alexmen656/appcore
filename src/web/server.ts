@@ -39,6 +39,9 @@ app.use("/api/github", githubRouter);
 app.use("/api/mcp", mcpRouter);
 app.post("/mcp", mcpAuth, createMcpHandler());
 
+const screenshotsDir = path.join(process.cwd(), "screenshots");
+app.use("/screenshots", express.static(screenshotsDir));
+
 const webDist = path.join(__dirname, "../../web/dist");
 app.use(express.static(webDist));
 app.get("*", (_req, res) => {
