@@ -314,6 +314,8 @@ export interface VersionLocalization {
   keywords: string;
   whatsNew: string;
   promotionalText: string;
+  supportUrl?: string;
+  privacyPolicyUrl?: string;
 }
 
 export interface VersionsData {
@@ -324,5 +326,7 @@ export interface VersionsData {
   versionString: string | null;
   appStoreState: string | null;
   isEditable: boolean;
+  copyright?: string;
+  ageRating?: string;
   localizations: VersionLocalization[];
 }
