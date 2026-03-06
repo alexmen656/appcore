@@ -283,8 +283,8 @@ export class AIAnalyzer {
   constructor(settings?: EffectiveSettings) {
     this.settings = settings;
 
-    const openaiKey = settings?.openaiApiKey || env.OPENAI_API_KEY;
-    const anthropicKey = settings?.anthropicApiKey || env.ANTHROPIC_API_KEY;
+    const openaiKey = settings?.openaiApiKey;
+    const anthropicKey = settings?.anthropicApiKey;
 
     if (openaiKey) {
       this.openai = new OpenAI({ apiKey: openaiKey });
@@ -307,8 +307,7 @@ export class AIAnalyzer {
   ): Promise<AIResponse> {
     const selectedProvider =
       provider ??
-      (this.settings?.aiProvider as "openai" | "anthropic" | undefined) ??
-      env.AI_PROVIDER;
+      (this.settings?.aiProvider as "openai" | "anthropic" | undefined);
 
     if (selectedProvider === "anthropic" && this.anthropic) {
       return this.queryAnthropic(systemPrompt, userPrompt);
@@ -391,7 +390,7 @@ export class AIAnalyzer {
 
   private async gatherAppData() {
     const ownApp = await prisma.app.findUnique({
-      where: { bundleId: this.settings?.ascBundleId || env.ASC_BUNDLE_ID },
+      where: { bundleId: this.settings?.ascBundleId },
       include: {
         snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 },
         competitors: {
@@ -576,7 +575,7 @@ Generate detailed ASO optimization suggestions in ${lc.promptLang} for the ${lc.
       })),
     ];
 
-    const appBundleId = this.settings?.ascBundleId || env.ASC_BUNDLE_ID;
+    const appBundleId = this.settings?.ascBundleId;
     for (const suggestion of suggestions) {
       await prisma.aSOSuggestion.create({
         data: {

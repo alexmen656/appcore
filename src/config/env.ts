@@ -8,13 +8,7 @@ const envSchema = z.object({
     .enum(["development", "production", "test"])
     .default("development"),
   DATABASE_URL: z.string().url(),
-
-  // App Store Connect
-  ASC_ISSUER_ID: z.string().optional(),
-  ASC_KEY_ID: z.string().optional(),
-  ASC_PRIVATE_KEY_PATH: z.string().default("./keys/AuthKey.p8"),
   ASC_APP_ID: z.string().optional(),
-  ASC_BUNDLE_ID: z.string().default("eu.control-center.sites.kaloriq"),
 
   // Apple Search Ads
   APPLE_ADS_CLIENT_ID: z.string().optional(),
@@ -23,27 +17,14 @@ const envSchema = z.object({
   APPLE_ADS_TEAM_ID: z.string().optional(),
   APPLE_ADS_ORG_ID: z.string().optional(),
 
-  // AI
-  OPENAI_API_KEY: z.string().optional(),
-  ANTHROPIC_API_KEY: z.string().optional(),
-  AI_PROVIDER: z.enum(["openai", "anthropic"]).default("openai"),
-
-  // Scraping
-  SCRAPE_COUNTRY: z.string().default("de"),
-  SCRAPE_INTERVAL_HOURS: z.coerce.number().default(24),
-  MAX_COMPETITORS: z.coerce.number().default(20),
-
-  // Multi-locale ASO (comma-separated ASC locales, e.g. "en-US,de-DE,fr-FR")
-  ASO_LOCALES: z.string().default("en-US"),
-
   // GitHub OAuth
   GITHUB_CLIENT_ID: z.string().optional(),
   GITHUB_CLIENT_SECRET: z.string().optional(),
-  GITHUB_WEBHOOK_BASE_URL: z.string().optional(), // e.g. https://yourapp.com
+  GITHUB_WEBHOOK_BASE_URL: z.string().optional(),
 
-  // Fastlane Worker (Mac Mini)
-  FASTLANE_WORKER_URL: z.string().url().optional(), // e.g. http://10.0.0.50:3200
-  FASTLANE_WORKER_SECRET: z.string().optional(), // shared auth secret
+  // Fastlane Worker (MacOS)
+  FASTLANE_WORKER_URL: z.string().url().optional(),
+  FASTLANE_WORKER_SECRET: z.string().optional(),
 
   // Logging
   LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),

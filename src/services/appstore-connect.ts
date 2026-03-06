@@ -62,24 +62,12 @@ export class AppStoreConnectClient {
   private readonly privateKey: string;
 
   constructor(override?: Partial<ASCCredentials>) {
-    const issuerId = override?.issuerId ?? env.ASC_ISSUER_ID;
-    const keyId = override?.keyId ?? env.ASC_KEY_ID;
-    let privateKey = override?.privateKey;
+    const issuerId = override?.issuerId;
+    const keyId = override?.keyId;
+    const privateKey = override?.privateKey;
 
-    if (!issuerId || !keyId) {
-      throw new Error(
-        "App Store Connect credentials missing. Provide issuerId and keyId.",
-      );
-    }
-
-    if (!privateKey) {
-      try {
-        privateKey = fs.readFileSync(env.ASC_PRIVATE_KEY_PATH, "utf-8");
-      } catch {
-        throw new Error(
-          `Cannot read ASC private key at ${env.ASC_PRIVATE_KEY_PATH}`,
-        );
-      }
+    if (!issuerId || !keyId || !privateKey) {
+      throw new Error("App Store Connect credentials missing.");
     }
 
     this.issuerId = issuerId;
@@ -137,7 +125,7 @@ export class AppStoreConnectClient {
   }
 
   async getApp(bundleId?: string): Promise<ASCAppInfo | null> {
-    const bid = bundleId ?? env.ASC_BUNDLE_ID;
+    const bid = bundleId;
     const { data } = await this.client.get("/apps", {
       params: {
         "filter[bundleId]": bid,
@@ -186,7 +174,8 @@ export class AppStoreConnectClient {
     const { data } = await this.client.get(`/apps/${appId}/appStoreVersions`, {
       params: {
         "filter[platform]": "IOS",
-        "fields[appStoreVersions]": "versionString,appStoreState,platform,releaseType",
+        "fields[appStoreVersions]":
+          "versionString,appStoreState,platform,releaseType",
         limit: 50,
       },
     });

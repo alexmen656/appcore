@@ -38,12 +38,20 @@ export class KeywordDiscoveryAgent {
 
   constructor(settings?: EffectiveSettings) {
     this.settings = settings;
-    this.country = settings?.scrapeCountry || env.SCRAPE_COUNTRY;
-    this.bundleId = settings?.ascBundleId || env.ASC_BUNDLE_ID;
+    if (settings?.scrapeCountry && settings.ascBundleId) {
+      this.country = settings.scrapeCountry;
+      this.bundleId = settings.ascBundleId;
+    } else {
+      logger.warn(
+        "[Discovery] No country or bundle ID in settings, discovery will be disabled",
+      );
+      this.country = "";
+      this.bundleId = "";
+    }
     this.scraper = new AppStoreScraper(settings ?? this.country);
 
-    const openaiKey = settings?.openaiApiKey || env.OPENAI_API_KEY;
-    const anthropicKey = settings?.anthropicApiKey || env.ANTHROPIC_API_KEY;
+    const openaiKey = settings?.openaiApiKey;
+    const anthropicKey = settings?.anthropicApiKey;
     if (openaiKey) this.openai = new OpenAI({ apiKey: openaiKey });
     if (anthropicKey) this.anthropic = new Anthropic({ apiKey: anthropicKey });
   }
@@ -369,9 +377,10 @@ Return JSON only.`;
     systemPrompt: string,
     userPrompt: string,
   ): Promise<string> {
-    const selectedProvider =
-      (this.settings?.aiProvider as "openai" | "anthropic" | undefined) ??
-      env.AI_PROVIDER;
+    const selectedProvider = this.settings?.aiProvider as
+      | "openai"
+      | "anthropic"
+      | undefined;
 
     if (selectedProvider === "anthropic" && this.anthropic) {
       const response = await this.anthropic.messages.create({

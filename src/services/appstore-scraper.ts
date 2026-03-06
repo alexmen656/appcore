@@ -153,12 +153,14 @@ export class AppStoreScraper {
     language?: string,
   ) {
     if (countryOrSettings && typeof countryOrSettings === "object") {
-      this.country = countryOrSettings.scrapeCountry || env.SCRAPE_COUNTRY;
-      this.bundleId = countryOrSettings.ascBundleId || env.ASC_BUNDLE_ID;
+      this.country = countryOrSettings.scrapeCountry;
+      this.bundleId = countryOrSettings.ascBundleId;
     } else {
-      this.country = countryOrSettings ?? env.SCRAPE_COUNTRY;
-      this.bundleId = env.ASC_BUNDLE_ID;
+      console.log(`[AppStoreScraper] No settings provided.`);
+      this.country = "";
+      this.bundleId = "";
     }
+
     this.language = language ?? langForCountry(this.country);
   }
 

@@ -12,8 +12,16 @@ export class KeywordTracker {
   private readonly country: string;
 
   constructor(settings?: EffectiveSettings) {
-    this.bundleId = settings?.ascBundleId || env.ASC_BUNDLE_ID;
-    this.country = settings?.scrapeCountry || env.SCRAPE_COUNTRY;
+    if (settings?.scrapeCountry && settings?.ascBundleId) {
+      this.bundleId = settings.ascBundleId;
+      this.country = settings.scrapeCountry;
+    } else {
+      logger.warn(
+        "[KeywordTracker] No country or bundle ID in settings, keyword tracking will be disabled",
+      );
+      this.bundleId = "";
+      this.country = "";
+    }
     this.scraper = new AppStoreScraper(settings ?? this.country);
 
     if (env.APPLE_ADS_CLIENT_ID) {
