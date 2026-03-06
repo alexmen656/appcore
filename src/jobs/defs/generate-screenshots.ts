@@ -5,6 +5,7 @@ import { exec } from "child_process";
 import { promisify } from "util";
 import { logger, prisma } from "../../config";
 import { cloneRepo } from "../../services/github";
+import { frameWithFastlane } from "../../services/frame-screenshots";
 
 const execAsync = promisify(exec);
 
@@ -161,6 +162,45 @@ export async function runScreenshotGeneration(jobId: string): Promise<void> {
         screenshotUrls,
       },
     });
+
+    // 8. Auto-frame screenshots
+    try {
+      const screenshotsBase = path.join(process.cwd(), "screenshots");
+      const framedDir = path.join(outputDir, "framed");
+      const subDirs = fs.existsSync(outputDir)
+        ? fs
+            .readdirSync(outputDir, { withFileTypes: true })
+            .filter((e) => e.isDirectory() && e.name !== "framed")
+            .map((e) => path.join(outputDir, e.name))
+        : [];
+      const sourceDirs = subDirs.length > 0 ? subDirs : [outputDir];
+      const framedByLocale: Record<string, string[]> = {};
+
+      for (const srcDir of sourceDirs) {
+        const rel = path.relative(outputDir, srcDir);
+        const locale = path.basename(srcDir);
+        const outDir = path.join(framedDir, rel === "." ? "" : rel);
+        const outputPaths = await frameWithFastlane(srcDir, outDir, {
+          subtitle: job.app.name,
+        });
+        const urls = outputPaths.map(
+          (p) =>
+            "/screenshots/" +
+            path.relative(screenshotsBase, p).replace(/\\/g, "/"),
+        );
+        const key = rel === "." ? "default" : locale;
+        framedByLocale[key] = (framedByLocale[key] ?? []).concat(urls);
+      }
+
+      await prisma.screenshotJob.update({
+        where: { id: jobId },
+        data: { framedByLocale: framedByLocale } as any,
+      });
+      log(`Auto-framing complete: ${Object.values(framedByLocale).flat().length} image(s)`);
+    } catch (frameErr: any) {
+      log(`Auto-framing failed (non-fatal): ${frameErr.message}`);
+      // Don't fail the job — screenshots are still saved
+    }
   } catch (err: any) {
     const msg = err instanceof Error ? err.message : String(err);
     logs.push(`ERROR: ${msg}`);

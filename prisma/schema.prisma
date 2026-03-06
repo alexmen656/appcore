@@ -347,6 +347,10 @@ model ScreenshotJob {
   error         String?
   screenshotUrls String[] // resulting screenshot URLs / paths
 
+  // Framed (App Store ready) screenshots, keyed by locale
+  // e.g. { "de-DE": ["/screenshots/jobId/framed/de-DE/...png"], ... }
+  framedByLocale Json?
+
   startedAt     DateTime?
   completedAt   DateTime?
   createdAt     DateTime  @default(now())

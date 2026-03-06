@@ -12,6 +12,10 @@ export default defineConfig({
         target: "http://localhost:3100",
         changeOrigin: true,
       },
+      "/screenshots": {
+        target: "http://localhost:3100",
+        changeOrigin: true,
+      },
     },
   },
   build: {

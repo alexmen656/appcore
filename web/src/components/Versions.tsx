@@ -788,6 +788,116 @@ export default function Versions({ addToast }: Props) {
           </p>
         </div>
       )}
+
+      <ScreenshotsPanel appId={data.appId} activeLocale={activeLocale} />
+    </div>
+  );
+}
+
+// ─── Screenshots Panel ────────────────────────────────────────────────────────
+
+interface FramedJob {
+  id: string;
+  commitSha: string;
+  commitMessage: string | null;
+  branch: string | null;
+  createdAt: string;
+  framedByLocale: Record<string, string[]>;
+}
+
+function ScreenshotsPanel({
+  appId,
+  activeLocale,
+}: {
+  appId: string;
+  activeLocale: string | null;
+}) {
+  const { data, loading } = useApi<{ job: FramedJob | null }>(
+    `/github/screenshots/latest-framed/${appId}`,
+    [appId],
+  );
+
+  const job = data?.job;
+  const framedByLocale = job?.framedByLocale ?? {};
+  const locales = Object.keys(framedByLocale).filter(
+    (l) => (framedByLocale[l]?.length ?? 0) > 0,
+  );
+
+  const [selectedLocale, setSelectedLocale] = useState<string | null>(null);
+
+  // Sync with active metadata locale when possible
+  const effectiveLocale =
+    selectedLocale ??
+    (activeLocale && locales.includes(activeLocale)
+      ? activeLocale
+      : locales[0] ?? null);
+
+  if (loading) return null;
+  if (!job || locales.length === 0) return null;
+
+  const screenshots = effectiveLocale ? (framedByLocale[effectiveLocale] ?? []) : [];
+
+  return (
+    <div className={`${cardCls} mt-6`}>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-[15px] font-semibold text-[#111827]">
+            App Store Screenshots
+          </h2>
+          <p className="text-xs text-[#9ca3af] mt-0.5">
+            Latest framed set — commit{" "}
+            <span className="font-mono">{job.commitSha.slice(0, 7)}</span>
+            {job.branch ? ` · ${job.branch}` : ""}
+            {" · "}
+            {new Date(job.createdAt).toLocaleDateString()}
+          </p>
+        </div>
+        {locales.length > 1 && (
+          <div className="flex items-center gap-1 overflow-x-auto">
+            {locales.map((l) => (
+              <button
+                key={l}
+                onClick={() => setSelectedLocale(l)}
+                className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all whitespace-nowrap ${
+                  l === effectiveLocale
+                    ? "bg-[#ea0e2b] text-white"
+                    : "bg-white border border-[#eef0f3] text-[#6b7280] hover:border-[#d1d5db]"
+                }`}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {locales.length === 1 && (
+        <div className="text-[11px] text-[#9ca3af] mb-3">{effectiveLocale}</div>
+      )}
+
+      {screenshots.length === 0 ? (
+        <p className="text-sm text-[#9ca3af] py-4 text-center">
+          No screenshots for {effectiveLocale}.
+        </p>
+      ) : (
+        <div className="flex gap-3 overflow-x-auto pb-2">
+          {screenshots.map((url) => (
+            <a
+              key={url}
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0"
+            >
+              <img
+                src={url}
+                alt="App Store screenshot"
+                className="h-64 rounded-xl border border-[#eef0f3] object-cover hover:opacity-90 transition-opacity shadow-sm"
+              />
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

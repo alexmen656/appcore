@@ -343,7 +343,9 @@ githubRouter.post(
       const framedDir = path.join(screenshotsBase, jobId, "framed");
 
       if (!fs.existsSync(rawDir)) {
-        res.status(404).json({ error: "Screenshot directory not found on disk" });
+        res
+          .status(404)
+          .json({ error: "Screenshot directory not found on disk" });
         return;
       }
 
@@ -357,8 +359,11 @@ githubRouter.post(
       const sourceDirs = subDirs.length > 0 ? subDirs : [rawDir];
 
       const framedUrls: string[] = [];
+      const framedByLocale: Record<string, string[]> = {};
+
       for (const srcDir of sourceDirs) {
         const rel = path.relative(rawDir, srcDir);
+        const locale = path.basename(srcDir); // e.g. "de-DE" or "." for flat
         const outDir = path.join(framedDir, rel === "." ? "" : rel);
         const outputPaths = await frameWithFastlane(srcDir, outDir, {
           subtitle,
@@ -366,15 +371,27 @@ githubRouter.post(
           bgColor2,
           textColor,
         });
-        for (const p of outputPaths) {
-          framedUrls.push(
+        const urls = outputPaths.map(
+          (p) =>
             "/screenshots/" +
-              path.relative(screenshotsBase, p).replace(/\\/g, "/"),
-          );
-        }
+            path.relative(screenshotsBase, p).replace(/\\/g, "/"),
+        );
+        framedUrls.push(...urls);
+        const key = rel === "." ? "default" : locale;
+        framedByLocale[key] = (framedByLocale[key] ?? []).concat(urls);
       }
 
-      res.json({ ok: true, count: framedUrls.length, framedUrls });
+      await prisma.screenshotJob.update({
+        where: { id: jobId },
+        data: { framedByLocale: framedByLocale as any },
+      });
+
+      res.json({
+        ok: true,
+        count: framedUrls.length,
+        framedUrls,
+        framedByLocale,
+      });
     } catch (err: any) {
       logger.error(`Frame screenshots error: ${err.message}`);
       res.status(500).json({ error: err.message });
@@ -429,6 +446,55 @@ githubRouter.post(
       res.json({ ok: true, count: framedUrls.length, framedUrls, outputDir });
     } catch (err: any) {
       logger.error(`Test-local frame error: ${err.message}`);
+      res.status(500).json({ error: err.message });
+    }
+  },
+);
+
+// ─── Latest framed screenshots for a version view ────────────────────────────
+// GET /api/github/screenshots/latest-framed/:appId
+githubRouter.get(
+  "/screenshots/latest-framed/:appId",
+  requireAuth,
+  async (req: Request, res: Response) => {
+    try {
+      const ascAppId = req.params.appId as string;
+
+      // ascAppId is the ASC numeric ID (e.g. "6745529824").
+      // Resolve it to our internal App record via trackId.
+      const internalApp = await prisma.app.findFirst({
+        where: { trackId: BigInt(ascAppId) },
+        select: { id: true },
+      });
+      if (!internalApp) {
+        res.json({ job: null });
+        return;
+      }
+
+      const jobs = await prisma.screenshotJob.findMany({
+        where: { appId: internalApp.id, status: "COMPLETED" },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+      });
+      const job = jobs.find((j) => j.framedByLocale != null) ?? null;
+
+      if (!job || !job.framedByLocale) {
+        res.json({ job: null });
+        return;
+      }
+
+      res.json({
+        job: {
+          id: job.id,
+          commitSha: job.commitSha,
+          commitMessage: job.commitMessage,
+          branch: job.branch,
+          createdAt: job.createdAt,
+          framedByLocale: job.framedByLocale,
+        },
+      });
+    } catch (err: any) {
+      logger.error(`latest-framed error: ${err.message}`);
       res.status(500).json({ error: err.message });
     }
   },

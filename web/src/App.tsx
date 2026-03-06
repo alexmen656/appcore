@@ -172,12 +172,12 @@ const sidebarLinks = [
   { to: "/keywords", label: "Keywords", icon: IconKeywords },
   { to: "/competitors", label: "Competitors", icon: IconCompetitors },
   { to: "/suggestions", label: "Suggestions", icon: IconSuggestions },
-  { to: "/screenshots", label: "Screenshots", icon: IconScreenshots },
 ];
 
 const sidebarOperations = [
   { to: "/agents", label: "Agents", icon: IconAgents },
   { to: "/actions", label: "Actions", icon: IconActions },
+  { to: "/screenshots", label: "Screenshots", icon: IconScreenshots },
   { to: "/settings", label: "Settings", icon: IconSettings },
 ];
 
@@ -845,9 +845,9 @@ export default function App() {
           />
           <Route path="/versions/:versionId" element={<Versions addToast={addToast} />} />
           <Route path="/versions" element={<Versions addToast={addToast} />} />
-          <Route path="/screenshots" element={<Screenshots addToast={addToast} />} />
           <Route path="/agents" element={<Agents addToast={addToast} />} />
           <Route path="/actions" element={<Actions addToast={addToast} />} />
+          <Route path="/screenshots" element={<Screenshots addToast={addToast} />} />
           <Route path="/settings" element={<Settings addToast={addToast} />} />
         </Routes>
       </main>
