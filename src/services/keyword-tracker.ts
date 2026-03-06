@@ -10,17 +10,20 @@ export class KeywordTracker {
   private searchAdsPopularity: Map<string, number> | null = null;
   private readonly bundleId: string;
   private readonly country: string;
+  private readonly ascAppId: string;
 
   constructor(settings?: EffectiveSettings) {
-    if (settings?.scrapeCountry && settings?.ascBundleId) {
+    if (settings?.scrapeCountry && settings?.ascBundleId && settings.ascAppId) {
       this.bundleId = settings.ascBundleId;
       this.country = settings.scrapeCountry;
+      this.ascAppId = settings.ascAppId ?? "";
     } else {
       logger.warn(
         "[KeywordTracker] No country or bundle ID in settings, keyword tracking will be disabled",
       );
       this.bundleId = "";
       this.country = "";
+      this.ascAppId = "";
     }
     this.scraper = new AppStoreScraper(settings ?? this.country);
 
@@ -40,14 +43,11 @@ export class KeywordTracker {
     }
 
     try {
-      const appId = env.ASC_APP_ID || "";
-      if (!appId) {
-        logger.debug("ASC_APP_ID not set, cannot fetch Search Ads keywords");
-        return this.searchAdsPopularity;
-      }
-
       logger.info("Fetching keyword popularity from Apple Search Ads API...");
-      const keywords = await this.searchAds.getTargetingKeywords(appId, 200);
+      const keywords = await this.searchAds.getTargetingKeywords(
+        this.ascAppId,
+        200,
+      );
 
       for (const kw of keywords) {
         this.searchAdsPopularity.set(kw.keyword.toLowerCase(), kw.popularity);

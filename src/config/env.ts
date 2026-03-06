@@ -8,7 +8,6 @@ const envSchema = z.object({
     .enum(["development", "production", "test"])
     .default("development"),
   DATABASE_URL: z.string().url(),
-  ASC_APP_ID: z.string().optional(),
 
   // Apple Search Ads
   APPLE_ADS_CLIENT_ID: z.string().optional(),
