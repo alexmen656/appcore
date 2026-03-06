@@ -1,7 +1,3 @@
-// ─── Shared types used across multiple components ─────────────────────────────
-
-// ─── Analytics ────────────────────────────────────────────────────────────────
-
 export interface DayData {
   date: string;
   downloads: number;
@@ -12,8 +8,10 @@ export interface DayData {
   sessions: number;
 }
 
-/** Subset of DayData used in DownloadsChart (no engagement metrics) */
-export type DownloadsDayData = Pick<DayData, "date" | "downloads" | "updates" | "proceeds">;
+export type DownloadsDayData = Pick<
+  DayData,
+  "date" | "downloads" | "updates" | "proceeds"
+>;
 
 export interface CountryData {
   country: string;
@@ -49,8 +47,6 @@ export interface Review {
   reviewedAt: string;
 }
 
-// ─── Apps ─────────────────────────────────────────────────────────────────────
-
 export interface AppItem {
   id: string;
   bundleId: string;
@@ -72,8 +68,6 @@ export interface AscApp {
   primaryLocale: string | null;
   iconUrl: string | null;
 }
-
-// ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export interface AppInfo {
   name: string;
@@ -133,8 +127,6 @@ export interface DashboardData {
   recentSuggestions: RecentSuggestion[];
 }
 
-// ─── Jobs ─────────────────────────────────────────────────────────────────────
-
 export interface Job {
   id: string;
   type: string;
@@ -146,8 +138,6 @@ export interface Job {
   completedAt: string | null;
   createdAt: string;
 }
-
-// ─── Keywords ─────────────────────────────────────────────────────────────────
 
 export interface Keyword {
   id: string;
@@ -182,8 +172,6 @@ export interface KeywordHistoryData {
   rankings: RankingEntry[];
 }
 
-// ─── Suggestions ──────────────────────────────────────────────────────────────
-
 export interface Suggestion {
   id: string;
   type: string;
@@ -201,16 +189,12 @@ export interface Suggestion {
   appliedAt: string | null;
 }
 
-// ─── Auth ─────────────────────────────────────────────────────────────────────
-
 export interface AuthUser {
   id: string;
   email: string;
   name: string | null;
   role: string;
 }
-
-// ─── Settings ─────────────────────────────────────────────────────────────────
 
 export interface SettingsData {
   ascIssuerId: string;
@@ -230,8 +214,6 @@ export interface SettingsData {
   maxCompetitors: number;
   asoLocales: string;
 }
-
-// ─── GitHub ───────────────────────────────────────────────────────────────────
 
 export interface GitHubStatus {
   connected: boolean;
@@ -273,8 +255,6 @@ export interface ScreenshotJob {
   createdAt: string;
 }
 
-// ─── Actions ──────────────────────────────────────────────────────────────────
-
 export interface ActionCardDef {
   id: string;
   label: string;
@@ -288,13 +268,10 @@ export interface SchedulerStatus {
   jobCount: number;
 }
 
-// ─── MCP / Agents ─────────────────────────────────────────────────────────────
-
 export interface McpConfig {
   mcpEnabled: boolean;
   mcpApiKey: string | null;
 }
-// ─── Versions / Metadata ──────────────────────────────────────────────────────
 
 export interface VersionSummary {
   versionId: string;

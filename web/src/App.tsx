@@ -1,5 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Routes, Route, NavLink, Navigate, useNavigate, useLocation } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  NavLink,
+  Navigate,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
 import {
   useApi,
   apiPost,
@@ -22,7 +29,13 @@ import Analytics from "./components/Analytics";
 import Versions from "./components/Versions";
 import Screenshots from "./components/Screenshots";
 import Login from "./components/Login";
-import type { AuthUser, DashboardData, AppItem, AscApp, VersionSummary } from "./types";
+import type {
+  AuthUser,
+  DashboardData,
+  AppItem,
+  AscApp,
+  VersionSummary,
+} from "./types";
 
 const IconDashboard = () => (
   <svg
@@ -622,14 +635,17 @@ const VERSION_STATE_SHORT: Record<string, string> = {
   METADATA_REJECTED: "Meta Rejected",
 };
 
-function VersionsSidebarSection({ navLinkClass }: { navLinkClass: (p: { isActive: boolean }) => string }) {
+function VersionsSidebarSection({
+  navLinkClass,
+}: {
+  navLinkClass: (p: { isActive: boolean }) => string;
+}) {
   const [expanded, setExpanded] = useState(false);
   const [versions, setVersions] = useState<VersionSummary[] | null>(null);
   const [loading, setLoading] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Auto-expand when already on a /versions route
   useEffect(() => {
     if (location.pathname.startsWith("/versions")) setExpanded(true);
   }, []);
@@ -645,7 +661,6 @@ function VersionsSidebarSection({ navLinkClass }: { navLinkClass: (p: { isActive
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: VersionSummary[] = await res.json();
       setVersions(data);
-      // Navigate to the best version if we're on /versions with no id
       if (location.pathname === "/versions" && data.length > 0) {
         const best = data.find((v) => v.isEditable) ?? data[0];
         navigate(`/versions/${best.versionId}`, { replace: true });
@@ -661,9 +676,10 @@ function VersionsSidebarSection({ navLinkClass }: { navLinkClass: (p: { isActive
     if (expanded && !versions) load();
   }, [expanded, versions, load]);
 
-  // Reload when active app changes
   useEffect(() => {
-    const handler = () => { setVersions(null); };
+    const handler = () => {
+      setVersions(null);
+    };
     window.addEventListener("app-changed", handler);
     return () => window.removeEventListener("app-changed", handler);
   }, []);
@@ -678,7 +694,6 @@ function VersionsSidebarSection({ navLinkClass }: { navLinkClass: (p: { isActive
 
   return (
     <div>
-      {/* Section header – acts like a nav link but expands */}
       <button
         onClick={handleToggle}
         className={`w-full flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-sm font-medium mb-0.5 transition-all [&_svg]:w-[18px] [&_svg]:h-[18px] ${
@@ -701,8 +716,6 @@ function VersionsSidebarSection({ navLinkClass }: { navLinkClass: (p: { isActive
           <path d="M6 9l6 6 6-6" />
         </svg>
       </button>
-
-      {/* Sub-items */}
       {expanded && (
         <div className="ml-3 pl-3 border-l border-[#e5e7eb] mb-1 flex flex-col gap-0.5">
           {loading && !versions && (
@@ -711,12 +724,17 @@ function VersionsSidebarSection({ navLinkClass }: { navLinkClass: (p: { isActive
             </div>
           )}
           {versions?.length === 0 && (
-            <div className="px-2 py-1.5 text-[12px] text-gray-400">No versions found</div>
+            <div className="px-2 py-1.5 text-[12px] text-gray-400">
+              No versions found
+            </div>
           )}
           {versions?.map((v) => {
             const isActive = location.pathname === `/versions/${v.versionId}`;
-            const stateColor = VERSION_STATE_COLORS[v.appStoreState] ?? "bg-gray-100 text-gray-500";
-            const stateShort = VERSION_STATE_SHORT[v.appStoreState] ?? v.appStoreState;
+            const stateColor =
+              VERSION_STATE_COLORS[v.appStoreState] ??
+              "bg-gray-100 text-gray-500";
+            const stateShort =
+              VERSION_STATE_SHORT[v.appStoreState] ?? v.appStoreState;
             return (
               <NavLink
                 key={v.versionId}
@@ -728,7 +746,9 @@ function VersionsSidebarSection({ navLinkClass }: { navLinkClass: (p: { isActive
                 }`}
               >
                 <span className="truncate">{v.versionString}</span>
-                <span className={`shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${stateColor}`}>
+                <span
+                  className={`shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${stateColor}`}
+                >
                   {stateShort}
                 </span>
               </NavLink>
@@ -838,16 +858,25 @@ export default function App() {
             element={<Suggestions addToast={addToast} />}
           />
           <Route path="/keywords" element={<Keywords addToast={addToast} />} />
-          <Route path="/competitors" element={<Competitors addToast={addToast} />} />
+          <Route
+            path="/competitors"
+            element={<Competitors addToast={addToast} />}
+          />
           <Route
             path="/analytics"
             element={<Analytics addToast={addToast} />}
           />
-          <Route path="/versions/:versionId" element={<Versions addToast={addToast} />} />
+          <Route
+            path="/versions/:versionId"
+            element={<Versions addToast={addToast} />}
+          />
           <Route path="/versions" element={<Versions addToast={addToast} />} />
           <Route path="/agents" element={<Agents addToast={addToast} />} />
           <Route path="/actions" element={<Actions addToast={addToast} />} />
-          <Route path="/screenshots" element={<Screenshots addToast={addToast} />} />
+          <Route
+            path="/screenshots"
+            element={<Screenshots addToast={addToast} />}
+          />
           <Route path="/settings" element={<Settings addToast={addToast} />} />
         </Routes>
       </main>
