@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useApi, apiPost, getActiveBundleId } from "../hooks/useApi";
+import { useApi, apiPost, apiDelete, getActiveBundleId } from "../hooks/useApi";
 import OwnAppCard, { AppItem } from "./comps/competitors/OwnAppCard";
 import CompetitorCard from "./comps/competitors/CompetitorCard";
 
@@ -23,6 +23,16 @@ export default function Competitors({ addToast }: Props) {
       addToast(e.message, "error");
     } finally {
       setDiscovering(false);
+    }
+  };
+
+  const removeCompetitor = async (ownAppId: string, competitorId: string) => {
+    try {
+      await apiDelete(`/apps/${ownAppId}/competitors/${competitorId}`);
+      addToast("Competitor removed", "info");
+      refetch();
+    } catch (e: any) {
+      addToast(e.message, "error");
     }
   };
 
@@ -110,7 +120,12 @@ export default function Competitors({ addToast }: Props) {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {competitors.map((c) => (
-            <CompetitorCard key={c.id} competitor={c} />
+            <CompetitorCard
+              key={c.id}
+              competitor={c}
+              ownAppId={ownApp?.id}
+              onRemove={ownApp ? (competitorId) => removeCompetitor(ownApp.id, competitorId) : undefined}
+            />
           ))}
         </div>
       )}

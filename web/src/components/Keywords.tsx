@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { useApi, apiPost, apiDelete, authHeaders, getActiveBundleId } from "../hooks/useApi";
+import {
+  useApi,
+  apiPost,
+  apiDelete,
+  authHeaders,
+  getActiveBundleId,
+} from "../hooks/useApi";
 import KeywordForm, { COUNTRIES } from "./comps/keywords/KeywordForm";
 import KeywordTable, { Keyword } from "./comps/keywords/KeywordTable";
 import RankingHistoryChart, {
@@ -48,6 +54,7 @@ export default function Keywords({ addToast }: Props) {
         term: newTerm.trim(),
         country: country.code,
         language: country.lang,
+        bundleId: getActiveBundleId(),
       });
       addToast(
         `Keyword "${newTerm.trim()}" (${country.code.toUpperCase()}) added`,
@@ -81,7 +88,9 @@ export default function Keywords({ addToast }: Props) {
     setSelectedKeyword(kw);
     setHistoryLoading(true);
     try {
-      const res = await fetch(`/api/keywords/${kw.id}/history`, { headers: authHeaders() });
+      const res = await fetch(`/api/keywords/${kw.id}/history`, {
+        headers: authHeaders(),
+      });
       setHistory(await res.json());
     } catch {
       addToast("Failed to load history", "error");
@@ -113,7 +122,15 @@ export default function Keywords({ addToast }: Props) {
       {sorted.length === 0 ? (
         <div className="py-20 text-center">
           <div className="flex justify-center mb-3 opacity-20">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-12 h-12 text-[#9ca3af]">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-12 h-12 text-[#9ca3af]"
+            >
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.35-4.35" />
             </svg>

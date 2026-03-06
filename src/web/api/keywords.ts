@@ -114,8 +114,11 @@ keywordsRouter.get("/:id/history", async (req, res) => {
 
 keywordsRouter.post("/", async (req, res) => {
   try {
-    const { term, country, language } = req.body;
+    const { term, country, language, bundleId } = req.body;
     if (!term) return res.status(400).json({ error: "term is required" });
+
+    const settings = await getEffectiveSettings(req.user!.userId);
+    const activeBundleId = bundleId || settings.ascBundleId;
 
     const keyword = await prisma.keyword.upsert({
       where: { term_country: { term, country: country || "de" } },
@@ -126,6 +129,21 @@ keywordsRouter.post("/", async (req, res) => {
       },
       update: {},
     });
+
+    const ownApp = await prisma.app.findUnique({
+      where: { bundleId: activeBundleId },
+    });
+
+    if (ownApp) {
+      await prisma.keywordRanking.create({
+        data: {
+          keywordId: keyword.id,
+          appId: ownApp.id,
+          rank: null,
+          country: country || "de",
+        },
+      });
+    }
 
     res.json({ ok: true, keyword });
   } catch (err) {

@@ -537,7 +537,7 @@ export class AppStoreScraper {
   async discoverCompetitors(
     searchTerms: string[],
     ownBundleId: string,
-    maxResults = 20,
+    maxResults = 100,
   ): Promise<string[]> {
     const seen = new Set<string>();
     const competitorIds: string[] = [];

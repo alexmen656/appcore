@@ -64,6 +64,23 @@ appsRouter.get("/", async (req, res) => {
   }
 });
 
+appsRouter.delete("/:ownAppId/competitors/:competitorId", async (req, res) => {
+  try {
+    const { ownAppId, competitorId } = req.params;
+    await prisma.competitorRelation.deleteMany({
+      where: {
+        OR: [
+          { appId: ownAppId, competitorId },
+          { appId: competitorId, competitorId: ownAppId },
+        ],
+      },
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 appsRouter.get("/:id", async (req, res) => {
   try {
     const app = await prisma.app.findUnique({

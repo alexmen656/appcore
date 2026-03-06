@@ -13,7 +13,7 @@ export class KeywordTracker {
   private readonly ascAppId: string;
 
   constructor(settings?: EffectiveSettings) {
-    if (settings?.scrapeCountry && settings?.ascBundleId && settings.ascAppId) {
+    if (settings?.scrapeCountry && settings?.ascBundleId) {
       this.bundleId = settings.ascBundleId;
       this.country = settings.scrapeCountry;
       this.ascAppId = settings.ascAppId ?? "";

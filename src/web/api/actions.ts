@@ -153,7 +153,11 @@ actionsRouter.post("/discover-competitors", async (req, res) => {
     const { AppStoreScraper } = await import("../../services/appstore-scraper");
     const scraper = new AppStoreScraper(effectiveSettings);
 
+    const app = await prisma.app.findUnique({ where: { bundleId } });
     const keywords = await prisma.keyword.findMany({
+      where: app
+        ? { rankings: { some: { appId: app.id } } }
+        : undefined,
       orderBy: { popularity: "desc" },
       take: 10,
     });
@@ -167,7 +171,7 @@ actionsRouter.post("/discover-competitors", async (req, res) => {
     res.json({ ok: true, message: "Competitor discovery started" });
 
     scraper
-      .discoverCompetitors(searchTerms, bundleId, 20)
+      .discoverCompetitors(searchTerms, bundleId, 100)
       .then((ids) =>
         logger.info(`Web-triggered competitor discovery: ${ids.length} found`),
       )
