@@ -330,6 +330,40 @@ enum JobStatus {
   FAILED
 }
 
+// ─── Push Notification Device Tokens ────────────────────────────────────
+
+model DeviceToken {
+  id          String   @id @default(cuid())
+  token       String   @unique
+  userId      String?  // optional link to a user
+  bundleId    String?  // app bundle ID
+  platform    String   @default("ios") // ios | android
+  isActive    Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([token])
+}
+
+// ─── Push Notification Log ──────────────────────────────────────────────
+
+model PushNotificationLog {
+  id          String   @id @default(cuid())
+  deviceToken String
+  title       String
+  body        String
+  category    String?  // KEYWORD_RANK_UPDATE, SUBMISSION_UPDATE, JOB_COMPLETE
+  data        Json?    // additional payload data
+  status      String   @default("sent") // sent | failed | delivered
+  error       String?
+
+  sentAt      DateTime @default(now())
+
+  @@index([category, sentAt])
+}
+
 // ─── Screenshot generation from GitHub pushes ──────────────────────────
 
 model ScreenshotJob {

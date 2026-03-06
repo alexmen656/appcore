@@ -17,6 +17,9 @@ import { submissionsRouter } from "./api/submissions";
 import { githubRouter } from "./api/github";
 import { requireAuth } from "./auth";
 import { mcpAuth, createMcpHandler } from "./mcp";
+import pushRouter from "./api/push";
+import { pushService } from "../services/push-notification.js";
+import fs from "fs";
 
 const app = express();
 const PORT = process.env.WEB_PORT ?? 3100;
@@ -37,6 +40,7 @@ app.use("/api/scheduler", requireAuth, schedulerRouter);
 app.use("/api/submissions", requireAuth, submissionsRouter);
 app.use("/api/github", githubRouter);
 app.use("/api/mcp", mcpRouter);
+app.use("/api/push", requireAuth, pushRouter);
 app.post("/mcp", mcpAuth, createMcpHandler());
 
 const screenshotsDir = path.join(process.cwd(), "screenshots");
@@ -52,6 +56,25 @@ app.listen(PORT, () => {
   logger.info(`AppCore Web UI running at http://localhost:${PORT}`);
   scheduler.start();
   logger.info("Background scheduler started automatically");
+
+  const apnsKeyId = process.env.APNS_KEY_ID;
+  const apnsTeamId = process.env.APNS_TEAM_ID;
+  const apnsBundleId = process.env.APNS_BUNDLE_ID || "com.fringelo.AppCore";
+  const apnsKeyPath = process.env.APNS_KEY_PATH || "./keys/AuthKey.p8";
+  const apnsProduction = process.env.APNS_PRODUCTION === "true";
+
+  if (apnsKeyId && apnsTeamId && fs.existsSync(apnsKeyPath)) {
+    pushService.configure({
+      keyId: apnsKeyId,
+      teamId: apnsTeamId,
+      bundleId: apnsBundleId,
+      keyPath: apnsKeyPath,
+      production: apnsProduction,
+    });
+    logger.info("APNs push notifications configured");
+  } else {
+    logger.warn("APNs not configured — set APNS_KEY_ID, APNS_TEAM_ID, APNS_KEY_PATH");
+  }
 });
 
 function shutdown() {

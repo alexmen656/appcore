@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { logger, getEffectiveSettings } from "../../config";
 import { requireAuth } from "../auth";
+import { pushService } from "../../services/push-notification.js";
 
 export const submissionsRouter = Router();
 submissionsRouter.use(requireAuth);
@@ -36,18 +37,23 @@ submissionsRouter.post("/metadata", async (req, res) => {
     const { FastlaneService } = await import("../../services/fastlane");
     const fl = new FastlaneService(effectiveSettings);
 
-    // Respond immediately, then run in background
     res.json({
       ok: true,
       message: "Fastlane metadata submission started. Check status for progress.",
     });
 
     fl.submit("metadata", overrides)
-      .then((result) => {
+      .then(async (result) => {
         if (result.ok) {
           logger.info(`Fastlane metadata submit completed (job ${result.jobId})`);
+          await pushService.notifySubmissionUpdate(
+            bundleId || "App", "", "METADATA_SUBMITTED"
+          );
         } else {
           logger.error(`Fastlane metadata submit failed (job ${result.jobId})`, result.errors);
+          await pushService.notifySubmissionUpdate(
+            bundleId || "App", "", "METADATA_FAILED"
+          );
         }
       })
       .catch((err) => logger.error("Fastlane metadata submit error", err));
@@ -74,11 +80,17 @@ submissionsRouter.post("/review", async (req, res) => {
     });
 
     fl.submit("submit_for_review")
-      .then((result) => {
+      .then(async (result) => {
         if (result.ok) {
           logger.info(`Fastlane submit-for-review completed (job ${result.jobId})`);
+          await pushService.notifySubmissionUpdate(
+            bundleId || "App", "", "SUBMITTED_FOR_REVIEW"
+          );
         } else {
           logger.error(`Fastlane submit-for-review failed (job ${result.jobId})`, result.errors);
+          await pushService.notifySubmissionUpdate(
+            bundleId || "App", "", "SUBMISSION_FAILED"
+          );
         }
       })
       .catch((err) => logger.error("Fastlane submit-for-review error", err));
