@@ -43,6 +43,7 @@ export function createMcpServer(userId: string): McpServer {
   });
 
   // ── Tool: get_app_info ──────────────────────────────────────────────────
+  // @ts-ignore - MCP SDK causes excessively deep type instantiation
   server.tool(
     "get_app_info",
     "Get current ASO metadata (title, subtitle, keywords, description) for an app",
@@ -206,6 +207,7 @@ export function createMcpServer(userId: string): McpServer {
   );
 
   // ── Tool: get_suggestions ───────────────────────────────────────────────
+  // @ts-ignore - MCP SDK causes excessively deep type instantiation
   server.tool(
     "get_suggestions",
     "Get AI-generated ASO suggestions filtered by status (PENDING, APPROVED, APPLIED, REJECTED, EXPIRED)",
@@ -326,6 +328,7 @@ export function createMcpServer(userId: string): McpServer {
   );
 
   // ── Tool: trigger_job ───────────────────────────────────────────────────
+  // @ts-ignore - MCP SDK causes excessively deep type instantiation
   server.tool(
     "trigger_job",
     "Trigger a background job. Available: scrape, analyze, sync, track-keywords, discover-keywords",

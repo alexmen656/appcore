@@ -17,7 +17,6 @@ export function workerAuth(req: Request, res: Response, next: NextFunction) {
   const token = authHeader.slice(7);
   if (token !== secret) {
     res.status(403).json({ error: "Invalid worker secret" });
-    //console.log(`Unauthorized worker access attempt from ${req.ip}, invalid token: ${token}, expected: ${secret}`);
     return;
   }
 

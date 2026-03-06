@@ -1,14 +1,3 @@
-/**
- * Fastlane Worker Server
- *
- * Standalone Express server that runs on the Mac Mini at home.
- * Receives Fastlane tasks from the main AppCore server over WireGuard VPN.
- *
- * Start with: npm run worker
- * Env vars:
- *   FASTLANE_WORKER_SECRET - Shared secret for authentication (required)
- *   FASTLANE_WORKER_PORT   - Port to listen on (default: 3200)
- */
 import express from "express";
 import { workerAuth } from "./auth";
 import { workerRouter } from "./routes";
@@ -16,10 +5,8 @@ import { workerRouter } from "./routes";
 const app = express();
 const PORT = process.env.FASTLANE_WORKER_PORT ?? 3200;
 
-// Allow large payloads (screenshots as base64)
 app.use(express.json({ limit: "500mb" }));
 
-// Health check is unauthenticated (for monitoring)
 app.get("/health", async (_req, res) => {
   const { findFastlane } = await import("./fastlane-utils");
   try {
@@ -30,7 +17,6 @@ app.get("/health", async (_req, res) => {
   }
 });
 
-// All /worker/* routes require authentication
 app.use("/worker", workerAuth, workerRouter);
 
 app.listen(PORT, () => {
@@ -43,6 +29,8 @@ app.listen(PORT, () => {
   console.log(`     POST /worker/frameit   - Run fastlane frameit`);
 
   if (!process.env.FASTLANE_WORKER_SECRET) {
-    console.error("⚠️  WARNING: FASTLANE_WORKER_SECRET not set! All authenticated requests will be rejected.");
+    console.error(
+      "⚠️  WARNING: FASTLANE_WORKER_SECRET not set! All authenticated requests will be rejected.",
+    );
   }
 });

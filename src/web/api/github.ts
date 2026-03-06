@@ -197,7 +197,7 @@ githubRouter.get(
   async (req: Request, res: Response) => {
     try {
       const app = await prisma.app.findUnique({
-        where: { id: req.params.appId },
+        where: { id: req.params.appId as string },
         select: {
           githubRepoOwner: true,
           githubRepoName: true,
@@ -223,7 +223,7 @@ githubRouter.get(
   async (req: Request, res: Response) => {
     try {
       const jobs = await prisma.screenshotJob.findMany({
-        where: { appId: req.params.appId },
+        where: { appId: req.params.appId as string },
         orderBy: { createdAt: "desc" },
         take: 20,
       });
