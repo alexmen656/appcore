@@ -46,9 +46,12 @@ app.post("/mcp", mcpAuth, createMcpHandler());
 const screenshotsDir = path.join(process.cwd(), "screenshots");
 app.use("/screenshots", express.static(screenshotsDir));
 
+const landingPage = path.join(process.cwd(), "AppCore.html");
+app.get("/", (_req, res) => res.sendFile(landingPage));
+
 const webDist = path.join(__dirname, "../../web/dist");
-app.use(express.static(webDist));
-app.get("*", (_req, res) => {
+app.use("/app", express.static(webDist));
+app.get("/app/*", (_req, res) => {
   res.sendFile(path.join(webDist, "index.html"));
 });
 
