@@ -1,15 +1,7 @@
-import { exec, spawn, ChildProcess } from "child_process";
-import { promisify } from "util";
-import fs from "fs";
-import path from "path";
-import os from "os";
 import { logger, prisma } from "../config";
 import type { EffectiveSettings } from "../config";
 import { AppStoreConnectClient } from "./appstore-connect";
-
-const execAsync = promisify(exec);
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+import { workerClient } from "./worker-client";
 
 export interface SubmissionPreview {
   appId: string;
@@ -39,8 +31,6 @@ export interface SubmissionResult {
 }
 
 type SubmitAction = "metadata" | "submit_for_review";
-
-// ─── Locale mapping: ASC locale → Fastlane metadata folder name ──────────────
 
 const ASC_TO_FASTLANE_LOCALE: Record<string, string> = {
   "en-US": "en-US",
@@ -87,11 +77,8 @@ function fastlaneLocale(ascLocale: string): string {
   return ASC_TO_FASTLANE_LOCALE[ascLocale] ?? ascLocale;
 }
 
-// ─── Active submission tracking (in-memory) ──────────────────────────────────
-
 interface ActiveSubmission {
   jobId: string;
-  process: ChildProcess | null;
   logs: string[];
   errors: string[];
   status: "preparing" | "running" | "completed" | "failed";
@@ -113,8 +100,6 @@ export function getLatestSubmission(): ActiveSubmission | undefined {
   }
   return latest;
 }
-
-// ─── Fastlane Service ─────────────────────────────────────────────────────────
 
 export class FastlaneService {
   private settings: EffectiveSettings;
@@ -140,9 +125,6 @@ export class FastlaneService {
     });
   }
 
-  /**
-   * Gather the current ASO state across all configured locales for preview.
-   */
   async preview(): Promise<SubmissionPreview> {
     const app = await this.asc.getApp(this.settings.ascBundleId);
     if (!app) throw new Error("App not found in App Store Connect");
@@ -202,7 +184,6 @@ export class FastlaneService {
 
     const submission: ActiveSubmission = {
       jobId: job.id,
-      process: null,
       logs: [],
       errors: [],
       status: "preparing",
@@ -211,27 +192,30 @@ export class FastlaneService {
     activeSubmissions.set(job.id, submission);
 
     try {
-      submission.logs.push("Preparing metadata directory...");
-      const metadataDir = await this.prepareMetadataDir(action, overrides);
-      submission.logs.push(`Metadata prepared at ${metadataDir}`);
+      submission.logs.push("Preparing metadata...");
+      const localeData = await this.prepareMetadataLocales(action, overrides);
+      submission.logs.push(
+        `Metadata prepared for ${Object.keys(localeData).length} locale(s)\n
+         Delegating to Fastlane worker...`,
+      );
 
-      // 2. Write Fastlane API key JSON
-      const apiKeyPath = await this.writeApiKeyJson(metadataDir);
-      submission.logs.push("API key file written");
-
-      // 3. Check fastlane availability
-      const fastlanePath = await this.findFastlane();
-      submission.logs.push(`Using fastlane at: ${fastlanePath}`);
-
-      // 4. Build command
-      const args = this.buildDeliverArgs(action, metadataDir, apiKeyPath);
-      submission.logs.push(`Running: fastlane deliver ${args.join(" ")}`);
-
-      // 5. Execute
       submission.status = "running";
-      await this.runFastlane(fastlanePath, args, submission, metadataDir);
 
-      // 6. Update job
+      const result = await workerClient.deliver({
+        locales: localeData,
+        apiKey: {
+          key_id: this.settings.ascKeyId!,
+          issuer_id: this.settings.ascIssuerId!,
+          key: this.settings.ascPrivateKey!,
+          in_house: false,
+        },
+        bundleId: this.settings.ascBundleId,
+        action,
+      });
+
+      submission.logs.push(...result.logs);
+      submission.errors.push(...result.errors);
+
       await prisma.scrapeJob.update({
         where: { id: job.id },
         data: {
@@ -315,9 +299,7 @@ export class FastlaneService {
     }
   }
 
-  // ── Private helpers ──────────────────────────────────────────────────────
-
-  private async prepareMetadataDir(
+  private async prepareMetadataLocales(
     action: SubmitAction,
     overrides?: Record<
       string,
@@ -330,10 +312,21 @@ export class FastlaneService {
         promotionalText?: string;
       }
     >,
-  ): Promise<string> {
-    const tmpDir = path.join(os.tmpdir(), `appcore-fastlane-${Date.now()}`);
-    const metadataRoot = path.join(tmpDir, "metadata");
-
+  ): Promise<
+    Record<
+      string,
+      {
+        name: string;
+        subtitle: string;
+        keywords: string;
+        description: string;
+        whatsNew: string;
+        promotionalText: string;
+        supportUrl: string;
+        marketingUrl: string;
+      }
+    >
+  > {
     const app = await this.asc.getApp(this.settings.ascBundleId);
     if (!app) throw new Error("App not found in App Store Connect");
 
@@ -352,10 +345,9 @@ export class FastlaneService {
     for (const ai of appInfoLocalizations) allLocales.add(ai.attributes.locale);
 
     logger.info(
-      `[Fastlane] Writing metadata for ${allLocales.size} locale(s): ${[...allLocales].join(", ")}`,
+      `[Fastlane] Preparing metadata for ${allLocales.size} locale(s): ${[...allLocales].join(", ")}`,
     );
 
-    // ── Build per-locale data map ───────────────────────────────────────
     const localeData = new Map<
       string,
       {
@@ -402,203 +394,32 @@ export class FastlaneService {
       for (const [locale, data] of localeData) {
         if (!data.whatsNew && primary?.whatsNew) {
           logger.info(
-            `[Fastlane] locale "${locale}" missing whatsNew – using "${primaryLocale}" as fallback`,
+            `[Fastlane] locale "${locale}" missing whatsNew - using "${primaryLocale}" as fallback`,
           );
           data.whatsNew = primary.whatsNew;
         }
         if (!data.supportUrl && primary?.supportUrl) {
           logger.info(
-            `[Fastlane] locale "${locale}" missing supportUrl – using "${primaryLocale}" as fallback`,
+            `[Fastlane] locale "${locale}" missing supportUrl - using "${primaryLocale}" as fallback`,
           );
           data.supportUrl = primary.supportUrl;
         }
         if (!data.description && primary?.description) {
           logger.info(
-            `[Fastlane] locale "${locale}" missing description – using "${primaryLocale}" as fallback`,
+            `[Fastlane] locale "${locale}" missing description - using "${primaryLocale}" as fallback`,
           );
           data.description = primary.description;
         }
       }
     }
 
-    // ── Write metadata files ────────────────────────────────────────────
-    const currentYear = new Date().getFullYear().toString();
-
+    const result: Record<
+      string,
+      typeof localeData extends Map<string, infer V> ? V : never
+    > = {};
     for (const [locale, data] of localeData) {
-      const flLocale = fastlaneLocale(locale);
-      const localeDir = path.join(metadataRoot, flLocale);
-      fs.mkdirSync(localeDir, { recursive: true });
-
-      fs.writeFileSync(path.join(localeDir, "name.txt"), data.name);
-      fs.writeFileSync(path.join(localeDir, "subtitle.txt"), data.subtitle);
-      fs.writeFileSync(path.join(localeDir, "keywords.txt"), data.keywords);
-      fs.writeFileSync(
-        path.join(localeDir, "description.txt"),
-        data.description,
-      );
-      fs.writeFileSync(
-        path.join(localeDir, "release_notes.txt"),
-        data.whatsNew,
-      );
-      fs.writeFileSync(
-        path.join(localeDir, "promotional_text.txt"),
-        data.promotionalText,
-      );
-      fs.writeFileSync(
-        path.join(localeDir, "support_url.txt"),
-        data.supportUrl,
-      );
-      fs.writeFileSync(
-        path.join(localeDir, "marketing_url.txt"),
-        data.marketingUrl,
-      );
-
-      logger.debug(
-        `Wrote Fastlane metadata for locale ${flLocale} (whatsNew: ${data.whatsNew ? "✓" : "empty"}, supportUrl: ${data.supportUrl ? "✓" : "empty"})`,
-      );
+      result[fastlaneLocale(locale)] = data;
     }
-
-    fs.writeFileSync(
-      path.join(metadataRoot, "copyright.txt"),
-      `© ${currentYear} Fringelo`,
-    );
-
-    return tmpDir;
-  }
-
-  private async writeApiKeyJson(baseDir: string): Promise<string> {
-    const keyJson = {
-      key_id: this.settings.ascKeyId,
-      issuer_id: this.settings.ascIssuerId,
-      key: this.settings.ascPrivateKey,
-      in_house: false,
-    };
-
-    const keyPath = path.join(baseDir, "api_key.json");
-    fs.writeFileSync(keyPath, JSON.stringify(keyJson, null, 2));
-    return keyPath;
-  }
-
-  private buildDeliverArgs(
-    action: SubmitAction,
-    baseDir: string,
-    apiKeyPath: string,
-  ): string[] {
-    const args = [
-      "--api_key_path",
-      apiKeyPath,
-      "--metadata_path",
-      path.join(baseDir, "metadata"),
-      "--app_identifier",
-      this.settings.ascBundleId,
-      "--skip_screenshots",
-      "--skip_binary_upload",
-      "--force",
-      "--precheck_include_in_app_purchases",
-      "false",
-    ];
-
-    if (action === "metadata") {
-      args.push("--skip_app_version_update");
-      args.push("--submit_for_review", "false");
-    } else if (action === "submit_for_review") {
-      args.push("--submit_for_review");
-    }
-
-    return args;
-  }
-
-  private async findFastlane(): Promise<string> {
-    const candidates = [
-      "fastlane",
-      "/usr/local/bin/fastlane",
-      `${os.homedir()}/.fastlane/bin/fastlane`,
-    ];
-
-    for (const candidate of candidates) {
-      try {
-        await execAsync(`${candidate} --version`);
-        return candidate;
-      } catch {
-        // try next
-      }
-    }
-
-    try {
-      await execAsync("bundle exec fastlane --version");
-      return "bundle exec fastlane";
-    } catch {
-      // not available
-    }
-
-    throw new Error(
-      "Fastlane not found. Install it via `brew install fastlane` or `gem install fastlane`. " +
-        "Alternatively, use the 'Submit for Review (API)' option which uses the App Store Connect API directly.",
-    );
-  }
-
-  private runFastlane(
-    fastlanePath: string,
-    args: string[],
-    submission: ActiveSubmission,
-    tmpDir: string,
-  ): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const parts = fastlanePath.split(" ");
-      const cmd = parts[0];
-      const cmdArgs = [...parts.slice(1), "deliver", ...args];
-
-      logger.info(`Executing: ${cmd} ${cmdArgs.join(" ")}`);
-
-      const proc = spawn(cmd, cmdArgs, {
-        cwd: tmpDir,
-        env: { ...process.env, FASTLANE_DISABLE_COLORS: "1" },
-        stdio: ["pipe", "pipe", "pipe"],
-      });
-
-      submission.process = proc;
-
-      proc.stdout?.on("data", (data: Buffer) => {
-        const line = data.toString().trim();
-        if (line) {
-          submission.logs.push(line);
-          logger.debug(`[fastlane] ${line}`);
-        }
-      });
-
-      proc.stderr?.on("data", (data: Buffer) => {
-        const line = data.toString().trim();
-        if (line) {
-          submission.logs.push(`[stderr] ${line}`);
-          logger.warn(`[fastlane stderr] ${line}`);
-        }
-      });
-
-      proc.on("close", (code) => {
-        submission.process = null;
-
-        try {
-          fs.rmSync(tmpDir, { recursive: true, force: true });
-        } catch {
-          // ignore cleanup errors
-        }
-
-        if (code === 0) {
-          submission.logs.push("Fastlane deliver completed successfully.");
-          resolve();
-        } else {
-          const errMsg = `Fastlane deliver exited with code ${code}`;
-          submission.errors.push(errMsg);
-          submission.logs.push(errMsg);
-          reject(new Error(errMsg));
-        }
-      });
-
-      proc.on("error", (err) => {
-        submission.process = null;
-        submission.errors.push(err.message);
-        reject(err);
-      });
-    });
+    return result;
   }
 }

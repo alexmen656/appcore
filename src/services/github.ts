@@ -3,8 +3,6 @@ import axios from "axios";
 import { logger, prisma } from "../config";
 import { env } from "../config/env";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 export interface GitHubUser {
   login: string;
   avatar_url: string;
@@ -64,7 +62,10 @@ export async function exchangeGitHubCode(code: string): Promise<string> {
     { headers: { Accept: "application/json" } },
   );
 
-  if (data.error) throw new Error(`GitHub OAuth error: ${data.error_description ?? data.error}`);
+  if (data.error)
+    throw new Error(
+      `GitHub OAuth error: ${data.error_description ?? data.error}`,
+    );
   return data.access_token as string;
 }
 
@@ -77,7 +78,9 @@ export async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
 
 // ─── Repo operations ──────────────────────────────────────────────────────────
 
-export async function listUserRepos(accessToken: string): Promise<GitHubRepo[]> {
+export async function listUserRepos(
+  accessToken: string,
+): Promise<GitHubRepo[]> {
   const repos: GitHubRepo[] = [];
   let page = 1;
   while (true) {
@@ -179,7 +182,11 @@ export async function linkRepoToApp(
 
   const [owner, name] = repoFullName.split("/");
   const secret = crypto.randomBytes(32).toString("hex");
-  const webhookId = await createWebhook(settings.githubAccessToken, repoFullName, secret);
+  const webhookId = await createWebhook(
+    settings.githubAccessToken,
+    repoFullName,
+    secret,
+  );
 
   await prisma.app.update({
     where: { id: appId },
@@ -203,7 +210,11 @@ export async function unlinkRepoFromApp(
   const app = await prisma.app.findUnique({ where: { id: appId } });
   if (!app) throw new Error("App not found");
 
-  if (app.githubRepoFullName && app.githubWebhookId && settings?.githubAccessToken) {
+  if (
+    app.githubRepoFullName &&
+    app.githubWebhookId &&
+    settings?.githubAccessToken
+  ) {
     await deleteWebhook(
       settings.githubAccessToken,
       app.githubRepoFullName,

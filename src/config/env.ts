@@ -4,8 +4,9 @@ import { z } from "zod";
 dotenv.config();
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
-
+  NODE_ENV: z
+    .enum(["development", "production", "test"])
+    .default("development"),
   DATABASE_URL: z.string().url(),
 
   // App Store Connect
@@ -39,6 +40,10 @@ const envSchema = z.object({
   GITHUB_CLIENT_ID: z.string().optional(),
   GITHUB_CLIENT_SECRET: z.string().optional(),
   GITHUB_WEBHOOK_BASE_URL: z.string().optional(), // e.g. https://yourapp.com
+
+  // Fastlane Worker (Mac Mini)
+  FASTLANE_WORKER_URL: z.string().url().optional(), // e.g. http://10.0.0.50:3200
+  FASTLANE_WORKER_SECRET: z.string().optional(), // shared auth secret
 
   // Logging
   LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),

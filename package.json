@@ -7,6 +7,7 @@
     "build": "tsc",
     "dev": "concurrently \"tsx watch src/web/server.ts\" \"cd web && npx vite\"",
     "start": "tsx src/web/server.ts",
+    "worker": "tsx src/worker/server.ts",
     "web:build": "cd web && npx vite build",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
