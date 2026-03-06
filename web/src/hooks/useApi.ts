@@ -1,14 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-
 const BASE = "/api";
 
-// ─── Token helpers ───────────────────────────────────────────────────────────
 export const TOKEN_KEY = "appcore_token";
 export const getToken = () => localStorage.getItem(TOKEN_KEY);
 export const setToken = (t: string | null) =>
   t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY);
 
-// ─── Active app helpers ───────────────────────────────────────────────────────
 export const ACTIVE_BUNDLE_KEY = "appcore_active_bundle";
 export const getActiveBundleId = () => localStorage.getItem(ACTIVE_BUNDLE_KEY);
 export const setActiveBundleId = (bundleId: string | null) => {

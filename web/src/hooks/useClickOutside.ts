@@ -1,9 +1,5 @@
 import { useEffect, RefObject } from "react";
 
-/**
- * Calls `onClose` when a click occurs outside the referenced element.
- * Replaces the duplicated useEffect pattern in AppSwitcher / ProfileMenu.
- */
 export function useClickOutside(
   ref: RefObject<HTMLElement | null>,
   onClose: () => void,
