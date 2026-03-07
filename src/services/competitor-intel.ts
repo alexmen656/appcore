@@ -1,0 +1,499 @@
+import axios from "axios";
+import * as cheerio from "cheerio";
+import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
+import { prisma, logger } from "../config";
+import type { EffectiveSettings } from "../config";
+
+// ─── RSS Review Feed Types ──────────────────────────────────────────────
+
+interface ScrapedReview {
+  externalId: string;
+  rating: number;
+  title: string;
+  body: string;
+  author: string;
+  reviewedAt: Date;
+}
+
+// ─── AI Response Helper ─────────────────────────────────────────────────
+
+interface AIResponse {
+  content: string;
+  provider: string;
+  model: string;
+}
+
+// ─── Competitor Intelligence Service ────────────────────────────────────
+
+export class CompetitorIntelService {
+  private openai?: OpenAI;
+  private anthropic?: Anthropic;
+  private readonly settings?: EffectiveSettings;
+  private readonly country: string;
+
+  constructor(settings?: EffectiveSettings) {
+    this.settings = settings;
+    this.country = settings?.scrapeCountry ?? "de";
+
+    const openaiKey = settings?.openaiApiKey;
+    const anthropicKey = settings?.anthropicApiKey;
+
+    if (openaiKey) this.openai = new OpenAI({ apiKey: openaiKey });
+    if (anthropicKey) this.anthropic = new Anthropic({ apiKey: anthropicKey });
+  }
+
+  // ─── 1. Scrape Reviews from Apple RSS Feed ─────────────────────────
+
+  async scrapeReviews(
+    trackId: bigint | number,
+    appId: string,
+    country?: string,
+  ): Promise<number> {
+    const cc = country ?? this.country;
+    const tid = typeof trackId === "bigint" ? Number(trackId) : trackId;
+    let totalSaved = 0;
+
+    // Apple provides up to 10 pages of reviews via RSS (10 reviews per page)
+    for (let page = 1; page <= 10; page++) {
+      try {
+        const url = `https://itunes.apple.com/${cc}/rss/customerreviews/page=${page}/id=${tid}/sortby=mostrecent/json`;
+        const { data } = await axios.get(url, { timeout: 10000 });
+
+        const entries = data?.feed?.entry;
+        if (!entries || !Array.isArray(entries)) break;
+
+        const reviews: ScrapedReview[] = entries
+          .filter((e: any) => e?.["im:rating"]?.label) // skip the app info entry
+          .map((e: any) => ({
+            externalId:
+              e.id?.label ??
+              `${tid}-${e.title?.label}-${e.author?.name?.label}`,
+            rating: parseInt(e["im:rating"]?.label ?? "0", 10),
+            title: e.title?.label ?? "",
+            body: e.content?.label ?? "",
+            author: e.author?.name?.label ?? "Anonymous",
+            reviewedAt: new Date(e.updated?.label ?? Date.now()),
+          }));
+
+        for (const review of reviews) {
+          try {
+            await prisma.competitorReview.upsert({
+              where: {
+                appId_externalId: { appId, externalId: review.externalId },
+              },
+              create: {
+                appId,
+                externalId: review.externalId,
+                rating: review.rating,
+                title: review.title,
+                body: review.body,
+                author: review.author,
+                territory: cc,
+                reviewedAt: review.reviewedAt,
+              },
+              update: {
+                rating: review.rating,
+                title: review.title,
+                body: review.body,
+              },
+            });
+            totalSaved++;
+          } catch (err) {
+            // Skip duplicates silently
+          }
+        }
+
+        if (reviews.length < 5) break; // No more pages
+
+        await this.sleep(500);
+      } catch (err) {
+        logger.debug(`Review page ${page} for track ${tid} failed: ${err}`);
+        break;
+      }
+    }
+
+    logger.info(
+      `Scraped ${totalSaved} reviews for app ${appId} (track ${tid})`,
+    );
+    return totalSaved;
+  }
+
+  // ─── 2. Scrape reviews for ALL competitors ─────────────────────────
+
+  async scrapeAllCompetitorReviews(
+    bundleId: string,
+  ): Promise<{ total: number; apps: number }> {
+    const ownApp = await prisma.app.findUnique({
+      where: { bundleId },
+      include: {
+        competitors: {
+          include: { competitor: true },
+        },
+      },
+    });
+
+    if (!ownApp) throw new Error(`App not found: ${bundleId}`);
+
+    let total = 0;
+    let apps = 0;
+
+    for (const rel of ownApp.competitors) {
+      const comp = rel.competitor;
+      if (!comp.trackId) continue;
+
+      const count = await this.scrapeReviews(comp.trackId, comp.id);
+      total += count;
+      apps++;
+
+      await this.sleep(1000);
+    }
+
+    logger.info(
+      `Scraped reviews for ${apps} competitors, ${total} total reviews`,
+    );
+    return { total, apps };
+  }
+
+  // ─── 3. Summarize reviews for a competitor ──────────────────────────
+
+  async summarizeReviews(appId: string): Promise<string> {
+    const reviews = await prisma.competitorReview.findMany({
+      where: { appId },
+      orderBy: { reviewedAt: "desc" },
+      take: 100,
+    });
+
+    if (reviews.length === 0) {
+      logger.info(`No reviews to summarize for app ${appId}`);
+      return "No reviews available";
+    }
+
+    const avgRating =
+      reviews.reduce((sum: number, r: any) => sum + r.rating, 0) /
+      reviews.length;
+
+    const reviewTexts = reviews
+      .map(
+        (r: any, i: number) =>
+          `[${i + 1}] ★${r.rating} "${r.title ?? ""}" — ${r.body ?? "(no body)"}`,
+      )
+      .join("\n");
+
+    const systemPrompt = `You are an app market analyst. Analyze the following user reviews for a competitor app and provide a structured summary. Respond in JSON format with these fields:
+{
+  "summary": "A 2-3 paragraph overall summary of user sentiment and feedback",
+  "strengths": ["strength1", "strength2", ...],
+  "weaknesses": ["weakness1", "weakness2", ...],
+  "topThemes": ["theme1", "theme2", ...],
+  "sentiment": "positive" | "mixed" | "negative"
+}
+Be concise but thorough. Extract actionable insights.`;
+
+    const userPrompt = `Here are ${reviews.length} recent reviews (avg rating: ${avgRating.toFixed(1)}/5):\n\n${reviewTexts}`;
+
+    const ai = await this.queryAI(systemPrompt, userPrompt);
+
+    try {
+      const parsed = JSON.parse(ai.content);
+
+      await prisma.competitorReviewSummary.create({
+        data: {
+          appId,
+          reviewCount: reviews.length,
+          averageRating: avgRating,
+          summary: parsed.summary ?? ai.content,
+          strengths: parsed.strengths ?? [],
+          weaknesses: parsed.weaknesses ?? [],
+          topThemes: parsed.topThemes ?? [],
+          sentiment: parsed.sentiment ?? null,
+          aiProvider: ai.provider,
+          aiModel: ai.model,
+        },
+      });
+
+      logger.info(`Created review summary for app ${appId}`);
+      return parsed.summary;
+    } catch {
+      await prisma.competitorReviewSummary.create({
+        data: {
+          appId,
+          reviewCount: reviews.length,
+          averageRating: avgRating,
+          summary: ai.content,
+          strengths: [],
+          weaknesses: [],
+          topThemes: [],
+          aiProvider: ai.provider,
+          aiModel: ai.model,
+        },
+      });
+      return ai.content;
+    }
+  }
+
+  async summarizeAllCompetitorReviews(bundleId: string): Promise<number> {
+    const ownApp = await prisma.app.findUnique({
+      where: { bundleId },
+      include: {
+        competitors: { include: { competitor: true } },
+      },
+    });
+
+    if (!ownApp) throw new Error(`App not found: ${bundleId}`);
+
+    let count = 0;
+    for (const rel of ownApp.competitors) {
+      const reviewCount = await prisma.competitorReview.count({
+        where: { appId: rel.competitor.id },
+      });
+      if (reviewCount === 0) continue;
+
+      await this.summarizeReviews(rel.competitor.id);
+      count++;
+      await this.sleep(1000);
+    }
+
+    return count;
+  }
+
+  async detectMetadataChanges(appId: string): Promise<number> {
+    const app = await prisma.app.findUnique({
+      where: { id: appId },
+      include: {
+        snapshots: { orderBy: { scrapedAt: "desc" }, take: 2 },
+      },
+    });
+
+    if (!app || app.snapshots.length < 2) return 0;
+
+    const [current, previous] = app.snapshots;
+    let changesDetected = 0;
+
+    const fieldsToTrack: Array<{
+      field: string;
+      getCurrent: () => string | null | undefined;
+      getPrevious: () => string | null | undefined;
+    }> = [
+      {
+        field: "title",
+        getCurrent: () => current.title,
+        getPrevious: () => previous.title,
+      },
+      {
+        field: "subtitle",
+        getCurrent: () => current.subtitle,
+        getPrevious: () => previous.subtitle,
+      },
+      {
+        field: "description",
+        getCurrent: () => current.description,
+        getPrevious: () => previous.description,
+      },
+      {
+        field: "version",
+        getCurrent: () => current.version,
+        getPrevious: () => previous.version,
+      },
+      {
+        field: "rating",
+        getCurrent: () => current.rating?.toFixed(2),
+        getPrevious: () => previous.rating?.toFixed(2),
+      },
+      {
+        field: "price",
+        getCurrent: () => current.price?.toString(),
+        getPrevious: () => previous.price?.toString(),
+      },
+      {
+        field: "releaseNotes",
+        getCurrent: () => current.releaseNotes,
+        getPrevious: () => previous.releaseNotes,
+      },
+    ];
+
+    for (const { field, getCurrent, getPrevious } of fieldsToTrack) {
+      const curVal = getCurrent() ?? null;
+      const prevVal = getPrevious() ?? null;
+
+      if (curVal !== prevVal) {
+        await prisma.appMetadataChange.create({
+          data: {
+            appId,
+            field,
+            oldValue: prevVal ? String(prevVal).substring(0, 5000) : null,
+            newValue: curVal ? String(curVal).substring(0, 5000) : null,
+          },
+        });
+        changesDetected++;
+      }
+    }
+
+    if (changesDetected > 0) {
+      logger.info(
+        `Detected ${changesDetected} metadata changes for app ${appId}`,
+      );
+    }
+
+    return changesDetected;
+  }
+
+  // ─── 6. Detect changes for ALL competitors ─────────────────────────
+
+  async detectAllMetadataChanges(
+    bundleId: string,
+  ): Promise<{ apps: number; changes: number }> {
+    const ownApp = await prisma.app.findUnique({
+      where: { bundleId },
+      include: {
+        competitors: { include: { competitor: true } },
+      },
+    });
+
+    if (!ownApp) throw new Error(`App not found: ${bundleId}`);
+
+    let totalChanges = 0;
+    let appsWithChanges = 0;
+
+    for (const rel of ownApp.competitors) {
+      const changes = await this.detectMetadataChanges(rel.competitor.id);
+      totalChanges += changes;
+      if (changes > 0) appsWithChanges++;
+    }
+
+    return { apps: appsWithChanges, changes: totalChanges };
+  }
+
+  // ─── 7. Get keyword rankings for a specific competitor ─────────────
+
+  async getCompetitorKeywordRankings(
+    competitorAppId: string,
+    ownBundleId: string,
+  ): Promise<
+    Array<{
+      keyword: string;
+      competitorRank: number | null;
+      ourRank: number | null;
+      popularity: number | null;
+    }>
+  > {
+    const ownApp = await prisma.app.findUnique({
+      where: { bundleId: ownBundleId },
+    });
+    if (!ownApp) return [];
+
+    const keywords = await prisma.keyword.findMany({
+      include: {
+        rankings: {
+          where: {
+            appId: { in: [competitorAppId, ownApp.id] },
+          },
+          orderBy: { trackedAt: "desc" },
+        },
+      },
+    });
+
+    return keywords.map((kw) => {
+      const competitorRanking = kw.rankings.find(
+        (r) => r.appId === competitorAppId,
+      );
+      const ourRanking = kw.rankings.find((r) => r.appId === ownApp.id);
+
+      return {
+        keyword: kw.term,
+        competitorRank: competitorRanking?.rank ?? null,
+        ourRank: ourRanking?.rank ?? null,
+        popularity: kw.popularity,
+      };
+    });
+  }
+
+  async runFullIntelJob(bundleId: string): Promise<{
+    reviewsScraped: number;
+    appsSummarized: number;
+    metadataChanges: number;
+  }> {
+    logger.info(`Starting full competitor intel job for ${bundleId}`);
+
+    const { total: reviewsScraped } =
+      await this.scrapeAllCompetitorReviews(bundleId);
+
+    const appsSummarized = await this.summarizeAllCompetitorReviews(bundleId);
+
+    const { changes: metadataChanges } =
+      await this.detectAllMetadataChanges(bundleId);
+
+    logger.info(
+      `Competitor intel complete: ${reviewsScraped} reviews, ${appsSummarized} summaries, ${metadataChanges} changes`,
+    );
+
+    return { reviewsScraped, appsSummarized, metadataChanges };
+  }
+
+  private async queryAI(
+    systemPrompt: string,
+    userPrompt: string,
+  ): Promise<AIResponse> {
+    const provider = this.settings?.aiProvider as
+      | "openai"
+      | "anthropic"
+      | undefined;
+
+    if (provider === "anthropic" && this.anthropic) {
+      return this.queryAnthropic(systemPrompt, userPrompt);
+    }
+    if (this.openai) {
+      return this.queryOpenAI(systemPrompt, userPrompt);
+    }
+    throw new Error("No AI provider available for review summarization");
+  }
+
+  private async queryOpenAI(
+    systemPrompt: string,
+    userPrompt: string,
+  ): Promise<AIResponse> {
+    const response = await this.openai!.chat.completions.create({
+      model: "gpt-5.2",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.5,
+      max_completion_tokens: 4000,
+      response_format: { type: "json_object" },
+    });
+
+    return {
+      content: response.choices[0]?.message?.content ?? "",
+      provider: "openai",
+      model: "gpt-5.2",
+    };
+  }
+
+  private async queryAnthropic(
+    systemPrompt: string,
+    userPrompt: string,
+  ): Promise<AIResponse> {
+    const response = await this.anthropic!.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 4000,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userPrompt }],
+    });
+
+    const text = response.content
+      .filter((b): b is Anthropic.TextBlock => b.type === "text")
+      .map((b) => b.text)
+      .join("");
+
+    return {
+      content: text,
+      provider: "anthropic",
+      model: "claude-sonnet-4-20250514",
+    };
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+}

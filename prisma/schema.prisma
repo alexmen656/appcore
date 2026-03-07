@@ -103,6 +103,9 @@ model App {
   competitorOf  CompetitorRelation[] @relation("competitor_of")
   screenshotJobs ScreenshotJob[]
   asoExperiments AsoExperiment[]
+  competitorReviews   CompetitorReview[]
+  reviewSummaries     CompetitorReviewSummary[]
+  metadataChanges     AppMetadataChange[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -322,6 +325,61 @@ model AppReview {
   createdAt        DateTime @default(now())
 
   @@index([bundleId, reviewedAt])
+}
+
+// ─── Competitor Reviews (scraped from App Store) ────────────────────────
+
+model CompetitorReview {
+  id               String   @id @default(cuid())
+  appId            String
+  app              App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+  externalId       String?  // external review ID for deduplication
+  rating           Int      // 1–5
+  title            String?
+  body             String?
+  author           String?
+  territory        String?  // e.g. "de", "us"
+  reviewedAt       DateTime
+  createdAt        DateTime @default(now())
+
+  @@unique([appId, externalId])
+  @@index([appId, reviewedAt])
+  @@index([appId, rating])
+}
+
+// ─── AI-generated review summaries per competitor ───────────────────────
+
+model CompetitorReviewSummary {
+  id              String   @id @default(cuid())
+  appId           String
+  app             App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+  reviewCount     Int      // how many reviews went into this summary
+  averageRating   Float
+  summary         String   // AI-generated summary text
+  strengths       String[] // key strengths extracted
+  weaknesses      String[] // key weaknesses extracted
+  topThemes       String[] // main themes (e.g. "performance", "ui", "price")
+  sentiment       String?  // overall sentiment: positive | mixed | negative
+  aiProvider      String
+  aiModel         String
+  createdAt       DateTime @default(now())
+
+  @@index([appId, createdAt])
+}
+
+// ─── Competitor metadata change tracking ────────────────────────────────
+
+model AppMetadataChange {
+  id          String   @id @default(cuid())
+  appId       String
+  app         App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+  field       String   // title | subtitle | description | keywords | version | rating | price
+  oldValue    String?
+  newValue    String?
+  detectedAt  DateTime @default(now())
+
+  @@index([appId, detectedAt])
+  @@index([appId, field])
 }
 
 enum JobStatus {

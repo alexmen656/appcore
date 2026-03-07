@@ -307,3 +307,62 @@ export interface VersionsData {
   ageRating?: string;
   localizations: VersionLocalization[];
 }
+
+export interface CompetitorReview {
+  id: string;
+  rating: number;
+  title: string | null;
+  body: string | null;
+  author: string | null;
+  territory: string | null;
+  reviewedAt: string;
+}
+
+export interface CompetitorReviewSummary {
+  id: string;
+  reviewCount: number;
+  averageRating: number;
+  summary: string;
+  strengths: string[];
+  weaknesses: string[];
+  topThemes: string[];
+  sentiment: string | null;
+  createdAt: string;
+}
+
+export interface MetadataChange {
+  id: string;
+  field: string;
+  oldValue: string | null;
+  newValue: string | null;
+  detectedAt: string;
+}
+
+export interface CompetitorKeywordRanking {
+  keyword: string;
+  keywordId: string;
+  popularity: number | null;
+  competitorRank: number | null;
+  ourRank: number | null;
+}
+
+export interface CompetitorDetail {
+  id: string;
+  bundleId: string;
+  name: string;
+  trackId: string | null;
+  country: string;
+  title: string | null;
+  subtitle: string | null;
+  description: string | null;
+  rating: number | null;
+  ratingsCount: number | null;
+  iconUrl: string | null;
+  version: string | null;
+  developerName: string | null;
+  category: string | null;
+  reviews: CompetitorReview[];
+  reviewSummary: CompetitorReviewSummary | null;
+  metadataChanges: MetadataChange[];
+  keywordRankings: CompetitorKeywordRanking[];
+}

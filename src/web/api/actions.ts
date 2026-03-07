@@ -195,3 +195,25 @@ actionsRouter.get("/jobs", async (_req, res) => {
   }
 });
 
+actionsRouter.post("/competitor-intel", async (req, res) => {
+  try {
+    const settings = await getEffectiveSettings(req.user!.userId);
+    const bundleId = req.body.bundleId || settings.ascBundleId;
+    const { CompetitorIntelService } = await import("../../services/competitor-intel");
+    const intel = new CompetitorIntelService(settings);
+
+    res.json({ ok: true, message: "Competitor intelligence gathering started" });
+
+    intel
+      .runFullIntelJob(bundleId)
+      .then((result) =>
+        logger.info("Competitor intel completed", result),
+      )
+      .catch((err) =>
+        logger.error("Competitor intel failed", err),
+      );
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+

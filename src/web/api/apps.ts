@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../../config";
+import { getEffectiveSettings } from "../../config";
 
 export const appsRouter = Router();
 
@@ -154,6 +155,125 @@ appsRouter.get("/:id", async (req, res) => {
         scrapedAt: s.scrapedAt,
       })),
       competitors: allCompetitors,
+    });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+appsRouter.get("/:id/competitor-detail", async (req, res) => {
+  try {
+    const bundleId = req.query.bundleId as string | undefined;
+    const app = await prisma.app.findUnique({
+      where: { id: req.params.id },
+      include: {
+        snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 },
+      },
+    });
+
+    if (!app) return res.status(404).json({ error: "App not found" });
+
+    const reviews = await prisma.competitorReview.findMany({
+      where: { appId: app.id },
+      orderBy: { reviewedAt: "desc" },
+      take: 50,
+    });
+
+    const latestSummary = await prisma.competitorReviewSummary.findFirst({
+      where: { appId: app.id },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const metadataChanges = await prisma.appMetadataChange.findMany({
+      where: { appId: app.id },
+      orderBy: { detectedAt: "desc" },
+      take: 50,
+    });
+
+    let keywordRankings: Array<{
+      keyword: string;
+      keywordId: string;
+      popularity: number | null;
+      competitorRank: number | null;
+      ourRank: number | null;
+    }> = [];
+
+    if (bundleId) {
+      const ownApp = await prisma.app.findUnique({ where: { bundleId } });
+      if (ownApp) {
+        const keywords = await prisma.keyword.findMany({
+          orderBy: { popularity: "desc" },
+        });
+
+        for (const kw of keywords) {
+          const compRanking = await prisma.keywordRanking.findFirst({
+            where: { keywordId: kw.id, appId: app.id },
+            orderBy: { trackedAt: "desc" },
+          });
+
+          const ourRanking = await prisma.keywordRanking.findFirst({
+            where: { keywordId: kw.id, appId: ownApp.id },
+            orderBy: { trackedAt: "desc" },
+          });
+
+          keywordRankings.push({
+            keyword: kw.term,
+            keywordId: kw.id,
+            popularity: kw.popularity,
+            competitorRank: compRanking?.rank ?? null,
+            ourRank: ourRanking?.rank ?? null,
+          });
+        }
+      }
+    }
+
+    const snapshot = app.snapshots[0];
+
+    res.json({
+      id: app.id,
+      bundleId: app.bundleId,
+      name: app.name,
+      trackId: app.trackId?.toString() ?? null,
+      country: app.country,
+      title: app.currentTitle,
+      subtitle: app.currentSubtitle,
+      description: app.currentDescription,
+      rating: snapshot?.rating ?? null,
+      ratingsCount: snapshot?.ratingsCount ?? null,
+      iconUrl: snapshot?.iconUrl ?? null,
+      version: snapshot?.version ?? null,
+      developerName: snapshot?.developerName ?? null,
+      category: snapshot?.category ?? null,
+      reviews: reviews.map((r: any) => ({
+        id: r.id,
+        rating: r.rating,
+        title: r.title,
+        body: r.body,
+        author: r.author,
+        territory: r.territory,
+        reviewedAt: r.reviewedAt,
+      })),
+      reviewSummary: latestSummary
+        ? {
+            id: latestSummary.id,
+            reviewCount: latestSummary.reviewCount,
+            averageRating: latestSummary.averageRating,
+            summary: latestSummary.summary,
+            strengths: latestSummary.strengths,
+            weaknesses: latestSummary.weaknesses,
+            topThemes: latestSummary.topThemes,
+            sentiment: latestSummary.sentiment,
+            createdAt: latestSummary.createdAt,
+          }
+        : null,
+      metadataChanges: metadataChanges.map((c: any) => ({
+        id: c.id,
+        field: c.field,
+        oldValue: c.oldValue,
+        newValue: c.newValue,
+        detectedAt: c.detectedAt,
+      })),
+      keywordRankings,
     });
   } catch (err) {
     res.status(500).json({ error: String(err) });

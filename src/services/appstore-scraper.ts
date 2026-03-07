@@ -508,6 +508,38 @@ export class AppStoreScraper {
       });
     }
 
+    const prevSnapshot = await prisma.appSnapshot.findFirst({
+      where: { appId: app.id },
+      orderBy: { scrapedAt: "desc" },
+    });
+
+    if (prevSnapshot) {
+      const changes: Array<{ field: string; oldValue: string | null; newValue: string | null }> = [];
+      const compare = (field: string, oldVal: string | null | undefined, newVal: string | null | undefined) => {
+        const o = oldVal ?? null;
+        const n = newVal ?? null;
+        if (o !== n) changes.push({ field, oldValue: o ? String(o).substring(0, 5000) : null, newValue: n ? String(n).substring(0, 5000) : null });
+      };
+
+      compare("title", prevSnapshot.title, itunesData.trackName);
+      compare("subtitle", prevSnapshot.subtitle, webData?.subtitle);
+      compare("description", prevSnapshot.description, itunesData.description);
+      compare("version", prevSnapshot.version, itunesData.version);
+      compare("releaseNotes", prevSnapshot.releaseNotes, itunesData.releaseNotes ?? webData?.whatsNew);
+      compare("rating", prevSnapshot.rating?.toFixed(2), itunesData.averageUserRating?.toFixed(2));
+      compare("price", prevSnapshot.price?.toString(), itunesData.price?.toString());
+
+      for (const c of changes) {
+        await prisma.appMetadataChange.create({
+          data: { appId: app.id, field: c.field, oldValue: c.oldValue, newValue: c.newValue },
+        });
+      }
+
+      if (changes.length > 0) {
+        logger.info(`Detected ${changes.length} metadata changes for ${bundleId}: ${changes.map(c => c.field).join(", ")}`);
+      }
+    }
+
     const description = itunesData.description;
     await prisma.appSnapshot.create({
       data: {

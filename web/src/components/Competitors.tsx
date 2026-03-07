@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useApi, apiPost, apiDelete, getActiveBundleId } from "../hooks/useApi";
 import OwnAppCard, { AppItem } from "./comps/competitors/OwnAppCard";
 import CompetitorCard from "./comps/competitors/CompetitorCard";
+import CompetitorDetailModal from "./comps/CompetitorDetailModal";
 
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
@@ -10,6 +11,8 @@ interface Props {
 export default function Competitors({ addToast }: Props) {
   const { data, loading, refetch } = useApi<AppItem[]>("/apps");
   const [discovering, setDiscovering] = useState(false);
+  const [intelRunning, setIntelRunning] = useState(false);
+  const [detailAppId, setDetailAppId] = useState<string | null>(null);
 
   const discoverCompetitors = async () => {
     setDiscovering(true);
@@ -23,6 +26,20 @@ export default function Competitors({ addToast }: Props) {
       addToast(e.message, "error");
     } finally {
       setDiscovering(false);
+    }
+  };
+
+  const runCompetitorIntel = async () => {
+    setIntelRunning(true);
+    try {
+      const res = await apiPost("/actions/competitor-intel", {
+        bundleId: getActiveBundleId(),
+      });
+      addToast(res.message || "Competitor intel started", "success");
+    } catch (e: any) {
+      addToast(e.message, "error");
+    } finally {
+      setIntelRunning(false);
     }
   };
 
@@ -53,11 +70,31 @@ export default function Competitors({ addToast }: Props) {
         <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0]">
           Competitors
         </h1>
-        <button
-          onClick={discoverCompetitors}
-          disabled={discovering}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+        <div className="flex gap-2">
+          <button
+            onClick={runCompetitorIntel}
+            disabled={intelRunning}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-[#111827] dark:text-[#e8eaf0] hover:border-[#ea0e2b] hover:text-[#ea0e2b] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {intelRunning ? (
+              <>
+                <div className="spinner" /> Gathering…
+              </>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                </svg>
+                Gather Intel
+              </>
+            )}
+          </button>
+          <button
+            onClick={discoverCompetitors}
+            disabled={discovering}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
           {discovering ? (
             <>
               <div className="spinner" /> Discovering…
@@ -80,7 +117,8 @@ export default function Competitors({ addToast }: Props) {
               Discover Competitors
             </>
           )}
-        </button>
+          </button>
+        </div>
       </div>
       <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">
         {competitors.length} competitor{competitors.length !== 1 ? "s" : ""}{" "}
@@ -125,9 +163,18 @@ export default function Competitors({ addToast }: Props) {
               competitor={c}
               ownAppId={ownApp?.id}
               onRemove={ownApp ? (competitorId) => removeCompetitor(ownApp.id, competitorId) : undefined}
+              onClick={() => setDetailAppId(c.id)}
             />
           ))}
         </div>
+      )}
+
+      {detailAppId && (
+        <CompetitorDetailModal
+          appId={detailAppId}
+          onClose={() => setDetailAppId(null)}
+          addToast={addToast}
+        />
       )}
     </div>
   );
