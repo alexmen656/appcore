@@ -87,14 +87,14 @@ export default function RankingHistoryChart({
   })();
 
   return (
-    <div className="bg-white border border-[#eef0f3] rounded-2xl p-6 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+    <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-6 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
       <div className="flex items-start justify-between mb-5">
         <div>
-          <h3 className="text-base font-semibold text-[#111827]">
+          <h3 className="text-base font-semibold text-[#111827] dark:text-[#e8eaf0]">
             Ranking History:{" "}
             <span className="text-[#ea0e2b]">{keyword.term}</span>
           </h3>
-          <div className="text-xs text-[#9ca3af] mt-1">
+          <div className="text-xs text-[#9ca3af] dark:text-[#5c6478] mt-1">
             {keyword.country.toUpperCase()} · Popularity{" "}
             {keyword.popularity ?? "—"} · Difficulty {keyword.difficulty ?? "—"}
           </div>
@@ -105,11 +105,11 @@ export default function RankingHistoryChart({
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-12 text-gray-400 gap-2">
+        <div className="flex justify-center py-12 text-[#9ca3af] dark:text-[#5c6478] gap-2">
           <div className="spinner" /> Loading history…
         </div>
       ) : chartData.length === 0 ? (
-        <div className="py-12 text-center text-gray-400 text-sm">
+        <div className="py-12 text-center text-[#9ca3af] dark:text-[#5c6478] text-sm">
           No ranking history yet. Run tracking first.
         </div>
       ) : (

@@ -32,20 +32,20 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
     <div
-      className="bg-white border border-[#eef0f3] rounded-2xl px-4 py-3"
+      className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl px-4 py-3"
       style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.08)", minWidth: 160 }}
     >
-      <div className="text-[11px] text-[#9ca3af] mb-2 font-medium">{fmtShortDate(String(label))}</div>
+      <div className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] mb-2 font-medium">{fmtShortDate(String(label))}</div>
       {payload.map((p: any) => (
         <div key={p.dataKey} className="flex items-center justify-between gap-3 text-[12px] mb-1">
-          <span className="flex items-center gap-1.5 text-[#6b7280]">
+          <span className="flex items-center gap-1.5 text-[#6b7280] dark:text-[#8b93a5]">
             <span
               className="inline-block w-2 h-2 rounded-full"
               style={{ background: p.color }}
             />
             {p.name}
           </span>
-          <span className="font-semibold text-[#111827] tabular-nums">
+          <span className="font-semibold text-[#111827] dark:text-[#e8eaf0] tabular-nums">
             {p.dataKey === "proceeds"
               ? `$${Number(p.value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
               : Number(p.value).toLocaleString()}
@@ -79,11 +79,11 @@ export default function MetricsChart({ data }: Props) {
   }
 
   return (
-    <div className="bg-white border border-[#eef0f3] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+    <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
         <div>
-          <div className="text-[15px] font-semibold text-[#111827]">Metrics over time</div>
-          <div className="text-[12px] text-[#9ca3af] mt-0.5">Daily breakdown</div>
+          <div className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0]">Metrics over time</div>
+          <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mt-0.5">Daily breakdown</div>
         </div>
         <div className="flex flex-wrap gap-1.5">
           {METRICS.map((m) => {
@@ -107,7 +107,7 @@ export default function MetricsChart({ data }: Props) {
                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12px] font-medium border transition-colors ${
                   active
                     ? "border-transparent text-white"
-                    : "bg-white border-[#eef0f3] text-[#9ca3af] hover:border-[#d1d5db] hover:text-[#6b7280]"
+                    : "bg-white dark:bg-[#252b38] border-[#eef0f3] dark:border-[#2a2f3d] text-[#9ca3af] dark:text-[#5c6478] hover:border-[#d1d5db] dark:hover:border-[#5c6478] hover:text-[#6b7280] dark:hover:text-[#8b93a5]"
                 } ${noData || revenueNoData ? "opacity-40 cursor-default" : "cursor-pointer"}`}
                 style={active ? { background: m.color, borderColor: m.color } : undefined}
               >
@@ -123,14 +123,14 @@ export default function MetricsChart({ data }: Props) {
       </div>
 
       {!hasEngagement && (activeMetrics.has("impressions") || activeMetrics.has("pageViews") || activeMetrics.has("sessions")) && (
-        <div className="mb-3 px-3.5 py-2.5 rounded-xl bg-[#f8f9fb] border border-[#eef0f3] text-[12px] text-[#6b7280]">
+        <div className="mb-3 px-3.5 py-2.5 rounded-xl bg-[#f8f9fb] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] text-[12px] text-[#6b7280] dark:text-[#8b93a5]">
           Impressions, page views and sessions come from Apple's Analytics Reports API.
           On the first <strong>Sync</strong>, Apple creates the data request — run a second sync after a few minutes for the data to appear.
         </div>
       )}
 
       {data.length === 0 ? (
-        <div className="flex items-center justify-center h-52 text-[13px] text-[#9ca3af]">
+        <div className="flex items-center justify-center h-52 text-[13px] text-[#9ca3af] dark:text-[#5c6478]">
           No data yet — sync to fetch metrics.
         </div>
       ) : (

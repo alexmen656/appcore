@@ -30,7 +30,7 @@ export default function Keywords({ addToast }: Props) {
 
   if (loading)
     return (
-      <div className="flex items-center justify-center py-20 gap-3 text-gray-400">
+      <div className="flex items-center justify-center py-20 gap-3 text-gray-400 dark:text-[#5c6478]">
         <div className="spinner" /> Loading keywords…
       </div>
     );
@@ -101,10 +101,10 @@ export default function Keywords({ addToast }: Props) {
 
   return (
     <div>
-      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] mb-1">
+      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
         Keywords
       </h1>
-      <p className="text-sm text-[#9ca3af] mb-8">
+      <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">
         Track keyword rankings and discover new opportunities
       </p>
 
@@ -135,10 +135,10 @@ export default function Keywords({ addToast }: Props) {
               <path d="m21 21-4.35-4.35" />
             </svg>
           </div>
-          <div className="text-sm font-medium text-[#6b7280] mb-1">
+          <div className="text-sm font-medium text-[#6b7280] dark:text-[#8b93a5] mb-1">
             No keywords tracked yet
           </div>
-          <div className="text-xs text-[#9ca3af]">
+          <div className="text-xs text-[#9ca3af] dark:text-[#5c6478]">
             Add keywords above or run a competitor keyword extraction
           </div>
         </div>
@@ -164,7 +164,7 @@ export default function Keywords({ addToast }: Props) {
         />
       )}
 
-      <div className="text-xs text-gray-400 mt-2">
+      <div className="text-xs text-gray-400 dark:text-[#5c6478] mt-2">
         {sorted.length} keyword{sorted.length !== 1 ? "s" : ""} tracked
       </div>
     </div>

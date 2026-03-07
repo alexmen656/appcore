@@ -9,11 +9,11 @@ interface Props {
 export default function RecentSuggestionsTable({ suggestions }: Props) {
   return (
     <div className={cardCls}>
-      <div className="text-xs font-medium uppercase tracking-wide text-[#9ca3af] mb-4">
+      <div className="text-xs font-medium uppercase tracking-wide text-[#9ca3af] dark:text-[#5c6478] mb-4">
         Recent Suggestions
       </div>
       {suggestions.length === 0 ? (
-        <div className="py-8 text-center text-[#9ca3af] text-sm">
+        <div className="py-8 text-center text-[#9ca3af] dark:text-[#5c6478] text-sm">
           No suggestions yet — run an AI analysis first
         </div>
       ) : (
@@ -28,16 +28,16 @@ export default function RecentSuggestionsTable({ suggestions }: Props) {
           </thead>
           <tbody>
             {suggestions.map((s) => (
-              <tr key={s.id} className="hover:bg-gray-50/60">
+              <tr key={s.id} className="hover:bg-gray-50/60 dark:hover:bg-white/[0.03]">
                 <td className={TD}>
                   <span className={badge(s.type.toLowerCase())}>{s.type}</span>
                 </td>
-                <td className={`${TD} text-[#6b7280]`}>{s.locale}</td>
+                <td className={`${TD} text-[#6b7280] dark:text-[#8b93a5]`}>{s.locale}</td>
                 <td className={TD}>
                   {s.confidence != null ? (
-                    <span className="flex items-center gap-1.5">
+                    <span className="flex items-center gap-1.5 text-[#111827] dark:text-[#e8eaf0]">
                       {Math.round(s.confidence * 100)}%
-                      <span className="inline-block h-1 w-[60px] bg-[#e5e7eb] rounded-sm overflow-hidden align-middle ml-1.5">
+                      <span className="inline-block h-1 w-[60px] bg-[#e5e7eb] dark:bg-[#2a2f3d] rounded-sm overflow-hidden align-middle ml-1.5">
                         <span
                           className="block h-full bg-emerald-500 rounded-sm"
                           style={{ width: `${s.confidence * 100}%` }}

@@ -128,8 +128,8 @@ export default function Agents({ addToast }: Props) {
     <div className="flex-1 overflow-auto">
       <div className="max-w-3xl mx-auto px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight text-[#111827]">Agents</h1>
-          <p className="text-sm text-[#9ca3af] mt-1">
+          <h1 className="text-2xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0]">Agents</h1>
+          <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mt-1">
             Connect AI agents like Claude to your AppCore data via the Model
             Context Protocol (MCP).
           </p>
@@ -141,10 +141,10 @@ export default function Agents({ addToast }: Props) {
         >
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-medium text-[#111827]">
+              <div className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0]">
                 MCP Server Status
               </div>
-              <div className="text-xs text-[#9ca3af] mt-0.5">
+              <div className="text-xs text-[#9ca3af] dark:text-[#5c6478] mt-0.5">
                 {config?.mcpEnabled
                   ? `Active — endpoint available at ${mcpUrl}`
                   : "Disabled — no MCP connections are accepted"}
@@ -154,7 +154,7 @@ export default function Agents({ addToast }: Props) {
               onClick={handleToggle}
               disabled={toggling || !config}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
-                config?.mcpEnabled ? "bg-[#ea0e2b]" : "bg-gray-200"
+                config?.mcpEnabled ? "bg-[#ea0e2b]" : "bg-gray-200 dark:bg-[#2a2f3d]"
               }`}
             >
               <span
@@ -227,7 +227,7 @@ export default function Agents({ addToast }: Props) {
                 {regenerating ? "Generating…" : "Regenerate Key"}
               </button>
               {displayKey && (
-                <p className="text-[11px] text-gray-400 mt-1.5">
+                <p className="text-[11px] text-gray-400 dark:text-[#5c6478] mt-1.5">
                   Regenerating invalidates the current key immediately.
                 </p>
               )}
@@ -243,12 +243,12 @@ export default function Agents({ addToast }: Props) {
             {MCP_TOOLS.map((tool) => (
               <div
                 key={tool.name}
-                className="flex items-start gap-3 p-3 bg-[#f8f9fb] rounded-xl border border-[#eef0f3]"
+                className="flex items-start gap-3 p-3 bg-[#f8f9fb] dark:bg-[#252b38] rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d]"
               >
                 <code className="text-[12px] font-mono font-semibold text-[#ea0e2b] shrink-0 mt-0.5">
                   {tool.name}
                 </code>
-                <span className="text-xs text-gray-500 mt-0.5">
+                <span className="text-xs text-gray-500 dark:text-[#8b93a5] mt-0.5">
                   {tool.desc}
                 </span>
               </div>
@@ -260,13 +260,13 @@ export default function Agents({ addToast }: Props) {
           title="Claude Desktop Configuration"
           desc='Add this snippet to your claude_desktop_config.json under "mcpServers" and restart Claude Desktop.'
         >
-          <div className="flex gap-1 mb-4 bg-[#f8f9fb] p-1 rounded-xl border border-[#eef0f3] w-fit">
+          <div className="flex gap-1 mb-4 bg-[#f8f9fb] dark:bg-[#252b38] p-1 rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] w-fit">
             <button
               onClick={() => setConfigTab("http")}
               className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
                 configTab === "http"
-                  ? "bg-white text-[#111827] shadow-sm border border-[#eef0f3]"
-                  : "text-[#9ca3af] hover:text-[#111827]"
+                  ? "bg-white dark:bg-[#1c2028] text-[#111827] dark:text-[#e8eaf0] shadow-sm border border-[#eef0f3] dark:border-[#2a2f3d]"
+                  : "text-[#9ca3af] dark:text-[#5c6478] hover:text-[#111827] dark:hover:text-[#e8eaf0]"
               }`}
             >
               HTTP (Remote)
@@ -275,8 +275,8 @@ export default function Agents({ addToast }: Props) {
               onClick={() => setConfigTab("stdio")}
               className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
                 configTab === "stdio"
-                  ? "bg-white text-[#111827] shadow-sm border border-[#eef0f3]"
-                  : "text-[#9ca3af] hover:text-[#111827]"
+                  ? "bg-white dark:bg-[#1c2028] text-[#111827] dark:text-[#e8eaf0] shadow-sm border border-[#eef0f3] dark:border-[#2a2f3d]"
+                  : "text-[#9ca3af] dark:text-[#5c6478] hover:text-[#111827] dark:hover:text-[#e8eaf0]"
               }`}
             >
               Local (stdio)
@@ -303,9 +303,9 @@ export default function Agents({ addToast }: Props) {
               Copy
             </button>
           </div>
-          <p className="text-[11px] text-[#9ca3af] mt-3">
+          <p className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] mt-3">
             Config file location on macOS:{" "}
-            <code className="font-mono text-[#111827]">
+            <code className="font-mono text-[#111827] dark:text-[#e8eaf0]">
               ~/Library/Application Support/Claude/claude_desktop_config.json
             </code>
           </p>

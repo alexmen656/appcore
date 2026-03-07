@@ -44,13 +44,13 @@ export default function Login({ onAuth }: Props) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f8f9fb]">
-      <div className="w-[400px] bg-white rounded-2xl shadow-xl border border-[#eef0f3] p-10">
+    <div className="min-h-screen flex items-center justify-center bg-[#f8f9fb] dark:bg-[#0f1117]">
+      <div className="w-[400px] bg-white dark:bg-[#1c2028] rounded-2xl shadow-xl border border-[#eef0f3] dark:border-[#2a2f3d] p-10">
         <AuthHeader mode={mode} />
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {mode === "register" && (
             <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-[#111827]">Name</span>
+              <span className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0]">Name</span>
               <input
                 className={inputCls}
                 type="text"
@@ -105,7 +105,7 @@ export default function Login({ onAuth }: Props) {
                 : "Create account"}
           </button>
         </form>
-        <div className="mt-5 text-center text-sm text-gray-500">
+        <div className="mt-5 text-center text-sm text-[#9ca3af] dark:text-[#5c6478]">
           {mode === "login" ? (
             <>
               No account yet?{" "}

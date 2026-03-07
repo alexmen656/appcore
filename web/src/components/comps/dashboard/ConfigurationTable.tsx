@@ -10,7 +10,7 @@ interface Props {
 export default function ConfigurationTable({ config }: Props) {
   return (
     <div className={cardCls}>
-      <div className="text-xs font-medium uppercase tracking-wide text-[#9ca3af] mb-4">
+      <div className="text-xs font-medium uppercase tracking-wide text-[#9ca3af] dark:text-[#5c6478] mb-4">
         Configuration
       </div>
       <table className="w-full border-collapse">
@@ -27,17 +27,17 @@ export default function ConfigurationTable({ config }: Props) {
             return (
               <tr
                 key={label}
-                className="border-b border-[#f0f0f0] last:border-0"
+                className="border-b border-[#f0f0f0] dark:border-[#2a2f3d] last:border-0"
               >
-                <td className="w-40 py-3 pr-4 text-[13px] font-medium text-[#111827]">
+                <td className="w-40 py-3 pr-4 text-[13px] font-medium text-[#111827] dark:text-[#e8eaf0]">
                   {label}
                 </td>
-                <td className="py-3 text-[13px] text-[#6b7280]">{val}</td>
+                <td className="py-3 text-[13px] text-[#6b7280] dark:text-[#8b93a5]">{val}</td>
               </tr>
             );
           })}
           <tr>
-            <td className="py-3 pr-4 text-[13px] font-medium text-[#111827]">
+            <td className="py-3 pr-4 text-[13px] font-medium text-[#111827] dark:text-[#e8eaf0]">
               Integrations
             </td>
             <td className="py-3 flex gap-1.5 flex-wrap">

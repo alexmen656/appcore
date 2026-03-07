@@ -30,7 +30,7 @@ export default function Suggestions({ addToast }: Props) {
 
   if (loading)
     return (
-      <div className="flex items-center justify-center py-20 gap-3 text-gray-400">
+      <div className="flex items-center justify-center py-20 gap-3 text-gray-400 dark:text-[#5c6478]">
         <div className="w-5 h-5 rounded-full border-2 border-gray-200 border-t-blue-500 animate-spin" />
         Loading suggestions…
       </div>
@@ -75,10 +75,10 @@ export default function Suggestions({ addToast }: Props) {
 
   return (
     <div>
-      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] mb-1">
+      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
         ASO Suggestions
       </h1>
-      <p className="text-sm text-[#9ca3af] mb-8">
+      <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">
         AI-generated optimization suggestions across locales
       </p>
 
@@ -116,10 +116,10 @@ export default function Suggestions({ addToast }: Props) {
               />
             </svg>
           </div>
-          <div className="text-sm font-medium text-[#6b7280] mb-1">
+          <div className="text-sm font-medium text-[#6b7280] dark:text-[#8b93a5] mb-1">
             No suggestions found
           </div>
-          <div className="text-xs text-[#9ca3af]">
+          <div className="text-xs text-[#9ca3af] dark:text-[#5c6478]">
             Run an AI analysis from the Actions page
           </div>
         </div>

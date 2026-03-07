@@ -9,8 +9,8 @@ interface Props {
 export default function LastJobStatus({ lastJob }: Props) {
   return (
     <div className={cardCls}>
-      <div className="text-xs font-medium uppercase tracking-wide text-[#9ca3af] mb-2">Last Job</div>
-      <div className="text-sm text-[#6b7280] flex items-center gap-2">
+      <div className="text-xs font-medium uppercase tracking-wide text-[#9ca3af] dark:text-[#5c6478] mb-2">Last Job</div>
+      <div className="text-sm text-[#6b7280] dark:text-[#8b93a5] flex items-center gap-2">
         <span
           className={badge(
             lastJob.status === "COMPLETED"

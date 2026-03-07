@@ -11,7 +11,7 @@ export default function JobHistoryTable({ jobs, onRefresh }: Props) {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <div className="text-sm font-semibold text-[#111827]">Job History</div>
+        <div className="text-sm font-semibold text-[#111827] dark:text-[#e8eaf0]">Job History</div>
         <button className={btnSecSm} onClick={onRefresh}>
           Refresh
         </button>
@@ -25,15 +25,15 @@ export default function JobHistoryTable({ jobs, onRefresh }: Props) {
               <line x1="6" y1="20" x2="6" y2="14" />
             </svg>
           </div>
-          <div className="text-sm font-medium text-[#6b7280] mb-1">
+          <div className="text-sm font-medium text-[#6b7280] dark:text-[#8b93a5] mb-1">
             No jobs recorded yet
           </div>
-          <div className="text-xs text-[#9ca3af]">
+          <div className="text-xs text-[#9ca3af] dark:text-[#5c6478]">
             Trigger an action above to create a job
           </div>
         </div>
       ) : (
-        <div className="bg-white border border-[#eef0f3] rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+        <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
           <table className="w-full border-collapse">
             <thead>
               <tr>
@@ -47,18 +47,18 @@ export default function JobHistoryTable({ jobs, onRefresh }: Props) {
             </thead>
             <tbody>
               {jobs.map((j) => (
-                <tr key={j.id} className="hover:bg-gray-50/60">
-                  <td className={`${TD} font-medium text-[#111827]`}>
+                <tr key={j.id} className="hover:bg-gray-50/60 dark:hover:bg-white/[0.03]">
+                  <td className={`${TD} font-medium text-[#111827] dark:text-[#e8eaf0]`}>
                     {j.type}
                   </td>
                   <td className={TD}>
                     <span className={badge(j.status)}>{j.status}</span>
                   </td>
-                  <td className={`${TD} text-[#6b7280]`}>{j.itemsCount}</td>
-                  <td className={`${TD} text-xs text-[#9ca3af]`}>
+                  <td className={`${TD} text-[#6b7280] dark:text-[#8b93a5]`}>{j.itemsCount}</td>
+                  <td className={`${TD} text-xs text-[#9ca3af] dark:text-[#5c6478]`}>
                     {j.startedAt ? new Date(j.startedAt).toLocaleString() : "—"}
                   </td>
-                  <td className={`${TD} text-xs text-[#9ca3af]`}>
+                  <td className={`${TD} text-xs text-[#9ca3af] dark:text-[#5c6478]`}>
                     {j.completedAt
                       ? new Date(j.completedAt).toLocaleString()
                       : "—"}

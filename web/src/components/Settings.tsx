@@ -40,7 +40,7 @@ export default function Settings({ addToast }: Props) {
 
   if (loading)
     return (
-      <div className="flex items-center justify-center py-20 gap-3 text-gray-400">
+      <div className="flex items-center justify-center py-20 gap-3 text-gray-400 dark:text-[#5c6478]">
         <div className="spinner" /> Loading settings…
       </div>
     );
@@ -49,10 +49,10 @@ export default function Settings({ addToast }: Props) {
 
   return (
     <div className="max-w-3xl">
-      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] mb-1">
+      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
         Settings
       </h1>
-      <p className="text-sm text-[#9ca3af] mb-8">
+      <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">
         Configure your personal API keys and preferences.
       </p>
 

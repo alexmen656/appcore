@@ -124,13 +124,13 @@ function getDeviceLabel(url: string): string {
 }
 
 const stateColors: Record<string, string> = {
-  READY_FOR_SALE: "bg-emerald-50 text-emerald-700 border-emerald-100",
-  PREPARE_FOR_SUBMISSION: "bg-amber-50 text-amber-700 border-amber-100",
-  WAITING_FOR_REVIEW: "bg-blue-50 text-blue-700 border-blue-100",
-  IN_REVIEW: "bg-violet-50 text-violet-700 border-violet-100",
-  REJECTED: "bg-red-50 text-red-600 border-red-100",
-  DEVELOPER_REJECTED: "bg-red-50 text-red-600 border-red-100",
-  METADATA_REJECTED: "bg-red-50 text-red-600 border-red-100",
+  READY_FOR_SALE: "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/40",
+  PREPARE_FOR_SUBMISSION: "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/40",
+  WAITING_FOR_REVIEW: "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900/40",
+  IN_REVIEW: "bg-violet-50 text-violet-700 border-violet-100 dark:bg-violet-900/20 dark:text-violet-400 dark:border-violet-900/40",
+  REJECTED: "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/40",
+  DEVELOPER_REJECTED: "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/40",
+  METADATA_REJECTED: "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/40",
 };
 
 function StateBadge({ state }: { state: string }) {
@@ -226,13 +226,13 @@ function ActionButton({
           </svg>
         </button>
         {open && (
-          <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border border-[#eef0f3] rounded-xl shadow-lg py-1 min-w-[180px]">
+          <div className="absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl shadow-lg py-1 min-w-[180px]">
             <button
               onClick={() => {
                 setOpen(false);
                 onPushMetadata();
               }}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] hover:bg-[#fafbfc] transition-colors text-left"
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -241,24 +241,24 @@ function ActionButton({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="w-4 h-4 text-[#6b7280]"
+                className="w-4 h-4 text-[#6b7280] dark:text-[#8b93a5]"
               >
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="17 8 12 3 7 8" />
                 <line x1="12" y1="3" x2="12" y2="15" />
               </svg>
               Push Metadata
-              <span className="ml-auto text-[10px] text-[#9ca3af]">
+              <span className="ml-auto text-[10px] text-[#9ca3af] dark:text-[#5c6478]">
                 Fastlane
               </span>
             </button>
-            <div className="border-t border-[#f3f4f6] my-1" />
+            <div className="border-t border-[#f3f4f6] dark:border-[#2a2f3d] my-1" />
             <button
               onClick={() => {
                 setOpen(false);
                 onReviewAPI();
               }}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] hover:bg-[#fafbfc] transition-colors text-left"
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -267,13 +267,13 @@ function ActionButton({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="w-4 h-4 text-[#6b7280]"
+                className="w-4 h-4 text-[#6b7280] dark:text-[#8b93a5]"
               >
                 <polyline points="16 18 22 12 16 6" />
                 <polyline points="8 6 2 12 8 18" />
               </svg>
               Review via API
-              <span className="ml-auto text-[10px] text-[#9ca3af]">Direct</span>
+              <span className="ml-auto text-[10px] text-[#9ca3af] dark:text-[#5c6478]">Direct</span>
             </button>
           </div>
         )}
@@ -286,7 +286,7 @@ function ActionButton({
       <button
         onClick={onPushMetadata}
         disabled={busy}
-        className="inline-flex items-center gap-2 pl-3.5 pr-3 py-[8px] rounded-l-xl text-[13px] font-medium border border-[#eef0f3] bg-white text-[#111827] hover:border-[#ea0e2b] hover:text-[#ea0e2b] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="inline-flex items-center gap-2 pl-3.5 pr-3 py-[8px] rounded-l-xl text-[13px] font-medium border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-[#111827] dark:text-[#e8eaf0] hover:border-[#ea0e2b] hover:text-[#ea0e2b] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {submitting === "metadata" ? (
           <>
@@ -315,7 +315,7 @@ function ActionButton({
       <button
         onClick={() => setOpen((v) => !v)}
         disabled={busy}
-        className="px-2.5 rounded-r-xl border border-l-0 border-[#eef0f3] bg-white text-[#6b7280] hover:border-[#ea0e2b] hover:text-[#ea0e2b] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="px-2.5 rounded-r-xl border border-l-0 border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-[#6b7280] dark:text-[#8b93a5] hover:border-[#ea0e2b] hover:text-[#ea0e2b] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         aria-label="More actions"
       >
         <svg
@@ -331,13 +331,13 @@ function ActionButton({
         </svg>
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1.5 z-50 bg-white border border-[#eef0f3] rounded-xl shadow-lg py-1 min-w-[160px]">
+        <div className="absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl shadow-lg py-1 min-w-[160px]">
           <button
             onClick={() => {
               setOpen(false);
               onReviewAPI();
             }}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] hover:bg-[#fafbfc] transition-colors text-left"
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
           >
             <svg
               viewBox="0 0 24 24"
@@ -346,7 +346,7 @@ function ActionButton({
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="w-4 h-4 text-[#6b7280]"
+              className="w-4 h-4 text-[#6b7280] dark:text-[#8b93a5]"
             >
               <polyline points="16 18 22 12 16 6" />
               <polyline points="8 6 2 12 8 18" />
@@ -435,7 +435,7 @@ function EditableField({
     <div className="group">
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2">
-          <label className="text-[12px] font-semibold text-[#6b7280] uppercase tracking-wide">
+          <label className="text-[12px] font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide">
             {field.label}
           </label>
           <span
@@ -530,12 +530,12 @@ function EditableField({
                 setEditing(false);
               }}
               disabled={saving}
-              className="px-3 py-[6px] rounded-xl text-xs font-medium border border-[#eef0f3] bg-white text-[#6b7280] hover:bg-gray-50 transition-all"
+              className="px-3 py-[6px] rounded-xl text-xs font-medium border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-[#6b7280] dark:text-[#8b93a5] hover:bg-gray-50 dark:hover:bg-[#252b38] transition-all"
             >
               Cancel
             </button>
             {field.type === "textarea" && (
-              <span className="text-[10px] text-[#c8cdd3] ml-auto">
+              <span className="text-[10px] text-[#c8cdd3] dark:text-[#3a4050] ml-auto">
                 ⌘+Enter to save
               </span>
             )}
@@ -544,13 +544,13 @@ function EditableField({
       ) : (
         <div
           onClick={() => isEditable && setEditing(true)}
-          className={`text-[13px] text-[#111827] whitespace-pre-wrap break-words rounded-xl px-3.5 py-[9px] border border-[#eef0f3] bg-[#fafbfc] min-h-[38px] ${
+          className={`text-[13px] text-[#111827] dark:text-[#e8eaf0] whitespace-pre-wrap break-words rounded-xl px-3.5 py-[9px] border border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#252b38] min-h-[38px] ${
             isEditable
-              ? "cursor-pointer hover:border-[#d1d5db] hover:bg-white transition-colors"
+              ? "cursor-pointer hover:border-[#d1d5db] dark:hover:border-[#3a4050] hover:bg-white dark:hover:bg-[#1c2028] transition-colors"
               : ""
           }`}
         >
-          {value || <span className="text-[#c8cdd3] italic">Empty</span>}
+          {value || <span className="text-[#c8cdd3] dark:text-[#3a4050] italic">Empty</span>}
         </div>
       )}
     </div>
@@ -598,7 +598,7 @@ function InlineEditField({
   return (
     <div className="group">
       <div className="flex items-center justify-between mb-1.5">
-        <label className="text-[12px] font-semibold text-[#6b7280] uppercase tracking-wide">
+        <label className="text-[12px] font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide">
           {label}
         </label>
         {!editing && isEditable && (
@@ -647,7 +647,7 @@ function InlineEditField({
                 setDraft(value);
                 setEditing(false);
               }}
-              className="px-3 py-[6px] rounded-xl text-xs font-medium border border-[#eef0f3] bg-white text-[#6b7280] hover:bg-gray-50 transition-all"
+              className="px-3 py-[6px] rounded-xl text-xs font-medium border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-[#6b7280] dark:text-[#8b93a5] hover:bg-gray-50 dark:hover:bg-[#252b38] transition-all"
             >
               Cancel
             </button>
@@ -656,13 +656,13 @@ function InlineEditField({
       ) : (
         <div
           onClick={() => isEditable && setEditing(true)}
-          className={`text-[13px] text-[#111827] rounded-xl px-3.5 py-[9px] border border-[#eef0f3] bg-[#fafbfc] min-h-[38px] ${
+          className={`text-[13px] text-[#111827] dark:text-[#e8eaf0] rounded-xl px-3.5 py-[9px] border border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#252b38] min-h-[38px] ${
             isEditable
-              ? "cursor-pointer hover:border-[#d1d5db] hover:bg-white transition-colors"
+              ? "cursor-pointer hover:border-[#d1d5db] dark:hover:border-[#3a4050] hover:bg-white dark:hover:bg-[#1c2028] transition-colors"
               : ""
           }`}
         >
-          {value || <span className="text-[#c8cdd3] italic">Empty</span>}
+          {value || <span className="text-[#c8cdd3] dark:text-[#3a4050] italic">Empty</span>}
         </div>
       )}
     </div>
@@ -723,10 +723,10 @@ function ScreenshotsPanel({
   return (
     <div className={`${cardCls} mb-5`}>
       <div className="flex items-center gap-2 mb-4">
-        <h2 className="text-[13px] font-semibold text-[#111827]">
+        <h2 className="text-[13px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
           Screenshots
         </h2>
-        <span className="text-[11px] text-[#9ca3af]">
+        <span className="text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
           <span className="font-mono">{job.commitSha.slice(0, 7)}</span>
           {job.branch ? ` · ${job.branch}` : ""}
           {" · "}
@@ -735,7 +735,7 @@ function ScreenshotsPanel({
             <>
               {" "}
               ·{" "}
-              <span className="font-medium text-[#6b7280]">
+              <span className="font-medium text-[#6b7280] dark:text-[#8b93a5]">
                 {effectiveLocale}
               </span>
             </>
@@ -751,7 +751,7 @@ function ScreenshotsPanel({
         <div className="flex flex-col gap-5">
           {sortedGroups.map(([label, urls]) => (
             <div key={label}>
-              <div className="text-[10px] font-bold uppercase tracking-widest text-[#9ca3af] mb-2.5">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-[#9ca3af] dark:text-[#5c6478] mb-2.5">
                 {label}
               </div>
               <div className="flex gap-3 overflow-x-auto pb-1">
@@ -921,13 +921,13 @@ export default function Versions({ addToast }: Props) {
 
   if (!versionId) {
     return (
-      <div className="flex flex-col items-center justify-center py-24 gap-3 text-gray-400">
+      <div className="flex flex-col items-center justify-center py-24 gap-3 text-gray-400 dark:text-[#5c6478]">
         <svg
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           strokeWidth="1.5"
-          className="w-10 h-10 text-gray-300"
+          className="w-10 h-10 text-gray-300 dark:text-[#2a2f3d]"
         >
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
           <polyline points="14 2 14 8 20 8" />
@@ -939,7 +939,7 @@ export default function Versions({ addToast }: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20 gap-3 text-gray-400">
+      <div className="flex items-center justify-center py-20 gap-3 text-gray-400 dark:text-[#5c6478]">
         <div className="spinner" /> Loading version data…
       </div>
     );
@@ -947,7 +947,7 @@ export default function Versions({ addToast }: Props) {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-3 text-gray-400">
+      <div className="flex flex-col items-center justify-center py-20 gap-3 text-gray-400 dark:text-[#5c6478]">
         <svg
           viewBox="0 0 24 24"
           fill="none"
@@ -986,7 +986,7 @@ export default function Versions({ addToast }: Props) {
       <div className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-2.5 flex-wrap">
           {data.versionString && (
-            <span className="text-[13px] font-mono text-[#9ca3af] bg-[#f3f4f6] px-2 py-0.5 rounded-lg">
+            <span className="text-[13px] font-mono text-[#9ca3af] dark:text-[#5c6478] bg-[#f3f4f6] dark:bg-[#252b38] px-2 py-0.5 rounded-lg">
               v{data.versionString}
             </span>
           )}
@@ -1001,7 +1001,7 @@ export default function Versions({ addToast }: Props) {
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={refetch}
-            className="p-[8px] rounded-xl border border-[#eef0f3] bg-white text-[#6b7280] hover:border-[#ea0e2b] hover:text-[#ea0e2b] transition-all"
+            className="p-[8px] rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-[#6b7280] dark:text-[#8b93a5] hover:border-[#ea0e2b] hover:text-[#ea0e2b] transition-all"
             title="Refresh"
           >
             <svg
@@ -1061,7 +1061,7 @@ export default function Versions({ addToast }: Props) {
             </div>
             <button
               onClick={() => setShowLogs((v) => !v)}
-              className="text-[11px] text-[#9ca3af] hover:text-[#6b7280] transition-colors font-medium"
+              className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#6b7280] dark:hover:text-[#8b93a5] transition-colors font-medium"
             >
               {showLogs ? "Hide" : "Show"} logs
             </button>
@@ -1109,7 +1109,7 @@ export default function Versions({ addToast }: Props) {
               className={`flex flex-col items-start px-3 py-2 rounded-xl transition-all whitespace-nowrap ${
                 loc.locale === activeLocale
                   ? "bg-[#ea0e2b] text-white shadow-sm"
-                  : "bg-white border border-[#eef0f3] text-[#111827] hover:border-[#d1d5db]"
+                  : "bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] text-[#111827] dark:text-[#e8eaf0] hover:border-[#d1d5db] dark:hover:border-[#3a4050]"
               }`}
             >
               <span className="text-[13px] font-medium leading-tight">
@@ -1135,21 +1135,21 @@ export default function Versions({ addToast }: Props) {
 
       {activeLoc ? (
         <div className={`${cardCls} flex flex-col gap-5`}>
-          <div className="flex items-center justify-between pb-3 border-b border-[#f3f4f6]">
+          <div className="flex items-center justify-between pb-3 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
             <div className="flex items-center gap-2">
-              <span className="text-[14px] font-semibold text-[#111827]">
+              <span className="text-[14px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
                 {getLocaleName(activeLoc.locale)}
               </span>
-              <span className="text-[11px] font-mono text-[#9ca3af]">
+              <span className="text-[11px] font-mono text-[#9ca3af] dark:text-[#5c6478]">
                 {activeLoc.locale}
               </span>
             </div>
             {data.isEditable ? (
-              <span className="text-[10px] text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide">
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/40 px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide">
                 Editable
               </span>
             ) : (
-              <span className="text-[10px] text-[#9ca3af] bg-[#f3f4f6] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide">
+              <span className="text-[10px] text-[#9ca3af] dark:text-[#5c6478] bg-[#f3f4f6] dark:bg-[#252b38] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide">
                 Read-only
               </span>
             )}
@@ -1166,7 +1166,7 @@ export default function Versions({ addToast }: Props) {
           ))}
           {(data.copyright !== undefined || data.ageRating !== undefined) && (
             <div className="pt-4 border-t border-[#f3f4f6]">
-              <div className="text-[11px] font-bold uppercase tracking-widest text-[#9ca3af] mb-4">
+              <div className="text-[11px] font-bold uppercase tracking-widest text-[#9ca3af] dark:text-[#5c6478] mb-4">
                 Version Info
               </div>
               <div className="flex flex-col gap-5">
@@ -1203,16 +1203,16 @@ export default function Versions({ addToast }: Props) {
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[13px] text-[#111827] px-3.5 py-[9px] border border-[#eef0f3] bg-[#fafbfc] rounded-xl">
+                      <span className="text-[13px] text-[#111827] dark:text-[#e8eaf0] px-3.5 py-[9px] border border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#252b38] rounded-xl">
                         {data.ageRating || (
-                          <span className="text-[#c8cdd3] italic">Not set</span>
+                          <span className="text-[#c8cdd3] dark:text-[#3a4050] italic">Not set</span>
                         )}
                       </span>
                       <a
                         href="https://appstoreconnect.apple.com"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[11px] text-[#9ca3af] hover:text-[#ea0e2b] transition-colors"
+                        className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#ea0e2b] transition-colors"
                       >
                         Edit in ASC ↗
                       </a>
@@ -1239,7 +1239,7 @@ export default function Versions({ addToast }: Props) {
             <line x1="16" y1="13" x2="8" y2="13" />
             <line x1="16" y1="17" x2="8" y2="17" />
           </svg>
-          <p className="text-sm text-[#9ca3af]">
+          <p className="text-sm text-[#9ca3af] dark:text-[#5c6478]">
             No localizations found for this version.
           </p>
         </div>

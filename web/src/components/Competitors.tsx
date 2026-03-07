@@ -38,7 +38,7 @@ export default function Competitors({ addToast }: Props) {
 
   if (loading)
     return (
-      <div className="flex items-center justify-center py-20 gap-3 text-gray-400">
+      <div className="flex items-center justify-center py-20 gap-3 text-gray-400 dark:text-[#5c6478]">
         <div className="spinner" /> Loading competitors…
       </div>
     );
@@ -50,7 +50,7 @@ export default function Competitors({ addToast }: Props) {
   return (
     <div>
       <div className="flex items-start justify-between mb-1">
-        <h1 className="text-3xl font-semibold tracking-tight text-[#111827]">
+        <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0]">
           Competitors
         </h1>
         <button
@@ -82,14 +82,14 @@ export default function Competitors({ addToast }: Props) {
           )}
         </button>
       </div>
-      <p className="text-sm text-[#9ca3af] mb-8">
+      <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">
         {competitors.length} competitor{competitors.length !== 1 ? "s" : ""}{" "}
         discovered and tracked
       </p>
 
       {ownApp && <OwnAppCard app={ownApp} />}
 
-      <div className="text-xs font-medium uppercase tracking-wide text-[#9ca3af] mb-3">
+      <div className="text-xs font-medium uppercase tracking-wide text-[#9ca3af] dark:text-[#5c6478] mb-3">
         Competitor Apps
       </div>
       {competitors.length === 0 ? (
@@ -110,10 +110,10 @@ export default function Competitors({ addToast }: Props) {
               />
             </svg>
           </div>
-          <div className="text-sm font-medium text-[#6b7280] mb-1">
+          <div className="text-sm font-medium text-[#6b7280] dark:text-[#8b93a5] mb-1">
             No competitors discovered yet
           </div>
-          <div className="text-xs text-[#9ca3af]">
+          <div className="text-xs text-[#9ca3af] dark:text-[#5c6478]">
             Run a scrape from the Actions page
           </div>
         </div>

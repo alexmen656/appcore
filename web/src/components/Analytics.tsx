@@ -90,23 +90,23 @@ function StatCard({
 }) {
   return (
     <div
-      className={`bg-white border rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] ${
-        highlight ? "border-[#fde8eb]" : "border-[#eef0f3]"
+      className={`bg-white dark:bg-[#1c2028] border rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] ${
+        highlight ? "border-[#fde8eb] dark:border-[#3a1f23]" : "border-[#eef0f3] dark:border-[#2a2f3d]"
       }`}
     >
-      <div className="text-[11px] font-medium uppercase tracking-wide text-[#9ca3af] mb-2">
+      <div className="text-[11px] font-medium uppercase tracking-wide text-[#9ca3af] dark:text-[#5c6478] mb-2">
         {label}
       </div>
       <div
         className={`text-[26px] font-semibold leading-none ${
-          dim ? "text-[#9ca3af]" : "text-[#111827]"
+          dim ? "text-[#9ca3af] dark:text-[#5c6478]" : "text-[#111827] dark:text-[#e8eaf0]"
         }`}
       >
         {value}
       </div>
-      {sub && <div className="text-[12px] text-[#9ca3af] mt-1.5">{sub}</div>}
+      {sub && <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mt-1.5">{sub}</div>}
       {note && (
-        <div className="text-[11px] text-[#c4c9d4] mt-1 leading-tight">
+        <div className="text-[11px] text-[#c4c9d4] dark:text-[#3a4050] mt-1 leading-tight">
           {note}
         </div>
       )}
@@ -130,19 +130,19 @@ function FunnelRow({
   const pct = total > 0 ? (value / total) * 100 : 0;
   return (
     <div className="flex items-center gap-3">
-      <div className="w-28 text-[12px] text-[#6b7280] shrink-0">{label}</div>
-      <div className="flex-1 h-2 bg-[#f3f4f6] rounded-full overflow-hidden">
+      <div className="w-28 text-[12px] text-[#6b7280] dark:text-[#8b93a5] shrink-0">{label}</div>
+      <div className="flex-1 h-2 bg-[#f3f4f6] dark:bg-[#252b38] rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-300"
           style={{ width: `${pct}%`, background: color }}
         />
       </div>
       <div className="w-24 text-right">
-        <span className="text-[13px] font-medium text-[#111827] tabular-nums">
+        <span className="text-[13px] font-medium text-[#111827] dark:text-[#e8eaf0] tabular-nums">
           {fmtNumber(value)}
         </span>
         {total > 0 && (
-          <span className="text-[11px] text-[#9ca3af] ml-1.5">
+          <span className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] ml-1.5">
             {pct.toFixed(1)}%
           </span>
         )}
@@ -214,10 +214,10 @@ export default function Analytics({ addToast }: Props) {
     <div>
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-[#111827] mb-1">
+          <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
             Analytics
           </h1>
-          <p className="text-sm text-[#9ca3af]">
+          <p className="text-sm text-[#9ca3af] dark:text-[#5c6478]">
             App Store performance metrics
             {summary?.lastSyncAt && (
               <span className="ml-2">
@@ -258,7 +258,7 @@ export default function Analytics({ addToast }: Props) {
 
       {/* ── No data banner ─────────────────────────────────────────────────── */}
       {!loading && !summary?.totalDownloads && (reviews ?? []).length === 0 && (
-        <div className="mb-5 px-4 py-3.5 rounded-2xl bg-amber-50 border border-amber-100 text-[13px] text-amber-800">
+        <div className="mb-5 px-4 py-3.5 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/40 text-[13px] text-amber-800 dark:text-amber-400">
           <strong>No analytics data yet.</strong> Make sure your{" "}
           <a href="/settings" className="underline font-medium">
             Vendor Number
@@ -268,15 +268,15 @@ export default function Analytics({ addToast }: Props) {
       )}
 
       <div className="flex flex-wrap items-center gap-2 mb-5">
-        <div className="flex gap-1 p-1 bg-[#f3f4f6] rounded-xl">
+        <div className="flex gap-1 p-1 bg-[#f3f4f6] dark:bg-[#1c2028] rounded-xl">
           {RANGE_OPTIONS.map((opt) => (
             <button
               key={opt.key}
               onClick={() => setRange(opt.key)}
               className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
                 range === opt.key
-                  ? "bg-white text-[#111827] shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
-                  : "text-[#9ca3af] hover:text-[#6b7280]"
+                  ? "bg-white dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
+                  : "text-[#9ca3af] dark:text-[#5c6478] hover:text-[#6b7280] dark:hover:text-[#8b93a5]"
               }`}
             >
               {opt.label}
@@ -289,14 +289,14 @@ export default function Analytics({ addToast }: Props) {
               type="date"
               value={customStart}
               onChange={(e) => setCustomStart(e.target.value)}
-              className="h-8 px-2.5 text-[12px] border border-[#eef0f3] rounded-xl text-[#111827] bg-white focus:outline-none focus:border-[#c4c9d4]"
+              className="h-8 px-2.5 text-[12px] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl text-[#111827] dark:text-[#e8eaf0] bg-white dark:bg-[#1c2028] focus:outline-none focus:border-[#c4c9d4] dark:focus:border-[#ea0e2b]"
             />
-            <span className="text-[#9ca3af] text-[12px]">–</span>
+            <span className="text-[#9ca3af] dark:text-[#5c6478] text-[12px]">–</span>
             <input
               type="date"
               value={customEnd}
               onChange={(e) => setCustomEnd(e.target.value)}
-              className="h-8 px-2.5 text-[12px] border border-[#eef0f3] rounded-xl text-[#111827] bg-white focus:outline-none focus:border-[#c4c9d4]"
+              className="h-8 px-2.5 text-[12px] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl text-[#111827] dark:text-[#e8eaf0] bg-white dark:bg-[#1c2028] focus:outline-none focus:border-[#c4c9d4] dark:focus:border-[#ea0e2b]"
             />
           </div>
         )}
@@ -398,11 +398,11 @@ export default function Analytics({ addToast }: Props) {
       </div>
 
       {hasEngagementData && (
-        <div className="bg-white border border-[#eef0f3] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] mb-5">
-          <div className="text-[15px] font-semibold text-[#111827] mb-0.5">
+        <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] mb-5">
+          <div className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-0.5">
             Conversion funnel
           </div>
-          <div className="text-[12px] text-[#9ca3af] mb-5">
+          <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mb-5">
             From impressions to downloads for {rangeLabel(range)}
           </div>
           <div className="space-y-3">
@@ -433,18 +433,18 @@ export default function Analytics({ addToast }: Props) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
-        <div className="bg-white border border-[#eef0f3] rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-          <div className="px-5 py-4 border-b border-[#f3f4f6] flex items-center justify-between">
+        <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
+          <div className="px-5 py-4 border-b border-[#f3f4f6] dark:border-[#2a2f3d] flex items-center justify-between">
             <div>
-              <div className="text-[15px] font-semibold text-[#111827]">
+              <div className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
                 Top Countries
               </div>
-              <div className="text-[12px] text-[#9ca3af] mt-0.5">
+              <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mt-0.5">
                 {rangeLabel(range)}
               </div>
             </div>
             {hasEngagementData && (
-              <div className="flex gap-1 p-0.5 bg-[#f3f4f6] rounded-lg">
+              <div className="flex gap-1 p-0.5 bg-[#f3f4f6] dark:bg-[#252b38] rounded-lg">
                 {(["downloads", "impressions", "pageViews"] as const).map(
                   (m) => (
                     <button
@@ -452,8 +452,8 @@ export default function Analytics({ addToast }: Props) {
                       onClick={() => setCountryMetric(m)}
                       className={`px-2 py-1 rounded-md text-[11px] font-medium transition-colors ${
                         countryMetric === m
-                          ? "bg-white text-[#111827] shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
-                          : "text-[#9ca3af] hover:text-[#6b7280]"
+                          ? "bg-white dark:bg-[#1c2028] text-[#111827] dark:text-[#e8eaf0] shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
+                          : "text-[#9ca3af] dark:text-[#5c6478] hover:text-[#6b7280] dark:hover:text-[#8b93a5]"
                       }`}
                     >
                       {m === "downloads"
@@ -468,7 +468,7 @@ export default function Analytics({ addToast }: Props) {
             )}
           </div>
           {(downloads?.byCountry ?? []).length === 0 ? (
-            <div className="px-5 py-8 text-center text-[13px] text-[#9ca3af]">
+            <div className="px-5 py-8 text-center text-[13px] text-[#9ca3af] dark:text-[#5c6478]">
               No data yet
             </div>
           ) : (
@@ -500,22 +500,22 @@ export default function Analytics({ addToast }: Props) {
                     return (
                       <tr
                         key={r.country}
-                        className="hover:bg-[#f7f8fa] transition-colors"
+                        className="hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors"
                       >
                         <td className={TD}>
-                          <span className="font-medium text-[#111827]">
+                          <span className="font-medium text-[#111827] dark:text-[#e8eaf0]">
                             {countryName(r.country)}
                           </span>
-                          <span className="ml-1.5 text-[11px] text-[#9ca3af]">
+                          <span className="ml-1.5 text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
                             {r.country.toUpperCase()}
                           </span>
                         </td>
-                        <td className={`${TD} text-right tabular-nums`}>
+                        <td className={`${TD} text-right tabular-nums text-[#111827] dark:text-[#e8eaf0]`}>
                           {fmtNumber(val)}
                         </td>
                         <td className={`${TD} text-right pr-5`}>
                           <div className="flex items-center justify-end gap-2">
-                            <div className="w-16 h-1.5 bg-[#f3f4f6] rounded-full overflow-hidden">
+                            <div className="w-16 h-1.5 bg-[#f3f4f6] dark:bg-[#252b38] rounded-full overflow-hidden">
                               <div
                                 className="h-full bg-[#ea0e2b] rounded-full"
                                 style={{
@@ -523,7 +523,7 @@ export default function Analytics({ addToast }: Props) {
                                 }}
                               />
                             </div>
-                            <span className="text-[12px] text-[#9ca3af] w-9 text-right">
+                            <span className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] w-9 text-right">
                               {total > 0 ? Math.round((val / total) * 100) : 0}%
                             </span>
                           </div>
@@ -537,15 +537,15 @@ export default function Analytics({ addToast }: Props) {
           )}
         </div>
 
-        <div className="bg-white border border-[#eef0f3] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-          <div className="text-[15px] font-semibold text-[#111827] mb-1">
+        <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
+          <div className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-1">
             Rating Distribution
           </div>
-          <div className="text-[12px] text-[#9ca3af] mb-4">
+          <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mb-4">
             Based on synced reviews
           </div>
           {(reviews ?? []).length === 0 ? (
-            <div className="py-8 text-center text-[13px] text-[#9ca3af]">
+            <div className="py-8 text-center text-[13px] text-[#9ca3af] dark:text-[#5c6478]">
               No reviews yet
             </div>
           ) : (
@@ -560,20 +560,20 @@ export default function Analytics({ addToast }: Props) {
                     : 0;
                 return (
                   <div key={star} className="flex items-center gap-3">
-                    <span className="text-[13px] text-[#111827] w-3 text-right">
+                    <span className="text-[13px] text-[#111827] dark:text-[#e8eaf0] w-3 text-right">
                       {star}
                     </span>
                     <span className="text-amber-400 text-[13px]">&#9733;</span>
-                    <div className="flex-1 h-2 bg-[#f3f4f6] rounded-full overflow-hidden">
+                    <div className="flex-1 h-2 bg-[#f3f4f6] dark:bg-[#252b38] rounded-full overflow-hidden">
                       <div
                         className="h-full bg-amber-400 rounded-full transition-all"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <span className="text-[12px] text-[#9ca3af] w-8 text-right tabular-nums">
+                    <span className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] w-8 text-right tabular-nums">
                       {count}
                     </span>
-                    <span className="text-[11px] text-[#c4c9d4] w-10 text-right tabular-nums">
+                    <span className="text-[11px] text-[#c4c9d4] dark:text-[#3a4050] w-10 text-right tabular-nums">
                       {pct.toFixed(0)}%
                     </span>
                   </div>
@@ -587,12 +587,12 @@ export default function Analytics({ addToast }: Props) {
       <ReviewsList reviews={reviews ?? []} />
 
       {(downloads?.byCountry ?? []).length > 0 && (
-        <div className="bg-white border border-[#eef0f3] rounded-2xl overflow-hidden mt-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-          <div className="px-5 py-4 border-b border-[#f3f4f6]">
-            <div className="text-[15px] font-semibold text-[#111827]">
+        <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl overflow-hidden mt-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
+          <div className="px-5 py-4 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
+            <div className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
               Full Country Breakdown
             </div>
-            <div className="text-[12px] text-[#9ca3af] mt-0.5">
+            <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mt-0.5">
               {rangeLabel(range)}
             </div>
           </div>
@@ -625,33 +625,33 @@ export default function Analytics({ addToast }: Props) {
                   return (
                     <tr
                       key={r.country}
-                      className="hover:bg-[#f7f8fa] transition-colors"
+                      className="hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors"
                     >
                       <td className={TD}>
-                        <span className="font-medium text-[#111827]">
+                        <span className="font-medium text-[#111827] dark:text-[#e8eaf0]">
                           {countryName(r.country)}
                         </span>
-                        <span className="ml-1.5 text-[11px] text-[#9ca3af]">
+                        <span className="ml-1.5 text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
                           {r.country.toUpperCase()}
                         </span>
                       </td>
-                      <td className={`${TD} text-right tabular-nums`}>
+                      <td className={`${TD} text-right tabular-nums text-[#111827] dark:text-[#e8eaf0]`}>
                         {fmtNumber(r.downloads)}
                       </td>
                       {hasEngagementData && (
                         <>
                           <td
-                            className={`${TD} text-right tabular-nums text-[#9ca3af]`}
+                            className={`${TD} text-right tabular-nums text-[#9ca3af] dark:text-[#5c6478]`}
                           >
                             {r.impressions > 0 ? fmtNumber(r.impressions) : "—"}
                           </td>
                           <td
-                            className={`${TD} text-right tabular-nums text-[#9ca3af]`}
+                            className={`${TD} text-right tabular-nums text-[#9ca3af] dark:text-[#5c6478]`}
                           >
                             {r.pageViews > 0 ? fmtNumber(r.pageViews) : "—"}
                           </td>
                           <td
-                            className={`${TD} text-right tabular-nums text-[#9ca3af]`}
+                            className={`${TD} text-right tabular-nums text-[#9ca3af] dark:text-[#5c6478]`}
                           >
                             {conv}
                           </td>
@@ -659,7 +659,7 @@ export default function Analytics({ addToast }: Props) {
                       )}
                       <td className={`${TD} text-right pr-5`}>
                         <div className="flex items-center justify-end gap-2">
-                          <div className="w-16 h-1.5 bg-[#f3f4f6] rounded-full overflow-hidden">
+                          <div className="w-16 h-1.5 bg-[#f3f4f6] dark:bg-[#252b38] rounded-full overflow-hidden">
                             <div
                               className="h-full bg-[#ea0e2b] rounded-full"
                               style={{
@@ -667,7 +667,7 @@ export default function Analytics({ addToast }: Props) {
                               }}
                             />
                           </div>
-                          <span className="text-[12px] text-[#9ca3af] w-9 text-right">
+                          <span className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] w-9 text-right">
                             {total > 0
                               ? Math.round((r.downloads / total) * 100)
                               : 0}

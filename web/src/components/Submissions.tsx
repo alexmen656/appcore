@@ -40,14 +40,14 @@ interface Props {
 // ─── Status badge colors ──────────────────────────────────────────────────────
 
 const stateColors: Record<string, string> = {
-  READY_FOR_SALE: "bg-emerald-50 text-emerald-700",
-  PREPARE_FOR_SUBMISSION: "bg-amber-50 text-amber-700",
-  WAITING_FOR_REVIEW: "bg-blue-50 text-blue-700",
-  IN_REVIEW: "bg-violet-50 text-violet-700",
-  REJECTED: "bg-red-50 text-red-600",
-  DEVELOPER_REJECTED: "bg-red-50 text-red-600",
-  METADATA_REJECTED: "bg-red-50 text-red-600",
-  PENDING_DEVELOPER_RELEASE: "bg-sky-50 text-sky-700",
+  READY_FOR_SALE: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
+  PREPARE_FOR_SUBMISSION: "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
+  WAITING_FOR_REVIEW: "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
+  IN_REVIEW: "bg-violet-50 text-violet-700 dark:bg-violet-900/20 dark:text-violet-400",
+  REJECTED: "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400",
+  DEVELOPER_REJECTED: "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400",
+  METADATA_REJECTED: "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400",
+  PENDING_DEVELOPER_RELEASE: "bg-sky-50 text-sky-700 dark:bg-sky-900/20 dark:text-sky-400",
 };
 
 function StateBadge({ state }: { state: string }) {
@@ -202,10 +202,10 @@ export default function Submissions({ addToast }: Props) {
 
   return (
     <div>
-      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] mb-1">
+      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
         Submit
       </h1>
-      <p className="text-sm text-[#9ca3af] mb-8">
+      <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">
         Push metadata to the App Store via Fastlane and submit for review
       </p>
 
@@ -233,7 +233,7 @@ export default function Submissions({ addToast }: Props) {
       {previewLoading && !preview && (
         <div className={`${cardCls} flex items-center justify-center py-16`}>
           <div className="spinner" />
-          <span className="ml-3 text-sm text-gray-400">Loading App Store version data…</span>
+          <span className="ml-3 text-sm text-gray-400 dark:text-[#5c6478]">Loading App Store version data…</span>
         </div>
       )}
 
@@ -244,12 +244,12 @@ export default function Submissions({ addToast }: Props) {
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-4">
                 <div>
-                  <h2 className="text-lg font-bold text-[#111827]">{preview.appName}</h2>
-                  <p className="text-xs text-gray-400 font-mono mt-0.5">{preview.bundleId}</p>
+                  <h2 className="text-lg font-bold text-[#111827] dark:text-[#e8eaf0]">{preview.appName}</h2>
+                  <p className="text-xs text-gray-400 dark:text-[#5c6478] font-mono mt-0.5">{preview.bundleId}</p>
                 </div>
                 {preview.versionString && (
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-[#111827]">v{preview.versionString}</span>
+                    <span className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0]">v{preview.versionString}</span>
                     {preview.appStoreState && <StateBadge state={preview.appStoreState} />}
                   </div>
                 )}
@@ -314,7 +314,7 @@ export default function Submissions({ addToast }: Props) {
 
             {/* Submission status indicator */}
             {status && status.status !== "idle" && (
-              <div className="mt-4 pt-4 border-t border-[#f3f4f6]">
+              <div className="mt-4 pt-4 border-t border-[#f3f4f6] dark:border-[#2a2f3d]">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className={`w-2 h-2 rounded-full ${statusStyle.dot}`} />
@@ -322,14 +322,14 @@ export default function Submissions({ addToast }: Props) {
                       {status.status}
                     </span>
                     {status.jobId && (
-                      <span className="text-[10px] text-gray-400 font-mono">
+                      <span className="text-[10px] text-gray-400 dark:text-[#5c6478] font-mono">
                         {status.jobId.slice(0, 8)}
                       </span>
                     )}
                   </div>
                   <button
                     onClick={() => setShowLogs(!showLogs)}
-                    className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                    className="text-xs text-gray-400 dark:text-[#5c6478] hover:text-gray-600 dark:hover:text-[#8b93a5] transition-colors"
                   >
                     {showLogs ? "Hide Logs" : "Show Logs"}
                   </button>
@@ -373,8 +373,8 @@ export default function Submissions({ addToast }: Props) {
           {/* ─── Locale Tabs ───────────────────────────────────────────── */}
           {preview.locales.length > 0 && (
             <div className={`${cardCls}`}>
-              <div className="flex items-center gap-1 mb-5 border-b border-[#f3f4f6] pb-4 flex-wrap">
-                <span className="text-xs font-semibold uppercase tracking-wide text-gray-400 mr-2">
+              <div className="flex items-center gap-1 mb-5 border-b border-[#f3f4f6] dark:border-[#2a2f3d] pb-4 flex-wrap">
+                <span className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-[#5c6478] mr-2">
                   Metadata Preview
                 </span>
                 {preview.locales.map((loc) => (
@@ -384,7 +384,7 @@ export default function Submissions({ addToast }: Props) {
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                       activeLocale === loc.locale
                         ? "bg-[#ea0e2b] text-white"
-                        : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                        : "bg-gray-50 dark:bg-[#252b38] text-gray-600 dark:text-[#8b93a5] hover:bg-gray-100 dark:hover:bg-[#2a2f3d]"
                     }`}
                   >
                     {loc.locale}
@@ -404,7 +404,7 @@ export default function Submissions({ addToast }: Props) {
               )}
 
               {preview.locales.length === 0 && (
-                <p className="text-sm text-gray-400 text-center py-8">
+                <p className="text-sm text-gray-400 dark:text-[#5c6478] text-center py-8">
                   No locales configured. Add locales in Settings → ASO Locales.
                 </p>
               )}
@@ -435,23 +435,23 @@ function MetadataField({
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <label className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</label>
+        <label className="text-xs font-medium text-gray-500 dark:text-[#5c6478] uppercase tracking-wide">{label}</label>
         {maxLen && (
-          <span className={`text-[10px] font-mono ${overLimit ? "text-red-500 font-semibold" : "text-gray-400"}`}>
+          <span className={`text-[10px] font-mono ${overLimit ? "text-red-500 font-semibold" : "text-gray-400 dark:text-[#5c6478]"}`}>
             {len}/{maxLen}
           </span>
         )}
       </div>
       {value ? (
         <div
-          className={`px-3.5 py-2.5 bg-[#f8f9fb] border border-[#eef0f3] rounded-xl text-[13px] text-[#111827] ${
+          className={`px-3.5 py-2.5 bg-[#f8f9fb] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl text-[13px] text-[#111827] dark:text-[#e8eaf0] ${
             multiline ? "whitespace-pre-wrap font-mono text-xs max-h-48 overflow-y-auto" : "truncate"
           }`}
         >
           {value}
         </div>
       ) : (
-        <div className="px-3.5 py-2.5 bg-[#f8f9fb] border border-[#eef0f3] rounded-xl text-[13px] text-gray-400 italic">
+        <div className="px-3.5 py-2.5 bg-[#f8f9fb] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl text-[13px] text-gray-400 dark:text-[#5c6478] italic">
           Not set
         </div>
       )}

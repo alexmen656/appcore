@@ -29,11 +29,11 @@ export default function DownloadsChart({ data }: Props) {
   const filtered = data.slice(-range);
 
   return (
-    <div className="bg-white border border-[#eef0f3] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+    <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <div className="text-[15px] font-semibold text-[#111827]">Downloads over time</div>
-          <div className="text-[12px] text-[#9ca3af] mt-0.5">Daily installs and updates</div>
+          <div className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0]">Downloads over time</div>
+          <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mt-0.5">Daily installs and updates</div>
         </div>
         <div className="flex gap-1">
           {RANGES.map((r) => (
@@ -43,7 +43,7 @@ export default function DownloadsChart({ data }: Props) {
               className={`px-2.5 py-1 rounded-lg text-[12px] font-medium transition-colors ${
                 range === r.days
                   ? "bg-[#ea0e2b] text-white"
-                  : "bg-[#f3f4f6] text-[#6b7280] hover:bg-[#e5e7eb]"
+                  : "bg-[#f3f4f6] dark:bg-[#252b38] text-[#6b7280] dark:text-[#8b93a5] hover:bg-[#e5e7eb] dark:hover:bg-[#2a2f3d]"
               }`}
             >
               {r.label}
@@ -53,7 +53,7 @@ export default function DownloadsChart({ data }: Props) {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="flex items-center justify-center h-48 text-[13px] text-[#9ca3af]">
+        <div className="flex items-center justify-center h-48 text-[13px] text-[#9ca3af] dark:text-[#5c6478]">
           No data yet — sync to fetch download stats.
         </div>
       ) : (

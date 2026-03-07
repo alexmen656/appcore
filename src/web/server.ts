@@ -52,6 +52,10 @@ app.use("/screenshots", express.static(screenshotsDir));
 const landingPage = path.join(process.cwd(), "AppCore.html");
 app.get("/", (_req, res) => res.sendFile(landingPage));
 
+const logo = path.join(process.cwd(), "logo.png");
+app.get("/app/logo.png", (_req, res) => res.sendFile(logo));
+
+
 const webDist = path.join(__dirname, "../../web/dist");
 app.use("/app", express.static(webDist));
 app.get("/app/*", (_req, res) => {
@@ -83,7 +87,9 @@ app.listen(PORT, () => {
     });
     logger.info("APNs push notifications configured");
   } else {
-    logger.warn("APNs not configured — set APNS_KEY_ID, APNS_TEAM_ID, APNS_KEY_PATH");
+    logger.warn(
+      "APNs not configured — set APNS_KEY_ID, APNS_TEAM_ID, APNS_KEY_PATH",
+    );
   }
 });
 
@@ -92,6 +98,6 @@ function shutdown() {
   scheduler.stop();
   prisma.$disconnect().then(() => process.exit(0));
 }
-console.log(require('os').tmpdir())
+console.log(require("os").tmpdir());
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);

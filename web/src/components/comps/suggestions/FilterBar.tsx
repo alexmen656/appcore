@@ -18,7 +18,7 @@ export default function FilterBar({
   return (
     <div className="flex items-center gap-3 flex-wrap mb-5">
       <select
-        className="px-3 py-1.5 border border-[#eef0f3] rounded-xl bg-white text-sm text-[#111827] outline-none cursor-pointer focus:border-[#ea0e2b] transition-colors"
+        className="px-3 py-1.5 border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl bg-white dark:bg-[#1c2028] text-sm text-[#111827] dark:text-[#e8eaf0] outline-none cursor-pointer focus:border-[#ea0e2b] transition-colors"
         value={statusFilter}
         onChange={(e) => setStatusFilter(e.target.value)}
       >
@@ -29,7 +29,7 @@ export default function FilterBar({
         <option value="REJECTED">Rejected</option>
       </select>
       <select
-        className="px-3 py-1.5 border border-[#eef0f3] rounded-xl bg-white text-sm text-[#111827] outline-none cursor-pointer focus:border-[#ea0e2b] transition-colors"
+        className="px-3 py-1.5 border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl bg-white dark:bg-[#1c2028] text-sm text-[#111827] dark:text-[#e8eaf0] outline-none cursor-pointer focus:border-[#ea0e2b] transition-colors"
         value={typeFilter}
         onChange={(e) => setTypeFilter(e.target.value)}
       >
@@ -41,7 +41,7 @@ export default function FilterBar({
       </select>
       <div className="flex-1" />
       <button
-        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium bg-white text-[#111827] border border-[#eef0f3] hover:bg-gray-50 transition-colors cursor-pointer"
+        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium bg-white dark:bg-[#1c2028] text-[#111827] dark:text-[#e8eaf0] border border-[#eef0f3] dark:border-[#2a2f3d] hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-colors cursor-pointer"
         onClick={onBulkApprove}
       >
         Approve All Pending ({currentLocale})

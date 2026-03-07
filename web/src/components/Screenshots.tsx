@@ -45,13 +45,13 @@ export default function Screenshots({ addToast }: Props) {
   if (!activeApp) {
     return (
       <div className="max-w-4xl">
-        <h1 className="text-3xl font-semibold tracking-tight text-[#111827] mb-1">
+        <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
           Screenshots
         </h1>
-        <p className="text-sm text-[#9ca3af] mb-8">
+        <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">
           Select an app to manage GitHub integration and screenshot generation.
         </p>
-        <div className={`${cardCls} text-center py-12 text-gray-400`}>
+        <div className={`${cardCls} text-center py-12 text-gray-400 dark:text-[#5c6478]`}>
           No app selected. Choose an app from the sidebar.
         </div>
       </div>
@@ -60,10 +60,10 @@ export default function Screenshots({ addToast }: Props) {
 
   return (
     <div className="max-w-4xl">
-      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] mb-1">
+      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
         Screenshots
       </h1>
-      <p className="text-sm text-[#9ca3af] mb-8">
+      <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">
         Automatically generate App Store screenshots via Fastlane when you push
         to GitHub.
       </p>
@@ -180,10 +180,10 @@ function RepoLinker({
 
   return (
     <div className={`${cardCls} mb-5`}>
-      <h2 className="text-[15px] font-semibold text-[#111827] mb-1">
+      <h2 className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-1">
         GitHub Repository
       </h2>
-      <p className="text-xs text-[#9ca3af] mb-4">
+      <p className="text-xs text-[#9ca3af] dark:text-[#5c6478] mb-4">
         Link a GitHub repo to this app. On every push, AppCore will clone the
         repo and run <code className="text-[11px]">fastlane snapshot</code> to
         generate screenshots.
@@ -191,19 +191,19 @@ function RepoLinker({
 
       {link?.linked ? (
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-[#f8f9fb] border border-[#eef0f3] rounded-xl px-4 py-2.5">
+          <div className="flex items-center gap-2 bg-[#f8f9fb] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl px-4 py-2.5">
             <svg
-              className="w-5 h-5 text-[#111827]"
+              className="w-5 h-5 text-[#111827] dark:text-[#e8eaf0]"
               viewBox="0 0 24 24"
               fill="currentColor"
             >
               <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z" />
             </svg>
             <div>
-              <div className="text-sm font-medium text-[#111827]">
+              <div className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0]">
                 {link.repoFullName}
               </div>
-              <div className="text-[11px] text-[#9ca3af]">
+              <div className="text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
                 Webhook active — screenshots on push
               </div>
             </div>
@@ -227,7 +227,7 @@ function RepoLinker({
               Link Repository
             </button>
           ) : (
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-[#9ca3af] dark:text-[#5c6478]">
               Connect GitHub in Settings to link a repo.
             </p>
           )}
@@ -235,18 +235,18 @@ function RepoLinker({
       )}
 
       {showPicker && (
-        <div className="mt-4 border border-[#eef0f3] rounded-xl p-4 bg-[#f8f9fb]">
-          <h3 className="text-sm font-medium text-[#111827] mb-3">
+        <div className="mt-4 border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl p-4 bg-[#f8f9fb] dark:bg-[#161920]">
+          <h3 className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0] mb-3">
             Select a repository
           </h3>
           {loadingRepos ? (
-            <div className="flex items-center gap-2 text-sm text-gray-400 py-4">
+            <div className="flex items-center gap-2 text-sm text-[#9ca3af] dark:text-[#5c6478] py-4">
               <div className="spinner !w-4 !h-4" /> Loading repositories…
             </div>
           ) : (
             <>
               <select
-                className="w-full px-3 py-2 rounded-xl border border-[#eef0f3] bg-white text-sm text-[#111827] mb-3"
+                className="w-full px-3 py-2 rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-sm text-[#111827] dark:text-[#e8eaf0] mb-3"
                 value={selectedRepo}
                 onChange={(e) => setSelectedRepo(e.target.value)}
               >
@@ -299,29 +299,29 @@ function ScreenshotJobsTable({
 
   const statusBadge = (s: string) => {
     const colors: Record<string, string> = {
-      PENDING: "bg-amber-50 text-amber-700",
-      RUNNING: "bg-blue-50 text-blue-700",
-      COMPLETED: "bg-emerald-50 text-emerald-700",
-      FAILED: "bg-red-50 text-red-600",
+      PENDING: "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
+      RUNNING: "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
+      COMPLETED: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
+      FAILED: "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400",
     };
-    return `inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium ${colors[s] ?? "bg-gray-50 text-gray-600"}`;
+    return `inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium ${colors[s] ?? "bg-gray-50 text-gray-600 dark:bg-[#252b38] dark:text-[#8b93a5]"}`;
   };
 
   return (
     <div className={`${cardCls} mb-5`}>
-      <h2 className="text-[15px] font-semibold text-[#111827] mb-1">
+      <h2 className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-1">
         Screenshot Jobs
       </h2>
-      <p className="text-xs text-[#9ca3af] mb-4">
+      <p className="text-xs text-[#9ca3af] dark:text-[#5c6478] mb-4">
         Recent screenshot generation runs triggered by GitHub pushes.
       </p>
 
       {loading ? (
-        <div className="flex items-center gap-2 text-sm text-gray-400 py-8 justify-center">
+        <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-[#5c6478] py-8 justify-center">
           <div className="spinner !w-4 !h-4" /> Loading…
         </div>
       ) : !jobs || jobs.length === 0 ? (
-        <div className="text-center py-8 text-sm text-gray-400">
+        <div className="text-center py-8 text-sm text-gray-400 dark:text-[#5c6478]">
           No screenshot jobs yet. Link a repo and push a commit to trigger one.
         </div>
       ) : (
@@ -393,38 +393,38 @@ function JobRow({
   };
 
   return (
-    <div className="border border-[#eef0f3] rounded-xl overflow-hidden">
+    <div className="border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl overflow-hidden">
       {/* Summary row */}
       <button
-        className="w-full flex items-center gap-4 px-4 py-3 hover:bg-[#fafbfc] transition-colors text-left"
+        className="w-full flex items-center gap-4 px-4 py-3 hover:bg-[#fafbfc] dark:hover:bg-white/[0.03] transition-colors text-left"
         onClick={onToggle}
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-[13px] font-mono text-[#111827]">
+            <span className="text-[13px] font-mono text-[#111827] dark:text-[#e8eaf0]">
               {job.commitSha.slice(0, 7)}
             </span>
-            <span className="text-[12px] font-mono bg-[#f3f4f6] px-1.5 py-0.5 rounded">
+            <span className="text-[12px] font-mono bg-[#f3f4f6] dark:bg-[#252b38] dark:text-[#8b93a5] px-1.5 py-0.5 rounded">
               {job.branch ?? "—"}
             </span>
             <span className={statusBadge(job.status)}>{job.status}</span>
           </div>
           {job.commitMessage && (
-            <div className="text-[12px] text-[#6b7280] truncate mt-0.5">
+            <div className="text-[12px] text-[#6b7280] dark:text-[#8b93a5] truncate mt-0.5">
               {job.commitMessage}
             </div>
           )}
         </div>
         <div className="text-right shrink-0">
-          <div className="text-[12px] text-[#9ca3af]">
+          <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478]">
             {job.pusher ? `by ${job.pusher}` : ""}
           </div>
-          <div className="text-[11px] text-[#9ca3af]">
+          <div className="text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
             {new Date(job.createdAt).toLocaleString()}
           </div>
         </div>
         <svg
-          className={`w-4 h-4 text-[#9ca3af] shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`}
+          className={`w-4 h-4 text-[#9ca3af] dark:text-[#5c6478] shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -440,7 +440,7 @@ function JobRow({
 
       {/* Expanded details */}
       {expanded && (
-        <div className="border-t border-[#eef0f3] bg-[#fafbfc] px-4 py-3">
+        <div className="border-t border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#161920] px-4 py-3">
           {job.error && (
             <div className="mb-3 p-3 rounded-lg bg-red-50 border border-red-200">
               <div className="text-[11px] font-medium text-red-700 uppercase tracking-wide mb-1">
@@ -481,12 +481,12 @@ function JobRow({
 
           {/* Frame form */}
           {showFrameForm && (
-            <div className="mb-4 p-4 rounded-xl border border-[#eef0f3] bg-white">
-              <div className="text-[12px] font-semibold text-[#111827] mb-3">
+            <div className="mb-4 p-4 rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028]">
+              <div className="text-[12px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-3">
                 App Store Framing
               </div>
               <div className="mb-3">
-                <label className="text-[11px] text-[#6b7280] mb-1 block">
+                <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] mb-1 block">
                   Subtitle
                 </label>
                 <input
@@ -497,7 +497,7 @@ function JobRow({
                 />
               </div>
               <div className="mb-4">
-                <label className="text-[11px] text-[#6b7280] mb-1.5 block">
+                <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] mb-1.5 block">
                   Background
                 </label>
                 <div className="flex gap-2 flex-wrap">
@@ -505,7 +505,7 @@ function JobRow({
                     <button
                       key={p.label}
                       onClick={() => setPreset(i)}
-                      className={`w-8 h-8 rounded-lg border-2 transition-all ${preset === i ? "border-[#111827] scale-110" : "border-transparent"}`}
+                      className={`w-8 h-8 rounded-lg border-2 transition-all ${preset === i ? "border-[#111827] dark:border-[#e8eaf0] scale-110" : "border-transparent"}`}
                       style={{
                         background: `linear-gradient(135deg, ${p.bg1}, ${p.bg2})`,
                       }}
@@ -533,7 +533,7 @@ function JobRow({
           {/* Framed screenshot thumbnails */}
           {framedUrls.length > 0 && (
             <div className="mb-4">
-              <div className="text-[11px] font-medium text-[#6b7280] uppercase tracking-wide mb-2">
+              <div className="text-[11px] font-medium text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide mb-2">
                 Framed ({framedUrls.length})
               </div>
               <div className="flex gap-3 overflow-x-auto pb-2">
@@ -548,7 +548,7 @@ function JobRow({
                     <img
                       src={url}
                       alt="Framed screenshot"
-                      className="h-48 rounded-lg border border-[#eef0f3] object-cover hover:opacity-90 transition-opacity"
+                      className="h-48 rounded-lg border border-[#eef0f3] dark:border-[#2a2f3d] object-cover hover:opacity-90 transition-opacity"
                     />
                   </a>
                 ))}
@@ -559,7 +559,7 @@ function JobRow({
           {/* Logs */}
           {job.logs && job.logs.length > 0 ? (
             <div>
-              <div className="text-[11px] font-medium text-[#6b7280] uppercase tracking-wide mb-1">
+              <div className="text-[11px] font-medium text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide mb-1">
                 Logs ({job.logs.length} lines)
               </div>
               <pre className="text-[11px] text-[#e5e7eb] bg-[#111827] rounded-lg p-3 overflow-x-auto max-h-[400px] overflow-y-auto font-mono leading-relaxed">
@@ -567,7 +567,7 @@ function JobRow({
               </pre>
             </div>
           ) : (
-            <div className="text-[12px] text-[#9ca3af]">No logs captured.</div>
+            <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478]">No logs captured.</div>
           )}
         </div>
       )}
@@ -625,16 +625,16 @@ function LocalTestPanel({
         onClick={() => setOpen((v) => !v)}
       >
         <div>
-          <h2 className="text-[15px] font-semibold text-[#111827] text-left">
+          <h2 className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0] text-left">
             Local Test — Frame Existing Screenshots
           </h2>
-          <p className="text-xs text-[#9ca3af] text-left mt-0.5">
+          <p className="text-xs text-[#9ca3af] dark:text-[#5c6478] text-left mt-0.5">
             Point to a folder of raw screenshots on disk to preview framing
             instantly.
           </p>
         </div>
         <svg
-          className={`w-4 h-4 text-[#9ca3af] shrink-0 ml-4 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`w-4 h-4 text-[#9ca3af] dark:text-[#5c6478] shrink-0 ml-4 transition-transform ${open ? "rotate-180" : ""}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -647,7 +647,7 @@ function LocalTestPanel({
       {open && (
         <div className="mt-4">
           <div className="mb-3">
-            <label className="text-[11px] text-[#6b7280] mb-1 block">
+            <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] mb-1 block">
               Directory path (absolute, on server)
             </label>
             <input
@@ -658,7 +658,7 @@ function LocalTestPanel({
             />
           </div>
           <div className="mb-3">
-            <label className="text-[11px] text-[#6b7280] mb-1 block">
+            <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] mb-1 block">
               Subtitle
             </label>
             <input
@@ -669,7 +669,7 @@ function LocalTestPanel({
             />
           </div>
           <div className="mb-4">
-            <label className="text-[11px] text-[#6b7280] mb-1.5 block">
+            <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] mb-1.5 block">
               Background gradient
             </label>
             <div className="flex gap-2 flex-wrap items-center">
@@ -677,14 +677,14 @@ function LocalTestPanel({
                 <button
                   key={p.label}
                   onClick={() => setPreset(i)}
-                  className={`w-8 h-8 rounded-lg border-2 transition-all ${preset === i ? "border-[#111827] scale-110" : "border-transparent"}`}
+                  className={`w-8 h-8 rounded-lg border-2 transition-all ${preset === i ? "border-[#111827] dark:border-[#e8eaf0] scale-110" : "border-transparent"}`}
                   style={{
                     background: `linear-gradient(135deg, ${p.bg1}, ${p.bg2})`,
                   }}
                   title={p.label}
                 />
               ))}
-              <span className="text-[11px] text-[#9ca3af] ml-1">
+              <span className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] ml-1">
                 {PRESETS[preset].label}
               </span>
             </div>
@@ -717,7 +717,7 @@ function LocalTestPanel({
 
           {results.length > 0 && (
             <div className="mt-5">
-              <div className="text-[11px] font-medium text-[#6b7280] uppercase tracking-wide mb-2">
+              <div className="text-[11px] font-medium text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide mb-2">
                 Result — {results.length} screenshot(s)
               </div>
               <div className="flex gap-3 overflow-x-auto pb-2">
@@ -732,7 +732,7 @@ function LocalTestPanel({
                     <img
                       src={url}
                       alt="Framed screenshot"
-                      className="h-64 rounded-xl border border-[#eef0f3] object-cover hover:opacity-90 transition-opacity shadow-sm"
+                      className="h-64 rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] object-cover hover:opacity-90 transition-opacity shadow-sm"
                     />
                   </a>
                 ))}
