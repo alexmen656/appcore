@@ -18,7 +18,9 @@ import { githubRouter } from "./api/github";
 import { requireAuth } from "./auth";
 import { mcpAuth, createMcpHandler } from "./mcp";
 import pushRouter from "./api/push";
+import { autonomousRouter } from "./api/autonomous";
 import { pushService } from "../services/push-notification.js";
+import { initScheduler as initASOScheduler } from "../autonomous";
 import fs from "fs";
 
 const app = express();
@@ -41,6 +43,7 @@ app.use("/api/submissions", requireAuth, submissionsRouter);
 app.use("/api/github", githubRouter);
 app.use("/api/mcp", mcpRouter);
 app.use("/api/push", requireAuth, pushRouter);
+app.use("/api/autonomous", requireAuth, autonomousRouter);
 app.post("/mcp", mcpAuth, createMcpHandler());
 
 const screenshotsDir = path.join(process.cwd(), "screenshots");
@@ -59,6 +62,10 @@ app.listen(PORT, () => {
   logger.info(`AppCore Web UI running at http://localhost:${PORT}`);
   scheduler.start();
   logger.info("Background scheduler started automatically");
+
+  // Start Autonomous ASO cron schedules
+  initASOScheduler();
+  logger.info("Autonomous ASO scheduler started");
 
   const apnsKeyId = process.env.APNS_KEY_ID;
   const apnsTeamId = process.env.APNS_TEAM_ID;
