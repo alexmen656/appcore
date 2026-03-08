@@ -54,11 +54,12 @@ interface DeliverRequest {
   bundleId: string;
   action: "metadata" | "submit_for_review";
   copyright?: string;
+  screenshots?: Record<string, Array<{ filename: string; data: string }>>;
 }
 
 workerRouter.post("/deliver", async (req: Request, res: Response) => {
   const body = req.body as DeliverRequest;
-  const { locales, apiKey, bundleId, action, copyright } = body;
+  const { locales, apiKey, bundleId, action, copyright, screenshots } = body;
 
   if (!locales || !apiKey || !bundleId || !action) {
     res.status(400).json({ error: "Missing required fields" });
@@ -106,16 +107,32 @@ workerRouter.post("/deliver", async (req: Request, res: Response) => {
     );
     logs.push(`Metadata written for ${Object.keys(locales).length} locale(s)`);
 
-    // 2. Write API key JSON
+    // 2. Write screenshots (if provided)
+    const screenshotsRoot = path.join(tmpDir, "screenshots");
+    const hasScreenshots = screenshots && Object.keys(screenshots).length > 0;
+    if (hasScreenshots) {
+      let totalScreenshots = 0;
+      for (const [locale, images] of Object.entries(screenshots!)) {
+        const localeDir = path.join(screenshotsRoot, locale);
+        fs.mkdirSync(localeDir, { recursive: true });
+        for (const img of images) {
+          fs.writeFileSync(path.join(localeDir, img.filename), Buffer.from(img.data, "base64"));
+          totalScreenshots++;
+        }
+      }
+      logs.push(`Screenshots written: ${totalScreenshots} image(s) across ${Object.keys(screenshots!).length} locale(s)`);
+    }
+
+    // 3. Write API key JSON
     const apiKeyPath = path.join(tmpDir, "api_key.json");
     fs.writeFileSync(apiKeyPath, JSON.stringify(apiKey, null, 2));
     logs.push("API key file written");
 
-    // 3. Find fastlane
+    // 4. Find fastlane
     const fastlanePath = await findFastlane();
     logs.push(`Using fastlane at: ${fastlanePath}`);
 
-    // 4. Build deliver args
+    // 5. Build deliver args
     const args = [
       "--api_key_path",
       apiKeyPath,
@@ -123,12 +140,17 @@ workerRouter.post("/deliver", async (req: Request, res: Response) => {
       metadataRoot,
       "--app_identifier",
       bundleId,
-      "--skip_screenshots",
       "--skip_binary_upload",
       "--force",
       "--precheck_include_in_app_purchases",
       "false",
     ];
+
+    if (hasScreenshots) {
+      args.push("--screenshots_path", screenshotsRoot);
+    } else {
+      args.push("--skip_screenshots");
+    }
 
     if (action === "metadata") {
       args.push("--skip_app_version_update");
@@ -137,9 +159,9 @@ workerRouter.post("/deliver", async (req: Request, res: Response) => {
       args.push("--submit_for_review");
     }
 
-    logs.push(`Running: fastlane deliver ${args.join(" ")}`);
+    logs.push(`Running: fastlane deliver (screenshots: ${hasScreenshots ? "yes" : "skipped"})`);
 
-    // 5. Execute fastlane deliver
+    // 6. Execute fastlane deliver
     await new Promise<void>((resolve, reject) => {
       const parts = fastlanePath.split(" ");
       const cmd = parts[0];

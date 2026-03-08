@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import { logger, prisma } from "../config";
 import type { EffectiveSettings } from "../config";
 import { AppStoreConnectClient } from "./appstore-connect";
@@ -201,6 +203,12 @@ export class FastlaneService {
 
       submission.status = "running";
 
+      const screenshots = await this.loadFramedScreenshots();
+      if (screenshots) {
+        const total = Object.values(screenshots).reduce((n, a) => n + a.length, 0);
+        submission.logs.push(`Loaded ${total} framed screenshot(s) across ${Object.keys(screenshots).length} locale(s)`);
+      }
+
       const result = await workerClient.deliver({
         locales: localeData,
         apiKey: {
@@ -211,6 +219,7 @@ export class FastlaneService {
         },
         bundleId: this.settings.ascBundleId,
         action,
+        screenshots: screenshots ?? undefined,
       });
 
       submission.logs.push(...result.logs);
@@ -296,6 +305,46 @@ export class FastlaneService {
     } catch (err: any) {
       const detail = err?.response?.data?.errors?.[0]?.detail ?? err.message;
       throw new Error(`Submit for review failed: ${detail}`);
+    }
+  }
+
+  private async loadFramedScreenshots(): Promise<Record<string, Array<{ filename: string; data: string }>> | null> {
+    try {
+      const app = await prisma.app.findFirst({
+        where: { bundleId: this.settings.ascBundleId },
+        select: { id: true },
+      });
+      if (!app) return null;
+
+      const job = await (prisma as any).screenshotJob.findFirst({
+        where: { appId: app.id, status: "COMPLETED", framedByLocale: { not: null } },
+        orderBy: { completedAt: "desc" },
+        select: { framedByLocale: true },
+      });
+      if (!job?.framedByLocale) return null;
+
+      const framedByLocale = job.framedByLocale as Record<string, string[]>;
+      const screenshots: Record<string, Array<{ filename: string; data: string }>> = {};
+      const cwd = process.cwd();
+
+      for (const [locale, urls] of Object.entries(framedByLocale)) {
+        if (locale === "default") continue; // deliver needs named locales
+        const images: Array<{ filename: string; data: string }> = [];
+        for (const url of urls) {
+          const filePath = path.join(cwd, url);
+          if (!fs.existsSync(filePath)) continue;
+          images.push({
+            filename: path.basename(filePath),
+            data: fs.readFileSync(filePath).toString("base64"),
+          });
+        }
+        if (images.length > 0) screenshots[locale] = images;
+      }
+
+      return Object.keys(screenshots).length > 0 ? screenshots : null;
+    } catch (err) {
+      logger.warn("[Fastlane] Could not load framed screenshots:", err);
+      return null;
     }
   }
 
