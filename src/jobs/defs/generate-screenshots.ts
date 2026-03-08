@@ -3,6 +3,10 @@ import fs from "fs";
 import { logger, prisma } from "../../config";
 import { frameWithFastlane } from "../../services/frame-screenshots";
 import { workerClient } from "../../services/worker-client";
+import {
+  generateScreenshotSublines,
+  type ScreenshotSublines,
+} from "../../services/screenshot-subline-generator";
 
 export async function runScreenshotGeneration(jobId: string): Promise<void> {
   const job = await prisma.screenshotJob.findUnique({
@@ -62,6 +66,8 @@ async function runScreenshotGenerationViaWorker(
     }
 
     const screenshotUrls: string[] = [];
+    const detectedLocales: string[] = [];
+
     for (const [locale, images] of Object.entries(result.screenshots)) {
       const localeDir =
         locale === "default" ? outputDir : path.join(outputDir, locale);
@@ -71,9 +77,69 @@ async function runScreenshotGenerationViaWorker(
         fs.writeFileSync(dest, Buffer.from(img.data, "base64"));
         screenshotUrls.push(dest);
       }
+      if (locale !== "default") detectedLocales.push(locale);
     }
     log(
       `Saved ${screenshotUrls.length} screenshot(s) from worker to ${outputDir}`,
+    );
+
+    const descriptions = result.descriptions ?? {};
+    const allFilenames = Object.values(result.screenshots)
+      .flat()
+      .map((i) => i.filename);
+    const filenameKeys = [
+      ...new Set(
+        allFilenames.map((f) => {
+          const base = f.replace(/\.[^.]+$/, "");
+          const match = base.match(/^(.+?)(?:_[a-z]{2}-[A-Z]{2}_|_[a-z]{2}_)/);
+          return match ? match[1] : base;
+        }),
+      ),
+    ];
+    const effectiveDescriptions: Record<string, string> = { ...descriptions };
+    for (const key of filenameKeys) {
+      if (!effectiveDescriptions[key])
+        effectiveDescriptions[key] = key.replace(/_/g, " ");
+    }
+    const hasDescriptions = Object.keys(effectiveDescriptions).length > 0;
+
+    let sublines: ScreenshotSublines = {};
+    if (hasDescriptions) {
+      log(
+        `Generating AI sublines for ${Object.keys(effectiveDescriptions).length} screen(s)...`,
+      );
+      try {
+        sublines = await generateScreenshotSublines(
+          job.appId,
+          effectiveDescriptions,
+          detectedLocales.length > 0 ? detectedLocales : ["en-US"],
+        );
+        log(
+          `AI sublines generated for ${Object.keys(sublines).length} locale(s)`,
+        );
+      } catch (sublineErr: any) {
+        log(`Subline generation failed (non-fatal): ${sublineErr.message}`);
+      }
+    }
+
+    await prisma.screenshotJob.update({
+      where: { id: jobId },
+      data: {
+        screenshotUrls,
+        ...(hasDescriptions && {
+          screenshotDescriptions: effectiveDescriptions,
+          screenshotSublines: sublines,
+        }),
+      } as any,
+    });
+
+    await autoFrameScreenshots(
+      jobId,
+      job,
+      outputDir,
+      effectiveDescriptions,
+      sublines,
+      log,
     );
 
     await prisma.screenshotJob.update({
@@ -82,11 +148,8 @@ async function runScreenshotGenerationViaWorker(
         status: "COMPLETED",
         completedAt: new Date(),
         logs: JSON.stringify(logs),
-        screenshotUrls,
       },
     });
-
-    await autoFrameScreenshots(jobId, job, outputDir, result.descriptions ?? {}, log);
   } catch (err: any) {
     const msg = err instanceof Error ? err.message : String(err);
     logs.push(`ERROR: ${msg}`);
@@ -108,6 +171,7 @@ async function autoFrameScreenshots(
   job: any,
   outputDir: string,
   descriptions: Record<string, string>,
+  sublines: ScreenshotSublines,
   log: (msg: string) => void,
 ): Promise<void> {
   try {
@@ -126,8 +190,9 @@ async function autoFrameScreenshots(
 
     for (const srcDir of sourceDirs) {
       const rel = path.relative(outputDir, srcDir);
+      const locale = rel === "." ? "default" : path.basename(srcDir);
       const outDir = path.join(framedDir, rel === "." ? "" : rel);
-      const key = rel === "." ? "default" : path.basename(srcDir);
+      const localeSublines = sublines[locale] ?? sublines["en-US"] ?? {};
       let outputPaths: string[];
 
       if (!hasDescriptions) {
@@ -139,18 +204,28 @@ async function autoFrameScreenshots(
         const files = fs
           .readdirSync(srcDir)
           .filter((f) => /\.(png|jpg|jpeg)$/i.test(f));
+
         for (const filename of files) {
           const base = filename.replace(/\.[^.]+$/, "");
-          const descKey = Object.keys(descriptions).find((k) =>
-            base.startsWith(k),
+          const descKey = Object.keys(descriptions).find(
+            (k) => base === k || base.startsWith(k + "_"),
           );
-          const subtitle = descKey ? descriptions[descKey] : job.app.name;
+          // Prefer AI subline → raw description → app name
+          const subtitle = descKey
+            ? (localeSublines[descKey] ?? descriptions[descKey])
+            : job.app.name;
+
           const singleDir = path.join(srcDir, ".frametmp_" + base);
           const singleOut = path.join(outDir, base);
           fs.mkdirSync(singleDir, { recursive: true });
-          fs.copyFileSync(path.join(srcDir, filename), path.join(singleDir, filename));
+          fs.copyFileSync(
+            path.join(srcDir, filename),
+            path.join(singleDir, filename),
+          );
           try {
-            const paths = await frameWithFastlane(singleDir, singleOut, { subtitle });
+            const paths = await frameWithFastlane(singleDir, singleOut, {
+              subtitle,
+            });
             outputPaths.push(...paths);
           } finally {
             fs.rmSync(singleDir, { recursive: true, force: true });
@@ -163,7 +238,7 @@ async function autoFrameScreenshots(
           "/screenshots/" +
           path.relative(screenshotsBase, p).replace(/\\/g, "/"),
       );
-      framedByLocale[key] = (framedByLocale[key] ?? []).concat(urls);
+      framedByLocale[locale] = (framedByLocale[locale] ?? []).concat(urls);
     }
 
     await prisma.screenshotJob.update({

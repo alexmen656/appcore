@@ -260,6 +260,8 @@ workerRouter.post("/snapshot", async (req: Request, res: Response) => {
           "clear_previous_screenshots(true)",
           'output_directory("./fastlane/screenshots")',
           "",
+          "concurrent_simulators(true)",
+          "",
         ].join("\n"),
       );
     }
@@ -416,7 +418,6 @@ workerRouter.post("/frameit", async (req: Request, res: Response) => {
       ? LAYOUT_MODES[Math.floor(Math.random() * LAYOUT_MODES.length)]
       : layoutModeInput;
 
-  const effectiveTitle = title || subtitle || " ";
   const tmpDir = path.join(os.tmpdir(), `worker-frameit-${Date.now()}`);
   fs.mkdirSync(tmpDir, { recursive: true });
 
@@ -473,10 +474,15 @@ workerRouter.post("/frameit", async (req: Request, res: Response) => {
       show_complete_frame: false,
       stack_title: false,
       title_below_image: layoutMode === "bottom",
-      title: { text: effectiveTitle, color: textColor },
     };
+    if (title) {
+      defaultSection.title = { text: title, color: textColor };
+    }
     if (subtitle) {
-      defaultSection.keyword = { text: subtitle, color: textColor };
+      defaultSection.title = { text: subtitle, color: textColor };
+    }
+    if (!title && !subtitle) {
+      defaultSection.title = { text: " ", color: textColor };
     }
 
     fs.writeFileSync(
@@ -523,22 +529,15 @@ workerRouter.post("/frameit", async (req: Request, res: Response) => {
     for (const f of framedFiles) {
       const raw = fs.readFileSync(path.join(tmpDir, f));
       const img = sharp(raw);
-      const { width: fw, height: fh } = await img.metadata();
 
       const srcBase = f.replace(/_framed\.png$/, "");
       const dims = outputDims.get(srcBase) ?? { w: firstW, h: firstH };
 
-      let pipeline: ReturnType<typeof sharp>;
-      if (layoutMode === "center") {
-        pipeline = img;
-      } else {
-        const cropH = Math.round((fh ?? 0) * 0.75);
-        const top = layoutMode === "bottom" ? (fh ?? 0) - cropH : 0;
-        pipeline = img.extract({ left: 0, top, width: fw ?? 0, height: cropH });
-      }
+      const gravity =
+        layoutMode === "top" ? "north" : layoutMode === "bottom" ? "south" : "centre";
 
-      const finalBuf = await pipeline
-        .resize(dims.w, dims.h, { fit: "fill" })
+      const finalBuf = await img
+        .resize(dims.w, dims.h, { fit: "cover", position: gravity })
         .png()
         .toBuffer();
 

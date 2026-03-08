@@ -444,6 +444,14 @@ model ScreenshotJob {
   // e.g. { "de-DE": ["/screenshots/jobId/framed/de-DE/...png"], ... }
   framedByLocale Json?
 
+  // Raw descriptions from fastlane/screenshot_descriptions.json
+  // e.g. { "04_Community": "Community tab with posts and social interactions" }
+  screenshotDescriptions Json?
+
+  // AI-generated optimized sublines per locale per screenshot
+  // e.g. { "en-US": { "04_Community": "Connect & Share Adventures" }, "de-DE": { ... } }
+  screenshotSublines Json?
+
   startedAt     DateTime?
   completedAt   DateTime?
   createdAt     DateTime  @default(now())
