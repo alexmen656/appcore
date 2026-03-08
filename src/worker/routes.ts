@@ -351,6 +351,8 @@ const SIZE_REMAP: Record<string, { w: number; h: number }> = {
   "2064x2752": { w: 2048, h: 2732 }, // iPad Pro 13" M4 → 12.9" 4th
 };
 
+type LayoutMode = "center" | "top" | "bottom";
+
 interface FrameitRequest {
   images: Array<{ filename: string; data: string }>;
   options: {
@@ -359,6 +361,7 @@ interface FrameitRequest {
     bgColor1?: string;
     bgColor2?: string;
     textColor?: string;
+    layoutMode?: LayoutMode | "random";
   };
 }
 
@@ -377,7 +380,14 @@ workerRouter.post("/frameit", async (req: Request, res: Response) => {
     bgColor1 = "#667eea",
     bgColor2 = "#764ba2",
     textColor = "#ffffff",
+    layoutMode: layoutModeInput,
   } = options || {};
+
+  const LAYOUT_MODES: LayoutMode[] = ["center", "top", "bottom"];
+  const layoutMode: LayoutMode =
+    !layoutModeInput || layoutModeInput === "random"
+      ? LAYOUT_MODES[Math.floor(Math.random() * LAYOUT_MODES.length)]
+      : layoutModeInput;
 
   const effectiveTitle = title || subtitle || " ";
   const tmpDir = path.join(os.tmpdir(), `worker-frameit-${Date.now()}`);
@@ -431,7 +441,7 @@ workerRouter.post("/frameit", async (req: Request, res: Response) => {
       padding: 50,
       show_complete_frame: false,
       stack_title: false,
-      title_below_image: false,
+      title_below_image: layoutMode === "bottom",
       title: { text: effectiveTitle, color: textColor },
     };
     if (subtitle) {
@@ -480,8 +490,23 @@ workerRouter.post("/frameit", async (req: Request, res: Response) => {
 
     const framedImages: Array<{ filename: string; data: string }> = [];
     for (const f of framedFiles) {
-      const data = fs.readFileSync(path.join(tmpDir, f)).toString("base64");
-      framedImages.push({ filename: f, data });
+      const raw = fs.readFileSync(path.join(tmpDir, f));
+      let finalBuf: Buffer;
+
+      if (layoutMode === "center") {
+        finalBuf = raw;
+      } else {
+        const img = sharp(raw);
+        const { width: iw, height: ih } = await img.metadata();
+        const cropH = Math.round((ih ?? 0) * 0.75);
+        const top = layoutMode === "bottom" ? (ih ?? 0) - cropH : 0;
+        finalBuf = await img
+          .extract({ left: 0, top, width: iw ?? 0, height: cropH })
+          .png()
+          .toBuffer();
+      }
+
+      framedImages.push({ filename: f, data: finalBuf.toString("base64") });
     }
 
     res.json({ ok: true, framedImages });
