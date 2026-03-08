@@ -46,6 +46,7 @@ export interface WorkerSnapshotResult {
   errors: string[];
   screenshots: Record<string, Array<{ filename: string; data: string }>>;
   descriptions: Record<string, string>;
+  config: Record<string, string>;
 }
 
 export interface WorkerFrameitParams {

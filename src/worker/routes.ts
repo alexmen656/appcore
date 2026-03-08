@@ -337,6 +337,7 @@ workerRouter.post("/snapshot", async (req: Request, res: Response) => {
     }
 
     let descriptions: Record<string, string> = {};
+    let config: Record<string, string> = {};
     const descPaths = [
       path.join(tmpDir, "fastlane", "screenshot_descriptions.json"),
       path.join(tmpDir, "fastlane", "screenshot_descriptions.yaml"),
@@ -346,7 +347,12 @@ workerRouter.post("/snapshot", async (req: Request, res: Response) => {
       if (fs.existsSync(p)) {
         try {
           if (p.endsWith(".json")) {
-            descriptions = JSON.parse(fs.readFileSync(p, "utf8"));
+            const parsed = JSON.parse(fs.readFileSync(p, "utf8"));
+            if (parsed._config && typeof parsed._config === "object") {
+              config = parsed._config;
+              delete parsed._config;
+            }
+            descriptions = parsed;
           } else {
             for (const line of fs.readFileSync(p, "utf8").split("\n")) {
               const m = line.match(/^([^#:]+):\s*(.+)$/);
@@ -363,7 +369,7 @@ workerRouter.post("/snapshot", async (req: Request, res: Response) => {
       }
     }
 
-    res.json({ ok: true, logs, errors, screenshots, descriptions });
+    res.json({ ok: true, logs, errors, screenshots, descriptions, config });
   } catch (err: any) {
     errors.push(err.message);
     res.json({ ok: false, logs, errors, screenshots: {} });
@@ -468,6 +474,10 @@ workerRouter.post("/frameit", async (req: Request, res: Response) => {
     await sharp(Buffer.from(svg)).jpeg({ quality: 95 }).toFile(bgPath);
 
     // 3. Write Framefile.json
+    const SYSTEM_FONT = "/System/Library/Fonts/Supplemental/Arial Rounded Bold.ttf";
+    const localFontName = "ArialRoundedBold.ttf";
+    fs.copyFileSync(SYSTEM_FONT, path.join(tmpDir, localFontName));
+
     const defaultSection: Record<string, any> = {
       background: "./background.jpg",
       padding: 50,
@@ -475,14 +485,15 @@ workerRouter.post("/frameit", async (req: Request, res: Response) => {
       stack_title: false,
       title_below_image: layoutMode === "bottom",
     };
+    const titleStyle = { color: textColor, font: `./${localFontName}`, font_size: 150 };
     if (title) {
-      defaultSection.title = { text: title, color: textColor };
+      defaultSection.title = { text: title, ...titleStyle };
     }
     if (subtitle) {
-      defaultSection.title = { text: subtitle, color: textColor };
+      defaultSection.title = { text: subtitle, ...titleStyle };
     }
     if (!title && !subtitle) {
-      defaultSection.title = { text: " ", color: textColor };
+      defaultSection.title = { text: " ", ...titleStyle };
     }
 
     fs.writeFileSync(

@@ -84,6 +84,7 @@ async function runScreenshotGenerationViaWorker(
     );
 
     const descriptions = result.descriptions ?? {};
+    const frameConfig = result.config ?? {};
     const allFilenames = Object.values(result.screenshots)
       .flat()
       .map((i) => i.filename);
@@ -139,6 +140,7 @@ async function runScreenshotGenerationViaWorker(
       outputDir,
       effectiveDescriptions,
       sublines,
+      frameConfig,
       log,
     );
 
@@ -172,6 +174,7 @@ async function autoFrameScreenshots(
   outputDir: string,
   descriptions: Record<string, string>,
   sublines: ScreenshotSublines,
+  frameConfig: Record<string, string>,
   log: (msg: string) => void,
 ): Promise<void> {
   try {
@@ -195,9 +198,16 @@ async function autoFrameScreenshots(
       const localeSublines = sublines[locale] ?? sublines["en-US"] ?? {};
       let outputPaths: string[];
 
+      const bgOptions = {
+        bgColor1: frameConfig.bgColor1,
+        bgColor2: frameConfig.bgColor2,
+        textColor: frameConfig.textColor,
+      };
+
       if (!hasDescriptions) {
         outputPaths = await frameWithFastlane(srcDir, outDir, {
           subtitle: job.app.name,
+          ...bgOptions,
         });
       } else {
         outputPaths = [];
@@ -225,6 +235,7 @@ async function autoFrameScreenshots(
           try {
             const paths = await frameWithFastlane(singleDir, singleOut, {
               subtitle,
+              ...bgOptions,
             });
             outputPaths.push(...paths);
           } finally {
