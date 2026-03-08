@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { useApi, apiPut } from "../hooks/useApi";
 import AscCredentialsSection from "./comps/settings/AscCredentialsSection";
 import AiProviderSection from "./comps/settings/AiProviderSection";
-import ScrapingConfigSection from "./comps/settings/ScrapingConfigSection";
-import AsoLocalesSection from "./comps/settings/AsoLocalesSection";
 import GitHubSection from "./comps/settings/GitHubSection";
 import { SettingsData } from "./comps/settings/types";
 import { inputCls, textareaCls, btnSecondary, btnPrimary } from "../styles";
@@ -50,10 +48,10 @@ export default function Settings({ addToast }: Props) {
   return (
     <div className="max-w-3xl">
       <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
-        Settings
+        User Settings
       </h1>
       <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">
-        Configure your personal API keys and preferences.
+        Your personal credentials: GitHub account, App Store Connect keys, and AI provider.
       </p>
 
       <form onSubmit={handleSave} className="flex flex-col gap-0">
@@ -70,8 +68,6 @@ export default function Settings({ addToast }: Props) {
           inputCls={inputCls}
           onChange={set}
         />
-        <ScrapingConfigSection form={form} inputCls={inputCls} onChange={set} />
-        <AsoLocalesSection form={form} inputCls={inputCls} onChange={set} />
         <GitHubSection />
 
         <div className="flex justify-end pb-2">

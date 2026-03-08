@@ -28,9 +28,9 @@ import CompetitorDetailPage from "./components/CompetitorDetailPage";
 import Actions from "./components/Actions";
 import Agents from "./components/Agents";
 import Settings from "./components/Settings";
+import AppSettings from "./components/AppSettings";
 import Analytics from "./components/Analytics";
 import Versions from "./components/Versions";
-import Screenshots from "./components/Screenshots";
 import Login from "./components/Login";
 import type {
   AuthUser,
@@ -167,20 +167,6 @@ const IconAgents = () => (
     <path d="M7 10h2M15 10h2" />
   </svg>
 );
-const IconScreenshots = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <rect x="3" y="3" width="18" height="18" rx="2" />
-    <circle cx="8.5" cy="8.5" r="1.5" />
-    <path d="m21 15-5-5L5 21" />
-  </svg>
-);
 const IconMoon = () => (
   <svg
     viewBox="0 0 24 24"
@@ -224,9 +210,8 @@ const sidebarLinks = [
 
 const sidebarOperations = [
   { to: "/agents", label: "Agents", icon: IconAgents },
-  { to: "/actions", label: "Actions", icon: IconActions },
-  { to: "/screenshots", label: "Screenshots", icon: IconScreenshots },
-  { to: "/settings", label: "Settings", icon: IconSettings },
+  { to: "/actions", label: "Logs", icon: IconActions },
+  { to: "/app-settings", label: "App Settings", icon: IconSettings },
 ];
 
 function AppAvatar({
@@ -569,12 +554,34 @@ function ProfileMenu({
     .toUpperCase();
 
   return (
-    <div ref={ref} className="relative px-3 py-3 border-t border-[#e5e7eb] dark:border-[#2a2f3d]">
+    <div
+      ref={ref}
+      className="relative px-3 py-3 border-t border-[#e5e7eb] dark:border-[#2a2f3d]"
+    >
       {open && (
         <div className="absolute left-3 right-3 bottom-[calc(100%-8px)] bg-white dark:bg-[#1c2028] border border-[#e5e7eb] dark:border-[#2a2f3d] rounded-xl shadow-lg z-50 overflow-hidden">
           <div className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-gray-400 dark:text-[#5c6478]">
             Account
           </div>
+          <NavLink
+            to="/settings"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors text-[13px] text-[#1a1a2e] dark:text-[#e8eaf0] font-medium"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-4 h-4 text-gray-400 dark:text-[#5c6478] shrink-0"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+            Settings
+          </NavLink>
           <NavLink
             to="/settings"
             onClick={() => setOpen(false)}
@@ -665,15 +672,23 @@ function ProfileMenu({
 }
 
 const VERSION_STATE_COLORS: Record<string, string> = {
-  READY_FOR_SALE: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-  REPLACED_WITH_NEW_VERSION: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-  PREPARE_FOR_SUBMISSION: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  WAITING_FOR_REVIEW: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  IN_REVIEW: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
-  PENDING_DEVELOPER_RELEASE: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400",
+  READY_FOR_SALE:
+    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  REPLACED_WITH_NEW_VERSION:
+    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  PREPARE_FOR_SUBMISSION:
+    "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  WAITING_FOR_REVIEW:
+    "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  IN_REVIEW:
+    "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
+  PENDING_DEVELOPER_RELEASE:
+    "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400",
   REJECTED: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
-  DEVELOPER_REJECTED: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
-  METADATA_REJECTED: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
+  DEVELOPER_REJECTED:
+    "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
+  METADATA_REJECTED:
+    "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
 };
 
 const VERSION_STATE_SHORT: Record<string, string> = {
@@ -718,9 +733,13 @@ function VersionsSidebarSection({
         const best = data.find((v) => v.isEditable) ?? data[0];
         navigate(`/versions/${best.versionId}`, { replace: true });
       }
-      data.slice(0, 5).forEach((v) =>
-        preloadApi(`/asc/versions?versionId=${encodeURIComponent(v.versionId)}`)
-      );
+      data
+        .slice(0, 5)
+        .forEach((v) =>
+          preloadApi(
+            `/asc/versions?versionId=${encodeURIComponent(v.versionId)}`,
+          ),
+        );
     } catch {
       setVersions([]);
     } finally {
@@ -894,7 +913,9 @@ export default function App() {
             <div className="text-2xl font-bold text-[#ea0e2b] tracking-[-0.3px]">
               AppCore
             </div>
-            <div className="text-sm text-[#9ca3af] dark:text-[#5c6478] font-medium">ASO Engine</div>
+            <div className="text-sm text-[#9ca3af] dark:text-[#5c6478] font-medium">
+              ASO Engine
+            </div>
           </div>
         </div>
         <AppSwitcher current={dash?.app ?? null} addToast={addToast} />
@@ -955,11 +976,11 @@ export default function App() {
           <Route path="/versions" element={<Versions addToast={addToast} />} />
           <Route path="/agents" element={<Agents addToast={addToast} />} />
           <Route path="/actions" element={<Actions addToast={addToast} />} />
-          <Route
-            path="/screenshots"
-            element={<Screenshots addToast={addToast} />}
-          />
           <Route path="/settings" element={<Settings addToast={addToast} />} />
+          <Route
+            path="/app-settings"
+            element={<AppSettings addToast={addToast} />}
+          />
         </Routes>
       </main>
     </div>

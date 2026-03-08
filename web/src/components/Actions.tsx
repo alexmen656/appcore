@@ -2,6 +2,8 @@ import { useState } from "react";
 import { apiPost, useApi, getActiveBundleId } from "../hooks/useApi";
 import ActionCard, { ActionCardDef } from "./comps/actions/ActionCard";
 import JobHistoryTable, { Job } from "./comps/actions/JobHistoryTable";
+import { ScreenshotJobsTable, LocalTestPanel } from "./Screenshots";
+import type { AppItem } from "../types";
 
 const ACTION_CARDS: ActionCardDef[] = [
   {
@@ -51,6 +53,10 @@ export default function Actions({ addToast }: Props) {
   const { data: schedulerStatus, refetch: refetchScheduler } =
     useApi<SchedulerStatus>("/scheduler/status", [], true);
   const [running, setRunning] = useState<string | null>(null);
+
+  const { data: apps } = useApi<AppItem[]>("/apps", [], true);
+  const bundleId = getActiveBundleId();
+  const activeApp = apps?.find((a) => a.bundleId === bundleId && a.isOwnApp);
 
   const triggerAction = async (endpoint: string, label: string) => {
     setRunning(endpoint);
@@ -111,10 +117,10 @@ export default function Actions({ addToast }: Props) {
   return (
     <div>
       <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
-        Actions
+        Logs
       </h1>
       <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">
-        Trigger jobs, manage the scheduler, and auto-apply suggestions
+        Trigger jobs, manage the scheduler, auto-apply suggestions, and review screenshot runs
       </p>
 
       {/* ─── Scheduler Control ─────────────────────────────────────── */}
@@ -167,6 +173,14 @@ export default function Actions({ addToast }: Props) {
       </div>
 
       <JobHistoryTable jobs={jobs ?? null} onRefresh={refetch} />
+
+      {/* ─── Screenshot Jobs ──────────────────────────────────────────── */}
+      {activeApp && (
+        <>
+          <ScreenshotJobsTable appId={activeApp.id} addToast={addToast} />
+          <LocalTestPanel addToast={addToast} />
+        </>
+      )}
     </div>
   );
 }
