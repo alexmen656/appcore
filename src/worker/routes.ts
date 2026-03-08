@@ -351,7 +351,9 @@ workerRouter.post("/snapshot", async (req: Request, res: Response) => {
               if (m) descriptions[m[1].trim()] = m[2].trim();
             }
           }
-          logs.push(`Loaded ${Object.keys(descriptions).length} screenshot description(s) from ${path.basename(p)}`);
+          logs.push(
+            `Loaded ${Object.keys(descriptions).length} screenshot description(s) from ${path.basename(p)}`,
+          );
         } catch {
           logs.push(`Warning: could not parse ${path.basename(p)}`);
         }
@@ -421,17 +423,21 @@ workerRouter.post("/frameit", async (req: Request, res: Response) => {
   try {
     let firstW = 1290;
     let firstH = 2796;
+    const outputDims = new Map<string, { w: number; h: number }>();
 
     // 1. Write input images to temp dir, resizing if needed
     for (const img of images) {
       const buf = Buffer.from(img.data, "base64");
-      const tmpPath = path.join(
-        tmpDir,
-        img.filename.replace(/\.[^.]+$/, ".png"),
-      );
+      const basename = img.filename.replace(/\.[^.]+$/, "");
+      const tmpPath = path.join(tmpDir, basename + ".png");
       const meta = await sharp(buf).metadata();
       const remapKey = `${meta.width}x${meta.height}`;
       const remap = SIZE_REMAP[remapKey];
+
+      outputDims.set(basename, {
+        w: meta.width ?? firstW,
+        h: meta.height ?? firstH,
+      });
 
       let pipeline = sharp(buf);
       if (remap) {
@@ -516,20 +522,25 @@ workerRouter.post("/frameit", async (req: Request, res: Response) => {
     const framedImages: Array<{ filename: string; data: string }> = [];
     for (const f of framedFiles) {
       const raw = fs.readFileSync(path.join(tmpDir, f));
-      let finalBuf: Buffer;
+      const img = sharp(raw);
+      const { width: fw, height: fh } = await img.metadata();
 
+      const srcBase = f.replace(/_framed\.png$/, "");
+      const dims = outputDims.get(srcBase) ?? { w: firstW, h: firstH };
+
+      let pipeline: ReturnType<typeof sharp>;
       if (layoutMode === "center") {
-        finalBuf = raw;
+        pipeline = img;
       } else {
-        const img = sharp(raw);
-        const { width: iw, height: ih } = await img.metadata();
-        const cropH = Math.round((ih ?? 0) * 0.75);
-        const top = layoutMode === "bottom" ? (ih ?? 0) - cropH : 0;
-        finalBuf = await img
-          .extract({ left: 0, top, width: iw ?? 0, height: cropH })
-          .png()
-          .toBuffer();
+        const cropH = Math.round((fh ?? 0) * 0.75);
+        const top = layoutMode === "bottom" ? (fh ?? 0) - cropH : 0;
+        pipeline = img.extract({ left: 0, top, width: fw ?? 0, height: cropH });
       }
+
+      const finalBuf = await pipeline
+        .resize(dims.w, dims.h, { fit: "fill" })
+        .png()
+        .toBuffer();
 
       framedImages.push({ filename: f, data: finalBuf.toString("base64") });
     }
