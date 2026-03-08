@@ -26,20 +26,47 @@ function buildUrl(path: string): string {
   return url.toString().replace(window.location.origin, "");
 }
 
+const apiCache = new Map<string, any>();
+const apiPreloading = new Map<string, Promise<void>>();
+
+export function clearApiCache() {
+  apiCache.clear();
+  apiPreloading.clear();
+}
+
+export function preloadApi(path: string, skipBundleId = false): Promise<void> {
+  const url = skipBundleId ? `${BASE}${path}` : buildUrl(path);
+  if (apiCache.has(url)) return Promise.resolve();
+  if (apiPreloading.has(url)) return apiPreloading.get(url)!;
+  const promise = fetch(url, { headers: authHeaders() })
+    .then((r) => {
+      if (!r.ok) return;
+      return r.json().then((d) => { apiCache.set(url, d); });
+    })
+    .catch(() => {})
+    .finally(() => { apiPreloading.delete(url); });
+  apiPreloading.set(url, promise);
+  return promise;
+}
+
 export function useApi<T>(path: string, deps: any[] = [], skipBundleId = false) {
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
+  const getUrl = () => skipBundleId ? `${BASE}${path}` : buildUrl(path);
+
+  const [data, setData] = useState<T | null>(() => apiCache.get(getUrl()) ?? null);
+  const [loading, setLoading] = useState(() => !apiCache.has(getUrl()));
   const [error, setError] = useState<string | null>(null);
 
   const refetch = useCallback(() => {
+    const url = getUrl();
     setLoading(true);
     setError(null);
-    fetch(skipBundleId ? `${BASE}${path}` : buildUrl(path), { headers: authHeaders() })
+    fetch(url, { headers: authHeaders() })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
       .then((d) => {
+        apiCache.set(url, d);
         setData(d);
         setLoading(false);
       })
@@ -50,12 +77,37 @@ export function useApi<T>(path: string, deps: any[] = [], skipBundleId = false) 
   }, [path, skipBundleId, ...deps]);
 
   useEffect(() => {
-    refetch();
+    const url = getUrl();
+    const pending = apiPreloading.get(url);
+    if (pending) {
+      pending.then(() => {
+        const c = apiCache.get(url);
+        if (c) {
+          setData(c as T);
+          setLoading(false);
+        } else {
+          refetch();
+        }
+      });
+    } else {
+      const c = apiCache.get(url);
+      if (c) {
+        setData(c as T);
+        setLoading(false);
+      } else {
+        refetch();
+      }
+    }
   }, [refetch]);
 
   useEffect(() => {
-    window.addEventListener("app-changed", refetch);
-    return () => window.removeEventListener("app-changed", refetch);
+    const handler = () => {
+      setData(null);
+      setLoading(true);
+      refetch();
+    };
+    window.addEventListener("app-changed", handler);
+    return () => window.removeEventListener("app-changed", handler);
   }, [refetch]);
 
   return { data, loading, error, refetch };

@@ -15,6 +15,8 @@ import {
   setActiveBundleId,
   getActiveBundleId,
   authHeaders,
+  preloadApi,
+  clearApiCache,
 } from "./hooks/useApi";
 import { useClickOutside } from "./hooks/useClickOutside";
 import { useToast, ToastContainer } from "./hooks/useToast";
@@ -716,6 +718,9 @@ function VersionsSidebarSection({
         const best = data.find((v) => v.isEditable) ?? data[0];
         navigate(`/versions/${best.versionId}`, { replace: true });
       }
+      data.slice(0, 5).forEach((v) =>
+        preloadApi(`/asc/versions?versionId=${encodeURIComponent(v.versionId)}`)
+      );
     } catch {
       setVersions([]);
     } finally {
@@ -724,16 +729,22 @@ function VersionsSidebarSection({
   }, []);
 
   useEffect(() => {
+    load();
+  }, [load]);
+
+  useEffect(() => {
     if (expanded && !versions) load();
   }, [expanded, versions, load]);
 
   useEffect(() => {
     const handler = () => {
+      clearApiCache();
       setVersions(null);
+      load();
     };
     window.addEventListener("app-changed", handler);
     return () => window.removeEventListener("app-changed", handler);
-  }, []);
+  }, [load]);
 
   const handleToggle = () => {
     const next = !expanded;
