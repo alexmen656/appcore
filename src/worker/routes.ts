@@ -6,7 +6,6 @@ import path from "path";
 import os from "os";
 import sharp from "sharp";
 import { findFastlane, patchUITestFiles } from "./fastlane-utils";
-
 const execAsync = promisify(exec);
 
 export const workerRouter = Router();
@@ -103,7 +102,7 @@ workerRouter.post("/deliver", async (req: Request, res: Response) => {
     }
     fs.writeFileSync(
       path.join(metadataRoot, "copyright.txt"),
-      copyright ?? `© ${new Date().getFullYear()} Fringelo`,
+      copyright ?? `© ${new Date().getFullYear()} Fringelo Group`,
     );
     logs.push(`Metadata written for ${Object.keys(locales).length} locale(s)`);
 
@@ -193,9 +192,6 @@ workerRouter.post("/deliver", async (req: Request, res: Response) => {
   }
 });
 
-// ─── Fastlane Snapshot (screenshot generation) ───────────────────────────────
-// Long-running operation. Worker clones repo, runs snapshot, returns images.
-
 interface SnapshotRequest {
   repoUrl: string;
   accessToken: string;
@@ -281,7 +277,7 @@ workerRouter.post("/snapshot", async (req: Request, res: Response) => {
         `${fastlanePath} snapshot 2>&1`,
         {
           cwd: tmpDir,
-          timeout: 900_000, // 15 minutes
+          timeout: 900_000,
           env: { ...process.env, FASTLANE_DISABLE_COLORS: "1" },
           maxBuffer: 10 * 1024 * 1024,
         },
@@ -351,10 +347,8 @@ workerRouter.post("/snapshot", async (req: Request, res: Response) => {
   }
 });
 
-// ─── Fastlane Frameit (screenshot framing) ───────────────────────────────────
-
 const SIZE_REMAP: Record<string, { w: number; h: number }> = {
-  "2064x2752": { w: 2048, h: 2732 }, // iPad Pro 13" M4 → 12.9" 4th gen frame
+  "2064x2752": { w: 2048, h: 2732 }, // iPad Pro 13" M4 → 12.9" 4th
 };
 
 interface FrameitRequest {
