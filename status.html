@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status - AppCore</title>
+    <style>
+        :root {
+            --bg-primary: #0d0d0d;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #242424;
+            --text-primary: #ffffff;
+            --text-secondary: #9ca3af;
+            --text-tertiary: #6b7280;
+            --accent: #ea0e2b;
+            --accent-dim: rgba(234, 14, 43, 0.1);
+            --accent-blue: #5e6ad2;
+            --accent-blue-dim: rgba(94, 106, 210, 0.1);
+            --border: rgba(255, 255, 255, 0.08);
+            --green: #4ade80;
+            --green-dim: rgba(74, 222, 128, 0.1);
+            --yellow: #fbbf24;
+            --yellow-dim: rgba(251, 191, 36, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(13, 13, 13, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 32px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .logo-mark {
+            height: 32px;
+            width: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-name {
+            font-size: 19px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 450;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .nav-links a.active {
+            color: var(--text-primary);
+        }
+
+        .nav-cta {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            font-size: 15px;
+            font-weight: 500;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+        }
+
+        .btn-ghost:hover {
+            color: var(--text-primary);
+        }
+
+        .btn-primary {
+            background: #ea0e2b;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .page-header {
+            padding: 120px 32px 48px;
+            max-width: 900px;
+            margin: 64px auto 0;
+            text-align: center;
+        }
+
+        .section-label {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-tertiary);
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+
+        .global-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--green-dim);
+            border: 1px solid rgba(74, 222, 128, 0.2);
+            border-radius: 100px;
+            padding: 10px 24px;
+            margin-bottom: 16px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.2);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.2);
+            }
+
+            50% {
+                box-shadow: 0 0 0 6px rgba(74, 222, 128, 0.1);
+            }
+        }
+
+        .status-dot.degraded {
+            background: var(--yellow);
+            box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2);
+            animation: none;
+        }
+
+        .status-dot.down {
+            background: var(--accent);
+            box-shadow: 0 0 0 3px rgba(234, 14, 43, 0.2);
+            animation: none;
+        }
+
+        .global-status-text {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--green);
+        }
+
+        .last-updated {
+            font-size: 13px;
+            color: var(--text-tertiary);
+            margin-bottom: 48px;
+        }
+
+        .status-section {
+            max-width: 900px;
+            margin: 0 auto 80px;
+            padding: 0 32px;
+        }
+
+        .status-group {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 16px;
+        }
+
+        .status-group-header {
+            padding: 16px 20px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .status-group-header h3 {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .status-group-indicator {
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-group-indicator.operational {
+            color: var(--green);
+        }
+
+        .status-group-indicator.degraded {
+            color: var(--yellow);
+        }
+
+        .status-group-indicator.down {
+            color: var(--accent);
+        }
+
+        .service-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .service-row:last-child {
+            border-bottom: none;
+        }
+
+        .service-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .service-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .service-desc {
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+
+        .service-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .service-status .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .operational .dot {
+            background: var(--green);
+        }
+
+        .operational {
+            color: var(--green);
+        }
+
+        .degraded .dot {
+            background: var(--yellow);
+        }
+
+        .degraded {
+            color: var(--yellow);
+        }
+
+        .down .dot {
+            background: var(--accent);
+        }
+
+        .down {
+            color: var(--accent);
+        }
+
+        .uptime-section {
+            max-width: 900px;
+            margin: 0 auto 80px;
+            padding: 0 32px;
+        }
+
+        .uptime-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 24px;
+        }
+
+        .uptime-header h2 {
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+
+        .uptime-header p {
+            font-size: 13px;
+            color: var(--text-tertiary);
+        }
+
+        .uptime-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .uptime-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            width: 180px;
+            flex-shrink: 0;
+        }
+
+        .uptime-bars {
+            flex: 1;
+            display: flex;
+            gap: 3px;
+        }
+
+        .uptime-bar {
+            flex: 1;
+            height: 28px;
+            border-radius: 3px;
+            background: var(--green-dim);
+            border: 1px solid rgba(74, 222, 128, 0.15);
+            position: relative;
+            cursor: default;
+            transition: background 0.15s;
+        }
+
+        .uptime-bar:hover {
+            background: rgba(74, 222, 128, 0.2);
+        }
+
+        .uptime-bar.incident {
+            background: rgba(234, 14, 43, 0.2);
+            border-color: rgba(234, 14, 43, 0.3);
+        }
+
+        .uptime-bar.incident:hover {
+            background: rgba(234, 14, 43, 0.35);
+        }
+
+        .uptime-pct {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--green);
+            width: 48px;
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .incidents-section {
+            max-width: 900px;
+            margin: 0 auto 120px;
+            padding: 0 32px;
+        }
+
+        .incidents-header {
+            margin-bottom: 24px;
+        }
+
+        .incidents-header h2 {
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            margin-bottom: 4px;
+        }
+
+        .incidents-header p {
+            font-size: 14px;
+            color: var(--text-tertiary);
+        }
+
+        .incident-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px 24px;
+            margin-bottom: 12px;
+        }
+
+        .incident-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .incident-title {
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .incident-badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            flex-shrink: 0;
+            margin-left: 12px;
+        }
+
+        .badge-resolved {
+            background: var(--green-dim);
+            color: var(--green);
+        }
+
+        .badge-monitoring {
+            background: var(--yellow-dim);
+            color: var(--yellow);
+        }
+
+        .badge-investigating {
+            background: var(--accent-dim);
+            color: var(--accent);
+        }
+
+        .incident-date {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin-bottom: 8px;
+        }
+
+        .incident-body {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .no-incidents {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            color: var(--text-tertiary);
+            font-size: 14px;
+        }
+
+        .no-incidents svg {
+            width: 32px;
+            height: 32px;
+            stroke: var(--green);
+            margin-bottom: 12px;
+        }
+
+        footer {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 64px 32px 32px;
+            border-top: 1px solid var(--border);
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 64px;
+            margin-bottom: 48px;
+        }
+
+        .footer-brand p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-top: 16px;
+            line-height: 1.6;
+        }
+
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .footer-column h4 {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-tertiary);
+        }
+
+        .footer-column ul {
+            list-style: none;
+        }
+
+        .footer-column ul li {
+            margin-bottom: 12px;
+        }
+
+        .footer-column ul li a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .footer-column ul li a:hover {
+            color: var(--text-primary);
+        }
+
+        .footer-bottom {
+            padding-top: 32px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: var(--text-tertiary);
+        }
+
+        .footer-bottom-links {
+            display: flex;
+            gap: 24px;
+        }
+
+        .footer-bottom a {
+            color: var(--text-tertiary);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-bottom a:hover {
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .uptime-label {
+                width: 120px;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+                gap: 32px;
+            }
+
+            .nav-links {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <div class="nav-container">
+            <a href="AppCore.html" class="logo">
+                <div class="logo-mark"><img height="35" width="35" src="web/logo.png" alt="AppCore logo"></div>
+                <span class="logo-name">AppCore</span>
+            </a>
+            <div class="nav-links">
+                <a href="features.html">Features</a>
+                <a href="how-it-works.html">How it works</a>
+                <a href="https://docs.fringelo.com/">Docs</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="blog.html">Blog</a>
+            </div>
+            <div class="nav-cta">
+                <a href="https://appcore.fringelo.com/app/login/" class="btn btn-ghost">Login</a>
+                <a href="https://appcore.fringelo.com/app/signup/" class="btn btn-primary">Start free</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="page-header">
+        <div class="section-label">System Status</div>
+        <div class="global-status">
+            <div class="status-dot"></div>
+            <span class="global-status-text">All systems operational</span>
+        </div>
+        <div class="last-updated">Last updated: March 8, 2026 at 14:32 UTC</div>
+    </div>
+
+    <!-- Service Groups -->
+    <div class="status-section">
+
+        <div class="status-group">
+            <div class="status-group-header">
+                <h3>Core Platform</h3>
+                <span class="status-group-indicator operational">
+                    <div style="width:8px;height:8px;border-radius:50%;background:var(--green)"></div>
+                    Operational
+                </span>
+            </div>
+            <div class="service-row">
+                <div class="service-info">
+                    <span class="service-name">Dashboard &amp; Web App</span>
+                    <span class="service-desc">appcore.fringelo.com</span>
+                </div>
+                <div class="service-status operational">
+                    <div class="dot"></div>Operational
+                </div>
+            </div>
+            <div class="service-row">
+                <div class="service-info">
+                    <span class="service-name">Authentication</span>
+                    <span class="service-desc">Login and session management</span>
+                </div>
+                <div class="service-status operational">
+                    <div class="dot"></div>Operational
+                </div>
+            </div>
+            <div class="service-row">
+                <div class="service-info">
+                    <span class="service-name">REST API</span>
+                    <span class="service-desc">api.fringelo.com</span>
+                </div>
+                <div class="service-status operational">
+                    <div class="dot"></div>Operational
+                </div>
+            </div>
+        </div>
+
+        <div class="status-group">
+            <div class="status-group-header">
+                <h3>Data Ingestion</h3>
+                <span class="status-group-indicator operational">
+                    <div style="width:8px;height:8px;border-radius:50%;background:var(--green)"></div>
+                    Operational
+                </span>
+            </div>
+            <div class="service-row">
+                <div class="service-info">
+                    <span class="service-name">App Store Rank Crawler</span>
+                    <span class="service-desc">iOS keyword rankings · 180+ countries</span>
+                </div>
+                <div class="service-status operational">
+                    <div class="dot"></div>Operational
+                </div>
+            </div>
+            <div class="service-row">
+                <div class="service-info">
+                    <span class="service-name">Google Play Rank Crawler</span>
+                    <span class="service-desc">Android keyword rankings</span>
+                </div>
+                <div class="service-status operational">
+                    <div class="dot"></div>Operational
+                </div>
+            </div>
+            <div class="service-row">
+                <div class="service-info">
+                    <span class="service-name">App Store Connect Sync</span>
+                    <span class="service-desc">Metadata and sales data import</span>
+                </div>
+                <div class="service-status operational">
+                    <div class="dot"></div>Operational
+                </div>
+            </div>
+            <div class="service-row">
+                <div class="service-info">
+                    <span class="service-name">Google Play Console Sync</span>
+                    <span class="service-desc">Metadata and install data import</span>
+                </div>
+                <div class="service-status operational">
+                    <div class="dot"></div>Operational
+                </div>
+            </div>
+        </div>
+
+        <div class="status-group">
+            <div class="status-group-header">
+                <h3>AI &amp; Processing</h3>
+                <span class="status-group-indicator operational">
+                    <div style="width:8px;height:8px;border-radius:50%;background:var(--green)"></div>
+                    Operational
+                </span>
+            </div>
+            <div class="service-row">
+                <div class="service-info">
+                    <span class="service-name">AI Metadata Optimizer</span>
+                    <span class="service-desc">Title, subtitle, and description suggestions</span>
+                </div>
+                <div class="service-status operational">
+                    <div class="dot"></div>Operational
+                </div>
+            </div>
+            <div class="service-row">
+                <div class="service-info">
+                    <span class="service-name">Review Sentiment Analysis</span>
+                    <span class="service-desc">AI review classification and summarization</span>
+                </div>
+                <div class="service-status operational">
+                    <div class="dot"></div>Operational
+                </div>
+            </div>
+            <div class="service-row">
+                <div class="service-info">
+                    <span class="service-name">Keyword Volume Processing</span>
+                    <span class="service-desc">Search volume and difficulty scoring</span>
+                </div>
+                <div class="service-status operational">
+                    <div class="dot"></div>Operational
+                </div>
+            </div>
+        </div>
+
+        <div class="status-group">
+            <div class="status-group-header">
+                <h3>Notifications &amp; Reporting</h3>
+                <span class="status-group-indicator operational">
+                    <div style="width:8px;height:8px;border-radius:50%;background:var(--green)"></div>
+                    Operational
+                </span>
+            </div>
+            <div class="service-row">
+                <div class="service-info">
+                    <span class="service-name">Email Notifications</span>
+                    <span class="service-desc">Rank alerts and weekly reports</span>
+                </div>
+                <div class="service-status operational">
+                    <div class="dot"></div>Operational
+                </div>
+            </div>
+            <div class="service-row">
+                <div class="service-info">
+                    <span class="service-name">Slack Integration</span>
+                    <span class="service-desc">Real-time Slack notifications</span>
+                </div>
+                <div class="service-status operational">
+                    <div class="dot"></div>Operational
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Uptime -->
+    <div class="uptime-section">
+        <div class="uptime-header">
+            <h2>Uptime – last 90 days</h2>
+            <p>Each bar represents one day</p>
+        </div>
+
+        <div class="uptime-row">
+            <span class="uptime-label">Dashboard &amp; API</span>
+            <div class="uptime-bars" id="bars-dashboard"></div>
+            <span class="uptime-pct">99.97%</span>
+        </div>
+        <div class="uptime-row">
+            <span class="uptime-label">iOS Rank Crawler</span>
+            <div class="uptime-bars" id="bars-ios"></div>
+            <span class="uptime-pct">99.91%</span>
+        </div>
+        <div class="uptime-row">
+            <span class="uptime-label">Android Rank Crawler</span>
+            <div class="uptime-bars" id="bars-android"></div>
+            <span class="uptime-pct">99.88%</span>
+        </div>
+        <div class="uptime-row">
+            <span class="uptime-label">AI Processing</span>
+            <div class="uptime-bars" id="bars-ai"></div>
+            <span class="uptime-pct">100%</span>
+        </div>
+    </div>
+
+    <!-- Incidents -->
+    <div class="incidents-section">
+        <div class="incidents-header">
+            <h2>Recent incidents</h2>
+            <p>Past 90 days · resolved incidents shown</p>
+        </div>
+
+        <div class="incident-card">
+            <div class="incident-top">
+                <span class="incident-title">Google Play rank updates delayed by up to 36 hours</span>
+                <span class="incident-badge badge-resolved">Resolved</span>
+            </div>
+            <div class="incident-date">Feb 14, 2026 · Duration: 4h 12m</div>
+            <div class="incident-body">A rate-limit change on Google's side caused our crawler to back off and delay
+                rank updates for approximately 4 hours for Android apps. All pending updates were processed in order
+                once the issue was resolved. No data was lost.</div>
+        </div>
+
+        <div class="incident-card">
+            <div class="incident-top">
+                <span class="incident-title">App Store Connect OAuth intermittently failing</span>
+                <span class="incident-badge badge-resolved">Resolved</span>
+            </div>
+            <div class="incident-date">Jan 28, 2026 · Duration: 52m</div>
+            <div class="incident-body">Apple's OAuth endpoint returned intermittent 503 errors for approximately 52
+                minutes. Some users were unable to connect new apps or re-authenticate during this window. Existing data
+                and rankings were unaffected.</div>
+        </div>
+
+        <div style="margin-top:24px;text-align:center;">
+            <div class="no-incidents">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                    style="display:block;margin:0 auto 10px">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+                No other incidents in the past 90 days.
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <div class="footer-logo">
+                    <div class="logo-mark"><img height="32" width="32" src="web/logo.png" alt="AppCore logo"></div>
+                    <span class="logo-name">AppCore</span>
+                </div>
+                <p>The ASO platform for mobile teams. Grow organic downloads on the App Store and Google Play. Part of
+                    the Fringelo ecosystem.</p>
+            </div>
+            <div class="footer-column">
+                <h4>Product</h4>
+                <ul>
+                    <li><a href="features.html">Features</a></li>
+                    <li><a href="pricing.html">Pricing</a></li>
+                    <li><a href="changelog.html">Changelog</a></li>
+                    <li><a href="status.html">Status</a></li>
+                </ul>
+            </div>
+            <div class="footer-column">
+                <h4>Learn</h4>
+                <ul>
+                    <li><a href="https://docs.fringelo.com/">Documentation</a></li>
+                    <li><a href="how-it-works.html">How it works</a></li>
+                    <li><a href="blog.html">Blog</a></li>
+                    <li><a href="mailto:hello@fringelo.com">Help Center</a></li>
+                </ul>
+            </div>
+            <div class="footer-column">
+                <h4>Fringelo</h4>
+                <ul>
+                    <li><a href="https://fringelo.com/">fringelo.com</a></li>
+                    <li><a href="https://fringelo.com/">About</a></li>
+                    <li><a href="mailto:hello@fringelo.com">Contact</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 Fringelo Group · AppCore</p>
+            <div class="footer-bottom-links">
+                <a href="https://fringelo.com/">↗ fringelo.com</a>
+                <a href="#">Privacy</a>
+                <a href="#">Terms</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function generateBars(containerId, incidentDays) {
+            const container = document.getElementById(containerId);
+            for (let i = 89; i >= 0; i--) {
+                const bar = document.createElement('div');
+                bar.className = 'uptime-bar' + (incidentDays.includes(i) ? ' incident' : '');
+                container.appendChild(bar);
+            }
+        }
+
+        generateBars('bars-dashboard', [43]);
+        generateBars('bars-ios', [43, 44]);
+        generateBars('bars-android', [43, 44, 60]);
+        generateBars('bars-ai', []);
+    </script>
+</body>
+
+</html>

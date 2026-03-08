@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Changelog - AppCore</title>
+    <style>
+        :root {
+            --bg-primary: #0d0d0d;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #242424;
+            --text-primary: #ffffff;
+            --text-secondary: #9ca3af;
+            --text-tertiary: #6b7280;
+            --accent: #ea0e2b;
+            --accent-dim: rgba(234, 14, 43, 0.1);
+            --accent-blue: #5e6ad2;
+            --accent-blue-dim: rgba(94, 106, 210, 0.1);
+            --border: rgba(255, 255, 255, 0.08);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+            background: rgba(13, 13, 13, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 32px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text-primary); }
+        .logo-mark { height: 32px; width: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+        .logo-name { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; }
+        .nav-links { display: flex; gap: 32px; align-items: center; }
+        .nav-links a { color: var(--text-secondary); text-decoration: none; font-size: 15px; font-weight: 450; transition: color 0.2s; }
+        .nav-links a:hover { color: var(--text-primary); }
+        .nav-links a.active { color: var(--text-primary); }
+        .nav-cta { display: flex; gap: 12px; align-items: center; }
+
+        .btn { padding: 8px 16px; font-size: 15px; font-weight: 500; border-radius: 6px; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block; }
+        .btn-ghost { background: transparent; color: var(--text-secondary); }
+        .btn-ghost:hover { color: var(--text-primary); }
+        .btn-primary { background: #ea0e2b; color: white; }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); }
+        .btn-secondary:hover { border-color: rgba(255, 255, 255, 0.15); }
+        .btn-large { padding: 12px 24px; font-size: 15px; }
+
+        .page-header {
+            padding: 120px 32px 64px;
+            max-width: 800px;
+            margin: 64px auto 0;
+        }
+
+        .section-label {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-tertiary);
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+
+        h1 {
+            font-size: 48px;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            margin-bottom: 16px;
+            background: linear-gradient(to bottom, #ffffff, #a0a0a0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-description {
+            font-size: 18px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .changelog-section {
+            max-width: 800px;
+            margin: 0 auto 120px;
+            padding: 0 32px;
+        }
+
+        .changelog-entry {
+            display: grid;
+            grid-template-columns: 140px 1fr;
+            gap: 40px;
+            padding: 48px 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .changelog-entry:last-child { border-bottom: 1px solid var(--border); }
+
+        .entry-meta {
+            padding-top: 2px;
+        }
+
+        .entry-date {
+            font-size: 13px;
+            color: var(--text-tertiary);
+            margin-bottom: 8px;
+            font-family: 'SF Mono', monospace;
+        }
+
+        .entry-version {
+            font-size: 12px;
+            font-weight: 600;
+            font-family: 'SF Mono', monospace;
+            color: var(--text-secondary);
+        }
+
+        .entry-content h2 {
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 10px;
+        }
+
+        .entry-content .entry-summary {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 20px;
+        }
+
+        .tags {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .tag {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 4px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .tag-new { background: rgba(74, 222, 128, 0.12); color: #4ade80; }
+        .tag-improved { background: var(--accent-blue-dim); color: var(--accent-blue); }
+        .tag-fixed { background: rgba(251, 191, 36, 0.12); color: #fbbf24; }
+        .tag-breaking { background: var(--accent-dim); color: var(--accent); }
+
+        .change-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .change-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .change-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            margin-top: 7px;
+            flex-shrink: 0;
+        }
+
+        .change-dot.new { background: #4ade80; }
+        .change-dot.improved { background: var(--accent-blue); }
+        .change-dot.fixed { background: #fbbf24; }
+
+        .subscribe-bar {
+            max-width: 800px;
+            margin: 0 auto 40px;
+            padding: 0 32px;
+        }
+
+        .subscribe-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 24px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+        }
+
+        .subscribe-card p {
+            font-size: 15px;
+            color: var(--text-secondary);
+        }
+
+        .subscribe-card strong { color: var(--text-primary); }
+
+        .subscribe-form {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .subscribe-input {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 14px;
+            font-size: 14px;
+            color: var(--text-primary);
+            width: 220px;
+        }
+
+        .subscribe-input::placeholder { color: var(--text-tertiary); }
+
+        footer { max-width: 1200px; margin: 0 auto; padding: 64px 32px 32px; border-top: 1px solid var(--border); }
+        .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 64px; margin-bottom: 48px; }
+        .footer-brand p { color: var(--text-secondary); font-size: 14px; margin-top: 16px; line-height: 1.6; }
+        .footer-logo { display: flex; align-items: center; gap: 10px; }
+        .footer-column h4 { font-size: 13px; font-weight: 500; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary); }
+        .footer-column ul { list-style: none; }
+        .footer-column ul li { margin-bottom: 12px; }
+        .footer-column ul li a { color: var(--text-secondary); text-decoration: none; font-size: 14px; transition: color 0.2s; }
+        .footer-column ul li a:hover { color: var(--text-primary); }
+        .footer-bottom { padding-top: 32px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text-tertiary); }
+        .footer-bottom-links { display: flex; gap: 24px; }
+        .footer-bottom a { color: var(--text-tertiary); text-decoration: none; transition: color 0.2s; }
+        .footer-bottom a:hover { color: var(--text-secondary); }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 36px; }
+            .changelog-entry { grid-template-columns: 1fr; gap: 12px; }
+            .subscribe-card { flex-direction: column; align-items: flex-start; }
+            .footer-grid { grid-template-columns: 1fr; gap: 32px; }
+            .nav-links { display: none; }
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <div class="nav-container">
+            <a href="AppCore.html" class="logo">
+                <div class="logo-mark"><img height="35" width="35" src="web/logo.png" alt="AppCore logo"></div>
+                <span class="logo-name">AppCore</span>
+            </a>
+            <div class="nav-links">
+                <a href="features.html">Features</a>
+                <a href="how-it-works.html">How it works</a>
+                <a href="https://docs.fringelo.com/">Docs</a>
+                <a href="pricing.html">Pricing</a>
+                <a href="blog.html">Blog</a>
+            </div>
+            <div class="nav-cta">
+                <a href="https://appcore.fringelo.com/app/login/" class="btn btn-ghost">Login</a>
+                <a href="https://appcore.fringelo.com/app/signup/" class="btn btn-primary">Start free</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="page-header">
+        <div class="section-label">Changelog</div>
+        <h1>What's new in AppCore</h1>
+        <p class="page-description">Every release, every improvement. We ship updates weekly — here's what we've built.</p>
+    </div>
+
+    <!-- Subscribe -->
+    <div class="subscribe-bar">
+        <div class="subscribe-card">
+            <p><strong>Stay in the loop.</strong> Get an email when we ship something new.</p>
+            <div class="subscribe-form">
+                <input type="email" class="subscribe-input" placeholder="you@example.com">
+                <a href="#" class="btn btn-secondary">Subscribe</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Changelog Entries -->
+    <div class="changelog-section">
+
+        <!-- v1.8 -->
+        <div class="changelog-entry">
+            <div class="entry-meta">
+                <div class="entry-date">Mar 2026</div>
+                <div class="entry-version">v1.8.0</div>
+            </div>
+            <div class="entry-content">
+                <div class="tags">
+                    <span class="tag tag-new">New</span>
+                    <span class="tag tag-improved">Improved</span>
+                </div>
+                <h2>Competitor Intelligence &amp; AI Review Summaries</h2>
+                <p class="entry-summary">This release brings a completely rethought Competitor Intelligence module, plus AI-generated weekly summaries for your review inbox — so you can understand user sentiment at a glance without reading hundreds of reviews.</p>
+                <ul class="change-list">
+                    <li><div class="change-dot new"></div>New Competitor Intelligence dashboard: metadata change history, keyword movement, and review trends for any tracked app</li>
+                    <li><div class="change-dot new"></div>AI review summaries — weekly digest of your top themes, complaints, and feature requests generated by Claude</li>
+                    <li><div class="change-dot new"></div>Keyword gap report: automatically highlights keywords your competitors rank for that you don't</li>
+                    <li><div class="change-dot improved"></div>Rank tracking page redesign — faster to navigate, cleaner sparklines, sortable by movement</li>
+                    <li><div class="change-dot improved"></div>Metadata editor now shows keyword density alongside character counts</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- v1.7 -->
+        <div class="changelog-entry">
+            <div class="entry-meta">
+                <div class="entry-date">Feb 2026</div>
+                <div class="entry-version">v1.7.0</div>
+            </div>
+            <div class="entry-content">
+                <div class="tags">
+                    <span class="tag tag-new">New</span>
+                    <span class="tag tag-fixed">Fixed</span>
+                </div>
+                <h2>Autonomous Mode &amp; Dark Theme</h2>
+                <p class="entry-summary">Autonomous Mode lets AppCore take proactive actions on your behalf — flagging keyword opportunities, suggesting metadata edits, and drafting review responses — all surfaced in a single action queue you approve with one click.</p>
+                <ul class="change-list">
+                    <li><div class="change-dot new"></div>Autonomous Mode: AI-powered action queue for proactive ASO recommendations</li>
+                    <li><div class="change-dot new"></div>Dark theme is now the default across all pages and emails</li>
+                    <li><div class="change-dot new"></div>Slack integration for rank alerts and autonomous action notifications</li>
+                    <li><div class="change-dot improved"></div>Weekly report emails redesigned — mobile-optimized, cleaner layout</li>
+                    <li><div class="change-dot fixed"></div>Fixed an issue where Google Play keyword ranks were delayed by up to 36 hours</li>
+                    <li><div class="change-dot fixed"></div>Fixed: adding an app via its Play Store URL now correctly identifies the package name</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- v1.6 -->
+        <div class="changelog-entry">
+            <div class="entry-meta">
+                <div class="entry-date">Jan 2026</div>
+                <div class="entry-version">v1.6.0</div>
+            </div>
+            <div class="entry-content">
+                <div class="tags">
+                    <span class="tag tag-new">New</span>
+                    <span class="tag tag-improved">Improved</span>
+                </div>
+                <h2>A/B Testing &amp; Landing Page Redesign</h2>
+                <p class="entry-summary">A/B testing is now available to all Pro users. Run experiments on icons, screenshots, and descriptions with automatic statistical significance detection. We also shipped a major landing page redesign.</p>
+                <ul class="change-list">
+                    <li><div class="change-dot new"></div>A/B testing module for store listing experiments with significance reporting</li>
+                    <li><div class="change-dot new"></div>Real screenshot integration in the hero — shows your actual app dashboard</li>
+                    <li><div class="change-dot new"></div>Country selector on keyword search — now defaults to your app's primary market</li>
+                    <li><div class="change-dot improved"></div>Onboarding flow reduced from 6 steps to 3</li>
+                    <li><div class="change-dot improved"></div>Keyword difficulty scores recalibrated — now more accurate for niche categories</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- v1.5 -->
+        <div class="changelog-entry">
+            <div class="entry-meta">
+                <div class="entry-date">Dec 2025</div>
+                <div class="entry-version">v1.5.0</div>
+            </div>
+            <div class="entry-content">
+                <div class="tags">
+                    <span class="tag tag-new">New</span>
+                    <span class="tag tag-improved">Improved</span>
+                    <span class="tag tag-fixed">Fixed</span>
+                </div>
+                <h2>Multi-App Dashboard &amp; Bulk Keyword Import</h2>
+                <p class="entry-summary">Managing multiple apps is now much faster. The new multi-app overview shows all your apps and their KPIs at a glance, and bulk keyword import via CSV cuts setup time for new apps from hours to minutes.</p>
+                <ul class="change-list">
+                    <li><div class="change-dot new"></div>Multi-app overview dashboard with consolidated KPIs</li>
+                    <li><div class="change-dot new"></div>Bulk keyword import via CSV — up to 500 keywords at once</li>
+                    <li><div class="change-dot new"></div>Review response templates — save and reuse common responses</li>
+                    <li><div class="change-dot improved"></div>App selector in the nav bar replaces the previous app switcher modal</li>
+                    <li><div class="change-dot improved"></div>API response times improved by 40% across all ranking endpoints</li>
+                    <li><div class="change-dot fixed"></div>Fixed sentiment analysis misclassifying some emoji-heavy reviews as negative</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- v1.4 -->
+        <div class="changelog-entry">
+            <div class="entry-meta">
+                <div class="entry-date">Nov 2025</div>
+                <div class="entry-version">v1.4.0</div>
+            </div>
+            <div class="entry-content">
+                <div class="tags">
+                    <span class="tag tag-new">New</span>
+                </div>
+                <h2>Review Management &amp; Sentiment Analysis</h2>
+                <p class="entry-summary">The review inbox launched in this release, bringing all App Store and Google Play reviews into a single place with AI-powered sentiment categorization and topic clustering.</p>
+                <ul class="change-list">
+                    <li><div class="change-dot new"></div>Unified review inbox for App Store and Google Play</li>
+                    <li><div class="change-dot new"></div>AI sentiment analysis: positive / neutral / negative with confidence scores</li>
+                    <li><div class="change-dot new"></div>Topic clustering — automatically groups reviews by theme (onboarding, crashes, UX, etc.)</li>
+                    <li><div class="change-dot new"></div>Rating history charts per app version</li>
+                    <li><div class="change-dot improved"></div>Keyword research results now include trend direction over 30 / 90 days</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- v1.0 -->
+        <div class="changelog-entry">
+            <div class="entry-meta">
+                <div class="entry-date">Sep 2025</div>
+                <div class="entry-version">v1.0.0</div>
+            </div>
+            <div class="entry-content">
+                <div class="tags">
+                    <span class="tag tag-new">Launch</span>
+                </div>
+                <h2>AppCore is live</h2>
+                <p class="entry-summary">AppCore launched publicly with keyword research, rank tracking, metadata editing, and competitor monitoring. Free Starter plan available from day one.</p>
+                <ul class="change-list">
+                    <li><div class="change-dot new"></div>Keyword research with volume &amp; difficulty scores for 180+ countries</li>
+                    <li><div class="change-dot new"></div>Daily rank tracking for App Store and Google Play</li>
+                    <li><div class="change-dot new"></div>Metadata editor with character counters and keyword density</li>
+                    <li><div class="change-dot new"></div>Competitor tracking — monitor any app's rankings and ratings</li>
+                    <li><div class="change-dot new"></div>App Store Connect &amp; Google Play Console OAuth integration</li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <div class="footer-logo">
+                    <div class="logo-mark"><img height="32" width="32" src="web/logo.png" alt="AppCore logo"></div>
+                    <span class="logo-name">AppCore</span>
+                </div>
+                <p>The ASO platform for mobile teams. Grow organic downloads on the App Store and Google Play. Part of the Fringelo ecosystem.</p>
+            </div>
+            <div class="footer-column">
+                <h4>Product</h4>
+                <ul>
+                    <li><a href="features.html">Features</a></li>
+                    <li><a href="pricing.html">Pricing</a></li>
+                    <li><a href="changelog.html">Changelog</a></li>
+                    <li><a href="status.html">Status</a></li>
+                </ul>
+            </div>
+            <div class="footer-column">
+                <h4>Learn</h4>
+                <ul>
+                    <li><a href="https://docs.fringelo.com/">Documentation</a></li>
+                    <li><a href="how-it-works.html">How it works</a></li>
+                    <li><a href="blog.html">Blog</a></li>
+                    <li><a href="mailto:hello@fringelo.com">Help Center</a></li>
+                </ul>
+            </div>
+            <div class="footer-column">
+                <h4>Fringelo</h4>
+                <ul>
+                    <li><a href="https://fringelo.com/">fringelo.com</a></li>
+                    <li><a href="https://fringelo.com/">About</a></li>
+                    <li><a href="mailto:hello@fringelo.com">Contact</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 Fringelo Group · AppCore</p>
+            <div class="footer-bottom-links">
+                <a href="https://fringelo.com/">↗ fringelo.com</a>
+                <a href="#">Privacy</a>
+                <a href="#">Terms</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
