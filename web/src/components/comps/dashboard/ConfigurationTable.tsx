@@ -48,9 +48,6 @@ export default function ConfigurationTable({ config }: Props) {
                 <span className={badge("approved")}>Anthropic</span>
               )}
               {config.hasASC && <span className={badge("title")}>ASC</span>}
-              {config.hasSearchAds && (
-                <span className={badge("keywords")}>Search Ads</span>
-              )}
             </td>
           </tr>
         </tbody>

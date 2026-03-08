@@ -7,7 +7,7 @@ interface Props {
 
 export default function StatsGrid({ stats }: Props) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-5">
       {[
         { label: "Competitors", value: stats.apps, color: "" },
         { label: "Snapshots", value: stats.snapshots, color: "" },

@@ -663,6 +663,7 @@ function ProfileMenu({
 
 const VERSION_STATE_COLORS: Record<string, string> = {
   READY_FOR_SALE: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  REPLACED_WITH_NEW_VERSION: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
   PREPARE_FOR_SUBMISSION: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
   WAITING_FOR_REVIEW: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
   IN_REVIEW: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
@@ -674,6 +675,7 @@ const VERSION_STATE_COLORS: Record<string, string> = {
 
 const VERSION_STATE_SHORT: Record<string, string> = {
   READY_FOR_SALE: "Live",
+  REPLACED_WITH_NEW_VERSION: "Replaced",
   PREPARE_FOR_SUBMISSION: "Draft",
   WAITING_FOR_REVIEW: "Review",
   IN_REVIEW: "In Review",
@@ -869,7 +871,7 @@ export default function App() {
   return (
     <div className="flex h-screen overflow-hidden">
       <ToastContainer toasts={toasts} />
-      <aside className="w-[260px] min-w-[260px] bg-[#f8f9fb] dark:bg-[#13161d] border-r border-[#e5e7eb] dark:border-[#2a2f3d] flex flex-col overflow-y-auto">
+      <aside className="w-[275px] min-w-[275px] bg-[#f8f9fb] dark:bg-[#13161d] border-r border-[#e5e7eb] dark:border-[#2a2f3d] flex flex-col overflow-y-auto">
         <div className="px-4 pt-6 pb-5 flex items-center gap-2.5">
           <img
             className="w-[42px] h-[42px] rounded-lg"
