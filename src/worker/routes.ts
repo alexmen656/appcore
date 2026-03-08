@@ -334,7 +334,32 @@ workerRouter.post("/snapshot", async (req: Request, res: Response) => {
       logs.push("No screenshots directory found after run");
     }
 
-    res.json({ ok: true, logs, errors, screenshots });
+    let descriptions: Record<string, string> = {};
+    const descPaths = [
+      path.join(tmpDir, "fastlane", "screenshot_descriptions.json"),
+      path.join(tmpDir, "fastlane", "screenshot_descriptions.yaml"),
+      path.join(tmpDir, "fastlane", "screenshot_descriptions.yml"),
+    ];
+    for (const p of descPaths) {
+      if (fs.existsSync(p)) {
+        try {
+          if (p.endsWith(".json")) {
+            descriptions = JSON.parse(fs.readFileSync(p, "utf8"));
+          } else {
+            for (const line of fs.readFileSync(p, "utf8").split("\n")) {
+              const m = line.match(/^([^#:]+):\s*(.+)$/);
+              if (m) descriptions[m[1].trim()] = m[2].trim();
+            }
+          }
+          logs.push(`Loaded ${Object.keys(descriptions).length} screenshot description(s) from ${path.basename(p)}`);
+        } catch {
+          logs.push(`Warning: could not parse ${path.basename(p)}`);
+        }
+        break;
+      }
+    }
+
+    res.json({ ok: true, logs, errors, screenshots, descriptions });
   } catch (err: any) {
     errors.push(err.message);
     res.json({ ok: false, logs, errors, screenshots: {} });

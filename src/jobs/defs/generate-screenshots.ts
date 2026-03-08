@@ -86,7 +86,7 @@ async function runScreenshotGenerationViaWorker(
       },
     });
 
-    await autoFrameScreenshots(jobId, job, outputDir, log);
+    await autoFrameScreenshots(jobId, job, outputDir, result.descriptions ?? {}, log);
   } catch (err: any) {
     const msg = err instanceof Error ? err.message : String(err);
     logs.push(`ERROR: ${msg}`);
@@ -107,6 +107,7 @@ async function autoFrameScreenshots(
   jobId: string,
   job: any,
   outputDir: string,
+  descriptions: Record<string, string>,
   log: (msg: string) => void,
 ): Promise<void> {
   try {
@@ -121,19 +122,47 @@ async function autoFrameScreenshots(
     const sourceDirs = subDirs.length > 0 ? subDirs : [outputDir];
     const framedByLocale: Record<string, string[]> = {};
 
+    const hasDescriptions = Object.keys(descriptions).length > 0;
+
     for (const srcDir of sourceDirs) {
       const rel = path.relative(outputDir, srcDir);
-      const locale = path.basename(srcDir);
       const outDir = path.join(framedDir, rel === "." ? "" : rel);
-      const outputPaths = await frameWithFastlane(srcDir, outDir, {
-        subtitle: job.app.name,
-      });
+      const key = rel === "." ? "default" : path.basename(srcDir);
+      let outputPaths: string[];
+
+      if (!hasDescriptions) {
+        outputPaths = await frameWithFastlane(srcDir, outDir, {
+          subtitle: job.app.name,
+        });
+      } else {
+        outputPaths = [];
+        const files = fs
+          .readdirSync(srcDir)
+          .filter((f) => /\.(png|jpg|jpeg)$/i.test(f));
+        for (const filename of files) {
+          const base = filename.replace(/\.[^.]+$/, "");
+          const descKey = Object.keys(descriptions).find((k) =>
+            base.startsWith(k),
+          );
+          const subtitle = descKey ? descriptions[descKey] : job.app.name;
+          const singleDir = path.join(srcDir, ".frametmp_" + base);
+          const singleOut = path.join(outDir, base);
+          fs.mkdirSync(singleDir, { recursive: true });
+          fs.copyFileSync(path.join(srcDir, filename), path.join(singleDir, filename));
+          try {
+            const paths = await frameWithFastlane(singleDir, singleOut, { subtitle });
+            outputPaths.push(...paths);
+          } finally {
+            fs.rmSync(singleDir, { recursive: true, force: true });
+          }
+        }
+      }
+
       const urls = outputPaths.map(
         (p) =>
           "/screenshots/" +
           path.relative(screenshotsBase, p).replace(/\\/g, "/"),
       );
-      const key = rel === "." ? "default" : locale;
       framedByLocale[key] = (framedByLocale[key] ?? []).concat(urls);
     }
 
