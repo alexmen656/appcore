@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { authHeaders, getActiveBundleId } from "../../hooks/useApi";
 import type {
   CompetitorDetail,
@@ -24,6 +25,7 @@ export default function CompetitorDetailModal({
   const [data, setData] = useState<CompetitorDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("overview");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const bundleId = getActiveBundleId();
@@ -86,22 +88,33 @@ export default function CompetitorDetailModal({
           ) : (
             <div className="text-sm text-[#9ca3af]">Loading…</div>
           )}
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9ca3af] hover:text-[#111827] dark:hover:text-[#e8eaf0] hover:bg-gray-100 dark:hover:bg-[#252b38] transition-colors"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-5 h-5"
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => { onClose(); navigate(`/competitors/${appId}`); }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#9ca3af] hover:text-[#111827] dark:hover:text-[#e8eaf0] hover:bg-gray-100 dark:hover:bg-[#252b38] transition-colors"
             >
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+              </svg>
+              Full page
+            </button>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9ca3af] hover:text-[#111827] dark:hover:text-[#e8eaf0] hover:bg-gray-100 dark:hover:bg-[#252b38] transition-colors"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-5 h-5"
+              >
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
         <div className="flex gap-1 px-6 pt-3 border-b border-[#eef0f3] dark:border-[#2a2f3d] shrink-0">
           {tabs.map((t) => (
@@ -150,7 +163,7 @@ export default function CompetitorDetailModal({
   );
 }
 
-function OverviewTab({ data }: { data: CompetitorDetail }) {
+export function OverviewTab({ data }: { data: CompetitorDetail }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
@@ -258,7 +271,7 @@ function OverviewTab({ data }: { data: CompetitorDetail }) {
   );
 }
 
-function ReviewsTab({ data }: { data: CompetitorDetail }) {
+export function ReviewsTab({ data }: { data: CompetitorDetail }) {
   if (data.reviews.length === 0) {
     return (
       <EmptyState
@@ -340,7 +353,7 @@ function ReviewCard({ review }: { review: CompetitorReview }) {
   );
 }
 
-function ChangesTab({ changes }: { changes: MetadataChange[] }) {
+export function ChangesTab({ changes }: { changes: MetadataChange[] }) {
   if (changes.length === 0) {
     return (
       <EmptyState
@@ -433,7 +446,7 @@ function ChangesTab({ changes }: { changes: MetadataChange[] }) {
   );
 }
 
-function KeywordsTab({ rankings }: { rankings: CompetitorKeywordRanking[] }) {
+export function KeywordsTab({ rankings }: { rankings: CompetitorKeywordRanking[] }) {
   const [sortBy, setSortBy] = useState<
     "keyword" | "competitor" | "ours" | "popularity"
   >("popularity");

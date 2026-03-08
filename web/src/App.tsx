@@ -22,6 +22,7 @@ import Dashboard from "./components/Dashboard";
 import Suggestions from "./components/Suggestions";
 import Keywords from "./components/Keywords";
 import Competitors from "./components/Competitors";
+import CompetitorDetailPage from "./components/CompetitorDetailPage";
 import Actions from "./components/Actions";
 import Agents from "./components/Agents";
 import Settings from "./components/Settings";
@@ -927,6 +928,10 @@ export default function App() {
           <Route
             path="/competitors"
             element={<Competitors addToast={addToast} />}
+          />
+          <Route
+            path="/competitors/:id"
+            element={<CompetitorDetailPage addToast={addToast} />}
           />
           <Route
             path="/analytics"

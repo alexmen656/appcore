@@ -202,6 +202,7 @@ appsRouter.get("/:id/competitor-detail", async (req, res) => {
       const ownApp = await prisma.app.findUnique({ where: { bundleId } });
       if (ownApp) {
         const keywords = await prisma.keyword.findMany({
+          where: { rankings: { some: { appId: ownApp.id } } },
           orderBy: { popularity: "desc" },
         });
 

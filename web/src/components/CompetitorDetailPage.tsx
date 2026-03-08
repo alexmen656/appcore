@@ -1,0 +1,127 @@
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { authHeaders, getActiveBundleId } from "../hooks/useApi";
+import type { CompetitorDetail } from "../types";
+import AppIcon from "./comps/competitors/AppIcon";
+import {
+  OverviewTab,
+  ReviewsTab,
+  ChangesTab,
+  KeywordsTab,
+} from "./comps/CompetitorDetailModal";
+
+type Tab = "overview" | "reviews" | "changes" | "keywords";
+
+interface Props {
+  addToast: (msg: string, type: "success" | "error" | "info") => void;
+}
+
+export default function CompetitorDetailPage({ addToast }: Props) {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [data, setData] = useState<CompetitorDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<Tab>("overview");
+
+  useEffect(() => {
+    if (!id) return;
+    const bundleId = getActiveBundleId();
+    const url = `/api/apps/${id}/competitor-detail${bundleId ? `?bundleId=${bundleId}` : ""}`;
+    fetch(url, { headers: authHeaders() })
+      .then((r) => r.json())
+      .then((d) => {
+        setData(d);
+        setLoading(false);
+      })
+      .catch((err) => {
+        addToast(`Load failed: ${err.message}`, "error");
+        setLoading(false);
+      });
+  }, [id]);
+
+  const tabs: { key: Tab; label: string; count?: number }[] = [
+    { key: "overview", label: "Overview" },
+    { key: "reviews", label: "Reviews", count: data?.reviews.length },
+    { key: "changes", label: "Changes", count: data?.metadataChanges.length },
+    {
+      key: "keywords",
+      label: "Keywords",
+      count: data?.keywordRankings.filter((k) => k.competitorRank != null).length,
+    },
+  ];
+
+  return (
+    <div>
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={() => navigate("/competitors")}
+          className="flex items-center gap-1.5 text-sm text-[#9ca3af] dark:text-[#5c6478] hover:text-[#111827] dark:hover:text-[#e8eaf0] transition-colors"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          Competitors
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-20 gap-3 text-gray-400 dark:text-[#5c6478]">
+          <div className="spinner" /> Loading…
+        </div>
+      ) : !data ? (
+        <div className="text-center py-20 text-[#9ca3af]">Failed to load competitor data</div>
+      ) : (
+        <>
+          <div className="flex items-center gap-4 mb-6">
+            <AppIcon url={data.iconUrl} name={data.name} />
+            <div>
+              <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0]">
+                {data.name}
+              </h1>
+              <div className="flex items-center gap-3 text-sm text-[#9ca3af] dark:text-[#5c6478] mt-1">
+                <span className="font-mono">{data.bundleId}</span>
+                {data.rating != null && (
+                  <span className="flex items-center gap-1">
+                    <span className="text-amber-400">★</span>
+                    {data.rating.toFixed(1)}
+                    {data.ratingsCount != null && (
+                      <span>({data.ratingsCount.toLocaleString()})</span>
+                    )}
+                  </span>
+                )}
+                {data.version && <span>v{data.version}</span>}
+                {data.category && <span>{data.category}</span>}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-1 border-b border-[#eef0f3] dark:border-[#2a2f3d] mb-6">
+            {tabs.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`px-3.5 py-2 text-[13px] font-medium rounded-t-lg transition-colors ${
+                  tab === t.key
+                    ? "text-[#ea0e2b] border-b-2 border-[#ea0e2b] -mb-px"
+                    : "text-[#9ca3af] dark:text-[#5c6478] hover:text-[#111827] dark:hover:text-[#e8eaf0]"
+                }`}
+              >
+                {t.label}
+                {t.count != null && t.count > 0 && (
+                  <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-[#252b38] text-[11px]">
+                    {t.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {tab === "overview" && <OverviewTab data={data} />}
+          {tab === "reviews" && <ReviewsTab data={data} />}
+          {tab === "changes" && <ChangesTab changes={data.metadataChanges} />}
+          {tab === "keywords" && <KeywordsTab rankings={data.keywordRankings} />}
+        </>
+      )}
+    </div>
+  );
+}
