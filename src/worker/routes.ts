@@ -354,10 +354,7 @@ workerRouter.post("/snapshot", async (req: Request, res: Response) => {
 // ─── Fastlane Frameit (screenshot framing) ───────────────────────────────────
 
 const SIZE_REMAP: Record<string, { w: number; h: number }> = {
-  "1320x2868": { w: 1290, h: 2796 }, // iPhone 16 Pro Max → 14 Pro Max
-  "1206x2622": { w: 1179, h: 2556 }, // iPhone 16 Pro → 14 Pro
-  "2064x2752": { w: 2048, h: 2732 }, // iPad Pro 13" M4 → 12.9" 4th gen
-  "1290x2796": { w: 1290, h: 2796 }, // iPhone 15/16 Plus
+  "2064x2752": { w: 2048, h: 2732 }, // iPad Pro 13" M4 → 12.9" 4th gen frame
 };
 
 interface FrameitRequest {
