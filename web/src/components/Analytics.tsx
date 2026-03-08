@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useApi, apiPost, getActiveBundleId } from "../hooks/useApi";
 import MetricsChart from "./comps/analytics/MetricsChart";
+import type { ChartMarker } from "./comps/analytics/MetricsChart";
 import ReviewsList from "./comps/analytics/ReviewsList";
 import type { AnalyticsSummary, DownloadsData, Review } from "../types";
 import { TH, TD } from "../styles";
@@ -187,6 +188,43 @@ export default function Analytics({ addToast }: Props) {
     loading: rvLoading,
     refetch: refetchReviews,
   } = useApi<Review[]>(`/analytics/reviews?bundleId=${bundleId}&limit=200`);
+
+  const { data: markersData } = useApi<{
+    activatedAt: string | null;
+    versionUpdates: { date: string; version: string }[];
+  }>(`/analytics/markers?bundleId=${bundleId}`, [bundleId], true);
+
+  const markers: ChartMarker[] = useMemo(() => {
+    const result: ChartMarker[] = [];
+    if (markersData?.activatedAt)
+      result.push({ date: markersData.activatedAt, type: "activation" });
+    for (const v of markersData?.versionUpdates ?? [])
+      result.push({ date: v.date, type: "version", label: v.version });
+    return result;
+  }, [markersData]);
+
+  const chartData = useMemo(() => {
+    const byDay = downloads?.byDay ?? [];
+    if (!byDay.length) return byDay;
+    const markerDates = markers.map((m) => m.date);
+    const minDate = byDay[0].date;
+    const maxDate = byDay[byDay.length - 1].date;
+    const existing = new Set(byDay.map((d) => d.date));
+    const toInject = markerDates.filter(
+      (d) => !existing.has(d) && d >= minDate && d <= maxDate,
+    );
+    if (!toInject.length) return byDay;
+    const injected = toInject.map((d) => ({
+      date: d,
+      downloads: 0,
+      updates: 0,
+      proceeds: 0,
+      impressions: 0,
+      pageViews: 0,
+      sessions: 0,
+    }));
+    return [...byDay, ...injected].sort((a, b) => a.date.localeCompare(b.date));
+  }, [downloads?.byDay, markers]);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -429,7 +467,7 @@ export default function Analytics({ addToast }: Props) {
       )}
 
       <div className="mb-5">
-        <MetricsChart data={downloads?.byDay ?? []} />
+        <MetricsChart data={chartData} markers={markers} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">

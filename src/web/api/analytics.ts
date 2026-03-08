@@ -210,6 +210,69 @@ analyticsRouter.get("/reviews", async (req, res) => {
   }
 });
 
+// ─── GET /api/analytics/markers ──────────────────────────────────────────────
+// Returns version-update dates + app activation date for chart reference lines
+analyticsRouter.get("/markers", async (req, res) => {
+  try {
+    const bundleId = (req.query.bundleId as string) || "";
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId required" });
+      return;
+    }
+
+    const app = await prisma.app.findUnique({
+      where: { bundleId },
+      select: { id: true, createdAt: true, isOwnApp: true, trackId: true },
+    });
+
+    if (!app) {
+      res.json({ activatedAt: null, versionUpdates: [] });
+      return;
+    }
+
+    let versionChanges = await prisma.appMetadataChange.findMany({
+      where: { appId: app.id, field: "version" },
+      orderBy: { detectedAt: "asc" },
+      select: { newValue: true, detectedAt: true },
+    });
+
+    // Lazy-init: if no version history yet, scrape it from the App Store
+    if (versionChanges.length === 0 && app.isOwnApp && app.trackId) {
+      const { AppStoreScraper } = await import("../../services/appstore-scraper");
+      const scraper = new AppStoreScraper();
+      const history = await scraper.scrapeVersionHistory(Number(app.trackId));
+      for (const { version, date } of history) {
+        await prisma.appMetadataChange.create({
+          data: {
+            appId: app.id,
+            field: "version",
+            oldValue: null,
+            newValue: version,
+            detectedAt: new Date(date),
+          },
+        });
+      }
+      if (history.length > 0) {
+        versionChanges = await prisma.appMetadataChange.findMany({
+          where: { appId: app.id, field: "version" },
+          orderBy: { detectedAt: "asc" },
+          select: { newValue: true, detectedAt: true },
+        });
+      }
+    }
+
+    res.json({
+      activatedAt: app.createdAt.toISOString().slice(0, 10),
+      versionUpdates: versionChanges.map((c) => ({
+        date: c.detectedAt.toISOString().slice(0, 10),
+        version: c.newValue ?? "",
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 // ─── POST /api/analytics/sync ─────────────────────────────────────────────────
 analyticsRouter.post("/sync", async (req, res) => {
   try {

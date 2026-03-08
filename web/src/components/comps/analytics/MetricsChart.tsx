@@ -8,20 +8,29 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
+  ReferenceLine,
   ResponsiveContainer,
 } from "recharts";
 import type { DayData } from "../../../types";
 import { fmtShortDate, fmtLargeNum, fmtRevenueShort } from "../../../utils/formatters";
 export type { DayData };
 
+export interface ChartMarker {
+  date: string;
+  type: "version" | "activation";
+  label?: string;
+}
+
 interface Props {
   data: DayData[];
+  markers?: ChartMarker[];
 }
 
 const METRICS = [
   { key: "impressions", label: "Impressions", color: "#6366f1", axis: "left" },
   { key: "pageViews", label: "Page Views", color: "#0ea5e9", axis: "left" },
   { key: "downloads", label: "Downloads", color: "#ea0e2b", axis: "left" },
+  { key: "updates", label: "Updates", color: "#f97316", axis: "left" },
   { key: "sessions", label: "Sessions", color: "#10b981", axis: "left" },
   { key: "proceeds", label: "Revenue (USD)", color: "#f59e0b", axis: "right" },
 ] as const;
@@ -56,7 +65,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-export default function MetricsChart({ data }: Props) {
+export default function MetricsChart({ data, markers = [] }: Props) {
   const [activeMetrics, setActiveMetrics] = useState<Set<MetricKey>>(
     new Set(["downloads", "impressions", "pageViews"]),
   );
@@ -170,6 +179,46 @@ export default function MetricsChart({ data }: Props) {
               iconType="circle"
               iconSize={7}
             />
+            {/* Activation marker */}
+            {markers
+              .filter((m) => m.type === "activation")
+              .map((m) => (
+                <ReferenceLine
+                  key={`activation-${m.date}`}
+                  x={m.date}
+                  yAxisId="left"
+                  stroke="#10b981"
+                  strokeWidth={1.5}
+                  strokeDasharray="4 3"
+                  label={{
+                    value: "AppCore",
+                    position: "insideTopLeft",
+                    fontSize: 10,
+                    fill: "#10b981",
+                    dy: 4,
+                  }}
+                />
+              ))}
+            {/* Version update markers */}
+            {markers
+              .filter((m) => m.type === "version")
+              .map((m) => (
+                <ReferenceLine
+                  key={`version-${m.date}-${m.label}`}
+                  x={m.date}
+                  yAxisId="left"
+                  stroke="#6366f1"
+                  strokeWidth={1}
+                  strokeDasharray="3 3"
+                  label={{
+                    value: m.label ?? "v",
+                    position: "insideTopRight",
+                    fontSize: 9,
+                    fill: "#6366f1",
+                    dy: 4,
+                  }}
+                />
+              ))}
             {METRICS.filter((m) => activeMetrics.has(m.key)).map((m) =>
               m.key === "proceeds" ? (
                 <Bar

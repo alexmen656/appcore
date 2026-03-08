@@ -470,6 +470,59 @@ export class AppStoreScraper {
     }
   }
 
+  async scrapeVersionHistory(
+    trackId: number,
+  ): Promise<Array<{ version: string; date: string }>> {
+    try {
+      const url = `https://apps.apple.com/us/app/id${trackId}`;
+      const { data: html } = await axios.get<string>(url, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+          "Accept-Language": "en-US,en;q=0.9",
+        },
+      });
+
+      const $ = cheerio.load(html);
+      const results: Array<{ version: string; date: string }> = [];
+      const seen = new Set<string>();
+
+      $("time[datetime]").each((_, el) => {
+        const timeEl = $(el);
+        const datetime = timeEl.attr("datetime");
+        if (!datetime) return;
+        const dateStr = datetime.slice(0, 10);
+        const prevH4 = timeEl.prev("h4");
+        const siblingText = prevH4.length ? prevH4.text().trim() : "";
+        const versionFromH4 =
+          siblingText.match(/^(?:Version\s+)?([\d]+(?:\.[\d]+)+)$/i)?.[1] ??
+          null;
+
+        const container = timeEl.closest(
+          "li, .version-history__item, section, [data-test-id]",
+        );
+        const containerText = (
+          container.length ? container : timeEl.parent()
+        ).text();
+        const versionFromText =
+          containerText.match(/Version\s+([\d]+(?:\.[\d]+)*)/i)?.[1] ?? null;
+
+        const version = versionFromH4 ?? versionFromText;
+        if (version && dateStr && !seen.has(version)) {
+          seen.add(version);
+          results.push({ version, date: dateStr });
+        }
+      });
+
+      return results.sort((a, b) => a.date.localeCompare(b.date));
+    } catch (error) {
+      logger.warn(`Failed to scrape version history for track ${trackId}`, {
+        error: error instanceof Error ? error.message : error,
+      });
+      return [];
+    }
+  }
+
   async scrapeAndSaveApp(
     bundleId: string,
     isOwnApp = false,
@@ -514,29 +567,61 @@ export class AppStoreScraper {
     });
 
     if (prevSnapshot) {
-      const changes: Array<{ field: string; oldValue: string | null; newValue: string | null }> = [];
-      const compare = (field: string, oldVal: string | null | undefined, newVal: string | null | undefined) => {
+      const changes: Array<{
+        field: string;
+        oldValue: string | null;
+        newValue: string | null;
+      }> = [];
+      const compare = (
+        field: string,
+        oldVal: string | null | undefined,
+        newVal: string | null | undefined,
+      ) => {
         const o = oldVal ?? null;
         const n = newVal ?? null;
-        if (o !== n) changes.push({ field, oldValue: o ? String(o).substring(0, 5000) : null, newValue: n ? String(n).substring(0, 5000) : null });
+        if (o !== n)
+          changes.push({
+            field,
+            oldValue: o ? String(o).substring(0, 5000) : null,
+            newValue: n ? String(n).substring(0, 5000) : null,
+          });
       };
 
       compare("title", prevSnapshot.title, itunesData.trackName);
       compare("subtitle", prevSnapshot.subtitle, webData?.subtitle);
       compare("description", prevSnapshot.description, itunesData.description);
       compare("version", prevSnapshot.version, itunesData.version);
-      compare("releaseNotes", prevSnapshot.releaseNotes, itunesData.releaseNotes ?? webData?.whatsNew);
-      compare("rating", prevSnapshot.rating?.toFixed(2), itunesData.averageUserRating?.toFixed(2));
-      compare("price", prevSnapshot.price?.toString(), itunesData.price?.toString());
+      compare(
+        "releaseNotes",
+        prevSnapshot.releaseNotes,
+        itunesData.releaseNotes ?? webData?.whatsNew,
+      );
+      compare(
+        "rating",
+        prevSnapshot.rating?.toFixed(2),
+        itunesData.averageUserRating?.toFixed(2),
+      );
+      compare(
+        "price",
+        prevSnapshot.price?.toString(),
+        itunesData.price?.toString(),
+      );
 
       for (const c of changes) {
         await prisma.appMetadataChange.create({
-          data: { appId: app.id, field: c.field, oldValue: c.oldValue, newValue: c.newValue },
+          data: {
+            appId: app.id,
+            field: c.field,
+            oldValue: c.oldValue,
+            newValue: c.newValue,
+          },
         });
       }
 
       if (changes.length > 0) {
-        logger.info(`Detected ${changes.length} metadata changes for ${bundleId}: ${changes.map(c => c.field).join(", ")}`);
+        logger.info(
+          `Detected ${changes.length} metadata changes for ${bundleId}: ${changes.map((c) => c.field).join(", ")}`,
+        );
       }
     }
 
@@ -561,6 +646,30 @@ export class AppStoreScraper {
         wordCount: description.split(/\s+/).length,
       },
     });
+
+    // For own apps, backfill version history from the App Store page
+    if (isOwnApp && itunesData.trackId) {
+      const history = await this.scrapeVersionHistory(itunesData.trackId);
+      for (const { version, date } of history) {
+        const exists = await prisma.appMetadataChange.findFirst({
+          where: { appId: app.id, field: "version", newValue: version },
+        });
+        if (!exists) {
+          await prisma.appMetadataChange.create({
+            data: {
+              appId: app.id,
+              field: "version",
+              oldValue: null,
+              newValue: version,
+              detectedAt: new Date(date),
+            },
+          });
+          logger.info(
+            `Backfilled version ${version} (${date}) for ${bundleId}`,
+          );
+        }
+      }
+    }
 
     logger.info(`Scraped and saved: ${itunesData.trackName} (${bundleId})`);
     return app.id;
