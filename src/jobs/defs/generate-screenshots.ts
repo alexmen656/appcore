@@ -65,6 +65,12 @@ async function runScreenshotGenerationViaWorker(
       throw new Error(`Worker snapshot failed: ${result.errors.join("; ")}`);
     }
 
+    if (result.ipaBuilt && result.ipaPath) {
+      log(`Binary build succeeded — IPA stored on worker: ${result.ipaPath}`);
+    } else {
+      log("Binary build was skipped or failed (non-fatal, screenshots continue)");
+    }
+
     const screenshotUrls: string[] = [];
     const detectedLocales: string[] = [];
 

@@ -39,6 +39,9 @@ export interface WorkerSnapshotParams {
   branch?: string;
   appName: string;
   bundleId: string;
+  gymScheme?: string;
+  exportMethod?: string;
+  buildBinary?: boolean;
 }
 
 export interface WorkerSnapshotResult {
@@ -48,6 +51,26 @@ export interface WorkerSnapshotResult {
   screenshots: Record<string, Array<{ filename: string; data: string }>>;
   descriptions: Record<string, string>;
   config: Record<string, string>;
+  ipaBuilt: boolean;
+  ipaPath?: string;
+}
+
+export interface WorkerBuildParams {
+  repoUrl: string;
+  accessToken: string;
+  branch?: string;
+  appName: string;
+  bundleId: string;
+  gymScheme?: string;
+  exportMethod?: string;
+}
+
+export interface WorkerBuildResult {
+  ok: boolean;
+  logs: string[];
+  errors: string[];
+  ipaBuilt: boolean;
+  ipaPath?: string;
 }
 
 export interface WorkerFrameitParams {
@@ -132,6 +155,14 @@ class FastlaneWorkerClient {
     logger.info("[WorkerClient] Sending frameit task to worker...");
     const res = await this.getClient().post("/worker/frameit", params, {
       timeout: 5 * 60 * 1000,
+    });
+    return res.data;
+  }
+
+  async build(params: WorkerBuildParams): Promise<WorkerBuildResult> {
+    logger.info("[WorkerClient] Sending build task to worker...");
+    const res = await this.getClient().post("/worker/build", params, {
+      timeout: 25 * 60 * 1000,
     });
     return res.data;
   }
