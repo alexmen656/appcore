@@ -20,7 +20,11 @@
             --border: rgba(255, 255, 255, 0.08);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
@@ -33,11 +37,18 @@
 
         nav {
             position: fixed;
-            top: 0; left: 0; right: 0;
+            top: 0;
+            left: 0;
+            right: 0;
             z-index: 1000;
             background: rgba(13, 13, 13, 0.8);
             backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.3s;
+        }
+
+        nav.scrolled {
+            border-bottom-color: var(--border);
         }
 
         .nav-container {
@@ -50,23 +61,101 @@
             justify-content: space-between;
         }
 
-        .logo { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text-primary); }
-        .logo-mark { height: 32px; width: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-        .logo-name { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; }
-        .nav-links { display: flex; gap: 32px; align-items: center; }
-        .nav-links a { color: var(--text-secondary); text-decoration: none; font-size: 15px; font-weight: 450; transition: color 0.2s; }
-        .nav-links a:hover { color: var(--text-primary); }
-        .nav-links a.active { color: var(--text-primary); }
-        .nav-cta { display: flex; gap: 12px; align-items: center; }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
 
-        .btn { padding: 8px 16px; font-size: 15px; font-weight: 500; border-radius: 6px; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block; }
-        .btn-ghost { background: transparent; color: var(--text-secondary); }
-        .btn-ghost:hover { color: var(--text-primary); }
-        .btn-primary { background: #ea0e2b; color: white; }
-        .btn-primary:hover { opacity: 0.9; }
-        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); }
-        .btn-secondary:hover { border-color: rgba(255, 255, 255, 0.15); }
-        .btn-large { padding: 12px 24px; font-size: 15px; }
+        .logo-mark {
+            height: 32px;
+            width: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-name {
+            font-size: 19px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 450;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .nav-links a.active {
+            color: var(--text-primary);
+        }
+
+        .nav-cta {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            font-size: 15px;
+            font-weight: 500;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+        }
+
+        .btn-ghost:hover {
+            color: var(--text-primary);
+        }
+
+        .btn-primary {
+            background: #ea0e2b;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-large {
+            padding: 12px 24px;
+            font-size: 15px;
+        }
 
         .page-header {
             padding: 120px 32px 64px;
@@ -120,8 +209,16 @@
             transition: all 0.2s;
         }
 
-        .cat-pill:hover { border-color: rgba(255, 255, 255, 0.2); color: var(--text-primary); }
-        .cat-pill.active { background: var(--bg-secondary); border-color: rgba(255, 255, 255, 0.2); color: var(--text-primary); }
+        .cat-pill:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            color: var(--text-primary);
+        }
+
+        .cat-pill.active {
+            background: var(--bg-secondary);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: var(--text-primary);
+        }
 
         .blog-section {
             max-width: 1200px;
@@ -143,7 +240,9 @@
             transition: border-color 0.2s;
         }
 
-        .featured-post:hover { border-color: rgba(255, 255, 255, 0.15); }
+        .featured-post:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
 
         .post-thumbnail {
             background: var(--bg-tertiary);
@@ -170,9 +269,19 @@
             background: var(--accent-dim);
         }
 
-        .thumb-bar.accent { background: var(--accent); width: 60%; }
-        .thumb-bar.blue { background: var(--accent-blue-dim); }
-        .thumb-bar.blue-accent { background: var(--accent-blue); width: 45%; }
+        .thumb-bar.accent {
+            background: var(--accent);
+            width: 60%;
+        }
+
+        .thumb-bar.blue {
+            background: var(--accent-blue-dim);
+        }
+
+        .thumb-bar.blue-accent {
+            background: var(--accent-blue);
+            width: 45%;
+        }
 
         .post-content {
             display: flex;
@@ -196,12 +305,30 @@
             border-radius: 4px;
         }
 
-        .cat-aso { background: var(--accent-dim); color: var(--accent); }
-        .cat-product { background: var(--accent-blue-dim); color: var(--accent-blue); }
-        .cat-growth { background: rgba(74, 222, 128, 0.1); color: #4ade80; }
-        .cat-guide { background: rgba(251, 191, 36, 0.1); color: #fbbf24; }
+        .cat-aso {
+            background: var(--accent-dim);
+            color: var(--accent);
+        }
 
-        .post-date { font-size: 13px; color: var(--text-tertiary); }
+        .cat-product {
+            background: var(--accent-blue-dim);
+            color: var(--accent-blue);
+        }
+
+        .cat-growth {
+            background: rgba(74, 222, 128, 0.1);
+            color: #4ade80;
+        }
+
+        .cat-guide {
+            background: rgba(251, 191, 36, 0.1);
+            color: #fbbf24;
+        }
+
+        .post-date {
+            font-size: 13px;
+            color: var(--text-tertiary);
+        }
 
         .post-content h2 {
             font-size: 28px;
@@ -238,8 +365,15 @@
             color: var(--text-secondary);
         }
 
-        .author-name { font-size: 13px; font-weight: 500; }
-        .read-time { font-size: 13px; color: var(--text-tertiary); }
+        .author-name {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .read-time {
+            font-size: 13px;
+            color: var(--text-tertiary);
+        }
 
         .posts-grid {
             display: grid;
@@ -259,7 +393,9 @@
             flex-direction: column;
         }
 
-        .post-card:hover { border-color: rgba(255, 255, 255, 0.15); }
+        .post-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
 
         .card-thumb {
             height: 140px;
@@ -272,9 +408,16 @@
             gap: 8px;
         }
 
-        .card-body { padding: 20px; flex: 1; display: flex; flex-direction: column; }
+        .card-body {
+            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
 
-        .card-body .post-meta { margin-bottom: 10px; }
+        .card-body .post-meta {
+            margin-bottom: 10px;
+        }
 
         .card-body h3 {
             font-size: 17px;
@@ -298,8 +441,13 @@
             align-items: center;
         }
 
-        .card-footer .author-name { font-size: 12px; }
-        .card-footer .read-time { font-size: 12px; }
+        .card-footer .author-name {
+            font-size: 12px;
+        }
+
+        .card-footer .read-time {
+            font-size: 12px;
+        }
 
         .newsletter {
             max-width: 1200px;
@@ -318,10 +466,23 @@
             gap: 40px;
         }
 
-        .newsletter-text h2 { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 8px; }
-        .newsletter-text p { font-size: 16px; color: var(--text-secondary); }
+        .newsletter-text h2 {
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 8px;
+        }
 
-        .newsletter-form { display: flex; gap: 10px; flex-shrink: 0; }
+        .newsletter-text p {
+            font-size: 16px;
+            color: var(--text-secondary);
+        }
+
+        .newsletter-form {
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+        }
 
         .newsletter-input {
             background: var(--bg-primary);
@@ -333,49 +494,146 @@
             width: 260px;
         }
 
-        .newsletter-input::placeholder { color: var(--text-tertiary); }
+        .newsletter-input::placeholder {
+            color: var(--text-tertiary);
+        }
 
-        footer { max-width: 1200px; margin: 0 auto; padding: 64px 32px 32px; border-top: 1px solid var(--border); }
-        .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 64px; margin-bottom: 48px; }
-        .footer-brand p { color: var(--text-secondary); font-size: 14px; margin-top: 16px; line-height: 1.6; }
-        .footer-logo { display: flex; align-items: center; gap: 10px; }
-        .footer-column h4 { font-size: 13px; font-weight: 500; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary); }
-        .footer-column ul { list-style: none; }
-        .footer-column ul li { margin-bottom: 12px; }
-        .footer-column ul li a { color: var(--text-secondary); text-decoration: none; font-size: 14px; transition: color 0.2s; }
-        .footer-column ul li a:hover { color: var(--text-primary); }
-        .footer-bottom { padding-top: 32px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text-tertiary); }
-        .footer-bottom-links { display: flex; gap: 24px; }
-        .footer-bottom a { color: var(--text-tertiary); text-decoration: none; transition: color 0.2s; }
-        .footer-bottom a:hover { color: var(--text-secondary); }
+        footer {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 64px 32px 32px;
+            border-top: 1px solid var(--border);
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 64px;
+            margin-bottom: 48px;
+        }
+
+        .footer-brand p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-top: 16px;
+            line-height: 1.6;
+        }
+
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .footer-column h4 {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-tertiary);
+        }
+
+        .footer-column ul {
+            list-style: none;
+        }
+
+        .footer-column ul li {
+            margin-bottom: 12px;
+        }
+
+        .footer-column ul li a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .footer-column ul li a:hover {
+            color: var(--text-primary);
+        }
+
+        .footer-bottom {
+            padding-top: 32px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: var(--text-tertiary);
+        }
+
+        .footer-bottom-links {
+            display: flex;
+            gap: 24px;
+        }
+
+        .footer-bottom a {
+            color: var(--text-tertiary);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-bottom a:hover {
+            color: var(--text-secondary);
+        }
 
         @media (max-width: 768px) {
-            h1 { font-size: 36px; }
-            .page-header-inner { flex-direction: column; align-items: flex-start; }
-            .featured-post { grid-template-columns: 1fr; }
-            .posts-grid { grid-template-columns: 1fr; }
-            .newsletter-card { flex-direction: column; }
-            .newsletter-form { flex-direction: column; width: 100%; }
-            .newsletter-input { width: 100%; }
-            .footer-grid { grid-template-columns: 1fr; gap: 32px; }
-            .nav-links { display: none; }
+            h1 {
+                font-size: 36px;
+            }
+
+            .page-header-inner {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .featured-post {
+                grid-template-columns: 1fr;
+            }
+
+            .posts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .newsletter-card {
+                flex-direction: column;
+            }
+
+            .newsletter-form {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .newsletter-input {
+                width: 100%;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+                gap: 32px;
+            }
+
+            .nav-links {
+                display: none;
+            }
         }
     </style>
 </head>
 
 <body>
-    <nav>
+    <nav id="nav">
         <div class="nav-container">
-            <a href="AppCore.html" class="logo">
-                <div class="logo-mark"><img height="35" width="35" src="web/logo.png" alt="AppCore logo"></div>
+            <a href="/" class="logo">
+                <div class="logo-mark"><img height="35" width="35" src="/logo.png" alt="AppCore logo"></div>
                 <span class="logo-name">AppCore</span>
             </a>
             <div class="nav-links">
-                <a href="features.html">Features</a>
-                <a href="how-it-works.html">How it works</a>
+                <a href="features">Features</a>
+                <a href="how-it-works">How it works</a>
                 <a href="https://docs.fringelo.com/">Docs</a>
-                <a href="pricing.html">Pricing</a>
-                <a href="blog.html" class="active">Blog</a>
+                <a href="pricing">Pricing</a>
+                <a href="blog" class="active">Blog</a>
             </div>
             <div class="nav-cta">
                 <a href="https://appcore.fringelo.com/app/login/" class="btn btn-ghost">Login</a>
@@ -422,7 +680,8 @@
                     <span class="post-date">March 5, 2026</span>
                 </div>
                 <h2>How to pick keywords that actually rank in 2026</h2>
-                <p>The App Store algorithm has changed significantly over the past 18 months. Here's the exact keyword selection framework we recommend — backed by data from 2.4 million tracked keywords.</p>
+                <p>The App Store algorithm has changed significantly over the past 18 months. Here's the exact keyword
+                    selection framework we recommend — backed by data from 2.4 million tracked keywords.</p>
                 <div class="post-author">
                     <div class="author-avatar">LK</div>
                     <span class="author-name">Lena K.</span>
@@ -437,13 +696,17 @@
             <a href="#" class="post-card">
                 <div class="card-thumb">
                     <div style="display:flex;align-items:flex-end;gap:6px;height:80px;">
-                        <div style="width:18px;height:40%;background:var(--accent-dim);border-radius:3px 3px 0 0;"></div>
-                        <div style="width:18px;height:60%;background:var(--accent-dim);border-radius:3px 3px 0 0;"></div>
+                        <div style="width:18px;height:40%;background:var(--accent-dim);border-radius:3px 3px 0 0;">
+                        </div>
+                        <div style="width:18px;height:60%;background:var(--accent-dim);border-radius:3px 3px 0 0;">
+                        </div>
                         <div style="width:18px;height:80%;background:var(--accent);border-radius:3px 3px 0 0;"></div>
                         <div style="width:18px;height:90%;background:var(--accent);border-radius:3px 3px 0 0;"></div>
-                        <div style="width:18px;height:75%;background:var(--accent-dim);border-radius:3px 3px 0 0;"></div>
+                        <div style="width:18px;height:75%;background:var(--accent-dim);border-radius:3px 3px 0 0;">
+                        </div>
                         <div style="width:18px;height:95%;background:var(--accent);border-radius:3px 3px 0 0;"></div>
-                        <div style="width:18px;height:85%;background:var(--accent-dim);border-radius:3px 3px 0 0;"></div>
+                        <div style="width:18px;height:85%;background:var(--accent-dim);border-radius:3px 3px 0 0;">
+                        </div>
                     </div>
                 </div>
                 <div class="card-body">
@@ -452,7 +715,8 @@
                         <span class="post-date">Feb 26, 2026</span>
                     </div>
                     <h3>The 60-day ASO playbook: from launch to top charts</h3>
-                    <p>A step-by-step roadmap for new apps: what to focus on in weeks 1–2, 3–6, and 7–12 to build momentum in the rankings.</p>
+                    <p>A step-by-step roadmap for new apps: what to focus on in weeks 1–2, 3–6, and 7–12 to build
+                        momentum in the rankings.</p>
                     <div class="card-footer">
                         <div class="post-author">
                             <div class="author-avatar" style="width:24px;height:24px;font-size:11px;">MR</div>
@@ -466,11 +730,14 @@
             <a href="#" class="post-card">
                 <div class="card-thumb">
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;padding:4px;">
-                        <div style="background:var(--accent-blue-dim);border:1px solid rgba(94,106,210,0.2);border-radius:6px;padding:10px;text-align:center;">
-                            <div style="font-size:11px;color:var(--accent-blue);font-weight:600;margin-bottom:4px;">A</div>
+                        <div
+                            style="background:var(--accent-blue-dim);border:1px solid rgba(94,106,210,0.2);border-radius:6px;padding:10px;text-align:center;">
+                            <div style="font-size:11px;color:var(--accent-blue);font-weight:600;margin-bottom:4px;">A
+                            </div>
                             <div style="font-size:16px;font-weight:700;">31.2%</div>
                         </div>
-                        <div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.25);border-radius:6px;padding:10px;text-align:center;">
+                        <div
+                            style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.25);border-radius:6px;padding:10px;text-align:center;">
                             <div style="font-size:11px;color:#4ade80;font-weight:600;margin-bottom:4px;">B ★</div>
                             <div style="font-size:16px;font-weight:700;color:#4ade80;">38.9%</div>
                         </div>
@@ -482,7 +749,8 @@
                         <span class="post-date">Feb 18, 2026</span>
                     </div>
                     <h3>A/B testing your app icon: what we learned from 200+ experiments</h3>
-                    <p>Icon tests consistently show the highest conversion lift of any store listing element. Here's what works, what doesn't, and how to read the data correctly.</p>
+                    <p>Icon tests consistently show the highest conversion lift of any store listing element. Here's
+                        what works, what doesn't, and how to read the data correctly.</p>
                     <div class="card-footer">
                         <div class="post-author">
                             <div class="author-avatar" style="width:24px;height:24px;font-size:11px;">JB</div>
@@ -502,12 +770,17 @@
                             <span style="font-size:10px;color:#4ade80;font-weight:600;">72%</span>
                         </div>
                         <div style="display:flex;align-items:center;gap:8px;">
-                            <div style="width:8px;height:8px;border-radius:50%;background:var(--accent-blue);flex-shrink:0;"></div>
-                            <div style="height:6px;border-radius:3px;background:var(--accent-blue-dim);flex:1;width:25%;max-width:25%;"></div>
+                            <div
+                                style="width:8px;height:8px;border-radius:50%;background:var(--accent-blue);flex-shrink:0;">
+                            </div>
+                            <div
+                                style="height:6px;border-radius:3px;background:var(--accent-blue-dim);flex:1;width:25%;max-width:25%;">
+                            </div>
                             <span style="font-size:10px;color:var(--accent-blue);font-weight:600;">18%</span>
                         </div>
                         <div style="display:flex;align-items:center;gap:8px;">
-                            <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;"></div>
+                            <div style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;">
+                            </div>
                             <div style="height:6px;border-radius:3px;background:var(--accent-dim);width:13%;"></div>
                             <span style="font-size:10px;color:var(--accent);font-weight:600;">10%</span>
                         </div>
@@ -519,7 +792,8 @@
                         <span class="post-date">Feb 10, 2026</span>
                     </div>
                     <h3>How to use review sentiment to prioritize your product backlog</h3>
-                    <p>Your reviews are a goldmine of product intelligence. Here's how to systematically extract actionable insights from thousands of reviews each month.</p>
+                    <p>Your reviews are a goldmine of product intelligence. Here's how to systematically extract
+                        actionable insights from thousands of reviews each month.</p>
                     <div class="card-footer">
                         <div class="post-author">
                             <div class="author-avatar" style="width:24px;height:24px;font-size:11px;">LK</div>
@@ -533,12 +807,16 @@
             <a href="#" class="post-card">
                 <div class="card-thumb">
                     <div style="display:flex;flex-direction:column;gap:6px;width:100%;padding:4px;">
-                        <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:8px 10px;">
-                            <div style="font-size:11px;font-weight:700;color:var(--text-primary);margin-bottom:2px;">Focus Flow – Productivity</div>
+                        <div
+                            style="background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:8px 10px;">
+                            <div style="font-size:11px;font-weight:700;color:var(--text-primary);margin-bottom:2px;">
+                                Focus Flow – Productivity</div>
                             <div style="font-size:10px;color:var(--text-tertiary);">Title · 30 chars · ✓</div>
                         </div>
-                        <div style="background:var(--bg-primary);border:1px solid rgba(94,106,210,0.3);border-radius:6px;padding:8px 10px;">
-                            <div style="font-size:11px;font-weight:700;color:var(--accent-blue);margin-bottom:2px;">AI suggestion</div>
+                        <div
+                            style="background:var(--bg-primary);border:1px solid rgba(94,106,210,0.3);border-radius:6px;padding:8px 10px;">
+                            <div style="font-size:11px;font-weight:700;color:var(--accent-blue);margin-bottom:2px;">AI
+                                suggestion</div>
                             <div style="font-size:10px;color:var(--text-tertiary);">"Focus Flow: Task Manager Pro"</div>
                         </div>
                     </div>
@@ -549,7 +827,8 @@
                         <span class="post-date">Jan 30, 2026</span>
                     </div>
                     <h3>Writing App Store titles that rank and convert</h3>
-                    <p>Your 30-character title is the single most impactful ASO lever you have. Here's how to use every character strategically without keyword stuffing.</p>
+                    <p>Your 30-character title is the single most impactful ASO lever you have. Here's how to use every
+                        character strategically without keyword stuffing.</p>
                     <div class="card-footer">
                         <div class="post-author">
                             <div class="author-avatar" style="width:24px;height:24px;font-size:11px;">MR</div>
@@ -583,7 +862,8 @@
                         <span class="post-date">Jan 22, 2026</span>
                     </div>
                     <h3>Competitor keyword research: a step-by-step framework</h3>
-                    <p>How to systematically analyze what your top competitors rank for — and identify the gaps you can fill in your next metadata update.</p>
+                    <p>How to systematically analyze what your top competitors rank for — and identify the gaps you can
+                        fill in your next metadata update.</p>
                     <div class="card-footer">
                         <div class="post-author">
                             <div class="author-avatar" style="width:24px;height:24px;font-size:11px;">JB</div>
@@ -597,7 +877,8 @@
             <a href="#" class="post-card">
                 <div class="card-thumb">
                     <div style="display:flex;flex-direction:column;gap:6px;width:100%;padding:4px;">
-                        <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:4px;">Organic installs · 90 days</div>
+                        <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:4px;">Organic installs · 90
+                            days</div>
                         <div style="display:flex;align-items:flex-end;gap:3px;height:60px;">
                             <div style="flex:1;background:var(--accent-dim);border-radius:2px 2px 0 0;height:30%"></div>
                             <div style="flex:1;background:var(--accent-dim);border-radius:2px 2px 0 0;height:40%"></div>
@@ -615,7 +896,8 @@
                         <span class="post-date">Jan 10, 2026</span>
                     </div>
                     <h3>Introducing AppCore v1.7: Autonomous Mode</h3>
-                    <p>Our biggest release yet: Autonomous Mode lets AppCore proactively surface opportunities and draft actions for you to approve — without replacing your judgment.</p>
+                    <p>Our biggest release yet: Autonomous Mode lets AppCore proactively surface opportunities and draft
+                        actions for you to approve — without replacing your judgment.</p>
                     <div class="card-footer">
                         <div class="post-author">
                             <div class="author-avatar" style="width:24px;height:24px;font-size:11px;">AP</div>
@@ -648,26 +930,27 @@
         <div class="footer-grid">
             <div class="footer-brand">
                 <div class="footer-logo">
-                    <div class="logo-mark"><img height="32" width="32" src="web/logo.png" alt="AppCore logo"></div>
+                    <div class="logo-mark"><img height="32" width="32" src="/logo.png" alt="AppCore logo"></div>
                     <span class="logo-name">AppCore</span>
                 </div>
-                <p>The ASO platform for mobile teams. Grow organic downloads on the App Store and Google Play. Part of the Fringelo ecosystem.</p>
+                <p>The ASO platform for mobile teams. Grow organic downloads on the App Store and Google Play. Part of
+                    the Fringelo ecosystem.</p>
             </div>
             <div class="footer-column">
                 <h4>Product</h4>
                 <ul>
-                    <li><a href="features.html">Features</a></li>
-                    <li><a href="pricing.html">Pricing</a></li>
-                    <li><a href="changelog.html">Changelog</a></li>
-                    <li><a href="status.html">Status</a></li>
+                    <li><a href="features">Features</a></li>
+                    <li><a href="pricing">Pricing</a></li>
+                    <li><a href="changelog">Changelog</a></li>
+                    <li><a href="status">Status</a></li>
                 </ul>
             </div>
             <div class="footer-column">
                 <h4>Learn</h4>
                 <ul>
                     <li><a href="https://docs.fringelo.com/">Documentation</a></li>
-                    <li><a href="how-it-works.html">How it works</a></li>
-                    <li><a href="blog.html">Blog</a></li>
+                    <li><a href="how-it-works">How it works</a></li>
+                    <li><a href="blog">Blog</a></li>
                     <li><a href="mailto:hello@fringelo.com">Help Center</a></li>
                 </ul>
             </div>
@@ -689,5 +972,17 @@
             </div>
         </div>
     </footer>
+
+    <script>
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('nav');
+            if (window.scrollY > 0) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+    </script>
 </body>
+
 </html>

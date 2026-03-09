@@ -52,9 +52,30 @@ app.use("/screenshots", express.static(screenshotsDir));
 const landingPage = path.join(process.cwd(), "AppCore.html");
 app.get("/", (_req, res) => res.sendFile(landingPage));
 
-const logo = path.join(process.cwd(), "logo.png");
-app.get("/app/logo.png", (_req, res) => res.sendFile(logo));
+const HowItWorksPage = path.join(process.cwd(), "how-it-works.html");
+app.get("/how-it-works", (_req, res) => res.sendFile(HowItWorksPage));
 
+const featuresPage = path.join(process.cwd(), "features.html");
+app.get("/features", (_req, res) => res.sendFile(featuresPage));
+
+const changelogPage = path.join(process.cwd(), "changelog.html");
+app.get("/changelog", (_req, res) => res.sendFile(changelogPage));
+
+const blogPage = path.join(process.cwd(), "blog.html");
+app.get("/blog", (_req, res) => res.sendFile(blogPage));
+
+const pricingPage = path.join(process.cwd(), "pricing.html");
+app.get("/pricing", (_req, res) => res.sendFile(pricingPage));
+
+const statusPage = path.join(process.cwd(), "status.html");
+app.get("/status", (_req, res) => res.sendFile(statusPage));
+
+const screenshot = path.join(process.cwd(), "screenshot.png");
+app.get("/screenshot.png", (_req, res) => res.sendFile(screenshot));
+
+const logo = path.join(process.cwd(), "logo.png");
+app.get("/logo.png", (_req, res) => res.sendFile(logo));
+app.get("/app/logo.png", (_req, res) => res.sendFile(logo));
 
 const webDist = path.join(__dirname, "../../web/dist");
 app.use("/app", express.static(webDist));

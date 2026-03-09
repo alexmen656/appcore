@@ -43,7 +43,12 @@
             z-index: 1000;
             background: rgba(13, 13, 13, 0.8);
             backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.3s;
+        }
+
+        nav.scrolled {
+            border-bottom-color: var(--border);
         }
 
         .nav-container {
@@ -695,20 +700,20 @@
 </head>
 
 <body>
-    <nav>
+    <nav id="nav">
         <div class="nav-container">
-            <a href="AppCore.html" class="logo">
+            <a href="/" class="logo">
                 <div class="logo-mark">
-                    <img height="35" width="35" src="web/logo.png" alt="AppCore logo">
+                    <img height="35" width="35" src="/logo.png" alt="AppCore logo">
                 </div>
                 <span class="logo-name">AppCore</span>
             </a>
             <div class="nav-links">
-                <a href="features.html" class="active">Features</a>
-                <a href="how-it-works.html">How it works</a>
+                <a href="features" class="active">Features</a>
+                <a href="how-it-works">How it works</a>
                 <a href="https://docs.fringelo.com/">Docs</a>
-                <a href="pricing.html">Pricing</a>
-                <a href="blog.html">Blog</a>
+                <a href="pricing">Pricing</a>
+                <a href="blog">Blog</a>
             </div>
             <div class="nav-cta">
                 <a href="https://appcore.fringelo.com/app/login/" class="btn btn-ghost">Login</a>
@@ -1235,7 +1240,7 @@
         <p>Start for free, no credit card required.</p>
         <div class="cta-buttons">
             <a href="https://appcore.fringelo.com/app/signup/" class="btn btn-primary btn-large">Start for free</a>
-            <a href="pricing.html" class="btn btn-secondary btn-large">View pricing</a>
+            <a href="pricing" class="btn btn-secondary btn-large">View pricing</a>
         </div>
     </section>
 
@@ -1244,7 +1249,7 @@
         <div class="footer-grid">
             <div class="footer-brand">
                 <div class="footer-logo">
-                    <div class="logo-mark"><img height="32" width="32" src="web/logo.png" alt="AppCore logo"></div>
+                    <div class="logo-mark"><img height="32" width="32" src="/logo.png" alt="AppCore logo"></div>
                     <span class="logo-name">AppCore</span>
                 </div>
                 <p>The ASO platform for mobile teams. Grow organic downloads on the App Store and Google Play. Part of
@@ -1253,18 +1258,18 @@
             <div class="footer-column">
                 <h4>Product</h4>
                 <ul>
-                    <li><a href="features.html">Features</a></li>
-                    <li><a href="pricing.html">Pricing</a></li>
-                    <li><a href="changelog.html">Changelog</a></li>
-                    <li><a href="status.html">Status</a></li>
+                    <li><a href="features">Features</a></li>
+                    <li><a href="pricing">Pricing</a></li>
+                    <li><a href="changelog">Changelog</a></li>
+                    <li><a href="status">Status</a></li>
                 </ul>
             </div>
             <div class="footer-column">
                 <h4>Learn</h4>
                 <ul>
                     <li><a href="https://docs.fringelo.com/">Documentation</a></li>
-                    <li><a href="how-it-works.html">How it works</a></li>
-                    <li><a href="blog.html">Blog</a></li>
+                    <li><a href="how-it-works">How it works</a></li>
+                    <li><a href="blog">Blog</a></li>
                     <li><a href="mailto:hello@fringelo.com">Help Center</a></li>
                 </ul>
             </div>
@@ -1286,6 +1291,16 @@
             </div>
         </div>
     </footer>
+    <script>
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('nav');
+            if (window.scrollY > 0) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+    </script>
 </body>
 
 </html>

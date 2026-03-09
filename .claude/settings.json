@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx prisma:*)",
+      "Bash(node -e \":*)",
+      "Bash(node --max-old-space-size=512 ./node_modules/.bin/tsc --noEmit --skipLibCheck)",
+      "WebSearch",
+      "WebFetch(domain:www.polpiella.dev)",
+      "WebFetch(domain:www.easyappreports.com)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:www.hubifi.com)",
+      "WebFetch(domain:optiblack.com)"
+    ]
+  }
+}

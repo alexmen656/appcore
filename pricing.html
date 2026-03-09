@@ -20,7 +20,11 @@
             --border: rgba(255, 255, 255, 0.08);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
@@ -33,11 +37,18 @@
 
         nav {
             position: fixed;
-            top: 0; left: 0; right: 0;
+            top: 0;
+            left: 0;
+            right: 0;
             z-index: 1000;
             background: rgba(13, 13, 13, 0.8);
             backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.3s;
+        }
+
+        nav.scrolled {
+            border-bottom-color: var(--border);
         }
 
         .nav-container {
@@ -50,23 +61,101 @@
             justify-content: space-between;
         }
 
-        .logo { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text-primary); }
-        .logo-mark { height: 32px; width: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-        .logo-name { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; }
-        .nav-links { display: flex; gap: 32px; align-items: center; }
-        .nav-links a { color: var(--text-secondary); text-decoration: none; font-size: 15px; font-weight: 450; transition: color 0.2s; }
-        .nav-links a:hover { color: var(--text-primary); }
-        .nav-links a.active { color: var(--text-primary); }
-        .nav-cta { display: flex; gap: 12px; align-items: center; }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
 
-        .btn { padding: 8px 16px; font-size: 15px; font-weight: 500; border-radius: 6px; border: none; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block; }
-        .btn-ghost { background: transparent; color: var(--text-secondary); }
-        .btn-ghost:hover { color: var(--text-primary); }
-        .btn-primary { background: #ea0e2b; color: white; }
-        .btn-primary:hover { opacity: 0.9; }
-        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); }
-        .btn-secondary:hover { border-color: rgba(255, 255, 255, 0.15); }
-        .btn-large { padding: 12px 24px; font-size: 15px; }
+        .logo-mark {
+            height: 32px;
+            width: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-name {
+            font-size: 19px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 450;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        .nav-links a.active {
+            color: var(--text-primary);
+        }
+
+        .nav-cta {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            font-size: 15px;
+            font-weight: 500;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+        }
+
+        .btn-ghost:hover {
+            color: var(--text-primary);
+        }
+
+        .btn-primary {
+            background: #ea0e2b;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-large {
+            padding: 12px 24px;
+            font-size: 15px;
+        }
 
         .page-header {
             padding: 120px 32px 64px;
@@ -160,7 +249,9 @@
             transition: border-color 0.2s;
         }
 
-        .pricing-card:hover { border-color: rgba(255, 255, 255, 0.15); }
+        .pricing-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
 
         .pricing-card.featured {
             border-color: var(--accent);
@@ -197,10 +288,30 @@
             margin-bottom: 4px;
         }
 
-        .pricing-price sup { font-size: 24px; vertical-align: super; margin-right: 2px; }
-        .pricing-period { font-size: 14px; color: var(--text-tertiary); margin-bottom: 24px; }
-        .pricing-description { font-size: 14px; color: var(--text-secondary); margin-bottom: 24px; line-height: 1.6; }
-        .pricing-divider { height: 1px; background: var(--border); margin-bottom: 24px; }
+        .pricing-price sup {
+            font-size: 24px;
+            vertical-align: super;
+            margin-right: 2px;
+        }
+
+        .pricing-period {
+            font-size: 14px;
+            color: var(--text-tertiary);
+            margin-bottom: 24px;
+        }
+
+        .pricing-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .pricing-divider {
+            height: 1px;
+            background: var(--border);
+            margin-bottom: 24px;
+        }
 
         .pricing-features-list {
             list-style: none;
@@ -230,8 +341,17 @@
             margin-top: 1px;
         }
 
-        .check svg { width: 10px; height: 10px; stroke: var(--accent); }
-        .pricing-cta { width: 100%; text-align: center; padding: 10px 0; }
+        .check svg {
+            width: 10px;
+            height: 10px;
+            stroke: var(--accent);
+        }
+
+        .pricing-cta {
+            width: 100%;
+            text-align: center;
+            padding: 10px 0;
+        }
 
         .comparison-section {
             max-width: 1200px;
@@ -272,7 +392,9 @@
             border-bottom: 1px solid var(--border);
         }
 
-        .comparison-table th:not(:first-child) { text-align: center; }
+        .comparison-table th:not(:first-child) {
+            text-align: center;
+        }
 
         .comparison-table .tier-header {
             font-size: 15px;
@@ -282,7 +404,9 @@
             letter-spacing: 0;
         }
 
-        .comparison-table .tier-header.featured { color: var(--accent); }
+        .comparison-table .tier-header.featured {
+            color: var(--accent);
+        }
 
         .comparison-table td {
             padding: 14px 16px;
@@ -291,9 +415,13 @@
             border-bottom: 1px solid var(--border);
         }
 
-        .comparison-table td:not(:first-child) { text-align: center; }
+        .comparison-table td:not(:first-child) {
+            text-align: center;
+        }
 
-        .comparison-table tr:last-child td { border-bottom: none; }
+        .comparison-table tr:last-child td {
+            border-bottom: none;
+        }
 
         .comparison-table .category-row td {
             background: var(--bg-secondary);
@@ -305,8 +433,15 @@
             padding: 10px 16px;
         }
 
-        .yes { color: #4ade80; font-size: 16px; }
-        .no { color: var(--text-tertiary); font-size: 16px; }
+        .yes {
+            color: #4ade80;
+            font-size: 16px;
+        }
+
+        .no {
+            color: var(--text-tertiary);
+            font-size: 16px;
+        }
 
         .faq-section {
             max-width: 800px;
@@ -314,13 +449,37 @@
             padding: 0 32px;
         }
 
-        .faq-header { text-align: center; margin-bottom: 48px; }
-        .faq-header h2 { font-size: 36px; font-weight: 600; letter-spacing: -0.02em; }
+        .faq-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
 
-        .faq-item { border-top: 1px solid var(--border); padding: 24px 0; }
-        .faq-item:last-child { border-bottom: 1px solid var(--border); }
-        .faq-question { font-size: 16px; font-weight: 500; margin-bottom: 10px; }
-        .faq-answer { font-size: 15px; color: var(--text-secondary); line-height: 1.7; }
+        .faq-header h2 {
+            font-size: 36px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .faq-item {
+            border-top: 1px solid var(--border);
+            padding: 24px 0;
+        }
+
+        .faq-item:last-child {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .faq-question {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .faq-answer {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
 
         .cta {
             max-width: 800px;
@@ -330,47 +489,142 @@
             border-top: 1px solid var(--border);
         }
 
-        .cta h2 { font-size: 40px; margin-bottom: 16px; letter-spacing: -0.02em; }
-        .cta p { font-size: 18px; color: var(--text-secondary); margin-bottom: 32px; }
-        .cta-buttons { display: flex; gap: 12px; justify-content: center; }
+        .cta h2 {
+            font-size: 40px;
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+        }
 
-        footer { max-width: 1200px; margin: 0 auto; padding: 64px 32px 32px; border-top: 1px solid var(--border); }
-        .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 64px; margin-bottom: 48px; }
-        .footer-brand p { color: var(--text-secondary); font-size: 14px; margin-top: 16px; line-height: 1.6; }
-        .footer-logo { display: flex; align-items: center; gap: 10px; }
-        .footer-column h4 { font-size: 13px; font-weight: 500; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-tertiary); }
-        .footer-column ul { list-style: none; }
-        .footer-column ul li { margin-bottom: 12px; }
-        .footer-column ul li a { color: var(--text-secondary); text-decoration: none; font-size: 14px; transition: color 0.2s; }
-        .footer-column ul li a:hover { color: var(--text-primary); }
-        .footer-bottom { padding-top: 32px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text-tertiary); }
-        .footer-bottom-links { display: flex; gap: 24px; }
-        .footer-bottom a { color: var(--text-tertiary); text-decoration: none; transition: color 0.2s; }
-        .footer-bottom a:hover { color: var(--text-secondary); }
+        .cta p {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        footer {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 64px 32px 32px;
+            border-top: 1px solid var(--border);
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 64px;
+            margin-bottom: 48px;
+        }
+
+        .footer-brand p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-top: 16px;
+            line-height: 1.6;
+        }
+
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .footer-column h4 {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-tertiary);
+        }
+
+        .footer-column ul {
+            list-style: none;
+        }
+
+        .footer-column ul li {
+            margin-bottom: 12px;
+        }
+
+        .footer-column ul li a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .footer-column ul li a:hover {
+            color: var(--text-primary);
+        }
+
+        .footer-bottom {
+            padding-top: 32px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: var(--text-tertiary);
+        }
+
+        .footer-bottom-links {
+            display: flex;
+            gap: 24px;
+        }
+
+        .footer-bottom a {
+            color: var(--text-tertiary);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-bottom a:hover {
+            color: var(--text-secondary);
+        }
 
         @media (max-width: 768px) {
-            h1 { font-size: 36px; }
-            .pricing-grid { grid-template-columns: 1fr; }
-            .footer-grid { grid-template-columns: 1fr; gap: 32px; }
-            .nav-links { display: none; }
-            .comparison-section { overflow-x: auto; }
+            h1 {
+                font-size: 36px;
+            }
+
+            .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+                gap: 32px;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .comparison-section {
+                overflow-x: auto;
+            }
         }
     </style>
 </head>
 
 <body>
-    <nav>
+    <nav id="nav">
         <div class="nav-container">
-            <a href="AppCore.html" class="logo">
-                <div class="logo-mark"><img height="35" width="35" src="web/logo.png" alt="AppCore logo"></div>
+            <a href="/" class="logo">
+                <div class="logo-mark"><img height="35" width="35" src="/logo.png" alt="AppCore logo"></div>
                 <span class="logo-name">AppCore</span>
             </a>
             <div class="nav-links">
-                <a href="features.html">Features</a>
-                <a href="how-it-works.html">How it works</a>
+                <a href="features">Features</a>
+                <a href="how-it-works">How it works</a>
                 <a href="https://docs.fringelo.com/">Docs</a>
-                <a href="pricing.html" class="active">Pricing</a>
-                <a href="blog.html">Blog</a>
+                <a href="pricing" class="active">Pricing</a>
+                <a href="blog">Blog</a>
             </div>
             <div class="nav-cta">
                 <a href="https://appcore.fringelo.com/app/login/" class="btn btn-ghost">Login</a>
@@ -396,16 +650,33 @@
                 <div class="pricing-tier">Starter</div>
                 <div class="pricing-price"><sup>€</sup>0</div>
                 <div class="pricing-period">forever free</div>
-                <div class="pricing-description">For indie developers and early-stage apps getting started with ASO.</div>
+                <div class="pricing-description">For indie developers and early-stage apps getting started with ASO.
+                </div>
                 <div class="pricing-divider"></div>
                 <ul class="pricing-features-list">
-                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>1 app</li>
-                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>50 keywords tracked</li>
-                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Daily rank updates</li>
-                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>3 competitor apps</li>
-                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Review inbox</li>
+                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="2 6 5 9 10 3" />
+                            </svg></span>1 app</li>
+                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="2 6 5 9 10 3" />
+                            </svg></span>50 keywords tracked</li>
+                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="2 6 5 9 10 3" />
+                            </svg></span>Daily rank updates</li>
+                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="2 6 5 9 10 3" />
+                            </svg></span>3 competitor apps</li>
+                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="2 6 5 9 10 3" />
+                            </svg></span>Review inbox</li>
                 </ul>
-                <a href="https://appcore.fringelo.com/app/signup/" class="btn btn-secondary pricing-cta">Get started free</a>
+                <a href="https://appcore.fringelo.com/app/signup/" class="btn btn-secondary pricing-cta">Get started
+                    free</a>
             </div>
 
             <div class="pricing-card featured">
@@ -413,33 +684,75 @@
                 <div class="pricing-tier">Pro</div>
                 <div class="pricing-price" id="pro-price"><sup>€</sup>49</div>
                 <div class="pricing-period" id="pro-period">per app / month</div>
-                <div class="pricing-description">For growing apps that need deeper insights and full optimization tooling.</div>
+                <div class="pricing-description">For growing apps that need deeper insights and full optimization
+                    tooling.</div>
                 <div class="pricing-divider"></div>
                 <ul class="pricing-features-list">
-                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Unlimited apps</li>
-                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>500 keywords tracked</li>
-                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>AI metadata optimizer</li>
-                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Unlimited competitors</li>
-                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>A/B testing</li>
-                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Weekly email reports</li>
-                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Slack notifications</li>
+                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="2 6 5 9 10 3" />
+                            </svg></span>Unlimited apps</li>
+                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="2 6 5 9 10 3" />
+                            </svg></span>500 keywords tracked</li>
+                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="2 6 5 9 10 3" />
+                            </svg></span>AI metadata optimizer</li>
+                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="2 6 5 9 10 3" />
+                            </svg></span>Unlimited competitors</li>
+                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="2 6 5 9 10 3" />
+                            </svg></span>A/B testing</li>
+                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="2 6 5 9 10 3" />
+                            </svg></span>Weekly email reports</li>
+                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="2 6 5 9 10 3" />
+                            </svg></span>Slack notifications</li>
                 </ul>
-                <a href="https://appcore.fringelo.com/app/signup/" class="btn btn-primary pricing-cta">Start with Pro</a>
+                <a href="https://appcore.fringelo.com/app/signup/" class="btn btn-primary pricing-cta">Start with
+                    Pro</a>
             </div>
 
             <div class="pricing-card">
                 <div class="pricing-tier">Agency</div>
                 <div class="pricing-price" style="font-size: 36px; padding-top: 8px;">Custom</div>
                 <div class="pricing-period">talk to us</div>
-                <div class="pricing-description">For agencies and studios managing multiple clients and dozens of apps.</div>
+                <div class="pricing-description">For agencies and studios managing multiple clients and dozens of apps.
+                </div>
                 <div class="pricing-divider"></div>
                 <ul class="pricing-features-list">
-                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Everything in Pro</li>
-                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>White-label reports</li>
-                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Client workspace management</li>
-                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>API access</li>
-                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Dedicated account manager</li>
-                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Custom SLA &amp; onboarding</li>
+                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="2 6 5 9 10 3" />
+                            </svg></span>Everything in Pro</li>
+                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="2 6 5 9 10 3" />
+                            </svg></span>White-label reports</li>
+                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="2 6 5 9 10 3" />
+                            </svg></span>Client workspace management</li>
+                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="2 6 5 9 10 3" />
+                            </svg></span>API access</li>
+                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="2 6 5 9 10 3" />
+                            </svg></span>Dedicated account manager</li>
+                    <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="2 6 5 9 10 3" />
+                            </svg></span>Custom SLA &amp; onboarding</li>
                 </ul>
                 <a href="mailto:hello@fringelo.com" class="btn btn-secondary pricing-cta">Contact sales</a>
             </div>
@@ -462,7 +775,9 @@
                 </tr>
             </thead>
             <tbody>
-                <tr class="category-row"><td colspan="4">Apps &amp; Keywords</td></tr>
+                <tr class="category-row">
+                    <td colspan="4">Apps &amp; Keywords</td>
+                </tr>
                 <tr>
                     <td>Apps connected</td>
                     <td>1</td>
@@ -488,7 +803,9 @@
                     <td>180+</td>
                 </tr>
 
-                <tr class="category-row"><td colspan="4">Competitor Intelligence</td></tr>
+                <tr class="category-row">
+                    <td colspan="4">Competitor Intelligence</td>
+                </tr>
                 <tr>
                     <td>Competitor apps tracked</td>
                     <td>3</td>
@@ -508,7 +825,9 @@
                     <td><span class="yes">✓</span></td>
                 </tr>
 
-                <tr class="category-row"><td colspan="4">Optimization Tools</td></tr>
+                <tr class="category-row">
+                    <td colspan="4">Optimization Tools</td>
+                </tr>
                 <tr>
                     <td>AI metadata optimizer</td>
                     <td><span class="no">–</span></td>
@@ -528,7 +847,9 @@
                     <td>All locales</td>
                 </tr>
 
-                <tr class="category-row"><td colspan="4">Reporting &amp; Alerts</td></tr>
+                <tr class="category-row">
+                    <td colspan="4">Reporting &amp; Alerts</td>
+                </tr>
                 <tr>
                     <td>Review inbox</td>
                     <td><span class="yes">✓</span></td>
@@ -554,7 +875,9 @@
                     <td><span class="yes">✓</span></td>
                 </tr>
 
-                <tr class="category-row"><td colspan="4">Support &amp; Access</td></tr>
+                <tr class="category-row">
+                    <td colspan="4">Support &amp; Access</td>
+                </tr>
                 <tr>
                     <td>Support</td>
                     <td>Community</td>
@@ -580,27 +903,35 @@
 
         <div class="faq-item">
             <div class="faq-question">Is the Starter plan really free forever?</div>
-            <div class="faq-answer">Yes. No credit card required, no trial expiry. The Starter plan is permanently free for one app with up to 50 tracked keywords. You upgrade only when you need more.</div>
+            <div class="faq-answer">Yes. No credit card required, no trial expiry. The Starter plan is permanently free
+                for one app with up to 50 tracked keywords. You upgrade only when you need more.</div>
         </div>
 
         <div class="faq-item">
             <div class="faq-question">How does the Pro plan "per app" pricing work?</div>
-            <div class="faq-answer">You pay €49/month per app you connect on Pro. If you have three apps, it's €147/month. There's no cap on the number of apps — just multiply by the number you need. Annual billing saves 20% across all apps.</div>
+            <div class="faq-answer">You pay €49/month per app you connect on Pro. If you have three apps, it's
+                €147/month. There's no cap on the number of apps — just multiply by the number you need. Annual billing
+                saves 20% across all apps.</div>
         </div>
 
         <div class="faq-item">
             <div class="faq-question">Can I cancel at any time?</div>
-            <div class="faq-answer">Yes. Cancel from your account settings at any time. If you're on a monthly plan, your Pro features remain active until the end of the billing period. Annual plans are refunded on a pro-rata basis within the first 30 days.</div>
+            <div class="faq-answer">Yes. Cancel from your account settings at any time. If you're on a monthly plan,
+                your Pro features remain active until the end of the billing period. Annual plans are refunded on a
+                pro-rata basis within the first 30 days.</div>
         </div>
 
         <div class="faq-item">
             <div class="faq-question">Do you offer a free trial of the Pro plan?</div>
-            <div class="faq-answer">We don't offer a time-limited trial — instead, the Starter plan gives you a real, permanent free tier to try AppCore at no cost. If you want to test Pro features, reach out and we'll set up a demo or a 14-day extended trial for qualifying teams.</div>
+            <div class="faq-answer">We don't offer a time-limited trial — instead, the Starter plan gives you a real,
+                permanent free tier to try AppCore at no cost. If you want to test Pro features, reach out and we'll set
+                up a demo or a 14-day extended trial for qualifying teams.</div>
         </div>
 
         <div class="faq-item">
             <div class="faq-question">What payment methods do you accept?</div>
-            <div class="faq-answer">We accept all major credit cards (Visa, Mastercard, Amex) and SEPA direct debit. Agency and enterprise customers can also pay by invoice.</div>
+            <div class="faq-answer">We accept all major credit cards (Visa, Mastercard, Amex) and SEPA direct debit.
+                Agency and enterprise customers can also pay by invoice.</div>
         </div>
     </section>
 
@@ -619,26 +950,27 @@
         <div class="footer-grid">
             <div class="footer-brand">
                 <div class="footer-logo">
-                    <div class="logo-mark"><img height="32" width="32" src="web/logo.png" alt="AppCore logo"></div>
+                    <div class="logo-mark"><img height="32" width="32" src="/logo.png" alt="AppCore logo"></div>
                     <span class="logo-name">AppCore</span>
                 </div>
-                <p>The ASO platform for mobile teams. Grow organic downloads on the App Store and Google Play. Part of the Fringelo ecosystem.</p>
+                <p>The ASO platform for mobile teams. Grow organic downloads on the App Store and Google Play. Part of
+                    the Fringelo ecosystem.</p>
             </div>
             <div class="footer-column">
                 <h4>Product</h4>
                 <ul>
-                    <li><a href="features.html">Features</a></li>
-                    <li><a href="pricing.html">Pricing</a></li>
-                    <li><a href="changelog.html">Changelog</a></li>
-                    <li><a href="status.html">Status</a></li>
+                    <li><a href="features">Features</a></li>
+                    <li><a href="pricing">Pricing</a></li>
+                    <li><a href="changelog">Changelog</a></li>
+                    <li><a href="status">Status</a></li>
                 </ul>
             </div>
             <div class="footer-column">
                 <h4>Learn</h4>
                 <ul>
                     <li><a href="https://docs.fringelo.com/">Documentation</a></li>
-                    <li><a href="how-it-works.html">How it works</a></li>
-                    <li><a href="blog.html">Blog</a></li>
+                    <li><a href="how-it-works">How it works</a></li>
+                    <li><a href="blog">Blog</a></li>
                     <li><a href="mailto:hello@fringelo.com">Help Center</a></li>
                 </ul>
             </div>
@@ -674,6 +1006,16 @@
             document.getElementById('pro-price').innerHTML = '<sup>€</sup>39';
             document.getElementById('pro-period').textContent = 'per app / month, billed annually';
         }
+
+        window.addEventListener('scroll', () => {
+            const nav = document.getElementById('nav');
+            if (window.scrollY > 0) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
     </script>
 </body>
+
 </html>
