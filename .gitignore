@@ -11,3 +11,4 @@ AppCore copy 2.html
 Fringelo.html
 screenshots/*
 docs/*
+src/scripts/trigger-analytics-snapshot.ts

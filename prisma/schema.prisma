@@ -88,6 +88,8 @@ model App {
 
   // Per-app Apple Analytics ONGOING request ID (persisted across syncs)
   analyticsRequestId String?
+  // ONE_TIME_SNAPSHOT request ID – polled until all historical data is fetched
+  analyticsSnapshotRequestId String?
 
   // GitHub repo link
   githubRepoOwner    String?   // e.g. "octocat"

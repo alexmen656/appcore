@@ -170,51 +170,27 @@ export async function fetchSalesReports(
   return storedDays;
 }
 
-export async function fetchEngagementReport(
+/**
+ * Fetch and store all APP_STORE_ENGAGEMENT report data from a single analytics
+ * report request (works for both ONGOING and ONE_TIME_SNAPSHOT requests).
+ *
+ * The "App Store Discovery and Engagement" report is an event-log format:
+ *   Date | Event | Page Type | Source Type | Territory | Counts | Unique Counts
+ * "Impressions" = rows where Event == "Impression", summed via Counts.
+ * "Page views"  = rows where Event == "Page view",  summed via Counts.
+ */
+async function processAnalyticsRequest(
   settings: EffectiveSettings,
-  ascAppId: string,
   bundleId: string,
-  requestId: string | null,
-  daysBack = 60,
-): Promise<{ rows: number; requestId: string | null }> {
-  if (!ascAppId) {
-    logger.warn("ASC App ID not configured – skipping engagement report fetch");
-    return { rows: 0, requestId: null };
-  }
-
+  requestId: string,
+  daysBack: number,
+): Promise<number> {
   const headers = authHeaders(settings);
   const BASE = "https://api.appstoreconnect.apple.com/v1";
+  const sinceCutoff = new Date();
+  sinceCutoff.setDate(sinceCutoff.getDate() - daysBack);
 
-  if (!requestId) {
-    try {
-      const createResp = await axios.post(
-        `${BASE}/analyticsReportRequests`,
-        {
-          data: {
-            type: "analyticsReportRequests",
-            attributes: { accessType: "ONGOING" },
-            relationships: {
-              app: { data: { type: "apps", id: ascAppId } },
-            },
-          },
-        },
-        { headers },
-      );
-      requestId = createResp.data?.data?.id ?? null;
-      if (!requestId) throw new Error("No request ID in create response");
-      logger.info(
-        `Created ONGOING analytics report request ${requestId} for ${bundleId} – data will appear in the next sync.`,
-      );
-
-      return { rows: 0, requestId };
-    } catch (err: any) {
-      logger.warn(
-        `Creating analytics report request failed: ${err?.response?.data ? JSON.stringify(err.response.data) : (err?.message ?? err)}`,
-      );
-      return { rows: 0, requestId: null };
-    }
-  }
-
+  // --- 1. List reports for this request, keep only APP_STORE_ENGAGEMENT ---
   let reportIds: string[] = [];
   try {
     const reportsResp = await axios.get(
@@ -223,39 +199,32 @@ export async function fetchEngagementReport(
     );
     const reports: any[] = reportsResp.data?.data ?? [];
     logger.debug(
-      `Analytics request ${requestId}: ${reports.length} report(s) – ${reports.map((r) => r.attributes?.reportType).join(", ")}`,
+      `Analytics request ${requestId}: ${reports.length} report(s) – categories: ${reports.map((r) => r.attributes?.category).join(", ")}`,
     );
 
-    const engagementTypes = new Set([
-      "APP_STORE_ENGAGEMENT",
-      "APP_STORE_DISCOVERY_AND_FUNNEL",
-      "APP_STORE_INSTALLATION_AND_DELETION",
-    ]);
-
-    const relevant = reports.filter((r: any) =>
-      engagementTypes.has(r.attributes?.reportType ?? ""),
+    // Filter by the correct attribute: `category` (not `reportType`)
+    const relevant = reports.filter(
+      (r: any) => r.attributes?.category === "APP_STORE_ENGAGEMENT",
     );
+    reportIds = relevant.map((r: any) => r.id).filter(Boolean);
 
-    const pool = relevant.length > 0 ? relevant : reports;
-    reportIds = pool.map((r: any) => r.id).filter(Boolean);
     if (reportIds.length === 0) {
       logger.info(
-        `No engagement reports available yet for request ${requestId} (${bundleId}).`,
+        `No APP_STORE_ENGAGEMENT reports available yet for request ${requestId} (${bundleId}).`,
       );
-      return { rows: 0, requestId };
+      return 0;
     }
   } catch (err: any) {
     logger.warn(
       `Listing reports for request ${requestId}: ${err?.response?.data ? JSON.stringify(err.response.data) : (err?.message ?? err)}`,
     );
-    return { rows: 0, requestId };
+    return 0;
   }
 
-  const sinceCutoff = new Date();
-  sinceCutoff.setDate(sinceCutoff.getDate() - daysBack);
   let storedRows = 0;
 
   for (const reportId of reportIds) {
+    // --- 2. List daily instances within the time window ---
     let instances: any[] = [];
     try {
       const instResp = await axios.get(
@@ -278,6 +247,7 @@ export async function fetchEngagementReport(
     }
 
     for (const instance of instances) {
+      // --- 3. Get segment download URLs ---
       let segmentUrls: string[] = [];
       try {
         const segResp = await axios.get(
@@ -301,35 +271,28 @@ export async function fetchEngagementReport(
             .gunzipSync(Buffer.from(dlResp.data))
             .toString("utf-8");
           const rows = raw.includes("\t") ? parseTsv(raw) : parseCsv(raw);
-
           if (rows.length === 0) continue;
 
           logger.debug(
             `Engagement segment columns: ${Object.keys(rows[0]).join(" | ")}`,
           );
 
+          // --- 4. Aggregate by (Date, Territory) using Event-based parsing ---
+          // The Discovery & Engagement report is an event log:
+          //   Event = "Impression"  → add Counts to impressions
+          //   Event = "Page view"   → add Counts to pageViews
+          // There is NO pre-aggregated "Impressions" column in this report.
           const dayCountry: Record<
             string,
             { impressions: number; pageViews: number; sessions: number }
           > = {};
 
           for (const row of rows) {
-            const dateStr = (
-              row["Date"] ??
-              row["date"] ??
-              row["Report Date"] ??
-              ""
-            ).slice(0, 10);
+            const dateStr = (row["Date"] ?? row["date"] ?? "").slice(0, 10);
             if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) continue;
 
             const territory =
-              (
-                row["Territory"] ??
-                row["territory"] ??
-                row["Country Code"] ??
-                row["Region"] ??
-                "WW"
-              )
+              (row["Territory"] ?? row["territory"] ?? "WW")
                 .toUpperCase()
                 .trim() || "WW";
 
@@ -337,33 +300,16 @@ export async function fetchEngagementReport(
             if (!dayCountry[key])
               dayCountry[key] = { impressions: 0, pageViews: 0, sessions: 0 };
 
-            dayCountry[key].impressions +=
-              parseInt(
-                row["Impressions"] ??
-                  row["impressions"] ??
-                  row["Total Impressions"] ??
-                  row["Impressions Unique Devices"] ??
-                  "0",
-                10,
-              ) || 0;
-            dayCountry[key].pageViews +=
-              parseInt(
-                row["Product Page Views"] ??
-                  row["productPageViews"] ??
-                  row["Page Views"] ??
-                  row["Product Page Views Unique Devices"] ??
-                  "0",
-                10,
-              ) || 0;
-            dayCountry[key].sessions +=
-              parseInt(
-                row["Sessions"] ??
-                  row["sessions"] ??
-                  row["Unique Device Sessions"] ??
-                  row["Active Devices"] ??
-                  "0",
-                10,
-              ) || 0;
+            const eventType = (row["Event"] ?? row["event"] ?? "").trim();
+            const counts =
+              parseInt(row["Counts"] ?? row["counts"] ?? "0", 10) || 0;
+
+            if (eventType === "Impression") {
+              dayCountry[key].impressions += counts;
+            } else if (eventType === "Page view") {
+              dayCountry[key].pageViews += counts;
+            }
+            // Sessions live in the APP_USAGE "App Sessions" report, not here.
           }
 
           for (const [key, metrics] of Object.entries(dayCountry)) {
@@ -387,10 +333,196 @@ export async function fetchEngagementReport(
     }
   }
 
-  logger.info(
-    `Engagement report: stored ${storedRows} rows for ${bundleId} (request: ${requestId})`,
+  return storedRows;
+}
+
+export async function fetchEngagementReport(
+  settings: EffectiveSettings,
+  ascAppId: string,
+  bundleId: string,
+  requestId: string | null,
+  snapshotRequestId: string | null,
+  daysBack = 60,
+): Promise<{
+  rows: number;
+  requestId: string | null;
+  snapshotRequestId: string | null;
+}> {
+  if (!ascAppId) {
+    logger.warn("ASC App ID not configured – skipping engagement report fetch");
+    return { rows: 0, requestId: null, snapshotRequestId: null };
+  }
+
+  const headers = authHeaders(settings);
+  const BASE = "https://api.appstoreconnect.apple.com/v1";
+
+  if (!requestId) {
+    // Create ONGOING request (generates data daily going forward).
+    // On 409 the request already exists in ASC – look it up instead.
+    try {
+      const createResp = await axios.post(
+        `${BASE}/analyticsReportRequests`,
+        {
+          data: {
+            type: "analyticsReportRequests",
+            attributes: { accessType: "ONGOING" },
+            relationships: {
+              app: { data: { type: "apps", id: ascAppId } },
+            },
+          },
+        },
+        { headers },
+      );
+      requestId = createResp.data?.data?.id ?? null;
+      if (!requestId) throw new Error("No request ID in create response");
+      logger.info(
+        `Created ONGOING analytics report request ${requestId} for ${bundleId}.`,
+      );
+    } catch (err: any) {
+      const status = err?.response?.status;
+      if (status === 409) {
+        try {
+          const listResp = await axios.get(
+            `${BASE}/apps/${ascAppId}/analyticsReportRequests`,
+            {
+              headers,
+              params: { "filter[accessType]": "ONGOING", limit: 10 },
+            },
+          );
+          const existing = (listResp.data?.data ?? []).find(
+            (r: any) => r.attributes?.accessType === "ONGOING",
+          );
+          requestId = existing?.id ?? null;
+          if (requestId) {
+            logger.info(
+              `Recovered existing ONGOING analytics request ${requestId} for ${bundleId}.`,
+            );
+          } else {
+            logger.warn(
+              `Could not recover existing ONGOING request for ${bundleId}.`,
+            );
+          }
+        } catch (listErr: any) {
+          logger.warn(
+            `Listing existing analytics requests failed: ${listErr?.message ?? listErr}`,
+          );
+        }
+      } else {
+        logger.warn(
+          `Creating ONGOING analytics report request failed: ${err?.response?.data ? JSON.stringify(err.response.data) : (err?.message ?? err)}`,
+        );
+      }
+    }
+
+    // Also create a ONE_TIME_SNAPSHOT to immediately backfill historical data
+    // (available back to Jan 1 2024 per Apple docs; limit: 1 per month)
+    let snapshotRows = 0;
+    let resolvedSnapshotId: string | null = null;
+    try {
+      const snapResp = await axios.post(
+        `${BASE}/analyticsReportRequests`,
+        {
+          data: {
+            type: "analyticsReportRequests",
+            attributes: { accessType: "ONE_TIME_SNAPSHOT" },
+            relationships: {
+              app: { data: { type: "apps", id: ascAppId } },
+            },
+          },
+        },
+        { headers },
+      );
+      resolvedSnapshotId = snapResp.data?.data?.id ?? null;
+      if (resolvedSnapshotId) {
+        logger.info(
+          `Created ONE_TIME_SNAPSHOT request ${resolvedSnapshotId} for ${bundleId} – processing historical data now.`,
+        );
+        snapshotRows = await processAnalyticsRequest(
+          settings,
+          bundleId,
+          resolvedSnapshotId,
+          daysBack,
+        );
+        logger.info(
+          `ONE_TIME_SNAPSHOT processed: ${snapshotRows} rows stored for ${bundleId}.`,
+        );
+      }
+    } catch (err: any) {
+      const status = err?.response?.status;
+      if (status === 409) {
+        logger.info(
+          `ONE_TIME_SNAPSHOT already exists for this month (${bundleId}), recovering it.`,
+        );
+        try {
+          const listResp = await axios.get(
+            `${BASE}/apps/${ascAppId}/analyticsReportRequests`,
+            {
+              headers,
+              params: { "filter[accessType]": "ONE_TIME_SNAPSHOT", limit: 10 },
+            },
+          );
+          const existingSnap = (listResp.data?.data ?? []).find(
+            (r: any) => r.attributes?.accessType === "ONE_TIME_SNAPSHOT",
+          );
+          if (existingSnap?.id) {
+            resolvedSnapshotId = existingSnap.id as string;
+            snapshotRows = await processAnalyticsRequest(
+              settings,
+              bundleId,
+              resolvedSnapshotId,
+              daysBack,
+            );
+            logger.info(
+              `Existing ONE_TIME_SNAPSHOT processed: ${snapshotRows} rows for ${bundleId}.`,
+            );
+          }
+        } catch (snapListErr: any) {
+          logger.warn(
+            `Could not process existing snapshot: ${snapListErr?.message ?? snapListErr}`,
+          );
+        }
+      } else {
+        logger.info(
+          `ONE_TIME_SNAPSHOT request failed (non-fatal): ${err?.response?.data ? JSON.stringify(err.response.data) : (err?.message ?? err)}`,
+        );
+      }
+    }
+
+    return {
+      rows: snapshotRows,
+      requestId,
+      snapshotRequestId: resolvedSnapshotId,
+    };
+  }
+
+  // --- Subsequent runs: poll ONGOING + still-pending ONE_TIME_SNAPSHOT ---
+  let storedRows = await processAnalyticsRequest(
+    settings,
+    bundleId,
+    requestId,
+    daysBack,
   );
-  return { rows: storedRows, requestId };
+
+  // Continue polling the snapshot request until all historical data is fetched
+  if (snapshotRequestId) {
+    const snapRows = await processAnalyticsRequest(
+      settings,
+      bundleId,
+      snapshotRequestId,
+      daysBack,
+    );
+    storedRows += snapRows;
+    if (snapRows > 0) {
+      logger.info(
+        `ONE_TIME_SNAPSHOT catch-up: ${snapRows} rows for ${bundleId} (snapshot: ${snapshotRequestId})`,
+      );
+    }
+  }
+
+  logger.info(
+    `Engagement report: stored ${storedRows} rows for ${bundleId} (ongoing: ${requestId})`,
+  );
+  return { rows: storedRows, requestId, snapshotRequestId };
 }
 
 export async function fetchReviews(
@@ -492,26 +624,39 @@ export async function syncAllAnalytics(
       try {
         const appRecord = await prisma.app.findUnique({
           where: { bundleId },
-          select: { analyticsRequestId: true },
+          select: {
+            analyticsRequestId: true,
+            analyticsSnapshotRequestId: true,
+          },
         });
         const currentRequestId = appRecord?.analyticsRequestId ?? null;
+        const currentSnapshotId = appRecord?.analyticsSnapshotRequestId ?? null;
 
         const result = await fetchEngagementReport(
           settings,
           ascAppId,
           bundleId,
           currentRequestId,
+          currentSnapshotId,
           60,
         );
         engagementRows = result.rows;
 
+        // Persist any new/recovered IDs
+        const updates: Record<string, string> = {};
         if (result.requestId && result.requestId !== currentRequestId) {
-          await prisma.app.update({
-            where: { bundleId },
-            data: { analyticsRequestId: result.requestId },
-          });
+          updates.analyticsRequestId = result.requestId;
+        }
+        if (
+          result.snapshotRequestId &&
+          result.snapshotRequestId !== currentSnapshotId
+        ) {
+          updates.analyticsSnapshotRequestId = result.snapshotRequestId;
+        }
+        if (Object.keys(updates).length > 0) {
+          await prisma.app.update({ where: { bundleId }, data: updates });
           logger.info(
-            `Stored analytics request ID ${result.requestId} for app ${bundleId}`,
+            `Stored analytics IDs for ${bundleId}: ${JSON.stringify(updates)}`,
           );
         }
       } catch (err: any) {
