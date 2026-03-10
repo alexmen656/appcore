@@ -57,6 +57,7 @@ async function runScreenshotGenerationViaWorker(
       branch: job.branch ?? undefined,
       appName: job.app.name,
       bundleId: job.app.bundleId,
+      buildBinary: false,
     });
 
     logs.push(...result.logs);

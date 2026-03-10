@@ -98,6 +98,12 @@ model App {
   githubWebhookId    BigInt?   // GitHub webhook ID for cleanup
   githubWebhookSecret String?  // random HMAC secret per app
 
+  // iOS code signing (base64-encoded, stored per app)
+  signingCertP12        String?  // base64 .p12 certificate
+  signingCertPassword   String?  // password for the .p12
+  signingProvisioningProfile String?  // base64 .mobileprovision
+  signingTeamId         String?  // Apple Team ID (e.g. "ABC123XYZ")
+
   // Tracking
   snapshots     AppSnapshot[]
   rankings      KeywordRanking[]

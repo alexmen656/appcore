@@ -15,6 +15,7 @@ import {
   type GitHubWebhookPayload,
 } from "../../services/github";
 import { runScreenshotGeneration } from "../../jobs/defs/generate-screenshots";
+import { runBuildJob } from "../../jobs/defs/build-binary";
 import { frameWithFastlane } from "../../services/frame-screenshots";
 
 export const githubRouter = Router();
@@ -297,12 +298,28 @@ githubRouter.post("/webhook", async (req: Request, res: Response) => {
       },
     });
 
-    // Fire and forget — run screenshot generation in background
+    const settings = await prisma.userSettings.findFirst({
+      where: { githubAccessToken: { not: null } },
+    });
+    const repoUrl = `https://github.com/${repoFullName}.git`;
+
     runScreenshotGeneration(job.id).catch((err) =>
       logger.error(
         `Screenshot generation failed for job ${job.id}: ${err.message}`,
       ),
     );
+
+    if (settings?.githubAccessToken) {
+      runBuildJob(app.id, {
+        repoUrl,
+        accessToken: settings.githubAccessToken,
+        branch,
+        appName: app.name,
+        bundleId: app.bundleId,
+      }).catch((err) =>
+        logger.error(`Binary build failed for app ${app.id}: ${err.message}`),
+      );
+    }
 
     res.json({ ok: true, jobId: job.id });
   } catch (err: any) {
@@ -311,7 +328,6 @@ githubRouter.post("/webhook", async (req: Request, res: Response) => {
   }
 });
 
-// ─── Frame screenshots from a completed job ──────────────────────────────────
 // POST /api/github/screenshots/frame/:jobId
 githubRouter.post(
   "/screenshots/frame/:jobId",
@@ -349,8 +365,6 @@ githubRouter.post(
         return;
       }
 
-      // Frame each device/locale subfolder separately so frameit detects the
-      // correct device frame from the screenshot filename.
       const subDirs = fs
         .readdirSync(rawDir, { withFileTypes: true })
         .filter((e) => e.isDirectory() && e.name !== "framed")
@@ -363,7 +377,7 @@ githubRouter.post(
 
       for (const srcDir of sourceDirs) {
         const rel = path.relative(rawDir, srcDir);
-        const locale = path.basename(srcDir); // e.g. "de-DE" or "." for flat
+        const locale = path.basename(srcDir);
         const outDir = path.join(framedDir, rel === "." ? "" : rel);
         const outputPaths = await frameWithFastlane(srcDir, outDir, {
           subtitle,
@@ -399,7 +413,6 @@ githubRouter.post(
   },
 );
 
-// ─── Local test: frame screenshots from an arbitrary directory ───────────────
 // POST /api/github/screenshots/test-local
 githubRouter.post(
   "/screenshots/test-local",
@@ -451,7 +464,6 @@ githubRouter.post(
   },
 );
 
-// ─── Latest framed screenshots for a version view ────────────────────────────
 // GET /api/github/screenshots/latest-framed/:appId
 githubRouter.get(
   "/screenshots/latest-framed/:appId",
@@ -460,8 +472,6 @@ githubRouter.get(
     try {
       const ascAppId = req.params.appId as string;
 
-      // ascAppId is the ASC numeric ID (e.g. "6745529824").
-      // Resolve it to our internal App record via trackId.
       const internalApp = await prisma.app.findFirst({
         where: { trackId: BigInt(ascAppId) },
         select: { id: true },

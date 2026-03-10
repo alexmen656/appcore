@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../../config";
 import { getEffectiveSettings } from "../../config";
+import { requireAuth } from "../auth";
 
 export const appsRouter = Router();
 
@@ -276,6 +277,70 @@ appsRouter.get("/:id/competitor-detail", async (req, res) => {
       })),
       keywordRankings,
     });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// GET /api/apps/:id/signing
+appsRouter.get("/:id/signing", requireAuth, async (req, res) => {
+  try {
+    const app = await prisma.app.findUnique({
+      where: { id: req.params.id },
+      select: {
+        signingCertP12: true,
+        signingProvisioningProfile: true,
+        signingTeamId: true,
+      },
+    });
+    if (!app) { res.status(404).json({ error: "App not found" }); return; }
+    res.json({
+      hasCert: !!app.signingCertP12,
+      hasProfile: !!app.signingProvisioningProfile,
+      teamId: app.signingTeamId ?? null,
+    });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// PUT /api/apps/:id/signing — upload signing creds (multipart base64 JSON body)
+// Body: { p12Base64, p12Password, profileBase64, teamId? }
+appsRouter.put("/:id/signing", requireAuth, async (req, res) => {
+  try {
+    const { p12Base64, p12Password, profileBase64, teamId } = req.body;
+    if (!p12Base64 || !p12Password || !profileBase64) {
+      res.status(400).json({ error: "p12Base64, p12Password, and profileBase64 are required" });
+      return;
+    }
+    await prisma.app.update({
+      where: { id: req.params.id },
+      data: {
+        signingCertP12: p12Base64,
+        signingCertPassword: p12Password,
+        signingProvisioningProfile: profileBase64,
+        signingTeamId: teamId ?? null,
+      },
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// DELETE /api/apps/:id/signing — remove signing creds
+appsRouter.delete("/:id/signing", requireAuth, async (req, res) => {
+  try {
+    await prisma.app.update({
+      where: { id: req.params.id },
+      data: {
+        signingCertP12: null,
+        signingCertPassword: null,
+        signingProvisioningProfile: null,
+        signingTeamId: null,
+      },
+    });
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }

@@ -63,6 +63,10 @@ export interface WorkerBuildParams {
   bundleId: string;
   gymScheme?: string;
   exportMethod?: string;
+  signingCertP12?: string;
+  signingCertPassword?: string;
+  signingProvisioningProfile?: string;
+  signingTeamId?: string;
 }
 
 export interface WorkerBuildResult {

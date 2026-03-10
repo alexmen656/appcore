@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useApi, apiPut, getActiveBundleId } from "../hooks/useApi";
 import ScrapingConfigSection from "./comps/settings/ScrapingConfigSection";
 import AsoLocalesSection from "./comps/settings/AsoLocalesSection";
+import SigningSection from "./comps/settings/SigningSection";
 import { SettingsData } from "./comps/settings/types";
 import { RepoLinker } from "./Screenshots";
 import { inputCls, btnPrimary } from "../styles";
@@ -59,7 +60,6 @@ export default function AppSettings({ addToast }: Props) {
         repository link for automatic screenshot generation.
       </p>
 
-      {/* ─── GitHub Repo Link ─────────────────────────────────────────── */}
       {activeApp ? (
         <RepoLinker
           appId={activeApp.id}
@@ -73,7 +73,10 @@ export default function AppSettings({ addToast }: Props) {
         </div>
       )}
 
-      {/* ─── Scraping & ASO Config ────────────────────────────────────── */}
+      {activeApp && (
+        <SigningSection appId={activeApp.id} addToast={addToast} />
+      )}
+
       <form onSubmit={handleSave} className="flex flex-col gap-0">
         <ScrapingConfigSection form={form} inputCls={inputCls} onChange={set} />
         <AsoLocalesSection form={form} inputCls={inputCls} onChange={set} />
