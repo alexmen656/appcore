@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { findFastlane, patchUITestFiles } from "../fastlane-utils";
-import { execAsync, buildWithGym } from "./shared";
+import { execAsync } from "./shared";
 
 export const snapshotRouter = Router();
 
@@ -13,23 +13,12 @@ interface SnapshotRequest {
   branch?: string;
   appName: string;
   bundleId: string;
-  gymScheme?: string;
   exportMethod?: string;
-  buildBinary?: boolean;
 }
 
 snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
   const body = req.body as SnapshotRequest;
-  const {
-    repoUrl,
-    accessToken,
-    branch,
-    appName,
-    bundleId,
-    gymScheme,
-    exportMethod = "app-store",
-    buildBinary = true,
-  } = body;
+  const { repoUrl, accessToken, branch, appName, bundleId } = body;
 
   if (!repoUrl || !accessToken) {
     res.status(400).json({ error: "Missing required fields" });
@@ -192,29 +181,6 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
       }
     }
 
-    let ipaBuilt = false;
-    let ipaPath: string | undefined;
-
-    if (buildBinary) {
-      try {
-        ipaPath = await buildWithGym(
-          tmpDir,
-          appName,
-          bundleId,
-          gymScheme,
-          exportMethod,
-          fastlanePath,
-          logs,
-        );
-        ipaBuilt = true;
-        logs.push("Binary build succeeded");
-      } catch (gymErr: any) {
-        logs.push(`Binary build failed (non-fatal): ${gymErr.message}`);
-      }
-    } else {
-      logs.push("Binary build skipped (buildBinary=false)");
-    }
-
     res.json({
       ok: true,
       logs,
@@ -222,12 +188,10 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
       screenshots,
       descriptions,
       config,
-      ipaBuilt,
-      ipaPath,
     });
   } catch (err: any) {
     errors.push(err.message);
-    res.json({ ok: false, logs, errors, screenshots: {}, ipaBuilt: false });
+    res.json({ ok: false, logs, errors, screenshots: {} });
   } finally {
     try {
       fs.rmSync(tmpDir, { recursive: true, force: true });

@@ -98,7 +98,7 @@ frameitRouter.post("/frameit", async (req: Request, res: Response) => {
     await sharp(Buffer.from(svg)).jpeg({ quality: 95 }).toFile(bgPath);
 
     fs.copyFileSync(
-      "ArialRoundedBold.ttf",
+      path.join(__dirname, "ArialRoundedBold.ttf"),
       path.join(tmpDir, "ArialRoundedBold.ttf"),
     );
 

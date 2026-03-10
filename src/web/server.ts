@@ -46,7 +46,7 @@ app.use("/api/push", requireAuth, pushRouter);
 app.use("/api/autonomous", requireAuth, autonomousRouter);
 app.post("/mcp", mcpAuth, createMcpHandler());
 
-const screenshotsDir = path.join(process.cwd(), "landing_page/screenshots");
+const screenshotsDir = path.join(process.cwd(), "screenshots");
 app.use("/screenshots", express.static(screenshotsDir));
 
 const landingPage = path.join(process.cwd(), "landing_page/AppCore.html");
@@ -91,7 +91,6 @@ app.listen(PORT, () => {
   scheduler.start();
   logger.info("Background scheduler started automatically");
 
-  // Start Autonomous ASO cron schedules
   initASOScheduler();
   logger.info("Autonomous ASO scheduler started");
 

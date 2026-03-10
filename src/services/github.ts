@@ -33,8 +33,6 @@ export interface GitHubWebhookPayload {
   };
 }
 
-// ─── OAuth helpers ────────────────────────────────────────────────────────────
-
 const GITHUB_AUTHORIZE_URL = "https://github.com/login/oauth/authorize";
 const GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token";
 const GITHUB_API = "https://api.github.com";
@@ -76,8 +74,6 @@ export async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
   return data;
 }
 
-// ─── Repo operations ──────────────────────────────────────────────────────────
-
 export async function listUserRepos(
   accessToken: string,
 ): Promise<GitHubRepo[]> {
@@ -94,8 +90,6 @@ export async function listUserRepos(
   }
   return repos;
 }
-
-// ─── Webhook management ──────────────────────────────────────────────────────
 
 export async function createWebhook(
   accessToken: string,
@@ -144,8 +138,6 @@ export async function deleteWebhook(
   }
 }
 
-// ─── Webhook signature verification ─────────────────────────────────────────
-
 export function verifyWebhookSignature(
   payload: string | Buffer,
   signature: string,
@@ -156,8 +148,6 @@ export function verifyWebhookSignature(
     crypto.createHmac("sha256", secret).update(payload).digest("hex");
   return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
 }
-
-// ─── Link / unlink a repo to an app ─────────────────────────────────────────
 
 export async function linkRepoToApp(
   userId: string,
@@ -171,7 +161,6 @@ export async function linkRepoToApp(
   const app = await prisma.app.findUnique({ where: { id: appId } });
   if (!app) throw new Error("App not found");
 
-  // Remove old webhook if any
   if (app.githubRepoFullName && app.githubWebhookId) {
     await deleteWebhook(
       settings.githubAccessToken,
@@ -235,8 +224,6 @@ export async function unlinkRepoFromApp(
 
   logger.info(`Unlinked repo from app ${app.bundleId}`);
 }
-
-// ─── Clone a repo ────────────────────────────────────────────────────────────
 
 export async function cloneRepo(
   accessToken: string,

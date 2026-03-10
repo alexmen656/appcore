@@ -159,6 +159,7 @@ class FastlaneWorkerClient {
     logger.info("[WorkerClient] Sending frameit task to worker...");
     const res = await this.getClient().post("/worker/frameit", params, {
       timeout: 5 * 60 * 1000,
+      validateStatus: () => true,
     });
     return res.data;
   }

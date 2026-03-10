@@ -25,8 +25,8 @@ app.listen(PORT, () => {
   console.log(`     GET  /health           - Health check (no auth)`);
   console.log(`     GET  /worker/health    - Detailed health (auth required)`);
   console.log(`     POST /worker/deliver   - Run fastlane deliver`);
-  console.log(`     POST /worker/snapshot  - Run fastlane snapshot + gym build`);
-  console.log(`     POST /worker/build     - Clone repo + build IPA with gym`);
+  console.log(`     POST /worker/snapshot  - Run fastlane snapshot`);
+  console.log(`     POST /worker/build     - Build IPA with gym`);
   console.log(`     POST /worker/frameit   - Run fastlane frameit`);
 
   if (!process.env.FASTLANE_WORKER_SECRET) {
