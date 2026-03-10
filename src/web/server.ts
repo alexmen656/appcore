@@ -46,31 +46,34 @@ app.use("/api/push", requireAuth, pushRouter);
 app.use("/api/autonomous", requireAuth, autonomousRouter);
 app.post("/mcp", mcpAuth, createMcpHandler());
 
-const screenshotsDir = path.join(process.cwd(), "screenshots");
+const screenshotsDir = path.join(process.cwd(), "landing_page/screenshots");
 app.use("/screenshots", express.static(screenshotsDir));
 
-const landingPage = path.join(process.cwd(), "AppCore.html");
+const landingPage = path.join(process.cwd(), "landing_page/AppCore.html");
 app.get("/", (_req, res) => res.sendFile(landingPage));
 
-const HowItWorksPage = path.join(process.cwd(), "how-it-works.html");
+const HowItWorksPage = path.join(
+  process.cwd(),
+  "landing_page/how-it-works.html",
+);
 app.get("/how-it-works", (_req, res) => res.sendFile(HowItWorksPage));
 
-const featuresPage = path.join(process.cwd(), "features.html");
+const featuresPage = path.join(process.cwd(), "landing_page/features.html");
 app.get("/features", (_req, res) => res.sendFile(featuresPage));
 
-const changelogPage = path.join(process.cwd(), "changelog.html");
+const changelogPage = path.join(process.cwd(), "landing_page/changelog.html");
 app.get("/changelog", (_req, res) => res.sendFile(changelogPage));
 
-const blogPage = path.join(process.cwd(), "blog.html");
+const blogPage = path.join(process.cwd(), "landing_page/blog.html");
 app.get("/blog", (_req, res) => res.sendFile(blogPage));
 
-const pricingPage = path.join(process.cwd(), "pricing.html");
+const pricingPage = path.join(process.cwd(), "landing_page/pricing.html");
 app.get("/pricing", (_req, res) => res.sendFile(pricingPage));
 
-const statusPage = path.join(process.cwd(), "status.html");
+const statusPage = path.join(process.cwd(), "landing_page/status.html");
 app.get("/status", (_req, res) => res.sendFile(statusPage));
 
-const screenshot = path.join(process.cwd(), "screenshot.png");
+const screenshot = path.join(process.cwd(), "landing_page/screenshot.png");
 app.get("/screenshot.png", (_req, res) => res.sendFile(screenshot));
 
 const logo = path.join(process.cwd(), "logo.png");
