@@ -1,6 +1,6 @@
 import express from "express";
 import { workerAuth } from "./auth";
-import { workerRouter } from "./routes";
+import { workerRouter } from "./routes/index";
 
 const app = express();
 const PORT = process.env.FASTLANE_WORKER_PORT ?? 3200;

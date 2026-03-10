@@ -1,0 +1,193 @@
+import { Router, Request, Response } from "express";
+import { spawn } from "child_process";
+import fs from "fs";
+import path from "path";
+import os from "os";
+import { findFastlane } from "../fastlane-utils";
+
+export const deliverRouter = Router();
+
+interface DeliverRequest {
+  locales: Record<
+    string,
+    {
+      name: string;
+      subtitle: string;
+      keywords: string;
+      description: string;
+      whatsNew: string;
+      promotionalText: string;
+      supportUrl: string;
+      marketingUrl: string;
+    }
+  >;
+  apiKey: {
+    key_id: string;
+    issuer_id: string;
+    key: string;
+    in_house: boolean;
+  };
+  bundleId: string;
+  action: "metadata" | "submit_for_review";
+  copyright?: string;
+  screenshots?: Record<string, Array<{ filename: string; data: string }>>;
+}
+
+deliverRouter.post("/deliver", async (req: Request, res: Response) => {
+  const body = req.body as DeliverRequest;
+  const { locales, apiKey, bundleId, action, copyright, screenshots } = body;
+
+  if (!locales || !apiKey || !bundleId || !action) {
+    res.status(400).json({ error: "Missing required fields" });
+    return;
+  }
+
+  const tmpDir = path.join(os.tmpdir(), `worker-deliver-${Date.now()}`);
+  const metadataRoot = path.join(tmpDir, "metadata");
+  const logs: string[] = [];
+  const errors: string[] = [];
+
+  try {
+    logs.push("Writing metadata files...");
+    for (const [locale, data] of Object.entries(locales)) {
+      const localeDir = path.join(metadataRoot, locale);
+      fs.mkdirSync(localeDir, { recursive: true });
+
+      fs.writeFileSync(path.join(localeDir, "name.txt"), data.name);
+      fs.writeFileSync(path.join(localeDir, "subtitle.txt"), data.subtitle);
+      fs.writeFileSync(path.join(localeDir, "keywords.txt"), data.keywords);
+      fs.writeFileSync(
+        path.join(localeDir, "description.txt"),
+        data.description,
+      );
+      fs.writeFileSync(
+        path.join(localeDir, "release_notes.txt"),
+        data.whatsNew,
+      );
+      fs.writeFileSync(
+        path.join(localeDir, "promotional_text.txt"),
+        data.promotionalText,
+      );
+      fs.writeFileSync(
+        path.join(localeDir, "support_url.txt"),
+        data.supportUrl,
+      );
+      fs.writeFileSync(
+        path.join(localeDir, "marketing_url.txt"),
+        data.marketingUrl,
+      );
+    }
+    fs.writeFileSync(
+      path.join(metadataRoot, "copyright.txt"),
+      copyright ?? `© ${new Date().getFullYear()} Fringelo Group`,
+    );
+    logs.push(`Metadata written for ${Object.keys(locales).length} locale(s)`);
+
+    const screenshotsRoot = path.join(tmpDir, "screenshots");
+    const hasScreenshots = screenshots && Object.keys(screenshots).length > 0;
+    if (hasScreenshots) {
+      let totalScreenshots = 0;
+      for (const [locale, images] of Object.entries(screenshots!)) {
+        const localeDir = path.join(screenshotsRoot, locale);
+        fs.mkdirSync(localeDir, { recursive: true });
+        for (const img of images) {
+          fs.writeFileSync(
+            path.join(localeDir, img.filename),
+            Buffer.from(img.data, "base64"),
+          );
+          totalScreenshots++;
+        }
+      }
+      logs.push(
+        `Screenshots written: ${totalScreenshots} image(s) across ${Object.keys(screenshots!).length} locale(s)`,
+      );
+    }
+
+    const apiKeyPath = path.join(tmpDir, "api_key.json");
+    fs.writeFileSync(apiKeyPath, JSON.stringify(apiKey, null, 2));
+    logs.push("API key file written");
+
+    const fastlanePath = await findFastlane();
+    logs.push(`Using fastlane at: ${fastlanePath}`);
+
+    const args = [
+      "--api_key_path",
+      apiKeyPath,
+      "--metadata_path",
+      metadataRoot,
+      "--app_identifier",
+      bundleId,
+      "--skip_binary_upload",
+      "--force",
+      "--precheck_include_in_app_purchases",
+      "false",
+    ];
+
+    if (hasScreenshots) {
+      args.push("--screenshots_path", screenshotsRoot);
+    } else {
+      args.push("--skip_screenshots");
+    }
+
+    if (action === "metadata") {
+      args.push("--skip_app_version_update");
+      args.push("--submit_for_review", "false");
+    } else if (action === "submit_for_review") {
+      args.push("--submit_for_review");
+    }
+
+    logs.push(
+      `Running: fastlane deliver (screenshots: ${hasScreenshots ? "yes" : "skipped"})`,
+    );
+
+    await new Promise<void>((resolve, reject) => {
+      const parts = fastlanePath.split(" ");
+      const cmd = parts[0];
+      const cmdArgs = [...parts.slice(1), "deliver", ...args];
+
+      const proc = spawn(cmd, cmdArgs, {
+        cwd: tmpDir,
+        env: { ...process.env, FASTLANE_DISABLE_COLORS: "1" },
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+
+      proc.stdout?.on("data", (data: Buffer) => {
+        const line = data.toString().trim();
+        if (line) logs.push(line);
+      });
+
+      proc.stderr?.on("data", (data: Buffer) => {
+        const line = data.toString().trim();
+        if (line) logs.push(`[stderr] ${line}`);
+      });
+
+      proc.on("close", (code) => {
+        if (code === 0) {
+          logs.push("Fastlane deliver completed successfully.");
+          resolve();
+        } else {
+          const errMsg = `Fastlane deliver exited with code ${code}`;
+          errors.push(errMsg);
+          logs.push(errMsg);
+          reject(new Error(errMsg));
+        }
+      });
+
+      proc.on("error", (err) => {
+        errors.push(err.message);
+        reject(err);
+      });
+    });
+
+    res.json({ ok: true, logs, errors });
+  } catch (err: any) {
+    errors.push(err.message);
+    res.json({ ok: false, logs, errors });
+  } finally {
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch {
+      // ignore
+    }
+  }
+});
