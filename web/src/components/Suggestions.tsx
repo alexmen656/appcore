@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useApi, apiPost } from "../hooks/useApi";
+import { useApi, apiPost, getActiveBundleId } from "../hooks/useApi";
 import FilterBar from "./comps/suggestions/FilterBar";
 import LocalePills from "./comps/suggestions/LocalePills";
 import SuggestionCard, { Suggestion } from "./comps/suggestions/SuggestionCard";
@@ -27,6 +27,22 @@ export default function Suggestions({ addToast }: Props) {
   );
   const [activeLocale, setActiveLocale] = useState<string | null>(null);
   const [acting, setActing] = useState<string | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+
+  const runAnalyze = async () => {
+    setAnalyzing(true);
+    try {
+      const res = await apiPost("/actions/analyze", {
+        bundleId: getActiveBundleId(),
+      });
+      addToast(res.message || "AI analysis started", "success");
+      setTimeout(refetch, 5000);
+    } catch (e: any) {
+      addToast(e.message, "error");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   if (loading)
     return (
@@ -75,9 +91,18 @@ export default function Suggestions({ addToast }: Props) {
 
   return (
     <div>
-      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
-        ASO Suggestions
-      </h1>
+      <div className="flex items-start justify-between mb-1">
+        <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0]">
+          ASO Suggestions
+        </h1>
+        <button
+          onClick={runAnalyze}
+          disabled={analyzing}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {analyzing ? <><div className="spinner" /> Analyzing…</> : "Run AI Analysis"}
+        </button>
+      </div>
       <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">
         AI-generated optimization suggestions across locales
       </p>

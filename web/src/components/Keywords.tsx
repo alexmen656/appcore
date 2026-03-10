@@ -27,6 +27,22 @@ export default function Keywords({ addToast }: Props) {
   const [selectedKeyword, setSelectedKeyword] = useState<Keyword | null>(null);
   const [history, setHistory] = useState<HistoryData | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [running, setRunning] = useState<string | null>(null);
+
+  const triggerAction = async (endpoint: string, label: string) => {
+    setRunning(endpoint);
+    try {
+      const res = await apiPost(`/actions/${endpoint}`, {
+        bundleId: getActiveBundleId(),
+      });
+      addToast(res.message || `${label} started`, "success");
+      setTimeout(refetch, 2000);
+    } catch (e: any) {
+      addToast(e.message, "error");
+    } finally {
+      setRunning(null);
+    }
+  };
 
   if (loading)
     return (
@@ -101,9 +117,27 @@ export default function Keywords({ addToast }: Props) {
 
   return (
     <div>
-      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
-        Keywords
-      </h1>
+      <div className="flex items-start justify-between mb-1">
+        <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0]">
+          Keywords
+        </h1>
+        <div className="flex gap-2">
+          <button
+            onClick={() => triggerAction("track-keywords", "Track")}
+            disabled={!!running}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-[#111827] dark:text-[#e8eaf0] hover:border-[#ea0e2b] hover:text-[#ea0e2b] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {running === "track-keywords" ? <><div className="spinner" /> Tracking…</> : "Track Rankings"}
+          </button>
+          <button
+            onClick={() => triggerAction("discover-keywords", "Discover")}
+            disabled={!!running}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {running === "discover-keywords" ? <><div className="spinner" /> Discovering…</> : "Discover Keywords"}
+          </button>
+        </div>
+      </div>
       <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">
         Track keyword rankings and discover new opportunities
       </p>
