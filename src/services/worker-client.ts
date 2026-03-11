@@ -42,6 +42,8 @@ export interface WorkerSnapshotParams {
   gymScheme?: string;
   exportMethod?: string;
   buildBinary?: boolean;
+  devices?: string[];
+  languages?: string[];
 }
 
 export interface WorkerSnapshotResult {
