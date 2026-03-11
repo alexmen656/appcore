@@ -150,7 +150,7 @@ export class AppStoreConnectClient {
       `/appInfos/${appInfoId}/appInfoLocalizations`,
       {
         params: {
-          "fields[appInfoLocalizations]": "locale,name,subtitle",
+          "fields[appInfoLocalizations]": "locale,name,subtitle,privacyPolicyUrl",
         },
       },
     );
@@ -204,7 +204,7 @@ export class AppStoreConnectClient {
 
   async updateAppInfoLocalization(
     localizationId: string,
-    updates: { name?: string; subtitle?: string },
+    updates: { name?: string; subtitle?: string; privacyPolicyUrl?: string },
   ): Promise<void> {
     await this.client.patch(`/appInfoLocalizations/${localizationId}`, {
       data: {
@@ -223,6 +223,7 @@ export class AppStoreConnectClient {
       keywords?: string;
       whatsNew?: string;
       promotionalText?: string;
+      supportUrl?: string;
     },
   ): Promise<void> {
     await this.client.patch(`/appStoreVersionLocalizations/${localizationId}`, {

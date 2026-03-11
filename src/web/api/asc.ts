@@ -217,6 +217,7 @@ ascRouter.get("/versions", async (req, res) => {
         appInfoLocalizationId: info.id,
         name: info.attributes.name ?? "",
         subtitle: info.attributes.subtitle ?? "",
+        privacyPolicyUrl: info.attributes.privacyPolicyUrl ?? "",
         description: "",
         keywords: "",
         whatsNew: "",
@@ -279,10 +280,10 @@ ascRouter.patch("/versions/metadata", async (req, res) => {
 
     const asc = await ascClientForUser(req.user!.userId);
 
-    if (field === "name" || field === "subtitle") {
+    if (field === "name" || field === "subtitle" || field === "privacyPolicyUrl") {
       if (!appInfoLocalizationId) {
         res.status(400).json({
-          error: "appInfoLocalizationId is required for name/subtitle",
+          error: "appInfoLocalizationId is required for app info localization fields",
         });
         return;
       }
@@ -298,6 +299,7 @@ ascRouter.patch("/versions/metadata", async (req, res) => {
       "keywords",
       "whatsNew",
       "promotionalText",
+      "supportUrl",
     ];
     if (versionFields.includes(field)) {
       if (!versionLocalizationId) {
