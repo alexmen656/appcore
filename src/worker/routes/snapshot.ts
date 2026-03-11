@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { findFastlane, patchUITestFiles } from "../fastlane-utils";
+import { findFastlane } from "../fastlane-utils";
 import { execAsync } from "./shared";
 
 export const snapshotRouter = Router();
@@ -132,9 +132,7 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
       ].join("\n"),
     );
 
-    patchUITestFiles(tmpDir, (msg) => logs.push(msg));
-
-    const fastlanePath = await findFastlane();
+const fastlanePath = await findFastlane();
     logs.push(`Using fastlane: ${fastlanePath}\nRunning fastlane snapshot ...`);
 
     try {
