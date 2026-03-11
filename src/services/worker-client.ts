@@ -39,11 +39,8 @@ export interface WorkerSnapshotParams {
   branch?: string;
   appName: string;
   bundleId: string;
-  gymScheme?: string;
   exportMethod?: string;
   buildBinary?: boolean;
-  devices?: string[];
-  languages?: string[];
 }
 
 export interface WorkerSnapshotResult {
