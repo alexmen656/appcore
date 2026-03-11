@@ -11,6 +11,10 @@ interface Props {
 
 const MCP_TOOLS = [
   {
+    name: "list_apps",
+    desc: "Discover all managed apps with bundle IDs and live stats — start here for multi-app workflows",
+  },
+  {
     name: "get_app_info",
     desc: "Current title, subtitle, keywords and description for an app",
   },
@@ -28,7 +32,15 @@ const MCP_TOOLS = [
   },
   {
     name: "get_analytics",
-    desc: "Downloads and revenue summary for a configurable date range",
+    desc: "Downloads, revenue, impressions and page views for a configurable date range",
+  },
+  {
+    name: "get_reviews",
+    desc: "App Store reviews with optional rating and territory filters",
+  },
+  {
+    name: "update_suggestion",
+    desc: "Approve, reject, or mark an ASO suggestion as applied",
   },
   {
     name: "trigger_job",

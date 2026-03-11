@@ -5,7 +5,6 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { z } from "zod";
 import { prisma, logger, getEffectiveSettings } from "../config";
 
-// ─── MCP API Key Auth ─────────────────────────────────────────────────────────
 export async function mcpAuth(req: Request, res: Response, next: NextFunction) {
   const header = req.headers.authorization;
   if (!header?.startsWith("Bearer ")) {
@@ -35,23 +34,68 @@ export async function mcpAuth(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-// ─── MCP Server Factory ───────────────────────────────────────────────────────
 export function createMcpServer(userId: string): McpServer {
   const server = new McpServer({
     name: "AppCore ASO",
     version: "1.0.0",
   });
 
-  // ── Tool: get_app_info ──────────────────────────────────────────────────
+  // @ts-ignore - MCP SDK causes excessively deep type instantiation
+  server.tool(
+    "list_apps",
+    "List all apps managed in AppCore. Returns bundle IDs, names, and key metrics. " +
+      "Always call this first to discover available bundle IDs before using other tools.",
+    {
+      ownOnly: z
+        .boolean()
+        .default(true)
+        .describe(
+          "When true (default) returns only your own apps. Set false to include tracked competitor apps too.",
+        ),
+    },
+    async ({ ownOnly }) => {
+      const apps = await prisma.app.findMany({
+        where: ownOnly ? { isOwnApp: true } : undefined,
+        include: {
+          snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 },
+          _count: { select: { rankings: true, competitors: true } },
+        },
+        orderBy: [{ isOwnApp: "desc" }, { name: "asc" }],
+      });
+
+      const result = apps.map((a) => ({
+        bundleId: a.bundleId,
+        name: a.name,
+        isOwnApp: a.isOwnApp,
+        country: a.country,
+        title: a.currentTitle,
+        subtitle: a.currentSubtitle,
+        rating: a.snapshots[0]?.rating ?? null,
+        ratingsCount: a.snapshots[0]?.ratingsCount ?? null,
+        iconUrl: a.snapshots[0]?.iconUrl ?? null,
+        trackedKeywords: a._count.rankings,
+        competitors: a._count.competitors,
+        lastScraped: a.snapshots[0]?.scrapedAt ?? null,
+      }));
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      };
+    },
+  );
+
   // @ts-ignore - MCP SDK causes excessively deep type instantiation
   server.tool(
     "get_app_info",
-    "Get current ASO metadata (title, subtitle, keywords, description) for an app",
+    "Get current ASO metadata (title, subtitle, keywords, description) for a specific app. " +
+      "Use list_apps first to find available bundle IDs.",
     {
       bundleId: z
         .string()
         .optional()
-        .describe("App bundle ID. Uses the user's default app if omitted."),
+        .describe(
+          "App bundle ID (e.g. 'com.example.myapp'). Falls back to the user's default app if omitted.",
+        ),
     },
     async ({ bundleId }) => {
       const settings = await getEffectiveSettings(userId);
@@ -61,18 +105,22 @@ export function createMcpServer(userId: string): McpServer {
           content: [
             {
               type: "text",
-              text: "No bundleId configured. Pass bundleId as argument.",
+              text: "No bundleId provided and no default configured. Call list_apps to see available apps.",
             },
           ],
         };
       }
       const app = await prisma.app.findUnique({
         where: { bundleId: resolvedBundleId },
+        include: { snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 } },
       });
       if (!app) {
         return {
           content: [
-            { type: "text", text: `App not found: ${resolvedBundleId}` },
+            {
+              type: "text",
+              text: `App not found: ${resolvedBundleId}. Call list_apps to see valid bundle IDs.`,
+            },
           ],
         };
       }
@@ -84,12 +132,16 @@ export function createMcpServer(userId: string): McpServer {
               {
                 bundleId: app.bundleId,
                 name: app.name,
+                isOwnApp: app.isOwnApp,
+                country: app.country,
                 title: app.currentTitle,
                 subtitle: app.currentSubtitle,
                 keywords: app.currentKeywords,
                 description: app.currentDescription,
-                isOwnApp: app.isOwnApp,
-                country: app.country,
+                rating: app.snapshots[0]?.rating ?? null,
+                ratingsCount: app.snapshots[0]?.ratingsCount ?? null,
+                version: app.snapshots[0]?.version ?? null,
+                lastScraped: app.snapshots[0]?.scrapedAt ?? null,
               },
               null,
               2,
@@ -100,15 +152,17 @@ export function createMcpServer(userId: string): McpServer {
     },
   );
 
-  // ── Tool: get_keywords ──────────────────────────────────────────────────
   server.tool(
     "get_keywords",
-    "Get tracked keywords with current rankings and popularity scores for an app",
+    "Get tracked keywords with current App Store rankings, popularity scores, and difficulty for an app. " +
+      "Use list_apps to find the bundleId first.",
     {
       bundleId: z
         .string()
         .optional()
-        .describe("App bundle ID. Uses default if omitted."),
+        .describe(
+          "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted.",
+        ),
       limit: z
         .number()
         .int()
@@ -156,15 +210,17 @@ export function createMcpServer(userId: string): McpServer {
     },
   );
 
-  // ── Tool: get_competitors ───────────────────────────────────────────────
   server.tool(
     "get_competitors",
-    "Get competitor apps list with ratings and relevance scores",
+    "Get competitor apps tracked for an app, including ratings, relevance scores, and latest metadata. " +
+      "Use list_apps to find the bundleId first.",
     {
       bundleId: z
         .string()
         .optional()
-        .describe("App bundle ID. Uses default if omitted."),
+        .describe(
+          "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted.",
+        ),
     },
     async ({ bundleId }) => {
       const settings = await getEffectiveSettings(userId);
@@ -206,16 +262,19 @@ export function createMcpServer(userId: string): McpServer {
     },
   );
 
-  // ── Tool: get_suggestions ───────────────────────────────────────────────
   // @ts-ignore - MCP SDK causes excessively deep type instantiation
   server.tool(
     "get_suggestions",
-    "Get AI-generated ASO suggestions filtered by status (PENDING, APPROVED, APPLIED, REJECTED, EXPIRED)",
+    "Get AI-generated ASO suggestions (title, subtitle, keywords, description) for an app. " +
+      "Filter by status: PENDING (awaiting review), APPROVED (ready to apply), APPLIED, REJECTED, EXPIRED. " +
+      "Use update_suggestion to approve or reject individual suggestions.",
     {
       bundleId: z
         .string()
         .optional()
-        .describe("App bundle ID. Uses default if omitted."),
+        .describe(
+          "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted.",
+        ),
       status: z
         .enum(["PENDING", "APPROVED", "APPLIED", "REJECTED", "EXPIRED"])
         .optional()
@@ -264,22 +323,24 @@ export function createMcpServer(userId: string): McpServer {
     },
   );
 
-  // ── Tool: get_analytics ─────────────────────────────────────────────────
   server.tool(
     "get_analytics",
-    "Get downloads and revenue summary for a configurable date range",
+    "Get downloads, revenue, impressions, and page views summary for an app over a configurable date range. " +
+      "Use list_apps to find available bundle IDs.",
     {
       bundleId: z
         .string()
         .optional()
-        .describe("App bundle ID. Uses default if omitted."),
+        .describe(
+          "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted.",
+        ),
       days: z
         .number()
         .int()
         .min(1)
         .max(365)
         .default(30)
-        .describe("Number of days to look back (default 30)"),
+        .describe("Number of days to look back (default 30, max 365)"),
     },
     async ({ bundleId, days }) => {
       const settings = await getEffectiveSettings(userId);
@@ -294,7 +355,13 @@ export function createMcpServer(userId: string): McpServer {
       const [downloadAgg, reviewAgg] = await Promise.all([
         prisma.appStoreAnalytics.aggregate({
           where: { bundleId: resolvedBundleId, reportDate: { gte: since } },
-          _sum: { downloads: true, proceeds: true, updates: true },
+          _sum: {
+            downloads: true,
+            proceeds: true,
+            updates: true,
+            impressions: true,
+            pageViews: true,
+          },
         }),
         prisma.appReview.aggregate({
           where: { bundleId: resolvedBundleId },
@@ -315,6 +382,8 @@ export function createMcpServer(userId: string): McpServer {
                 totalDownloads: downloadAgg._sum.downloads ?? 0,
                 totalUpdates: downloadAgg._sum.updates ?? 0,
                 totalProceedsUsd: downloadAgg._sum.proceeds ?? 0,
+                totalImpressions: downloadAgg._sum.impressions ?? 0,
+                totalPageViews: downloadAgg._sum.pageViews ?? 0,
                 avgRating: reviewAgg._avg.rating ?? null,
                 totalReviews: reviewAgg._count.id,
               },
@@ -327,11 +396,16 @@ export function createMcpServer(userId: string): McpServer {
     },
   );
 
-  // ── Tool: trigger_job ───────────────────────────────────────────────────
   // @ts-ignore - MCP SDK causes excessively deep type instantiation
   server.tool(
     "trigger_job",
-    "Trigger a background job. Available: scrape, analyze, sync, track-keywords, discover-keywords",
+    "Trigger a background job for an app. Available jobs: " +
+      "'scrape' (fetch latest App Store metadata for app + competitors), " +
+      "'analyze' (run AI analysis and generate new ASO suggestions), " +
+      "'sync' (pull current metadata from App Store Connect), " +
+      "'track-keywords' (update keyword rankings), " +
+      "'discover-keywords' (find new keyword opportunities). " +
+      "Use list_apps to find available bundle IDs.",
     {
       job: z
         .enum([
@@ -345,7 +419,10 @@ export function createMcpServer(userId: string): McpServer {
       bundleId: z
         .string()
         .optional()
-        .describe("App bundle ID. Uses default if omitted."),
+        .describe(
+          "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted. " +
+            "When managing multiple apps always pass bundleId explicitly.",
+        ),
     },
     async ({ job, bundleId }) => {
       const settings = await getEffectiveSettings(userId);
@@ -405,10 +482,152 @@ export function createMcpServer(userId: string): McpServer {
     },
   );
 
+  // @ts-ignore - MCP SDK causes excessively deep type instantiation
+  server.tool(
+    "get_reviews",
+    "Get App Store reviews for an app. Returns rating, title, body, territory, and review date. " +
+      "Use list_apps to find the bundleId first.",
+    {
+      bundleId: z
+        .string()
+        .optional()
+        .describe(
+          "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted.",
+        ),
+      minRating: z
+        .number()
+        .int()
+        .min(1)
+        .max(5)
+        .optional()
+        .describe("Only return reviews at or above this star rating (1-5)."),
+      maxRating: z
+        .number()
+        .int()
+        .min(1)
+        .max(5)
+        .optional()
+        .describe("Only return reviews at or below this star rating (1-5)."),
+      territory: z
+        .string()
+        .optional()
+        .describe(
+          "Filter by territory code, e.g. 'DEU', 'USA'. Returns all territories if omitted.",
+        ),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(200)
+        .default(50)
+        .describe("Max reviews to return (default 50, max 200)"),
+    },
+    async ({ bundleId, minRating, maxRating, territory, limit }) => {
+      const settings = await getEffectiveSettings(userId);
+      const resolvedBundleId = bundleId || settings.ascBundleId;
+      if (!resolvedBundleId) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "No bundleId provided. Call list_apps to see available apps.",
+            },
+          ],
+        };
+      }
+
+      const where: Record<string, any> = { bundleId: resolvedBundleId };
+      if (minRating !== undefined || maxRating !== undefined) {
+        where.rating = {};
+        if (minRating !== undefined) where.rating.gte = minRating;
+        if (maxRating !== undefined) where.rating.lte = maxRating;
+      }
+      if (territory) where.territory = territory;
+
+      const reviews = await prisma.appReview.findMany({
+        where,
+        orderBy: { reviewedAt: "desc" },
+        take: limit,
+      });
+
+      const result = reviews.map((r) => ({
+        id: r.id,
+        rating: r.rating,
+        title: r.title,
+        body: r.body,
+        reviewer: r.reviewerNickname,
+        territory: r.territory,
+        reviewedAt: r.reviewedAt,
+      }));
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      };
+    },
+  );
+
+  // @ts-ignore - MCP SDK causes excessively deep type instantiation
+  server.tool(
+    "update_suggestion",
+    "Update the status of an ASO suggestion. Use this to approve, reject, or mark suggestions as applied. " +
+      "Get suggestion IDs from get_suggestions.",
+    {
+      id: z.string().describe("The suggestion ID returned by get_suggestions."),
+      status: z
+        .enum(["APPROVED", "REJECTED", "APPLIED", "PENDING", "EXPIRED"])
+        .describe("New status to set for the suggestion."),
+      resultNotes: z
+        .string()
+        .optional()
+        .describe(
+          "Optional notes to record (e.g. 'Applied to en-US locale', or reason for rejection).",
+        ),
+    },
+    async ({ id, status, resultNotes }) => {
+      const suggestion = await prisma.aSOSuggestion.findUnique({
+        where: { id },
+      });
+      if (!suggestion) {
+        return {
+          content: [{ type: "text", text: `Suggestion not found: ${id}` }],
+        };
+      }
+
+      const updated = await prisma.aSOSuggestion.update({
+        where: { id },
+        data: {
+          status,
+          ...(resultNotes ? { resultNotes } : {}),
+          ...(status === "APPLIED" ? { appliedAt: new Date() } : {}),
+        },
+      });
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                ok: true,
+                id: updated.id,
+                type: updated.type,
+                locale: updated.locale,
+                status: updated.status,
+                appliedAt: updated.appliedAt,
+                resultNotes: updated.resultNotes,
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    },
+  );
+
   return server;
 }
 
-// ─── Express Handler Factory ──────────────────────────────────────────────────
 export function createMcpHandler() {
   return async (req: Request, res: Response) => {
     const userId = (req as any).mcpUserId as string;
