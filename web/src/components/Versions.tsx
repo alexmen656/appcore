@@ -124,14 +124,22 @@ function getDeviceLabel(url: string): string {
 }
 
 const stateColors: Record<string, string> = {
-  READY_FOR_SALE: "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/40",
-  REPLACED_WITH_NEW_VERSION: "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/40",
-  PREPARE_FOR_SUBMISSION: "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/40",
-  WAITING_FOR_REVIEW: "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900/40",
-  IN_REVIEW: "bg-violet-50 text-violet-700 border-violet-100 dark:bg-violet-900/20 dark:text-violet-400 dark:border-violet-900/40",
-  REJECTED: "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/40",
-  DEVELOPER_REJECTED: "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/40",
-  METADATA_REJECTED: "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/40",
+  READY_FOR_SALE:
+    "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/40",
+  REPLACED_WITH_NEW_VERSION:
+    "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/40",
+  PREPARE_FOR_SUBMISSION:
+    "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/40",
+  WAITING_FOR_REVIEW:
+    "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900/40",
+  IN_REVIEW:
+    "bg-violet-50 text-violet-700 border-violet-100 dark:bg-violet-900/20 dark:text-violet-400 dark:border-violet-900/40",
+  REJECTED:
+    "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/40",
+  DEVELOPER_REJECTED:
+    "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/40",
+  METADATA_REJECTED:
+    "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/40",
 };
 
 function StateBadge({ state }: { state: string }) {
@@ -274,7 +282,9 @@ function ActionButton({
                 <polyline points="8 6 2 12 8 18" />
               </svg>
               Review via API
-              <span className="ml-auto text-[10px] text-[#9ca3af] dark:text-[#5c6478]">Direct</span>
+              <span className="ml-auto text-[10px] text-[#9ca3af] dark:text-[#5c6478]">
+                Direct
+              </span>
             </button>
           </div>
         )}
@@ -551,7 +561,11 @@ function EditableField({
               : ""
           }`}
         >
-          {value || <span className="text-[#c8cdd3] dark:text-[#3a4050] italic">Empty</span>}
+          {value || (
+            <span className="text-[#c8cdd3] dark:text-[#3a4050] italic">
+              Empty
+            </span>
+          )}
         </div>
       )}
     </div>
@@ -663,9 +677,144 @@ function InlineEditField({
               : ""
           }`}
         >
-          {value || <span className="text-[#c8cdd3] dark:text-[#3a4050] italic">Empty</span>}
+          {value || (
+            <span className="text-[#c8cdd3] dark:text-[#3a4050] italic">
+              Empty
+            </span>
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+interface LatestBuild {
+  builtAt: string;
+  originalFilename: string;
+  bundleId: string;
+  exportMethod: string;
+  sizeBytes: number;
+  iconUrl: string | null;
+}
+
+function LatestBuildCard({
+  bundleId,
+  appName,
+}: {
+  bundleId: string;
+  appName: string;
+}) {
+  const { data, loading } = useApi<{ build: LatestBuild | null }>(
+    `/submissions/build-info?bundleId=${encodeURIComponent(bundleId)}`,
+    [bundleId],
+  );
+
+  if (loading || !data?.build) return null;
+  const build = data.build;
+
+  const sizeMb = (build.sizeBytes / 1024 / 1024).toFixed(1);
+  const builtDate = new Date(build.builtAt).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  return (
+    <div className={`${cardCls} mb-5`}>
+      <div className="text-[11px] font-bold uppercase tracking-widest text-[#9ca3af] dark:text-[#5c6478] mb-3">
+        Latest Build
+      </div>
+      <div className="flex items-start gap-4">
+        <div className="shrink-0">
+          {build.iconUrl ? (
+            <img
+              src={build.iconUrl}
+              alt={appName}
+              className="w-14 h-14 rounded-[14px] border border-[#eef0f3] dark:border-[#2a2f3d] shadow-sm object-cover"
+            />
+          ) : (
+            <div className="w-14 h-14 rounded-[14px] bg-[#f3f4f6] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] flex items-center justify-center">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                className="w-6 h-6 text-[#9ca3af]"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="4" />
+                <path d="M8 17l4-8 4 8" />
+                <path d="M9.5 14h5" />
+              </svg>
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <div className="text-[14px] font-semibold text-[#111827] dark:text-[#e8eaf0] leading-tight">
+                {appName}
+              </div>
+              <div className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] font-mono mt-0.5">
+                {build.bundleId}
+              </div>
+            </div>
+            <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-sky-50 text-sky-600 border-sky-100 dark:bg-sky-900/20 dark:text-sky-400 dark:border-sky-900/40 uppercase tracking-wide">
+              {build.exportMethod}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 mt-2.5 flex-wrap">
+            <span className="flex items-center gap-1 text-[12px] text-[#6b7280] dark:text-[#8b93a5]">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-3.5 h-3.5 shrink-0"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+              {sizeMb} MB
+            </span>
+            <span className="flex items-center gap-1 text-[12px] text-[#6b7280] dark:text-[#8b93a5]">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-3.5 h-3.5"
+              >
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              {builtDate}
+            </span>
+            {/*<span className="flex items-center gap-1 text-[12px] text-[#6b7280] dark:text-[#8b93a5] truncate">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-3.5 h-3.5 shrink-0"
+              >
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+              </svg>
+              <span className="truncate">{build.originalFilename}</span>
+            </span>*/}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1130,6 +1279,8 @@ export default function Versions({ addToast }: Props) {
         </div>
       )}
 
+      <LatestBuildCard bundleId={data.bundleId} appName={data.appName} />
+
       {data.appId && (
         <ScreenshotsPanel appId={data.appId} activeLocale={activeLocale} />
       )}
@@ -1206,7 +1357,9 @@ export default function Versions({ addToast }: Props) {
                     <div className="flex items-center gap-2">
                       <span className="text-[13px] text-[#111827] dark:text-[#e8eaf0] px-3.5 py-[9px] border border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#252b38] rounded-xl">
                         {data.ageRating || (
-                          <span className="text-[#c8cdd3] dark:text-[#3a4050] italic">Not set</span>
+                          <span className="text-[#c8cdd3] dark:text-[#3a4050] italic">
+                            Not set
+                          </span>
                         )}
                       </span>
                       <a

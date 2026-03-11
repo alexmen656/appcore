@@ -234,7 +234,9 @@ export async function buildWithGym(
   const buildsDir = path.join(BUILDS_BASE_DIR, bundleId);
   fs.mkdirSync(buildsDir, { recursive: true });
   const destIpa = path.join(buildsDir, "latest.ipa");
+  const destIpa2 = path.join(buildsDir, "history", `${Date.now()}.ipa`);
   fs.copyFileSync(ipaFile, destIpa);
+  fs.copyFileSync(ipaFile, destIpa2);
   const ipaSize = fs.statSync(destIpa).size;
   fs.writeFileSync(
     path.join(buildsDir, "latest.json"),

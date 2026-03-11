@@ -1,12 +1,15 @@
 import { Router } from "express";
+import fs from "fs";
+import path from "path";
+import os from "os";
 import { logger, getEffectiveSettings } from "../../config";
 import { requireAuth } from "../auth";
 import { pushService } from "../../services/push-notification.js";
 
+const BUILDS_BASE_DIR = path.join(os.homedir(), "appcore", "appcore-builds");
+
 export const submissionsRouter = Router();
 submissionsRouter.use(requireAuth);
-
-// ─── Preview: gather current metadata across all locales ──────────────────────
 
 submissionsRouter.get("/preview", async (req, res) => {
   try {
@@ -21,7 +24,9 @@ submissionsRouter.get("/preview", async (req, res) => {
     res.json(preview);
   } catch (err) {
     logger.error("Submission preview failed", err);
-    res.status(500).json({ error: String(err instanceof Error ? err.message : err) });
+    res
+      .status(500)
+      .json({ error: String(err instanceof Error ? err.message : err) });
   }
 });
 
@@ -39,26 +44,38 @@ submissionsRouter.post("/metadata", async (req, res) => {
 
     res.json({
       ok: true,
-      message: "Fastlane metadata submission started. Check status for progress.",
+      message:
+        "Fastlane metadata submission started. Check status for progress.",
     });
 
     fl.submit("metadata", overrides)
       .then(async (result) => {
         if (result.ok) {
-          logger.info(`Fastlane metadata submit completed (job ${result.jobId})`);
+          logger.info(
+            `Fastlane metadata submit completed (job ${result.jobId})`,
+          );
           await pushService.notifySubmissionUpdate(
-            bundleId || "App", "", "METADATA_SUBMITTED"
+            bundleId || "App",
+            "",
+            "METADATA_SUBMITTED",
           );
         } else {
-          logger.error(`Fastlane metadata submit failed (job ${result.jobId})`, result.errors);
+          logger.error(
+            `Fastlane metadata submit failed (job ${result.jobId})`,
+            result.errors,
+          );
           await pushService.notifySubmissionUpdate(
-            bundleId || "App", "", "METADATA_FAILED"
+            bundleId || "App",
+            "",
+            "METADATA_FAILED",
           );
         }
       })
       .catch((err) => logger.error("Fastlane metadata submit error", err));
   } catch (err) {
-    res.status(500).json({ error: String(err instanceof Error ? err.message : err) });
+    res
+      .status(500)
+      .json({ error: String(err instanceof Error ? err.message : err) });
   }
 });
 
@@ -73,7 +90,6 @@ submissionsRouter.post("/review", async (req, res) => {
     const { FastlaneService } = await import("../../services/fastlane");
     const fl = new FastlaneService(effectiveSettings);
 
-    // Try Fastlane first, fall back to API
     res.json({
       ok: true,
       message: "Submit for review started.",
@@ -82,20 +98,31 @@ submissionsRouter.post("/review", async (req, res) => {
     fl.submit("submit_for_review")
       .then(async (result) => {
         if (result.ok) {
-          logger.info(`Fastlane submit-for-review completed (job ${result.jobId})`);
+          logger.info(
+            `Fastlane submit-for-review completed (job ${result.jobId})`,
+          );
           await pushService.notifySubmissionUpdate(
-            bundleId || "App", "", "SUBMITTED_FOR_REVIEW"
+            bundleId || "App",
+            "",
+            "SUBMITTED_FOR_REVIEW",
           );
         } else {
-          logger.error(`Fastlane submit-for-review failed (job ${result.jobId})`, result.errors);
+          logger.error(
+            `Fastlane submit-for-review failed (job ${result.jobId})`,
+            result.errors,
+          );
           await pushService.notifySubmissionUpdate(
-            bundleId || "App", "", "SUBMISSION_FAILED"
+            bundleId || "App",
+            "",
+            "SUBMISSION_FAILED",
           );
         }
       })
       .catch((err) => logger.error("Fastlane submit-for-review error", err));
   } catch (err) {
-    res.status(500).json({ error: String(err instanceof Error ? err.message : err) });
+    res
+      .status(500)
+      .json({ error: String(err instanceof Error ? err.message : err) });
   }
 });
 
@@ -113,7 +140,9 @@ submissionsRouter.post("/review-api", async (req, res) => {
 
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: String(err instanceof Error ? err.message : err) });
+    res
+      .status(500)
+      .json({ error: String(err instanceof Error ? err.message : err) });
   }
 });
 
@@ -121,10 +150,13 @@ submissionsRouter.post("/review-api", async (req, res) => {
 
 submissionsRouter.get("/status", async (_req, res) => {
   try {
-    const { getLatestSubmission, getActiveSubmission } = await import("../../services/fastlane");
+    const { getLatestSubmission, getActiveSubmission } =
+      await import("../../services/fastlane");
     const jobId = _req.query.jobId as string | undefined;
 
-    const submission = jobId ? getActiveSubmission(jobId) : getLatestSubmission();
+    const submission = jobId
+      ? getActiveSubmission(jobId)
+      : getLatestSubmission();
 
     if (!submission) {
       res.json({ active: false, logs: [], errors: [], status: "idle" });
@@ -132,7 +164,8 @@ submissionsRouter.get("/status", async (_req, res) => {
     }
 
     res.json({
-      active: submission.status === "preparing" || submission.status === "running",
+      active:
+        submission.status === "preparing" || submission.status === "running",
       jobId: submission.jobId,
       status: submission.status,
       logs: submission.logs.slice(-100), // last 100 lines
@@ -140,6 +173,50 @@ submissionsRouter.get("/status", async (_req, res) => {
       startedAt: submission.startedAt,
     });
   } catch (err) {
-    res.status(500).json({ error: String(err instanceof Error ? err.message : err) });
+    res
+      .status(500)
+      .json({ error: String(err instanceof Error ? err.message : err) });
+  }
+});
+
+submissionsRouter.get("/build-info", async (req, res) => {
+  try {
+    const settings = await getEffectiveSettings(req.user!.userId);
+    const bundleId = (req.query.bundleId as string) || settings.ascBundleId;
+    if (!bundleId) {
+      res.json({ build: null });
+      return;
+    }
+    const jsonPath = path.join(BUILDS_BASE_DIR, bundleId, "latest.json");
+    if (!fs.existsSync(jsonPath)) {
+      res.json({ build: null });
+      return;
+    }
+    const build = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
+
+    let iconUrl: string | null = null;
+    try {
+      const { default: axios } = await import("axios");
+      const { data } = await axios.get(
+        `https://itunes.apple.com/lookup?bundleId=${encodeURIComponent(bundleId)}&limit=1`,
+        { timeout: 5000 },
+      );
+      const result = data.results?.[0];
+      if (result?.artworkUrl100) {
+        iconUrl = (result.artworkUrl100 as string).replace(
+          "100x100bb",
+          "200x200bb",
+        );
+      }
+    } catch {
+      // icon is optional
+    }
+
+    res.json({ build: { ...build, iconUrl } });
+  } catch (err) {
+    logger.error("build-info failed", err);
+    res
+      .status(500)
+      .json({ error: String(err instanceof Error ? err.message : err) });
   }
 });
