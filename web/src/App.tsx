@@ -703,6 +703,15 @@ const VERSION_STATE_SHORT: Record<string, string> = {
   METADATA_REJECTED: "Meta Rejected",
 };
 
+function suggestNextVersion(versions: VersionSummary[] | null): string {
+  if (!versions || versions.length === 0) return "1.0.0";
+  const latest = versions[0];
+  const parts = latest.versionString.split(".").map(Number);
+  while (parts.length < 3) parts.push(0);
+  parts[parts.length - 1]++;
+  return parts.join(".");
+}
+
 function VersionsSidebarSection({
   navLinkClass,
 }: {
@@ -711,6 +720,13 @@ function VersionsSidebarSection({
   const [expanded, setExpanded] = useState(false);
   const [versions, setVersions] = useState<VersionSummary[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showNewForm, setShowNewForm] = useState(false);
+  const [newVersionStr, setNewVersionStr] = useState("");
+  const [newReleaseType, setNewReleaseType] = useState<
+    "MANUAL" | "AFTER_APPROVAL"
+  >("MANUAL");
+  const [creating, setCreating] = useState(false);
+  const newVersionInputRef = useRef<HTMLInputElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -771,32 +787,137 @@ function VersionsSidebarSection({
     if (next && !versions) load();
   };
 
+  const openNewForm = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setNewVersionStr(suggestNextVersion(versions));
+    setNewReleaseType("MANUAL");
+    setShowNewForm(true);
+    setExpanded(true);
+    setTimeout(() => newVersionInputRef.current?.focus(), 50);
+  };
+
+  const handleCreate = async () => {
+    if (!newVersionStr.trim()) return;
+    setCreating(true);
+    try {
+      const bundleId = getActiveBundleId();
+      const res = await fetch("/api/asc/versions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({
+          bundleId: bundleId ?? undefined,
+          versionString: newVersionStr.trim(),
+          releaseType: newReleaseType,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+      setShowNewForm(false);
+      await load();
+      navigate(`/versions/${json.versionId}`);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const isAnyVersionActive = location.pathname.startsWith("/versions");
 
   return (
     <div>
-      <button
-        onClick={handleToggle}
-        className={`w-full flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-sm font-medium mb-0.5 transition-all [&_svg]:w-[18px] [&_svg]:h-[18px] ${
-          isAnyVersionActive
-            ? "bg-white dark:bg-[#1c2028] text-[#1a1a2e] dark:text-[#e8eaf0] shadow-sm [&>svg:first-child]:opacity-100 [&>svg:first-child]:text-[#ea0e2b]"
-            : "text-[#6b7280] dark:text-[#8b93a5] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] [&>svg:first-child]:opacity-60"
-        }`}
-      >
-        <IconVersions />
-        <span className="flex-1 text-left">Versions</span>
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={`!w-3.5 !h-3.5 shrink-0 text-gray-400 dark:text-[#5c6478] transition-transform ${expanded ? "rotate-180" : ""}`}
+      <div className="flex items-center gap-1 mb-0.5">
+        <button
+          onClick={handleToggle}
+          className={`flex-1 flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-sm font-medium transition-all [&_svg]:w-[18px] [&_svg]:h-[18px] ${
+            isAnyVersionActive
+              ? "bg-white dark:bg-[#1c2028] text-[#1a1a2e] dark:text-[#e8eaf0] shadow-sm [&>svg:first-child]:opacity-100 [&>svg:first-child]:text-[#ea0e2b]"
+              : "text-[#6b7280] dark:text-[#8b93a5] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] [&>svg:first-child]:opacity-60"
+          }`}
         >
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      </button>
+          <IconVersions />
+          <span className="flex-1 text-left">Versions</span>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={`!w-3.5 !h-3.5 shrink-0 text-gray-400 dark:text-[#5c6478] transition-transform ${expanded ? "rotate-180" : ""}`}
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
+        <button
+          onClick={openNewForm}
+          title="New version"
+          className="p-[7px] rounded-lg text-[#9ca3af] dark:text-[#5c6478] hover:text-[#ea0e2b] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="w-3.5 h-3.5"
+          >
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </button>
+      </div>
+      {showNewForm && (
+        <div className="ml-3 mb-2 p-3 bg-white dark:bg-[#1c2028] rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] shadow-sm flex flex-col gap-2">
+          <p className="text-[11px] font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide">
+            New Version
+          </p>
+          <input
+            ref={newVersionInputRef}
+            value={newVersionStr}
+            onChange={(e) => setNewVersionStr(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleCreate();
+              if (e.key === "Escape") setShowNewForm(false);
+            }}
+            placeholder="e.g. 2.1.0"
+            className="w-full px-3 py-[7px] text-[13px] rounded-lg border border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] focus:outline-none focus:border-[#ea0e2b]"
+          />
+          <select
+            value={newReleaseType}
+            onChange={(e) =>
+              setNewReleaseType(e.target.value as "MANUAL" | "AFTER_APPROVAL")
+            }
+            className="w-full px-3 py-[7px] text-[13px] rounded-lg border border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] focus:outline-none focus:border-[#ea0e2b]"
+          >
+            <option value="MANUAL">Manual Release</option>
+            <option value="AFTER_APPROVAL">After Approval</option>
+          </select>
+          <div className="flex gap-2">
+            <button
+              onClick={handleCreate}
+              disabled={creating || !newVersionStr.trim()}
+              className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-[6px] rounded-lg text-[12px] font-semibold bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {creating ? (
+                <>
+                  <div className="spinner !w-3 !h-3" /> Creating…
+                </>
+              ) : (
+                "Create"
+              )}
+            </button>
+            <button
+              onClick={() => setShowNewForm(false)}
+              disabled={creating}
+              className="px-3 py-[6px] rounded-lg text-[12px] font-medium border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-[#6b7280] dark:text-[#8b93a5] hover:bg-gray-50 dark:hover:bg-[#252b38] transition-all"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
       {expanded && (
         <div className="ml-3 pl-3 border-l border-[#e5e7eb] dark:border-[#2a2f3d] mb-1 flex flex-col gap-0.5">
           {loading && !versions && (

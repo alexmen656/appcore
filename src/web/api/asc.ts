@@ -181,7 +181,15 @@ ascRouter.get("/versions", async (req, res) => {
       "PENDING_DEVELOPER_RELEASE",
     ]);
 
-    let version: { id: string; attributes: { versionString: string; appStoreState: string; platform: string; releaseType: string } } | null = null;
+    let version: {
+      id: string;
+      attributes: {
+        versionString: string;
+        appStoreState: string;
+        platform: string;
+        releaseType: string;
+      };
+    } | null = null;
 
     if (versionId) {
       const allVersions = await asc.listVersions(app.id);
@@ -191,7 +199,9 @@ ascRouter.get("/versions", async (req, res) => {
       if (!version) version = await asc.getLiveVersion(app.id);
     }
 
-    const isEditable = version ? editableStates.has(version.attributes.appStoreState) : false;
+    const isEditable = version
+      ? editableStates.has(version.attributes.appStoreState)
+      : false;
 
     let versionLocalizations: any[] = [];
     if (version) {
@@ -271,11 +281,9 @@ ascRouter.patch("/versions/metadata", async (req, res) => {
 
     if (field === "name" || field === "subtitle") {
       if (!appInfoLocalizationId) {
-        res
-          .status(400)
-          .json({
-            error: "appInfoLocalizationId is required for name/subtitle",
-          });
+        res.status(400).json({
+          error: "appInfoLocalizationId is required for name/subtitle",
+        });
         return;
       }
       await asc.updateAppInfoLocalization(appInfoLocalizationId, {
@@ -293,11 +301,9 @@ ascRouter.patch("/versions/metadata", async (req, res) => {
     ];
     if (versionFields.includes(field)) {
       if (!versionLocalizationId) {
-        res
-          .status(400)
-          .json({
-            error: "versionLocalizationId is required for version fields",
-          });
+        res.status(400).json({
+          error: "versionLocalizationId is required for version fields",
+        });
         return;
       }
       await asc.updateVersionLocalization(versionLocalizationId, {
@@ -310,6 +316,46 @@ ascRouter.patch("/versions/metadata", async (req, res) => {
     res.status(400).json({ error: `Unknown field: ${field}` });
   } catch (err: any) {
     logger.error("ASC updateMetadata failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+// ─── POST /api/asc/versions ────────────────────────────────────────────────
+ascRouter.post("/versions", async (req, res) => {
+  try {
+    const { bundleId, versionString, releaseType } = req.body as {
+      bundleId?: string;
+      versionString: string;
+      releaseType?: "MANUAL" | "AFTER_APPROVAL";
+    };
+
+    if (!versionString) {
+      res.status(400).json({ error: "versionString is required" });
+      return;
+    }
+
+    const asc = await ascClientForUser(req.user!.userId);
+    const app = await asc.getApp(bundleId);
+    if (!app) {
+      res.status(404).json({ error: "App not found in App Store Connect" });
+      return;
+    }
+
+    const version = await asc.createNewVersion(
+      app.id,
+      versionString,
+      releaseType ?? "MANUAL",
+    );
+
+    res.json({
+      versionId: version.id,
+      versionString: version.attributes.versionString,
+      appStoreState: version.attributes.appStoreState,
+      platform: version.attributes.platform,
+      isEditable: true,
+    });
+  } catch (err: any) {
+    logger.error("ASC createVersion failed", err);
     res.status(500).json({ error: err.message ?? String(err) });
   }
 });
