@@ -122,7 +122,7 @@ struct KeywordsView: View {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(keyword.term)
-                        .font(.subheadline)
+                        .font(.headline)
                         .fontWeight(.semibold)
                         .foregroundStyle(.primary)
 

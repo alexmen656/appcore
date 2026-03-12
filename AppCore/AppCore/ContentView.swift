@@ -23,7 +23,6 @@ struct ContentView: View {
             await auth.checkAuth()
         }
         .onReceive(NotificationCenter.default.publisher(for: .pushNotificationTapped)) { notification in
-            // Handle push notification navigation
             if let userInfo = notification.userInfo,
                let category = userInfo["category"] as? String {
                 handlePushNavigation(category: category)
@@ -32,8 +31,6 @@ struct ContentView: View {
     }
 
     private func handlePushNavigation(category: String) {
-        // Navigation will be handled by the tab view through published state
-        // For now we just ensure we're on the right tab
         print("Push notification tapped: \(category)")
     }
 }

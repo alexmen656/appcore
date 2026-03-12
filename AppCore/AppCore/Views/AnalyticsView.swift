@@ -65,27 +65,21 @@ struct AnalyticsView: View {
     private func analyticsContent(_ summary: AnalyticsSummary) -> some View {
         ScrollView {
             VStack(spacing: 20) {
-                // Summary Cards
                 summaryCards(summary)
 
-                // Downloads Chart
                 if let downloads, !downloads.byDay.isEmpty {
                     metricsChart(downloads.byDay)
                 }
 
-                // Country Breakdown
                 if let downloads, !downloads.byCountry.isEmpty {
                     countryBreakdown(downloads.byCountry)
                 }
 
-                // Reviews Summary
                 reviewsSummary(summary)
             }
             .padding()
         }
     }
-
-    // MARK: - Summary Cards
 
     @ViewBuilder
     private func summaryCards(_ summary: AnalyticsSummary) -> some View {
@@ -100,12 +94,6 @@ struct AnalyticsView: View {
                 color: .blue
             )
             StatCard(
-                title: "Revenue",
-                value: formatCurrency(summary.totalProceeds),
-                icon: "dollarsign.circle.fill",
-                color: .green
-            )
-            StatCard(
                 title: "Impressions",
                 value: formatNumber(summary.totalImpressions),
                 icon: "eye.fill",
@@ -118,12 +106,6 @@ struct AnalyticsView: View {
                 color: .orange
             )
             StatCard(
-                title: "Sessions",
-                value: formatNumber(summary.totalSessions),
-                icon: "clock.fill",
-                color: .cyan
-            )
-            StatCard(
                 title: "Conversion",
                 value: summary.conversionRate.map { String(format: "%.1f%%", $0) } ?? "—",
                 icon: "arrow.right.arrow.left.circle.fill",
@@ -131,8 +113,6 @@ struct AnalyticsView: View {
             )
         }
     }
-
-    // MARK: - Metrics Chart
 
     @ViewBuilder
     private func metricsChart(_ days: [DayData]) -> some View {
@@ -169,7 +149,6 @@ struct AnalyticsView: View {
                 }
             }
 
-            // Revenue Chart
             if days.contains(where: { $0.proceeds > 0 }) {
                 Text("Revenue")
                     .font(.subheadline)
@@ -192,7 +171,6 @@ struct AnalyticsView: View {
                 }
             }
 
-            // Impressions vs Page Views
             Text("Impressions & Page Views")
                 .font(.subheadline)
                 .fontWeight(.medium)
@@ -230,8 +208,6 @@ struct AnalyticsView: View {
         .padding()
         .glassEffect(.regular, in: .rect(cornerRadius: 20))
     }
-
-    // MARK: - Country Breakdown
 
     @ViewBuilder
     private func countryBreakdown(_ countries: [CountryData]) -> some View {
@@ -274,8 +250,6 @@ struct AnalyticsView: View {
         .glassEffect(.regular, in: .rect(cornerRadius: 20))
     }
 
-    // MARK: - Reviews Summary
-
     @ViewBuilder
     private func reviewsSummary(_ summary: AnalyticsSummary) -> some View {
         HStack(spacing: 16) {
@@ -301,8 +275,6 @@ struct AnalyticsView: View {
         .padding()
         .glassEffect(.regular, in: .rect(cornerRadius: 20))
     }
-
-    // MARK: - Helpers
 
     private func parseDate(_ string: String) -> Date {
         let formatter = DateFormatter()
