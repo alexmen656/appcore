@@ -84,13 +84,12 @@ struct KeywordsView: View {
             .refreshable { await loadKeywords() }
         }
         .task { await loadKeywords() }
-    }
+    }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
 
     @ViewBuilder
     private var keywordsList: some View {
         ScrollView {
             LazyVStack(spacing: 10) {
-                // Summary
                 HStack(spacing: 12) {
                     StatCard(
                         title: "Total",
@@ -118,7 +117,7 @@ struct KeywordsView: View {
 
     @ViewBuilder
     private func keywordRow(_ keyword: Keyword) -> some View {
-        NavigationLink(destination: KeywordDetailView(keyword: keyword)) {
+        NavigationLink(destination: KeywordDetailView(keyword: keyword, ownBundleId: bundleId)) {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(keyword.term)
@@ -191,8 +190,6 @@ struct KeywordsView: View {
     }
 }
 
-// MARK: - Add Keyword Sheet
-
 struct AddKeywordSheet: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -246,18 +243,29 @@ struct AddKeywordSheet: View {
     }
 }
 
-// MARK: - Keyword Detail View
-
 struct KeywordDetailView: View {
     let keyword: Keyword
+    let ownBundleId: String?
 
     @State private var history: KeywordHistoryData?
     @State private var isLoading = true
+    @State private var historyError: String?
+
+    private let ownSeriesLabel = "Your App"
+
+    private struct RankingChartPoint: Identifiable {
+        let id: String
+        let date: Date
+        let rank: Int
+        let appLabel: String
+        let appBundleId: String
+        let appName: String
+        let trackedAt: String
+    }
 
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // Keyword Info
                 VStack(spacing: 8) {
                     HStack(spacing: 16) {
                         if let pop = keyword.popularity {
@@ -288,12 +296,15 @@ struct KeywordDetailView: View {
                 .frame(maxWidth: .infinity)
                 .glassEffect(.regular, in: .rect(cornerRadius: 20))
 
-                // Ranking History Chart
-                if let history, !history.rankings.isEmpty {
+                if let history {
                     rankingChart(history.rankings)
                 } else if isLoading {
                     ProgressView("Loading history...")
                         .padding(40)
+                } else if let historyError {
+                    ErrorView(message: historyError) { Task { await loadHistory() } }
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 4)
                 }
             }
             .padding()
@@ -301,72 +312,94 @@ struct KeywordDetailView: View {
         .navigationTitle(keyword.term)
         .navigationBarTitleDisplayMode(.large)
         .task {
-            do {
-                history = try await APIService.shared.getKeywordHistory(id: keyword.id)
-            } catch {
-                print("Failed to load history: \(error)")
-            }
-            isLoading = false
+            await loadHistory()
         }
     }
 
     @ViewBuilder
     private func rankingChart(_ rankings: [RankingEntry]) -> some View {
+        let chartPoints = buildChartPoints(from: rankings)
+        let seriesOrder = orderedSeriesLabels(from: chartPoints)
+        let colorScale = chartColorScale(for: seriesOrder)
+        let yDomainMax = max(chartPoints.map(\.rank).max() ?? 1, 2)
+        let recentPoints = Array(chartPoints.suffix(10).reversed())
+
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader("Ranking History", icon: "chart.line.uptrend.xyaxis")
+            SectionHeader("Ranking History (You + Competitors)", icon: "chart.line.uptrend.xyaxis")
 
-            let ourRankings = rankings.filter { $0.appBundleId == keyword.term || true }
-                .sorted { $0.trackedAt < $1.trackedAt }
+            if chartPoints.isEmpty {
+                VStack(spacing: 8) {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.title2)
+                        .foregroundStyle(.tertiary)
+                    Text("No ranked data yet")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    Text("Run keyword tracking first, then the competitor chart appears here.")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+            } else {
+                Chart(chartPoints) { point in
+                    let seriesColor = colorScale[point.appLabel] ?? .secondary
 
-            Chart(ourRankings) { entry in
-                LineMark(
-                    x: .value("Date", parseDate(entry.trackedAt)),
-                    y: .value("Rank", entry.rank)
-                )
-                .foregroundStyle(.blue)
-                .interpolationMethod(.catmullRom)
-                .lineStyle(StrokeStyle(lineWidth: 2.5))
+                    LineMark(
+                        x: .value("Date", point.date),
+                        y: .value("Rank", -point.rank),
+                        series: .value("App", point.appLabel)
+                    )
+                    .foregroundStyle(seriesColor)
+                    .interpolationMethod(.catmullRom)
+                    .lineStyle(StrokeStyle(lineWidth: point.appLabel == ownSeriesLabel ? 3 : 1.8))
 
-                PointMark(
-                    x: .value("Date", parseDate(entry.trackedAt)),
-                    y: .value("Rank", entry.rank)
-                )
-                .foregroundStyle(.blue)
-                .symbolSize(30)
-            }
-            .frame(height: 250)
-            .chartYScale(domain: .automatic(includesZero: false))
-            .chartYAxis {
-                AxisMarks { _ in
-                    AxisGridLine()
-                    AxisValueLabel()
+                    PointMark(
+                        x: .value("Date", point.date),
+                        y: .value("Rank", -point.rank)
+                    )
+                    .foregroundStyle(seriesColor)
+                    .symbolSize(point.appLabel == ownSeriesLabel ? 26 : 14)
+                }
+                .frame(height: 250)
+                .chartLegend(position: .top, alignment: .leading, spacing: 8)
+                .chartYScale(domain: -yDomainMax ... -1)
+                .chartYAxis {
+                    AxisMarks(values: rankAxisValues(maxRank: yDomainMax)) { value in
+                        AxisGridLine()
+                        AxisValueLabel {
+                            if let intValue = value.as(Int.self) {
+                                Text("\(abs(intValue))")
+                            }
+                        }
+                    }
+                }
+                .chartXAxis {
+                    AxisMarks(values: .automatic(desiredCount: 5)) { _ in
+                        AxisGridLine()
+                        AxisValueLabel(format: .dateTime.month(.abbreviated).day())
+                    }
                 }
             }
-            .chartXAxis {
-                AxisMarks(values: .automatic(desiredCount: 5)) { _ in
-                    AxisGridLine()
-                    AxisValueLabel(format: .dateTime.month(.abbreviated).day())
-                }
-            }
 
-            // Rankings Table
-            if ourRankings.count > 1 {
+            if recentPoints.count > 1 {
                 Text("Recent Rankings")
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .padding(.top, 8)
 
-                ForEach(ourRankings.suffix(10).reversed()) { entry in
+                ForEach(recentPoints) { point in
                     HStack {
-                        Text(entry.appName)
+                        Text(point.appLabel)
                             .font(.caption)
                             .lineLimit(1)
                         Spacer()
-                        Text("#\(entry.rank)")
+                        Text("#\(point.rank)")
                             .font(.caption)
                             .fontWeight(.bold)
-                            .foregroundStyle(entry.rank <= 10 ? .green : .secondary)
-                        Text(formatShortDate(entry.trackedAt))
+                            .foregroundStyle(point.rank <= 10 ? .green : .secondary)
+                        Text(formatShortDate(point.trackedAt))
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
@@ -396,9 +429,100 @@ struct KeywordDetailView: View {
         return "\(n)"
     }
 
+    private func buildChartPoints(from rankings: [RankingEntry]) -> [RankingChartPoint] {
+        rankings
+            .sorted { $0.trackedAt < $1.trackedAt }
+            .enumerated()
+            .compactMap { index, entry in
+                guard let rank = entry.rank else { return nil }
+
+                return RankingChartPoint(
+                    id: "\(entry.appBundleId)-\(entry.trackedAt)-\(index)",
+                    date: parseDate(entry.trackedAt),
+                    rank: rank,
+                    appLabel: chartLabel(for: entry),
+                    appBundleId: entry.appBundleId,
+                    appName: entry.appName,
+                    trackedAt: entry.trackedAt
+                )
+            }
+    }
+
+    private func loadHistory() async {
+        isLoading = true
+        historyError = nil
+        do {
+            history = try await APIService.shared.getKeywordHistory(id: keyword.id)
+        } catch {
+            history = nil
+            historyError = error.localizedDescription
+            print("Failed to load history: \(error)")
+        }
+        isLoading = false
+    }
+
+    private func chartLabel(for entry: RankingEntry) -> String {
+        if let ownBundleId, entry.appBundleId == ownBundleId {
+            return ownSeriesLabel
+        }
+        if entry.appName.count > 20 {
+            return String(entry.appName.prefix(20)) + "…"
+        }
+        return entry.appName
+    }
+
+    private func orderedSeriesLabels(from points: [RankingChartPoint]) -> [String] {
+        var labels: [String] = []
+        var seen = Set<String>()
+
+        for point in points {
+            if seen.insert(point.appLabel).inserted {
+                labels.append(point.appLabel)
+            }
+        }
+
+        if let ownIndex = labels.firstIndex(of: ownSeriesLabel), ownIndex > 0 {
+            labels.remove(at: ownIndex)
+            labels.insert(ownSeriesLabel, at: 0)
+        }
+
+        return labels
+    }
+
+    private func chartColorScale(for labels: [String]) -> [String: Color] {
+        let competitorPalette: [Color] = [.blue, .green, .orange, .purple, .pink, .cyan, .mint]
+        var mapping: [String: Color] = [:]
+        var competitorIndex = 0
+
+        for label in labels {
+            if label == ownSeriesLabel {
+                mapping[label] = .red
+            } else {
+                mapping[label] = competitorPalette[competitorIndex % competitorPalette.count]
+                competitorIndex += 1
+            }
+        }
+
+        return mapping
+    }
+
+    private func rankAxisValues(maxRank: Int) -> [Int] {
+        let targetTicks = 5
+        let step = max(1, Int(ceil(Double(maxRank - 1) / Double(targetTicks - 1))))
+        var values = Array(stride(from: 1, through: maxRank, by: step))
+        if values.last != maxRank {
+            values.append(maxRank)
+        }
+        return values.map(-)
+    }
+
     private func parseDate(_ string: String) -> Date {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: string) {
+            return date
+        }
+        formatter.formatOptions = [.withInternetDateTime]
         return formatter.date(from: string) ?? Date()
     }
 

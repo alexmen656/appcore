@@ -1,7 +1,5 @@
 import Foundation
 
-// MARK: - Analytics
-
 struct DayData: Codable, Identifiable {
     var id: String { date }
     let date: String
@@ -32,7 +30,7 @@ struct AnalyticsSummary: Codable {
     let totalImpressions: Int
     let totalPageViews: Int
     let totalSessions: Int
-    let conversionRate: Double? // null when impressions == 0
+    let conversionRate: Double?
     let avgRating: Double?
     let reviewCount: Int
     let lastSyncAt: String?
@@ -47,8 +45,6 @@ struct Review: Codable, Identifiable {
     let territory: String?
     let reviewedAt: String?
 }
-
-// MARK: - Apps
 
 struct AppItem: Codable, Identifiable {
     let id: String
@@ -72,8 +68,6 @@ struct AscApp: Codable, Identifiable {
     let primaryLocale: String?
     let iconUrl: String?
 }
-
-// MARK: - Dashboard
 
 struct AppInfo: Codable {
     let name: String
@@ -99,7 +93,7 @@ struct Stats: Codable {
 struct DashboardConfig: Codable {
     let bundleId: String?
     let country: String?
-    let locales: String? // server sends comma-separated e.g. "en-US,de-DE"
+    let locales: String?
     let aiProvider: String?
     let hasOpenAI: Bool?
     let hasAnthropic: Bool?
@@ -122,7 +116,7 @@ struct RecentSuggestion: Codable, Identifiable {
     let type: String
     let locale: String
     let value: String
-    let confidence: Double? // confidenceScore can be null
+    let confidence: Double?
     let status: String
     let createdAt: String
 }
@@ -134,8 +128,6 @@ struct DashboardData: Codable {
     let lastJob: LastJob?
     let recentSuggestions: [RecentSuggestion]
 }
-
-// MARK: - Keywords
 
 struct TopCompetitor: Codable {
     let name: String
@@ -159,7 +151,7 @@ struct Keyword: Codable, Identifiable {
 
 struct RankingEntry: Codable, Identifiable {
     var id: String { "\(appBundleId)-\(trackedAt)" }
-    let rank: Int
+    let rank: Int?
     let appName: String
     let appBundleId: String
     let country: String
@@ -177,8 +169,6 @@ struct KeywordHistoryData: Codable {
     let keyword: KeywordInfo
     let rankings: [RankingEntry]
 }
-
-// MARK: - Versions
 
 struct VersionSummary: Codable, Identifiable {
     var id: String { versionId }
@@ -213,8 +203,6 @@ struct VersionsData: Codable {
     let localizations: [VersionLocalization]
 }
 
-// MARK: - Suggestions
-
 struct Suggestion: Codable, Identifiable {
     let id: String
     let type: String
@@ -232,16 +220,13 @@ struct Suggestion: Codable, Identifiable {
     let appliedAt: String?
 }
 
-// Server returns suggestions grouped by locale: { "en-US": [...], "de-DE": [...] }
 struct SuggestionsResponse: Codable {
-    let suggestions: [String: [Suggestion]] // keyed by locale
+    let suggestions: [String: [Suggestion]]
     let total: Int
 
     var flat: [Suggestion] { suggestions.values.flatMap { $0 }
         .sorted { $0.createdAt > $1.createdAt } }
 }
-
-// MARK: - Jobs
 
 struct Job: Codable, Identifiable {
     let id: String
@@ -255,8 +240,6 @@ struct Job: Codable, Identifiable {
     let createdAt: String
 }
 
-// MARK: - Auth
-
 struct AuthUser: Codable {
     let id: String
     let email: String
@@ -269,8 +252,6 @@ struct AuthResponse: Codable {
     let user: AuthUser
 }
 
-// MARK: - Scheduler
-
 struct SchedulerStatus: Codable {
     let running: Bool
     let jobs: [SchedulerJobInfo]?
@@ -282,8 +263,6 @@ struct SchedulerJobInfo: Codable {
     let lastRun: String?
     let nextRun: String?
 }
-
-// MARK: - Push Notifications
 
 struct DeviceTokenRegistration: Codable {
     let deviceToken: String
