@@ -5,8 +5,6 @@ struct KeywordsView: View {
     let bundleId: String?
 
     @State private var keywords: [Keyword] = []
-    @State private var selectedKeyword: Keyword?
-    @State private var history: KeywordHistoryData?
     @State private var isLoading = true
     @State private var error: String?
     @State private var showAddSheet = false
@@ -83,9 +81,6 @@ struct KeywordsView: View {
             .sheet(isPresented: $showAddSheet) {
                 AddKeywordSheet { await loadKeywords() }
             }
-            .sheet(item: $selectedKeyword) { keyword in
-                KeywordDetailSheet(keyword: keyword)
-            }
             .refreshable { await loadKeywords() }
         }
         .task { await loadKeywords() }
@@ -123,64 +118,42 @@ struct KeywordsView: View {
 
     @ViewBuilder
     private func keywordRow(_ keyword: Keyword) -> some View {
-        Button {
-            selectedKeyword = keyword
-        } label: {
-            VStack(spacing: 10) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(keyword.term)
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.primary)
+        NavigationLink(destination: KeywordDetailView(keyword: keyword)) {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(keyword.term)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.primary)
 
-                        HStack(spacing: 8) {
-                            Label(keyword.country, systemImage: "globe")
-                            if let lang = keyword.language {
-                                Text("·")
-                                Text(lang)
-                            }
+                    HStack(spacing: 6) {
+                        Label(keyword.country, systemImage: "globe")
+                        if let lang = keyword.language {
+                            Text("·")
+                            Text(lang)
                         }
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
                     }
-
-                    Spacer()
-
-                    // Rank
-                    if let rank = keyword.ourRank {
-                        VStack(spacing: 2) {
-                            Text("#\(rank)")
-                                .font(.title3)
-                                .fontWeight(.bold)
-                                .fontDesign(.rounded)
-                                .foregroundStyle(rankColor(rank))
-                            Text("Rank")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                    } else {
-                        Text("—")
-                            .font(.title3)
-                            .foregroundStyle(.tertiary)
-                    }
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
                 }
 
-                // Metrics Bar
-                HStack(spacing: 16) {
-                    if let pop = keyword.popularity {
-                        metricPill("Pop", value: "\(pop)", color: .blue)
+                Spacer()
+
+                if let rank = keyword.ourRank {
+                    VStack(spacing: 2) {
+                        Text("#\(rank)")
+                            .font(.title3)
+                            .fontWeight(.bold)
+                            .fontDesign(.rounded)
+                            .foregroundStyle(rankColor(rank))
+                        Text("Rank")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                     }
-                    if let diff = keyword.difficulty {
-                        metricPill("Diff", value: String(format: "%.0f", diff), color: difficultyColor(diff))
-                    }
-                    if let volume = keyword.searchVolume {
-                        metricPill("Vol", value: formatCompact(volume), color: .purple)
-                    }
-                    if let comp = keyword.topCompetitor {
-                        metricPill(comp.name, value: "#\(comp.rank)", color: .red)
-                    }
-                    Spacer()
+                } else {
+                    Text("—")
+                        .font(.title3)
+                        .foregroundStyle(.tertiary)
                 }
             }
             .padding()
@@ -199,34 +172,11 @@ struct KeywordsView: View {
         }
     }
 
-    private func metricPill(_ label: String, value: String, color: Color) -> some View {
-        HStack(spacing: 3) {
-            Text(label)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .fontWeight(.medium)
-                .foregroundStyle(color)
-        }
-        .font(.caption2)
-    }
-
     private func rankColor(_ rank: Int) -> Color {
         if rank <= 5 { return .green }
         if rank <= 20 { return .blue }
         if rank <= 50 { return .orange }
         return .red
-    }
-
-    private func difficultyColor(_ diff: Double) -> Color {
-        if diff < 30 { return .green }
-        if diff < 60 { return .orange }
-        return .red
-    }
-
-    private func formatCompact(_ n: Int) -> String {
-        if n >= 1_000_000 { return String(format: "%.1fM", Double(n) / 1_000_000) }
-        if n >= 1_000 { return String(format: "%.0fK", Double(n) / 1_000) }
-        return "\(n)"
     }
 
     private func loadKeywords() async {
@@ -296,62 +246,60 @@ struct AddKeywordSheet: View {
     }
 }
 
-// MARK: - Keyword Detail Sheet
+// MARK: - Keyword Detail View
 
-struct KeywordDetailSheet: View {
+struct KeywordDetailView: View {
     let keyword: Keyword
 
     @State private var history: KeywordHistoryData?
     @State private var isLoading = true
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Keyword Info
-                    VStack(spacing: 8) {
-                        Text(keyword.term)
-                            .font(.title2)
-                            .fontWeight(.bold)
-
-                        HStack(spacing: 16) {
-                            if let pop = keyword.popularity {
-                                Label("\(pop) pop", systemImage: "flame.fill")
-                                    .foregroundStyle(.orange)
-                            }
-                            if let diff = keyword.difficulty {
-                                Label(String(format: "%.0f diff", diff), systemImage: "gauge.medium")
-                                    .foregroundStyle(.blue)
-                            }
-                            Label(keyword.country, systemImage: "globe")
-                                .foregroundStyle(.secondary)
+        ScrollView {
+            VStack(spacing: 20) {
+                // Keyword Info
+                VStack(spacing: 8) {
+                    HStack(spacing: 16) {
+                        if let pop = keyword.popularity {
+                            Label("\(pop) pop", systemImage: "flame.fill")
+                                .foregroundStyle(.orange)
                         }
-                        .font(.subheadline)
-
-                        if let rank = keyword.ourRank {
-                            Text("Current Rank: #\(rank)")
-                                .font(.headline)
-                                .foregroundStyle(.green)
-                                .padding(.top, 4)
+                        if let diff = keyword.difficulty {
+                            Label(String(format: "%.0f diff", diff), systemImage: "gauge.medium")
+                                .foregroundStyle(difficultyColor(diff))
                         }
+                        if let vol = keyword.searchVolume {
+                            Label(formatCompact(vol), systemImage: "magnifyingglass")
+                                .foregroundStyle(.purple)
+                        }
+                        Label(keyword.country, systemImage: "globe")
+                            .foregroundStyle(.secondary)
                     }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .glassEffect(.regular, in: .rect(cornerRadius: 20))
+                    .font(.subheadline)
 
-                    // Ranking History Chart
-                    if let history, !history.rankings.isEmpty {
-                        rankingChart(history.rankings)
-                    } else if isLoading {
-                        ProgressView("Loading history...")
-                            .padding(40)
+                    if let rank = keyword.ourRank {
+                        Text("Rank #\(rank)")
+                            .font(.headline)
+                            .foregroundStyle(rankColor(rank))
+                            .padding(.top, 4)
                     }
                 }
                 .padding()
+                .frame(maxWidth: .infinity)
+                .glassEffect(.regular, in: .rect(cornerRadius: 20))
+
+                // Ranking History Chart
+                if let history, !history.rankings.isEmpty {
+                    rankingChart(history.rankings)
+                } else if isLoading {
+                    ProgressView("Loading history...")
+                        .padding(40)
+                }
             }
-            .navigationTitle("Keyword Detail")
-            .navigationBarTitleDisplayMode(.inline)
+            .padding()
         }
+        .navigationTitle(keyword.term)
+        .navigationBarTitleDisplayMode(.large)
         .task {
             do {
                 history = try await APIService.shared.getKeywordHistory(id: keyword.id)
@@ -360,7 +308,6 @@ struct KeywordDetailSheet: View {
             }
             isLoading = false
         }
-        .presentationDetents([.large])
     }
 
     @ViewBuilder
@@ -428,6 +375,25 @@ struct KeywordDetailSheet: View {
         }
         .padding()
         .glassEffect(.regular, in: .rect(cornerRadius: 20))
+    }
+
+    private func rankColor(_ rank: Int) -> Color {
+        if rank <= 5 { return .green }
+        if rank <= 20 { return .blue }
+        if rank <= 50 { return .orange }
+        return .red
+    }
+
+    private func difficultyColor(_ diff: Double) -> Color {
+        if diff < 30 { return .green }
+        if diff < 60 { return .orange }
+        return .red
+    }
+
+    private func formatCompact(_ n: Int) -> String {
+        if n >= 1_000_000 { return String(format: "%.1fM", Double(n) / 1_000_000) }
+        if n >= 1_000 { return String(format: "%.0fK", Double(n) / 1_000) }
+        return "\(n)"
     }
 
     private func parseDate(_ string: String) -> Date {

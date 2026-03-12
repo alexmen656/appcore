@@ -38,8 +38,9 @@ struct MainTabView: View {
 
     private func loadApps() async {
         do {
-            apps = try await APIService.shared.getApps()
-            if selectedBundleId == nil, let first = apps.first(where: { $0.isOwnApp }) {
+            let all = try await APIService.shared.getApps()
+            apps = all.filter { $0.isOwnApp }
+            if selectedBundleId == nil, let first = apps.first {
                 selectedBundleId = first.bundleId
             }
         } catch {
@@ -141,20 +142,10 @@ struct MoreView: View {
 // MARK: - App Settings
 
 struct AppSettingsView: View {
-    @State private var serverURL = APIService.shared.baseURL
-    @State private var saved = false
-
     var body: some View {
         Form {
-            Section("Server Configuration") {
-                TextField("Server URL", text: $serverURL)
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.URL)
-
-                Button("Save") {
-                    APIService.shared.baseURL = serverURL
-                    saved = true
-                }
+            Section("Server") {
+                LabeledContent("URL", value: APIService.shared.baseURL)
             }
 
             Section("About") {
@@ -163,9 +154,6 @@ struct AppSettingsView: View {
             }
         }
         .navigationTitle("Settings")
-        .alert("Saved", isPresented: $saved) {
-            Button("OK") {}
-        }
     }
 }
 

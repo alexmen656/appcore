@@ -6,10 +6,7 @@ import Foundation
 final class APIService {
     static let shared = APIService()
 
-    var baseURL: String {
-        get { UserDefaults.standard.string(forKey: "api_base_url") ?? "https://78d6-85-127-44-161.ngrok-free.app" }
-        set { UserDefaults.standard.set(newValue, forKey: "api_base_url") }
-    }
+    let baseURL = "https://appcore.fringelo.com"
 
     private var token: String? {
         get { KeychainHelper.load(key: "auth_token") }
@@ -194,7 +191,6 @@ final class APIService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("true", forHTTPHeaderField: "ngrok-skip-browser-warning")
         request.httpBody = try JSONEncoder().encode(body)
         if authenticated { addAuthHeader(&request) }
         return try await perform(request)
@@ -213,8 +209,6 @@ final class APIService {
 
     private func addAuthHeader(_ request: inout URLRequest) {
         if let token { request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
-        // Skip ngrok browser warning interstitial on free tier
-        request.setValue("true", forHTTPHeaderField: "ngrok-skip-browser-warning")
     }
 
     private func perform<T: Decodable>(_ request: URLRequest) async throws -> T {

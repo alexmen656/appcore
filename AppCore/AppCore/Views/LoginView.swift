@@ -7,7 +7,6 @@ struct LoginView: View {
     @State private var password = ""
     @State private var name = ""
     @State private var isRegistering = false
-    @State private var serverURL = APIService.shared.baseURL
 
     var body: some View {
         NavigationStack {
@@ -55,19 +54,7 @@ struct LoginView: View {
                             .padding()
                             .glassEffect(.regular, in: .rect(cornerRadius: 14))
 
-                        // Server URL
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Server URL")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            TextField("https://appcore.example.com", text: $serverURL)
-                                .textContentType(.URL)
-                                .textInputAutocapitalization(.never)
-                                .keyboardType(.URL)
-                                .textFieldStyle(.plain)
-                                .padding()
-                                .glassEffect(.regular, in: .rect(cornerRadius: 14))
-                        }
+
                     }
                     .padding(.horizontal)
 
@@ -81,7 +68,6 @@ struct LoginView: View {
                     // Buttons
                     VStack(spacing: 12) {
                         Button {
-                            APIService.shared.baseURL = serverURL
                             Task {
                                 if isRegistering {
                                     await auth.register(email: email, password: password, name: name)
