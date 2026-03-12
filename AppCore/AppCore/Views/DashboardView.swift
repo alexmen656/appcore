@@ -30,28 +30,16 @@ struct DashboardView: View {
     private func dashboardContent(_ data: DashboardData) -> some View {
         ScrollView {
             VStack(spacing: 20) {
-                // App Info Card
                 if let app = data.app {
                     appInfoCard(app)
                 }
 
-                // Stats Grid
                 statsGrid(data.stats)
 
-                // Downloads Chart
                 if let downloads, !downloads.byDay.isEmpty {
                     downloadsChart(downloads.byDay)
                 }
 
-                // Last Job & Config
-                HStack(spacing: 12) {
-                    if let lastJob = data.lastJob {
-                        lastJobCard(lastJob)
-                    }
-                    configCard(data.config)
-                }
-
-                // Recent Suggestions
                 if !data.recentSuggestions.isEmpty {
                     recentSuggestionsSection(data.recentSuggestions)
                 }
@@ -59,8 +47,6 @@ struct DashboardView: View {
             .padding()
         }
     }
-
-    // MARK: - App Info
 
     @ViewBuilder
     private func appInfoCard(_ app: AppInfo) -> some View {
@@ -96,8 +82,6 @@ struct DashboardView: View {
         .glassEffect(.regular, in: .rect(cornerRadius: 20))
     }
 
-    // MARK: - Stats
-
     @ViewBuilder
     private func statsGrid(_ stats: Stats) -> some View {
         LazyVGrid(columns: [
@@ -111,106 +95,101 @@ struct DashboardView: View {
         }
     }
 
-    // MARK: - Downloads Chart
+    private struct DownloadChartDay: Identifiable {
+        let date: Date
+        let downloads: Int
+
+        var id: Date { date }
+    }
+
+    private struct SevenDayDownloadSnapshot {
+        let days: [DownloadChartDay]
+        let total: Int
+        let previousTotal: Int
+        let dailyAverage: Int
+        let yUpperBound: Int
+    }
 
     @ViewBuilder
     private func downloadsChart(_ days: [DayData]) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SectionHeader("Downloads (90 days)", icon: "arrow.down.circle.fill")
+        let snapshot = buildSevenDaySnapshot(from: days)
+        let trend = trendPercent(current: snapshot.total, previous: snapshot.previousTotal)
+        let firstDate = snapshot.days.first?.date
+        let lastDate = snapshot.days.last?.date
+        let xAxisDates = [firstDate, lastDate].compactMap { $0 }
 
-            Chart(days) { day in
-                AreaMark(
-                    x: .value("Date", parseDate(day.date)),
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Downloads")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    Text("Daily Average: \(snapshot.dailyAverage)")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 6) {
+                    Text(snapshot.total.formatted())
+                        .font(.system(size: 44, weight: .semibold, design: .rounded))
+
+                    HStack(spacing: 6) {
+                        Image(systemName: trendSymbol(for: trend))
+                        Text("\(abs(trend))%")
+                    }
+                    .font(.title2)
+                    .foregroundStyle(trendColor(for: trend))
+                }
+            }
+
+            Chart(snapshot.days) { day in
+                BarMark(
+                    x: .value("Date", day.date, unit: .day),
                     y: .value("Downloads", day.downloads)
                 )
-                .foregroundStyle(
-                    .linearGradient(
-                        colors: [.blue.opacity(0.4), .blue.opacity(0.05)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .interpolationMethod(.catmullRom)
+                .foregroundStyle(.blue.gradient)
+                .cornerRadius(6)
+            }
+            .frame(height: 190)
+            .chartYScale(domain: 0...Double(snapshot.yUpperBound))
+            .chartYAxis {
+                AxisMarks(position: .trailing, values: [0, Double(snapshot.yUpperBound) / 2, Double(snapshot.yUpperBound)]) { value in
+                    if let yValue = value.as(Double.self), yValue == Double(snapshot.yUpperBound) / 2 {
+                        AxisGridLine(stroke: StrokeStyle(lineWidth: 1, dash: [3, 4]))
+                            .foregroundStyle(.quaternary)
+                    } else {
+                        AxisGridLine()
+                            .foregroundStyle(.quaternary)
+                    }
 
-                LineMark(
-                    x: .value("Date", parseDate(day.date)),
-                    y: .value("Downloads", day.downloads)
-                )
-                .foregroundStyle(.blue)
-                .interpolationMethod(.catmullRom)
-                .lineStyle(StrokeStyle(lineWidth: 2))
+                    AxisTick(stroke: StrokeStyle(lineWidth: 0))
+
+                    AxisValueLabel {
+                        if let yValue = value.as(Double.self), Int(yValue) == snapshot.yUpperBound {
+                            Text(snapshot.yUpperBound.formatted())
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
             }
             .chartXAxis {
-                AxisMarks(values: .stride(by: .day, count: 15)) { _ in
-                    AxisGridLine()
-                    AxisValueLabel(format: .dateTime.month(.abbreviated).day())
+                AxisMarks(values: xAxisDates) { value in
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0))
+                    AxisTick(stroke: StrokeStyle(lineWidth: 0))
+                    AxisValueLabel {
+                        if let date = value.as(Date.self) {
+                            Text(xAxisLabel(for: date, firstDate: firstDate, lastDate: lastDate))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
             }
-            .chartYAxis {
-                AxisMarks { _ in
-                    AxisGridLine()
-                    AxisValueLabel()
-                }
-            }
-            .frame(height: 200)
         }
         .padding()
         .glassEffect(.regular, in: .rect(cornerRadius: 20))
     }
-
-    // MARK: - Last Job
-
-    @ViewBuilder
-    private func lastJobCard(_ job: LastJob) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionHeader("Last Job", icon: "clock.fill")
-            Text(job.type.replacing("-", with: " ").capitalized)
-                .font(.subheadline)
-                .fontWeight(.medium)
-            StatusBadge(status: job.status)
-            if let items = job.itemsCount {
-                Text("\(items) items")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassEffect(.regular, in: .rect(cornerRadius: 16))
-    }
-
-    // MARK: - Config
-
-    @ViewBuilder
-    private func configCard(_ config: DashboardConfig) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionHeader("Config", icon: "gearshape.fill")
-            Group {
-                if let country = config.country {
-                    Label(country, systemImage: "globe")
-                }
-                HStack(spacing: 4) {
-                    if config.hasASC == true { configDot(.green) }
-                    if config.hasOpenAI == true { configDot(.blue) }
-                    if config.hasAnthropic == true { configDot(.purple) }
-                }
-                if let interval = config.scrapeInterval {
-                    Label("\(interval)h interval", systemImage: "clock.arrow.circlepath")
-                }
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassEffect(.regular, in: .rect(cornerRadius: 16))
-    }
-
-    private func configDot(_ color: Color) -> some View {
-        Circle().fill(color).frame(width: 8, height: 8)
-    }
-
-    // MARK: - Recent Suggestions
 
     @ViewBuilder
     private func recentSuggestionsSection(_ suggestions: [RecentSuggestion]) -> some View {
@@ -242,12 +221,111 @@ struct DashboardView: View {
         .glassEffect(.regular, in: .rect(cornerRadius: 20))
     }
 
-    // MARK: - Helpers
-
     private func parseDate(_ string: String) -> Date {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter.date(from: String(string.prefix(10))) ?? Date()
+    }
+
+    private func buildSevenDaySnapshot(from days: [DayData]) -> SevenDayDownloadSnapshot {
+        let calendar = Calendar.current
+        var downloadsByDate: [Date: Int] = [:]
+
+        for day in days {
+            let normalizedDate = calendar.startOfDay(for: parseDate(day.date))
+            downloadsByDate[normalizedDate, default: 0] += day.downloads
+        }
+
+        let anchorDate = downloadsByDate.keys.max() ?? calendar.startOfDay(for: Date())
+        let fourteenDays: [DownloadChartDay] = (0..<14).compactMap { offset in
+            guard let date = calendar.date(byAdding: .day, value: offset - 13, to: anchorDate) else {
+                return nil
+            }
+            let normalizedDate = calendar.startOfDay(for: date)
+            return DownloadChartDay(date: normalizedDate, downloads: downloadsByDate[normalizedDate] ?? 0)
+        }
+
+        let previousWeek = Array(fourteenDays.prefix(7))
+        let currentWeek = Array(fourteenDays.suffix(7))
+        let currentTotal = currentWeek.reduce(0) { $0 + $1.downloads }
+        let previousTotal = previousWeek.reduce(0) { $0 + $1.downloads }
+        let dailyAverage = currentTotal / max(currentWeek.count, 1)
+        let maxValue = currentWeek.map(\.downloads).max() ?? 0
+
+        return SevenDayDownloadSnapshot(
+            days: currentWeek,
+            total: currentTotal,
+            previousTotal: previousTotal,
+            dailyAverage: dailyAverage,
+            yUpperBound: chartUpperBound(for: maxValue)
+        )
+    }
+
+    private func chartUpperBound(for maxValue: Int) -> Int {
+        guard maxValue > 5 else { return 5 }
+
+        let magnitude = pow(10.0, floor(log10(Double(maxValue))))
+        let normalized = Double(maxValue) / magnitude
+        let rounded: Double
+
+        if normalized <= 1 {
+            rounded = 1
+        } else if normalized <= 2 {
+            rounded = 2
+        } else if normalized <= 5 {
+            rounded = 5
+        } else {
+            rounded = 10
+        }
+
+        return Int(rounded * magnitude)
+    }
+
+    private func trendPercent(current: Int, previous: Int) -> Int {
+        guard previous > 0 else {
+            return current == 0 ? 0 : 100
+        }
+        return Int((Double(current - previous) / Double(previous) * 100).rounded())
+    }
+
+    private func trendSymbol(for trend: Int) -> String {
+        if trend > 0 { return "arrow.up.right" }
+        if trend < 0 { return "arrow.down.right" }
+        return "arrow.right"
+    }
+
+    private func trendColor(for trend: Int) -> Color {
+        if trend > 0 { return .green }
+        if trend < 0 { return .red }
+        return .secondary
+    }
+
+    private func xAxisLabel(for date: Date, firstDate: Date?, lastDate: Date?) -> String {
+        let calendar = Calendar.current
+
+        if let firstDate, calendar.isDate(date, inSameDayAs: firstDate) {
+            return formatMonthDay(date)
+        }
+
+        if let firstDate, let lastDate, calendar.isDate(date, inSameDayAs: lastDate) {
+            let sameMonth = calendar.isDate(firstDate, equalTo: lastDate, toGranularity: .month)
+            let sameYear = calendar.isDate(firstDate, equalTo: lastDate, toGranularity: .year)
+            return (sameMonth && sameYear) ? formatDay(date) : formatMonthDay(date)
+        }
+
+        return formatMonthDay(date)
+    }
+
+    private func formatMonthDay(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter.string(from: date)
+    }
+
+    private func formatDay(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d"
+        return formatter.string(from: date)
     }
 
     private func loadData() async {
@@ -255,7 +333,7 @@ struct DashboardView: View {
         error = nil
         do {
             async let dashResult = APIService.shared.getDashboard(bundleId: bundleId)
-            async let downloadResult = APIService.shared.getDownloads(bundleId: bundleId, days: 90)
+            async let downloadResult = APIService.shared.getDownloads(bundleId: bundleId, days: 14)
             let (dash, dl) = try await (dashResult, downloadResult)
             dashboard = dash
             downloads = dl
