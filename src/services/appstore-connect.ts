@@ -206,14 +206,25 @@ export class AppStoreConnectClient {
     localizationId: string,
     updates: { name?: string; subtitle?: string; privacyPolicyUrl?: string },
   ): Promise<void> {
-    await this.client.patch(`/appInfoLocalizations/${localizationId}`, {
-      data: {
-        type: "appInfoLocalizations",
-        id: localizationId,
-        attributes: updates,
-      },
-    });
-    logger.info(`Updated app info localization ${localizationId}`, updates);
+    try {
+      await this.client.patch(`/appInfoLocalizations/${localizationId}`, {
+        data: {
+          type: "appInfoLocalizations",
+          id: localizationId,
+          attributes: updates,
+        },
+      });
+      logger.info(`Updated app info localization ${localizationId}`, updates);
+    } catch (err: any) {
+      const ascErrors = err?.response?.data?.errors;
+      if (ascErrors?.length) {
+        const detail = ascErrors
+          .map((e: any) => e.detail ?? e.title ?? JSON.stringify(e))
+          .join("; ");
+        throw new Error(`ASC ${err.response.status}: ${detail}`);
+      }
+      throw err;
+    }
   }
 
   async updateVersionLocalization(
@@ -226,14 +237,28 @@ export class AppStoreConnectClient {
       supportUrl?: string;
     },
   ): Promise<void> {
-    await this.client.patch(`/appStoreVersionLocalizations/${localizationId}`, {
-      data: {
-        type: "appStoreVersionLocalizations",
-        id: localizationId,
-        attributes: updates,
-      },
-    });
-    logger.info(`Updated version localization ${localizationId}`, updates);
+    try {
+      await this.client.patch(
+        `/appStoreVersionLocalizations/${localizationId}`,
+        {
+          data: {
+            type: "appStoreVersionLocalizations",
+            id: localizationId,
+            attributes: updates,
+          },
+        },
+      );
+      logger.info(`Updated version localization ${localizationId}`, updates);
+    } catch (err: any) {
+      const ascErrors = err?.response?.data?.errors;
+      if (ascErrors?.length) {
+        const detail = ascErrors
+          .map((e: any) => e.detail ?? e.title ?? JSON.stringify(e))
+          .join("; ");
+        throw new Error(`ASC ${err.response.status}: ${detail}`);
+      }
+      throw err;
+    }
   }
 
   async getEditableVersion(appId: string): Promise<ASCAppStoreVersion | null> {

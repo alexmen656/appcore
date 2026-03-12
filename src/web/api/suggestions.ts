@@ -80,9 +80,17 @@ suggestionsRouter.post("/:id/apply", async (req, res) => {
     });
     if (!suggestion) return res.status(404).json({ error: "Not found" });
 
+    const settings = await getEffectiveSettings(req.user!.userId);
+    if (!settings.ascIssuerId || !settings.ascKeyId || !settings.ascPrivateKey) {
+      return res.status(400).json({ error: "App Store Connect credentials not configured." });
+    }
     const { AppStoreConnectClient } =
       await import("../../services/appstore-connect");
-    const asc = new AppStoreConnectClient();
+    const asc = new AppStoreConnectClient({
+      issuerId: settings.ascIssuerId,
+      keyId: settings.ascKeyId,
+      privateKey: settings.ascPrivateKey,
+    });
     const locale = suggestion.locale || "en-US";
 
     const changes: Record<string, string> = {};

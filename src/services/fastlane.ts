@@ -205,8 +205,28 @@ export class FastlaneService {
 
       const screenshots = await this.loadFramedScreenshots();
       if (screenshots) {
-        const total = Object.values(screenshots).reduce((n, a) => n + a.length, 0);
-        submission.logs.push(`Loaded ${total} framed screenshot(s) across ${Object.keys(screenshots).length} locale(s)`);
+        const total = Object.values(screenshots).reduce(
+          (n, a) => n + a.length,
+          0,
+        );
+        submission.logs.push(
+          `Loaded ${total} framed screenshot(s) across ${Object.keys(screenshots).length} locale(s)`,
+        );
+
+        const FALLBACK_PREFERENCE = ["en-US", "en-GB"];
+        const fallbackLocale =
+          FALLBACK_PREFERENCE.find((l) => screenshots[l]) ??
+          Object.keys(screenshots)[0];
+        if (fallbackLocale) {
+          for (const locale of Object.keys(localeData)) {
+            if (!screenshots[locale]) {
+              screenshots[locale] = screenshots[fallbackLocale];
+              submission.logs.push(
+                `[Screenshots] No screenshots for "${locale}" — using "${fallbackLocale}" as fallback`,
+              );
+            }
+          }
+        }
       }
 
       const result = await workerClient.deliver({
@@ -308,7 +328,10 @@ export class FastlaneService {
     }
   }
 
-  private async loadFramedScreenshots(): Promise<Record<string, Array<{ filename: string; data: string }>> | null> {
+  private async loadFramedScreenshots(): Promise<Record<
+    string,
+    Array<{ filename: string; data: string }>
+  > | null> {
     try {
       const app = await prisma.app.findFirst({
         where: { bundleId: this.settings.ascBundleId },
@@ -317,14 +340,21 @@ export class FastlaneService {
       if (!app) return null;
 
       const job = await (prisma as any).screenshotJob.findFirst({
-        where: { appId: app.id, status: "COMPLETED", framedByLocale: { not: null } },
+        where: {
+          appId: app.id,
+          status: "COMPLETED",
+          framedByLocale: { not: null },
+        },
         orderBy: { completedAt: "desc" },
         select: { framedByLocale: true },
       });
       if (!job?.framedByLocale) return null;
 
       const framedByLocale = job.framedByLocale as Record<string, string[]>;
-      const screenshots: Record<string, Array<{ filename: string; data: string }>> = {};
+      const screenshots: Record<
+        string,
+        Array<{ filename: string; data: string }>
+      > = {};
       const cwd = process.cwd();
 
       for (const [locale, urls] of Object.entries(framedByLocale)) {
