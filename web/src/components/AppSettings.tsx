@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useApi, apiPut, getActiveBundleId } from "../hooks/useApi";
 import ScrapingConfigSection from "./comps/settings/ScrapingConfigSection";
-import AsoLocalesSection from "./comps/settings/AsoLocalesSection";
 import SigningSection from "./comps/settings/SigningSection";
 import { SettingsData } from "./comps/settings/types";
 import { RepoLinker } from "./Screenshots";
@@ -79,7 +78,6 @@ export default function AppSettings({ addToast }: Props) {
 
       <form onSubmit={handleSave} className="flex flex-col gap-0">
         <ScrapingConfigSection form={form} inputCls={inputCls} onChange={set} />
-        <AsoLocalesSection form={form} inputCls={inputCls} onChange={set} />
 
         <div className="flex justify-end pb-2">
           <button className={btnPrimary} type="submit" disabled={saving}>

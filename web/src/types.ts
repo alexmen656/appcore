@@ -212,7 +212,6 @@ export interface SettingsData {
   scrapeCountry: string;
   scrapeIntervalHours: number;
   maxCompetitors: number;
-  asoLocales: string;
 }
 
 export interface GitHubStatus {
