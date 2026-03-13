@@ -2,7 +2,7 @@ import { useState } from "react";
 import { apiPost, useApi, getActiveBundleId } from "../hooks/useApi";
 import ActionCard, { ActionCardDef } from "./comps/actions/ActionCard";
 import JobHistoryTable, { Job } from "./comps/actions/JobHistoryTable";
-import { ScreenshotJobsTable, LocalTestPanel } from "./Screenshots";
+import { ScreenshotJobsTable } from "./Screenshots";
 import type { AppItem } from "../types";
 
 const ACTION_CARDS: ActionCardDef[] = [
@@ -120,15 +120,17 @@ export default function Actions({ addToast }: Props) {
         Logs
       </h1>
       <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">
-        Trigger jobs, manage the scheduler, auto-apply suggestions, and review screenshot runs
+        Trigger jobs, manage the scheduler, auto-apply suggestions, and review
+        screenshot runs
       </p>
 
-      {/* ─── Scheduler Control ─────────────────────────────────────── */}
       <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 mb-6 flex flex-wrap items-center gap-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
         <div className="flex items-center gap-2 mr-auto">
           <span
             className={`inline-block w-2 h-2 rounded-full ${
-              schedulerStatus?.running ? "bg-emerald-500" : "bg-[#d1d5db] dark:bg-[#3a4050]"
+              schedulerStatus?.running
+                ? "bg-emerald-500"
+                : "bg-[#d1d5db] dark:bg-[#3a4050]"
             }`}
           />
           <span className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0]">
@@ -160,7 +162,6 @@ export default function Actions({ addToast }: Props) {
         </button>
       </div>
 
-      {/* ─── Action Cards ──────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
         {ACTION_CARDS.map((ac) => (
           <ActionCard
@@ -174,11 +175,9 @@ export default function Actions({ addToast }: Props) {
 
       <JobHistoryTable jobs={jobs ?? null} onRefresh={refetch} />
 
-      {/* ─── Screenshot Jobs ──────────────────────────────────────────── */}
       {activeApp && (
         <>
           <ScreenshotJobsTable appId={activeApp.id} addToast={addToast} />
-          <LocalTestPanel addToast={addToast} />
         </>
       )}
     </div>

@@ -25,7 +25,6 @@ interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }
 
-// ─── Gradient presets ─────────────────────────────────────────────────────────
 const PRESETS = [
   { label: "Purple", bg1: "#667eea", bg2: "#764ba2" },
   { label: "Blue", bg1: "#4facfe", bg2: "#00f2fe" },
@@ -51,7 +50,9 @@ export default function Screenshots({ addToast }: Props) {
         <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">
           Select an app to manage GitHub integration and screenshot generation.
         </p>
-        <div className={`${cardCls} text-center py-12 text-gray-400 dark:text-[#5c6478]`}>
+        <div
+          className={`${cardCls} text-center py-12 text-gray-400 dark:text-[#5c6478]`}
+        >
           No app selected. Choose an app from the sidebar.
         </div>
       </div>
@@ -103,13 +104,9 @@ export default function Screenshots({ addToast }: Props) {
       />
 
       <ScreenshotJobsTable appId={activeApp.id} addToast={addToast} />
-
-      <LocalTestPanel addToast={addToast} />
     </div>
   );
 }
-
-// ─── Repo Linker ──────────────────────────────────────────────────────────────
 
 export function RepoLinker({
   appId,
@@ -281,8 +278,6 @@ export function RepoLinker({
   );
 }
 
-// ─── Screenshot Jobs Table ────────────────────────────────────────────────────
-
 export function ScreenshotJobsTable({
   appId,
   addToast,
@@ -299,9 +294,12 @@ export function ScreenshotJobsTable({
 
   const statusBadge = (s: string) => {
     const colors: Record<string, string> = {
-      PENDING: "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
-      RUNNING: "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
-      COMPLETED: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
+      PENDING:
+        "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
+      RUNNING:
+        "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
+      COMPLETED:
+        "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
       FAILED: "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400",
     };
     return `inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium ${colors[s] ?? "bg-gray-50 text-gray-600 dark:bg-[#252b38] dark:text-[#8b93a5]"}`;
@@ -344,8 +342,6 @@ export function ScreenshotJobsTable({
   );
 }
 
-// ─── Single Job Row ───────────────────────────────────────────────────────────
-
 function JobRow({
   job,
   expanded,
@@ -368,18 +364,15 @@ function JobRow({
   const handleFrame = async () => {
     setFraming(true);
     try {
-      const res = await fetch(
-        `/api/github/screenshots/frame/${job.id}`,
-        {
-          method: "POST",
-          headers: { ...authHeaders(), "Content-Type": "application/json" },
-          body: JSON.stringify({
-            subtitle,
-            bgColor1: PRESETS[preset].bg1,
-            bgColor2: PRESETS[preset].bg2,
-          }),
-        },
-      );
+      const res = await fetch(`/api/github/screenshots/frame/${job.id}`, {
+        method: "POST",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subtitle,
+          bgColor1: PRESETS[preset].bg1,
+          bgColor2: PRESETS[preset].bg2,
+        }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Framing failed");
       setFramedUrls(data.framedUrls);
@@ -567,176 +560,8 @@ function JobRow({
               </pre>
             </div>
           ) : (
-            <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478]">No logs captured.</div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Local Test Panel ─────────────────────────────────────────────────────────
-
-export function LocalTestPanel({
-  addToast,
-}: {
-  addToast: (msg: string, type: "success" | "error" | "info") => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [dirPath, setDirPath] = useState("");
-  const [subtitle, setSubtitle] = useState("Your App");
-  const [preset, setPreset] = useState(0);
-  const [running, setRunning] = useState(false);
-  const [results, setResults] = useState<string[]>([]);
-
-  const handleRun = useCallback(async () => {
-    if (!dirPath.trim()) {
-      addToast("Please enter a directory path", "error");
-      return;
-    }
-    setRunning(true);
-    setResults([]);
-    try {
-      const res = await fetch("/api/github/screenshots/test-local", {
-        method: "POST",
-        headers: { ...authHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({
-          dirPath: dirPath.trim(),
-          subtitle,
-          bgColor1: PRESETS[preset].bg1,
-          bgColor2: PRESETS[preset].bg2,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Framing failed");
-      setResults(data.framedUrls);
-      addToast(`${data.count} screenshots framed`, "success");
-    } catch (err: any) {
-      addToast(err.message, "error");
-    } finally {
-      setRunning(false);
-    }
-  }, [dirPath, subtitle, preset, addToast]);
-
-  return (
-    <div className={cardCls}>
-      <button
-        className="w-full flex items-center justify-between"
-        onClick={() => setOpen((v) => !v)}
-      >
-        <div>
-          <h2 className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0] text-left">
-            Local Test — Frame Existing Screenshots
-          </h2>
-          <p className="text-xs text-[#9ca3af] dark:text-[#5c6478] text-left mt-0.5">
-            Point to a folder of raw screenshots on disk to preview framing
-            instantly.
-          </p>
-        </div>
-        <svg
-          className={`w-4 h-4 text-[#9ca3af] dark:text-[#5c6478] shrink-0 ml-4 transition-transform ${open ? "rotate-180" : ""}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {open && (
-        <div className="mt-4">
-          <div className="mb-3">
-            <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] mb-1 block">
-              Directory path (absolute, on server)
-            </label>
-            <input
-              className={inputCls}
-              value={dirPath}
-              onChange={(e) => setDirPath(e.target.value)}
-              placeholder="/Users/you/project/fastlane/screenshots/en-US/iPhone 16 Pro Max"
-            />
-          </div>
-          <div className="mb-3">
-            <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] mb-1 block">
-              Subtitle
-            </label>
-            <input
-              className={inputCls}
-              value={subtitle}
-              onChange={(e) => setSubtitle(e.target.value)}
-              placeholder="e.g. Track anything, anywhere"
-            />
-          </div>
-          <div className="mb-4">
-            <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] mb-1.5 block">
-              Background gradient
-            </label>
-            <div className="flex gap-2 flex-wrap items-center">
-              {PRESETS.map((p, i) => (
-                <button
-                  key={p.label}
-                  onClick={() => setPreset(i)}
-                  className={`w-8 h-8 rounded-lg border-2 transition-all ${preset === i ? "border-[#111827] dark:border-[#e8eaf0] scale-110" : "border-transparent"}`}
-                  style={{
-                    background: `linear-gradient(135deg, ${p.bg1}, ${p.bg2})`,
-                  }}
-                  title={p.label}
-                />
-              ))}
-              <span className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] ml-1">
-                {PRESETS[preset].label}
-              </span>
-            </div>
-          </div>
-          <button
-            className={btnPrimary}
-            onClick={handleRun}
-            disabled={running}
-          >
-            {running ? (
-              <>
-                <div className="spinner !w-3.5 !h-3.5" /> Framing…
-              </>
-            ) : (
-              <>
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <rect x="3" y="3" width="18" height="18" rx="3" />
-                  <rect x="7" y="7" width="10" height="10" rx="1" />
-                </svg>
-                Frame Screenshots
-              </>
-            )}
-          </button>
-
-          {results.length > 0 && (
-            <div className="mt-5">
-              <div className="text-[11px] font-medium text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide mb-2">
-                Result — {results.length} screenshot(s)
-              </div>
-              <div className="flex gap-3 overflow-x-auto pb-2">
-                {results.map((url) => (
-                  <a
-                    key={url}
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="shrink-0"
-                  >
-                    <img
-                      src={url}
-                      alt="Framed screenshot"
-                      className="h-64 rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] object-cover hover:opacity-90 transition-opacity shadow-sm"
-                    />
-                  </a>
-                ))}
-              </div>
+            <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478]">
+              No logs captured.
             </div>
           )}
         </div>
