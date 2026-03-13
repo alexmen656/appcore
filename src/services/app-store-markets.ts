@@ -99,6 +99,8 @@ export const COUNTRY_LANG: Record<string, string> = {
   za: "en",
 };
 
+const SUPPORTED_LANGUAGE_CODES = new Set(Object.values(COUNTRY_LANG));
+
 export const STOREFRONT_IDS: Record<string, number> = {
   AE: 143481,
   AI: 143538,
@@ -219,6 +221,25 @@ export const STOREFRONT_IDS: Record<string, number> = {
 
 export function langForCountry(country: string): string {
   return COUNTRY_LANG[country.toLowerCase()] ?? "en";
+}
+
+export function normalizeLanguage(
+  language: string | null | undefined,
+  country: string,
+): string {
+  const fallback = langForCountry(country);
+  if (!language) return fallback;
+
+  const normalized = language.trim().toLowerCase();
+  if (!normalized) return fallback;
+
+  const primaryCode = normalized.replace(/-/g, "_").split("_")[0] ?? "";
+  if (SUPPORTED_LANGUAGE_CODES.has(primaryCode)) return primaryCode;
+
+  const mappedFromCountry = COUNTRY_LANG[primaryCode];
+  if (mappedFromCountry) return mappedFromCountry;
+
+  return fallback;
 }
 
 export function storefrontHeaderForCountry(country: string): string {

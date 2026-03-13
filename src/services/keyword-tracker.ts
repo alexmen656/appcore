@@ -3,7 +3,7 @@ import type { EffectiveSettings } from "../config";
 import { AppStoreScraper } from "./appstore-scraper";
 import { AppleSearchAdsClient } from "./search-ads";
 import { ScrapeType, JobStatus } from "@prisma/client";
-import { langForCountry } from "./app-store-markets";
+import { normalizeLanguage } from "./app-store-markets";
 
 export class KeywordTracker {
   private searchAds: AppleSearchAdsClient | null = null;
@@ -70,7 +70,7 @@ export class KeywordTracker {
     language?: string,
   ): Promise<number> {
     let added = 0;
-    const lang = language ?? langForCountry(country);
+    const lang = normalizeLanguage(language, country);
     for (const term of terms) {
       const normalized = term.toLowerCase().trim();
       if (!normalized) continue;
@@ -98,10 +98,18 @@ export class KeywordTracker {
       return null;
     }
 
-    const scraper = new AppStoreScraper(
-      country,
-      keyword.language || langForCountry(country),
-    );
+    const normalizedLanguage = normalizeLanguage(keyword.language, country);
+    if (normalizedLanguage !== keyword.language) {
+      await prisma.keyword.update({
+        where: { id: keyword.id },
+        data: { language: normalizedLanguage },
+      });
+      logger.info(
+        `Normalized keyword language for "${keyword.term}" (${country}) from "${keyword.language}" to "${normalizedLanguage}"`,
+      );
+    }
+
+    const scraper = new AppStoreScraper(country, normalizedLanguage);
     const { results, popularity, difficulty, searchVolume } =
       await scraper.analyzeKeyword(keywordTerm, 50);
 

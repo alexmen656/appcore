@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { prisma, getEffectiveSettings } from "../../config";
 import { requireAuth } from "../auth";
-import { langForCountry } from "../../services/app-store-markets";
+import { normalizeLanguage } from "../../services/app-store-markets";
 
 export const keywordsRouter = Router();
 keywordsRouter.use(requireAuth);
@@ -118,7 +118,7 @@ keywordsRouter.post("/", async (req, res) => {
     const { term, country, language, bundleId } = req.body;
     if (!term) return res.status(400).json({ error: "term is required" });
     const normalizedCountry = (country || "de").toLowerCase();
-    const normalizedLanguage = language || langForCountry(normalizedCountry);
+    const normalizedLanguage = normalizeLanguage(language, normalizedCountry);
 
     const settings = await getEffectiveSettings(req.user!.userId);
     const activeBundleId = bundleId || settings.ascBundleId;

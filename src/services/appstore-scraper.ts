@@ -5,11 +5,9 @@ import { prisma, logger, env } from "../config";
 import type { EffectiveSettings } from "../config";
 import { ScrapeType, JobStatus } from "@prisma/client";
 import {
-  langForCountry,
+  normalizeLanguage,
   storefrontHeaderForCountry,
 } from "./app-store-markets";
-
-// ─── iTunes Search API types ────────────────────────────────────────────
 
 interface ITunesResult {
   trackId: number;
@@ -34,8 +32,6 @@ interface ITunesSearchResponse {
   results: ITunesResult[];
 }
 
-// ─── App Store Scraper Service ──────────────────────────────────────────
-
 export class AppStoreScraper {
   private readonly baseUrl = "https://itunes.apple.com";
   private readonly country: string;
@@ -57,7 +53,7 @@ export class AppStoreScraper {
       this.bundleId = "";
     }
 
-    this.language = language ?? langForCountry(this.country);
+    this.language = normalizeLanguage(language, this.country);
   }
 
   async searchApps(term: string, limit = 25): Promise<ITunesResult[]> {
@@ -122,25 +118,12 @@ export class AppStoreScraper {
     difficulty: number;
     searchVolume: number;
   }> {
-    // ── 1. Fetch results and autocomplete suggestions in parallel ────
     const [results, suggestions] = await Promise.all([
       this.searchApps(term, limit),
       this.getSearchSuggestions(term),
     ]);
     const resultCount = results.length;
     const termLower = term.toLowerCase();
-
-    // ── 2. Autocomplete score (0–30) ─────────────────────────────────
-    //
-    // Apple's suggestion list position is the strongest externally-available
-    // proxy for real user search volume. We distinguish three match types:
-    //   exact   – term appears verbatim in suggestions  (strongest signal)
-    //   prefix  – a suggestion *starts with* our term   (e.g. "fit" → "fitness tracker")
-    //   contains – term appears somewhere inside a suggestion
-    //
-    // Suggestion count adds a small richness bonus: Apple only returns
-    // completions for queries with meaningful search activity, so more
-    // completions = busier query space.
 
     const exactIndex = suggestions.findIndex(
       (s) => s.toLowerCase() === termLower,
@@ -168,36 +151,22 @@ export class AppStoreScraper {
     } else if (containsIndex >= 0) {
       positionScore = Math.max(2, Math.round(8 - containsIndex * 1.5));
     } else if (suggestions.length > 0) {
-      // Apple returns completions but none relate to our term → low but non-zero
       positionScore = 2;
     } else {
       positionScore = 0;
     }
 
-    // Richness bonus (0–5): more completions returned = busier query space
     const suggestionBonus = Math.min(5, Math.ceil(suggestions.length / 2));
     const autocompleteScore = Math.min(
       30,
       Math.round(positionScore + suggestionBonus),
     );
 
-    // ── 3. Market depth score (0–25): result saturation ──────────────
-    //
-    // Logistic curve via 1 − e^(−x/15) — grows quickly at first then
-    // saturates near 50 results. No hard tier thresholds, no cliffs.
     const depthScore =
       resultCount === 0
         ? 0
         : Math.round(25 * (1 - Math.exp(-resultCount / 15)));
 
-    // ── 4. Engagement score (0–30): position-weighted rating counts ───
-    //
-    // Higher-ranked apps are more indicative of keyword demand; later
-    // positions get exponential decay. Log-scaled so the range doesn't
-    // collapse for ultra-popular keywords vs niche ones.
-    //   weighted ≈ 100  → score ≈ 10
-    //   weighted ≈ 10K  → score ≈ 20
-    //   weighted ≈ 1M   → score = 30 (cap)
     const weightedRatings = results
       .slice(0, 20)
       .reduce((sum, r, i) => sum + (r.userRatingCount ?? 0) / (1 + i * 0.3), 0);
@@ -206,23 +175,11 @@ export class AppStoreScraper {
         ? Math.min(30, Math.round(Math.log10(weightedRatings + 1) * 5))
         : 0;
 
-    // ── 5. Market quality score (0–15): breadth of established apps ───
-    //
-    // Counts how many of the top-10 results have ≥500 ratings.
-    // A keyword where 8 of the top 10 apps are well-established is a
-    // genuinely more active search space than one with a single hit app.
     const qualifiedApps = results
       .slice(0, 10)
       .filter((r) => (r.userRatingCount ?? 0) >= 500).length;
     const qualityScore = Math.min(15, Math.round(qualifiedApps * 1.5));
 
-    // ── 6. Brand-term detection & penalty ─────────────────────────────
-    //
-    // Brand searches (e.g. "whatsapp", "spotify") show: very few diverse
-    // results, first app name closely matches the query. They reflect high
-    // search volume but zero targetability as generic keywords. We use
-    // character-bigram (Dice) similarity for a fuzzy name comparison
-    // rather than simple startsWith, which misses many brand variants.
     let popularityMultiplier = 1.0;
     if (resultCount <= 4 && results.length > 0) {
       const firstApp = results[0]?.trackName?.toLowerCase() ?? "";
@@ -237,7 +194,6 @@ export class AppStoreScraper {
       }
     }
 
-    // ── 7. Composite popularity (0–100) ──────────────────────────────
     const rawPopularity =
       autocompleteScore + depthScore + engagementScore + qualityScore;
     const popularity = Math.min(
@@ -245,12 +201,6 @@ export class AppStoreScraper {
       Math.max(1, Math.round(rawPopularity * popularityMultiplier)),
     );
 
-    // ── 8. Difficulty: position-weighted competitor strength ──────────
-    //
-    // Blends top-3 avg (60 %) with top-10 avg (40 %) so the ranking leader
-    // matters more than the tail. Formula: (log10(x + 10) − 1) × 20
-    // anchors the scale at ratings ≈ 10, yielding:
-    //   ~90 ratings → 20   ~990 → 40   ~9 990 → 60   ~99 990 → 80   ~1 M → 100
     const top3 = results.slice(0, 3);
     const top10 = results.slice(0, 10);
 
@@ -272,8 +222,6 @@ export class AppStoreScraper {
       (Math.log10(blendedAvgRatings + 10) - 1) * 20,
     );
 
-    // Dominance bonus: a single market-leading app raises the entry bar
-    // even when the overall top-10 average looks moderate.
     const dominanceBonus =
       top10MaxRatings > 5_000_000
         ? 8
@@ -288,7 +236,6 @@ export class AppStoreScraper {
       Math.max(1, baseDifficulty + dominanceBonus),
     );
 
-    // ── 9. Search volume: result count as proxy ───────────────────────
     const searchVolume = resultCount;
 
     logger.debug(
@@ -397,9 +344,11 @@ export class AppStoreScraper {
         const container = timeEl.closest(
           "li, .version-history__item, section, [data-test-id]",
         );
+
         const containerText = (
           container.length ? container : timeEl.parent()
         ).text();
+
         const versionFromText =
           containerText.match(/Version\s+([\d]+(?:\.[\d]+)*)/i)?.[1] ?? null;
 
@@ -543,7 +492,6 @@ export class AppStoreScraper {
       },
     });
 
-    // For own apps, backfill version history from the App Store page
     if (isOwnApp && itunesData.trackId) {
       const history = await this.scrapeVersionHistory(itunesData.trackId);
       for (const { version, date } of history) {
@@ -677,10 +625,6 @@ export class AppStoreScraper {
     }
   }
 
-  /**
-   * Sørensen–Dice similarity over character bigrams (0–1).
-   * Used for brand-term detection without a heavy string-similarity library.
-   */
   private stringSimilarity(a: string, b: string): number {
     if (a === b) return 1;
     if (a.length < 2 || b.length < 2) return 0;
