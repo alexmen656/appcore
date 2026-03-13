@@ -364,12 +364,10 @@ export class AIAnalyzer {
     };
   }
 
-  // ─── ASO Analysis ─────────────────────────────────────────────────
-
   async analyzeAndSuggest(
     locales?: string[],
   ): Promise<Map<string, ASOAnalysis>> {
-    const targetLocales = locales ?? this.settings?.asoLocales ?? "en-US";
+    const targetLocales = locales ?? ["en-US"];
     const results = new Map<string, ASOAnalysis>();
     const appData = await this.gatherAppData();
 

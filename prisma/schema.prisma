@@ -7,8 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ─── Users & Auth ───────────────────────────────────────────────────────────
-
 model User {
   id           String        @id @default(cuid())
   email        String        @unique
@@ -16,7 +14,6 @@ model User {
   passwordHash String
   role         UserRole      @default(USER)
   settings     UserSettings?
-
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -28,83 +25,50 @@ enum UserRole {
   USER
 }
 
-/// Per-user configuration stored in the DB (replaces .env for multi-user)
 model UserSettings {
   id     String @id @default(cuid())
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  // ── App Store Connect ────────────────────────────────────────────────
   ascIssuerId   String?
   ascKeyId      String?
-  ascPrivateKey String? // PEM content (not a file path)
+  ascPrivateKey String?
   ascAppId      String?
   ascBundleId   String?
-
-  // ── AI Provider ──────────────────────────────────────────────────────
   openaiApiKey    String?
   anthropicApiKey String?
-  aiProvider      String? @default("openai") // openai | anthropic
-
-  // ── Scraping ─────────────────────────────────────────────────────────
-  scrapeCountry       String? @default("us")
-  scrapeIntervalHours Int?    @default(24)
-  maxCompetitors      Int?    @default(20)
-
-  // ── Multi-locale ASO ─────────────────────────────────────────────────
-  asoLocales String? @default("en-US") // comma-separated, e.g. "en-US,de-DE"
-
-  // ── Analytics ────────────────────────────────────────────────────────
-  ascVendorNumber          String? // required for Sales Reports API
-
-  // ── MCP Integration ───────────────────────────────────────────────────
+  aiProvider      String? @default("openai")
+  ascVendorNumber          String?
   mcpEnabled  Boolean @default(false)
-  mcpApiKey   String? // UUID-basierter Key, null bis erstmalig generiert
-
-  // ── GitHub Integration ────────────────────────────────────────────────
-  githubAccessToken  String?  // OAuth access token
-  githubUsername     String?  // GitHub login
-  githubAvatarUrl    String?  // avatar_url
+  mcpApiKey   String?
+  githubAccessToken  String?
+  githubUsername     String?
+  githubAvatarUrl    String?
   githubConnectedAt  DateTime?
-
   updatedAt DateTime @updatedAt
 }
-
-// ─── Our App ────────────────────────────────────────────────────────────────
 
 model App {
   id            String   @id @default(cuid())
   bundleId      String   @unique
   name          String
-  trackId       BigInt?     @unique // Apple's numeric ID
+  trackId       BigInt?     @unique
   country       String   @default("de")
   isOwnApp      Boolean  @default(false)
-
-  // Current ASO metadata (synced from App Store Connect)
   currentTitle       String?
   currentSubtitle    String?
-  currentKeywords    String?  // comma-separated
+  currentKeywords    String?
   currentDescription String?
-
-  // Per-app Apple Analytics ONGOING request ID (persisted across syncs)
   analyticsRequestId String?
-  // ONE_TIME_SNAPSHOT request ID – polled until all historical data is fetched
   analyticsSnapshotRequestId String?
-
-  // GitHub repo link
-  githubRepoOwner    String?   // e.g. "octocat"
-  githubRepoName     String?   // e.g. "my-ios-app"
-  githubRepoFullName String?   // e.g. "octocat/my-ios-app"
-  githubWebhookId    BigInt?   // GitHub webhook ID for cleanup
-  githubWebhookSecret String?  // random HMAC secret per app
-
-  // iOS code signing (base64-encoded, stored per app)
-  signingCertP12        String?  // base64 .p12 certificate
-  signingCertPassword   String?  // password for the .p12
-  signingProvisioningProfile String?  // base64 .mobileprovision
-  signingTeamId         String?  // Apple Team ID (e.g. "ABC123XYZ")
-
-  // Tracking
+  githubRepoOwner    String?
+  githubRepoName     String?
+  githubRepoFullName String?
+  githubWebhookId    BigInt?
+  githubWebhookSecret String?
+  signingCertP12        String?
+  signingCertPassword   String?
+  signingProvisioningProfile String?
+  signingTeamId         String?
   snapshots     AppSnapshot[]
   rankings      KeywordRanking[]
   competitors   CompetitorRelation[] @relation("app_competitors")
@@ -114,7 +78,6 @@ model App {
   competitorReviews   CompetitorReview[]
   reviewSummaries     CompetitorReviewSummary[]
   metadataChanges     AppMetadataChange[]
-
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -122,56 +85,45 @@ model App {
   @@index([country])
 }
 
-// ─── Snapshots of app metadata over time ─────────────────────────────────
+
 
 model AppSnapshot {
   id             String   @id @default(cuid())
   appId          String
   app            App      @relation(fields: [appId], references: [id], onDelete: Cascade)
-
-  // Scraped metadata
   title          String
   subtitle       String?
   description    String
-  keywords       String?   // if available (only for our own app via ASC)
+  keywords       String?   
   rating         Float?
   ratingsCount   Int?
   price           Float?
   version        String?
   releaseNotes   String?
-  screenshotUrls String[]  // array of URLs
+  screenshotUrls String[]  
   iconUrl        String?
   developerName  String?
   category       String?
   categoryId     Int?
-
-  // Computed metrics
   descriptionLength  Int?
   wordCount          Int?
   readabilityScore   Float?
-
   scrapedAt      DateTime @default(now())
 
   @@index([appId, scrapedAt])
   @@index([scrapedAt])
 }
 
-// ─── Keywords we track ──────────────────────────────────────────────────
-
 model Keyword {
   id          String   @id @default(cuid())
   term        String
   country     String   @default("de")
   language    String   @default("de")
-
-  // Search Ads data
-  popularity     Float?   // Apple Search Ads popularity score
-  difficulty     Float?   // estimated difficulty
-  searchVolume   Int?     // estimated monthly searches
-
+  popularity     Float?
+  difficulty     Float?
+  searchVolume   Int?
   rankings    KeywordRanking[]
   suggestions ASOSuggestion[]
-
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -180,7 +132,7 @@ model Keyword {
   @@index([popularity])
 }
 
-// ─── Keyword ranking snapshots ──────────────────────────────────────────
+
 
 model KeywordRanking {
   id          String   @id @default(cuid())
@@ -188,10 +140,8 @@ model KeywordRanking {
   keyword     Keyword  @relation(fields: [keywordId], references: [id], onDelete: Cascade)
   appId       String
   app         App      @relation(fields: [appId], references: [id], onDelete: Cascade)
-
-  rank        Int?     // null = not ranked
+  rank        Int?
   country     String   @default("de")
-
   trackedAt   DateTime @default(now())
 
   @@index([keywordId, trackedAt])
@@ -199,7 +149,7 @@ model KeywordRanking {
   @@index([trackedAt])
 }
 
-// ─── Competitor relationships ───────────────────────────────────────────
+
 
 model CompetitorRelation {
   id            String   @id @default(cuid())
@@ -207,45 +157,33 @@ model CompetitorRelation {
   app           App      @relation("app_competitors", fields: [appId], references: [id], onDelete: Cascade)
   competitorId  String
   competitor    App      @relation("competitor_of", fields: [competitorId], references: [id], onDelete: Cascade)
-
-  relevanceScore Float?   // AI-computed relevance 0-1
+  relevanceScore Float?   
   addedAt        DateTime @default(now())
 
   @@unique([appId, competitorId])
 }
 
-// ─── AI-generated ASO suggestions ───────────────────────────────────────
+
 
 model ASOSuggestion {
   id              String   @id @default(cuid())
-
-  // What was suggested
   type            SuggestionType
-  locale          String   @default("en-US") // ASC locale (en-US, de-DE, etc.)
+  locale          String   @default("en-US") 
   suggestedValue  String
-  reasoning       String    // AI explanation
-
-  // Context
-  appBundleId     String?   // which app this suggestion belongs to
+  reasoning       String
+  appBundleId     String?
   currentValue    String?
   keywordId       String?
   keyword         Keyword?  @relation(fields: [keywordId], references: [id])
-
-  // Scoring
-  confidenceScore Float?    // 0-1
-  estimatedImpact Float?    // 0-1
-
-  // Status tracking
+  confidenceScore Float?
+  estimatedImpact Float?
   status          SuggestionStatus @default(PENDING)
   appliedAt       DateTime?
   resultNotes     String?
-
-  // AI metadata
-  aiProvider      String    // openai | anthropic
+  aiProvider      String    
   aiModel         String
   promptTokens    Int?
   completionTokens Int?
-
   createdAt       DateTime @default(now())
 
   @@index([type, status])
@@ -269,16 +207,13 @@ enum SuggestionStatus {
   EXPIRED
 }
 
-// ─── Scrape job tracking ────────────────────────────────────────────────
-
 model ScrapeJob {
   id          String      @id @default(cuid())
   type        ScrapeType
   status      JobStatus   @default(PENDING)
-  result      String?     // JSON summary
+  result      String?
   error       String?
   itemsCount  Int         @default(0)
-
   startedAt   DateTime?
   completedAt DateTime?
   createdAt   DateTime    @default(now())
@@ -297,23 +232,18 @@ enum ScrapeType {
   FASTLANE_SUBMIT
 }
 
-// ─── App Store Connect Analytics ────────────────────────────────────────────
-
 model AppStoreAnalytics {
   id          String   @id @default(cuid())
   bundleId    String
-  reportDate  DateTime // the day this row represents (midnight UTC)
-  country     String   // 2-letter country code, e.g. "DE", "US"
-  downloads   Int      @default(0) // new installs (product type 1 / 1F)
-  updates     Int      @default(0) // re-downloads / updates (product type 1T)
-  reDownloads Int      @default(0) // re-downloads counted separately
-  proceeds    Float    @default(0) // Developer Proceeds (revenue in USD)
-
-  // From Apple Analytics Reports API (App Store Engagement report)
-  impressions Int      @default(0) // total impressions (search + browse)
-  pageViews   Int      @default(0) // product page views
-  sessions    Int      @default(0) // unique sessions / active devices
-
+  reportDate  DateTime
+  country     String   
+  downloads   Int      @default(0) 
+  updates     Int      @default(0) 
+  reDownloads Int      @default(0) 
+  proceeds    Float    @default(0) 
+  impressions Int      @default(0) 
+  pageViews   Int      @default(0) 
+  sessions    Int      @default(0) 
   createdAt   DateTime @default(now())
 
   @@unique([bundleId, reportDate, country])
@@ -322,31 +252,29 @@ model AppStoreAnalytics {
 
 model AppReview {
   id               String   @id @default(cuid())
-  ascReviewId      String   @unique // ASC's own review ID
+  ascReviewId      String   @unique
   bundleId         String
-  rating           Int // 1–5
+  rating           Int
   title            String?
   body             String?
   reviewerNickname String?
-  territory        String? // e.g. "DEU", "USA"
-  reviewedAt       DateTime // createdDate from ASC
+  territory        String?
+  reviewedAt       DateTime
   createdAt        DateTime @default(now())
 
   @@index([bundleId, reviewedAt])
 }
 
-// ─── Competitor Reviews (scraped from App Store) ────────────────────────
-
 model CompetitorReview {
   id               String   @id @default(cuid())
   appId            String
   app              App      @relation(fields: [appId], references: [id], onDelete: Cascade)
-  externalId       String?  // external review ID for deduplication
-  rating           Int      // 1–5
+  externalId       String?
+  rating           Int
   title            String?
   body             String?
   author           String?
-  territory        String?  // e.g. "de", "us"
+  territory        String?
   reviewedAt       DateTime
   createdAt        DateTime @default(now())
 
@@ -355,19 +283,17 @@ model CompetitorReview {
   @@index([appId, rating])
 }
 
-// ─── AI-generated review summaries per competitor ───────────────────────
-
 model CompetitorReviewSummary {
   id              String   @id @default(cuid())
   appId           String
   app             App      @relation(fields: [appId], references: [id], onDelete: Cascade)
-  reviewCount     Int      // how many reviews went into this summary
+  reviewCount     Int
   averageRating   Float
-  summary         String   // AI-generated summary text
-  strengths       String[] // key strengths extracted
-  weaknesses      String[] // key weaknesses extracted
-  topThemes       String[] // main themes (e.g. "performance", "ui", "price")
-  sentiment       String?  // overall sentiment: positive | mixed | negative
+  summary         String
+  strengths       String[]
+  weaknesses      String[]
+  topThemes       String[]
+  sentiment       String?
   aiProvider      String
   aiModel         String
   createdAt       DateTime @default(now())
@@ -375,13 +301,11 @@ model CompetitorReviewSummary {
   @@index([appId, createdAt])
 }
 
-// ─── Competitor metadata change tracking ────────────────────────────────
-
 model AppMetadataChange {
   id          String   @id @default(cuid())
   appId       String
   app         App      @relation(fields: [appId], references: [id], onDelete: Cascade)
-  field       String   // title | subtitle | description | keywords | version | rating | price
+  field       String
   oldValue    String?
   newValue    String?
   detectedAt  DateTime @default(now())
@@ -397,14 +321,12 @@ enum JobStatus {
   FAILED
 }
 
-// ─── Push Notification Device Tokens ────────────────────────────────────
-
 model DeviceToken {
   id          String   @id @default(cuid())
   token       String   @unique
-  userId      String?  // optional link to a user
-  bundleId    String?  // app bundle ID
-  platform    String   @default("ios") // ios | android
+  userId      String?
+  bundleId    String?
+  platform    String   @default("ios")
   isActive    Boolean  @default(true)
 
   createdAt   DateTime @default(now())
@@ -414,52 +336,35 @@ model DeviceToken {
   @@index([token])
 }
 
-// ─── Push Notification Log ──────────────────────────────────────────────
-
 model PushNotificationLog {
   id          String   @id @default(cuid())
   deviceToken String
   title       String
   body        String
-  category    String?  // KEYWORD_RANK_UPDATE, SUBMISSION_UPDATE, JOB_COMPLETE
-  data        Json?    // additional payload data
-  status      String   @default("sent") // sent | failed | delivered
+  category    String?
+  data        Json?
+  status      String   @default("sent")
   error       String?
-
   sentAt      DateTime @default(now())
 
   @@index([category, sentAt])
 }
 
-// ─── Screenshot generation from GitHub pushes ──────────────────────────
-
 model ScreenshotJob {
   id            String    @id @default(cuid())
   appId         String
   app           App       @relation(fields: [appId], references: [id], onDelete: Cascade)
-
   commitSha     String
   commitMessage String?
   branch        String?
-  pusher        String?   // GitHub username who pushed
-
+  pusher        String?
   status        JobStatus @default(PENDING)
-  logs          String?   // JSON stringified log lines
+  logs          String?
   error         String?
-  screenshotUrls String[] // resulting screenshot URLs / paths
-
-  // Framed (App Store ready) screenshots, keyed by locale
-  // e.g. { "de-DE": ["/screenshots/jobId/framed/de-DE/...png"], ... }
+  screenshotUrls String[]
   framedByLocale Json?
-
-  // Raw descriptions from fastlane/screenshot_descriptions.json
-  // e.g. { "04_Community": "Community tab with posts and social interactions" }
   screenshotDescriptions Json?
-
-  // AI-generated optimized sublines per locale per screenshot
-  // e.g. { "en-US": { "04_Community": "Connect & Share Adventures" }, "de-DE": { ... } }
   screenshotSublines Json?
-
   startedAt     DateTime?
   completedAt   DateTime?
   createdAt     DateTime  @default(now())
@@ -468,26 +373,19 @@ model ScreenshotJob {
   @@index([commitSha])
 }
 
-// ─── Autonomous ASO Experiments ─────────────────────────────────────────
-
 model AsoExperiment {
   id              String               @id @default(cuid())
   appId           String
   app             App                  @relation(fields: [appId], references: [id], onDelete: Cascade)
-
   type            AsoExperimentType
   fromValue       String?
   toValue         String?
-  reason          String?              // AI explanation
-  confidence      Float                // 0.0 – 1.0
-
+  reason          String?
+  confidence      Float
   status          AsoExperimentStatus  @default(PENDING)
-
-  // Outcome tracking
   rankBefore      Int?
   rankAfter       Int?
   impressionsDelta Int?
-
   deployedAt      DateTime?
   evaluatedAt     DateTime?
   createdAt       DateTime             @default(now())

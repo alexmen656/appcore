@@ -181,9 +181,8 @@ export function RepoLinker({
         GitHub Repository
       </h2>
       <p className="text-xs text-[#9ca3af] dark:text-[#5c6478] mb-4">
-        Link a GitHub repo to this app. On every push, AppCore will clone the
-        repo and run <code className="text-[11px]">fastlane snapshot</code> to
-        generate screenshots.
+        Link a GitHub repo to this app. On every push, AppCore will automatically
+        generate screenshots and binary.
       </p>
 
       {link?.linked ? (
@@ -201,7 +200,7 @@ export function RepoLinker({
                 {link.repoFullName}
               </div>
               <div className="text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
-                Webhook active — screenshots on push
+                Repo connected
               </div>
             </div>
           </div>

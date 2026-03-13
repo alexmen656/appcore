@@ -91,7 +91,6 @@ dashboardRouter.get("/", async (req, res) => {
       config: {
         bundleId: settings.ascBundleId,
         country: settings.scrapeCountry,
-        locales: settings.asoLocales.join(","),
         aiProvider: settings.aiProvider,
         hasOpenAI: !!settings.openaiApiKey,
         hasAnthropic: !!settings.anthropicApiKey,
@@ -101,7 +100,6 @@ dashboardRouter.get("/", async (req, res) => {
           settings.ascPrivateKey
         ),
         hasSearchAds: !!env.APPLE_ADS_CLIENT_ID,
-        scrapeInterval: settings.scrapeIntervalHours,
       },
       lastJob: lastJob
         ? {

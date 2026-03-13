@@ -27,10 +27,6 @@ settingsRouter.get("/", async (req, res) => {
             anthropicApiKey: settings.anthropicApiKey ? "••••••••" : "",
             anthropicApiKeySet: !!settings.anthropicApiKey,
             aiProvider: settings.aiProvider ?? "openai",
-            scrapeCountry: settings.scrapeCountry ?? "us",
-            scrapeIntervalHours: settings.scrapeIntervalHours ?? 24,
-            maxCompetitors: settings.maxCompetitors ?? 20,
-            asoLocales: settings.asoLocales ?? "en-US",
           }
         : {
             ascIssuerId: "",
@@ -45,10 +41,6 @@ settingsRouter.get("/", async (req, res) => {
             anthropicApiKey: "",
             anthropicApiKeySet: false,
             aiProvider: "openai",
-            scrapeCountry: "us",
-            scrapeIntervalHours: 24,
-            maxCompetitors: 20,
-            asoLocales: "en-US",
           },
     );
   } catch (err) {
@@ -69,10 +61,6 @@ settingsRouter.put("/", async (req, res) => {
       openaiApiKey,
       anthropicApiKey,
       aiProvider,
-      scrapeCountry,
-      scrapeIntervalHours,
-      maxCompetitors,
-      asoLocales,
     } = req.body as Record<string, any>;
 
     const data: Record<string, any> = {};
@@ -88,12 +76,6 @@ settingsRouter.put("/", async (req, res) => {
     if (anthropicApiKey !== undefined && anthropicApiKey !== "••••••••")
       data.anthropicApiKey = anthropicApiKey || null;
     if (aiProvider !== undefined) data.aiProvider = aiProvider || "openai";
-    if (scrapeCountry !== undefined) data.scrapeCountry = scrapeCountry || "us";
-    if (scrapeIntervalHours !== undefined)
-      data.scrapeIntervalHours = Number(scrapeIntervalHours) || 24;
-    if (maxCompetitors !== undefined)
-      data.maxCompetitors = Number(maxCompetitors) || 20;
-    if (asoLocales !== undefined) data.asoLocales = asoLocales || "en-US";
 
     await prisma.userSettings.upsert({
       where: { userId: req.user!.userId },

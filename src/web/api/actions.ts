@@ -31,7 +31,7 @@ actionsRouter.post("/analyze", async (req, res) => {
     const effectiveSettings = { ...settings, ascBundleId: bundleId };
     const { AIAnalyzer } = await import("../../services/ai-analyzer");
     const analyzer = new AIAnalyzer(effectiveSettings);
-    const locales: string[] = req.body.locales || settings.asoLocales;
+    const locales: string[] = req.body.locales || ["en-US"];
 
     res.json({
       ok: true,
@@ -63,7 +63,13 @@ actionsRouter.post("/sync", async (req, res) => {
       privateKey: settings.ascPrivateKey,
     });
 
-    const locales = settings.asoLocales;
+    const availableLocalizations = settings.ascAppId
+      ? await asc.getAppInfoLocalizations(settings.ascAppId).catch(() => [])
+      : [];
+    const locales =
+      availableLocalizations.length > 0
+        ? availableLocalizations.map((l: any) => l.attributes?.locale ?? l.locale).filter(Boolean)
+        : ["en-US"];
     const results: Record<string, any> = {};
 
     for (const locale of locales) {

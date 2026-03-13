@@ -109,7 +109,7 @@ export class ASOExecutor {
       },
     });
 
-    const locale = settings.asoLocales?.[0] ?? "en-US";
+    const locale = "en-US";
     const asc = new AppStoreConnectClient({
       issuerId: settings.ascIssuerId!,
       keyId: settings.ascKeyId!,

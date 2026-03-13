@@ -438,9 +438,7 @@ export function createMcpServer(userId: string): McpServer {
             await new AppStoreScraper(effectiveSettings).runFullScrapeJob();
           } else if (job === "analyze") {
             const { AIAnalyzer } = await import("../services/ai-analyzer");
-            await new AIAnalyzer(effectiveSettings).analyzeAndSuggest(
-              settings.asoLocales,
-            );
+            await new AIAnalyzer(effectiveSettings).analyzeAndSuggest();
           } else if (job === "sync") {
             const { AppStoreConnectClient } =
               await import("../services/appstore-connect");
@@ -449,7 +447,14 @@ export function createMcpServer(userId: string): McpServer {
               keyId: settings.ascKeyId,
               privateKey: settings.ascPrivateKey,
             });
-            for (const locale of settings.asoLocales) {
+            const ascLocalizations = settings.ascAppId
+              ? await asc.getAppInfoLocalizations(settings.ascAppId).catch(() => [])
+              : [];
+            const syncLocales =
+              ascLocalizations.length > 0
+                ? ascLocalizations.map((l: any) => l.attributes?.locale ?? l.locale).filter(Boolean)
+                : ["en-US"];
+            for (const locale of syncLocales) {
               await asc.getCurrentASOState(locale);
             }
           } else if (job === "track-keywords") {

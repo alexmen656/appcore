@@ -135,7 +135,11 @@ export class FastlaneService {
     const live = await this.asc.getLiveVersion(app.id);
     const version = editable ?? live;
 
-    const locales = this.settings.asoLocales;
+    const ascLocalizations = await this.asc.getAppInfoLocalizations(app.id).catch(() => []);
+    const locales =
+      ascLocalizations.length > 0
+        ? ascLocalizations.map((l: any) => l.attributes?.locale ?? l.locale).filter(Boolean)
+        : ["en-US"];
     const localeData: SubmissionPreview["locales"] = [];
 
     for (const locale of locales) {

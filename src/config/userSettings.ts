@@ -14,13 +14,8 @@ export interface EffectiveSettings {
   anthropicApiKey: string;
   aiProvider: "openai" | "anthropic";
 
-  // Scraping
+  // Scraping (derived from App model, not user-editable)
   scrapeCountry: string;
-  scrapeIntervalHours: number;
-  maxCompetitors: number;
-
-  // ASO
-  asoLocales: string[];
 }
 
 const DEFAULTS: EffectiveSettings = {
@@ -34,9 +29,6 @@ const DEFAULTS: EffectiveSettings = {
   anthropicApiKey: "",
   aiProvider: "openai",
   scrapeCountry: "de",
-  scrapeIntervalHours: 24,
-  maxCompetitors: 20,
-  asoLocales: ["en-US"],
 };
 
 export async function getEffectiveSettings(
@@ -44,22 +36,26 @@ export async function getEffectiveSettings(
 ): Promise<EffectiveSettings> {
   const s = await prisma.userSettings.findUnique({ where: { userId } });
 
+  const bundleId = s?.ascBundleId ?? "";
+  let scrapeCountry = DEFAULTS.scrapeCountry;
+  if (bundleId) {
+    const app = await prisma.app.findUnique({
+      where: { bundleId },
+      select: { country: true },
+    });
+    if (app?.country) scrapeCountry = app.country;
+  }
+
   return {
     ascIssuerId: s?.ascIssuerId ?? DEFAULTS.ascIssuerId,
     ascKeyId: s?.ascKeyId ?? DEFAULTS.ascKeyId,
     ascPrivateKey: s?.ascPrivateKey ?? DEFAULTS.ascPrivateKey,
     ascAppId: s?.ascAppId ?? DEFAULTS.ascAppId,
-    ascBundleId: s?.ascBundleId ?? DEFAULTS.ascBundleId,
+    ascBundleId: bundleId,
     ascVendorNumber: s?.ascVendorNumber ?? DEFAULTS.ascVendorNumber,
     openaiApiKey: s?.openaiApiKey ?? DEFAULTS.openaiApiKey,
     anthropicApiKey: s?.anthropicApiKey ?? DEFAULTS.anthropicApiKey,
     aiProvider: s?.aiProvider === "anthropic" ? "anthropic" : "openai",
-    scrapeCountry: s?.scrapeCountry ?? DEFAULTS.scrapeCountry,
-    scrapeIntervalHours: s?.scrapeIntervalHours ?? DEFAULTS.scrapeIntervalHours,
-    maxCompetitors: s?.maxCompetitors ?? DEFAULTS.maxCompetitors,
-    asoLocales: (s?.asoLocales ?? "en-US")
-      .split(",")
-      .map((l) => l.trim())
-      .filter(Boolean),
+    scrapeCountry,
   };
 }

@@ -209,9 +209,6 @@ export interface SettingsData {
   anthropicApiKey: string;
   anthropicApiKeySet: boolean;
   aiProvider: string;
-  scrapeCountry: string;
-  scrapeIntervalHours: number;
-  maxCompetitors: number;
 }
 
 export interface GitHubStatus {
