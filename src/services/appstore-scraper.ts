@@ -4,6 +4,10 @@ import { parseStringPromise } from "xml2js";
 import { prisma, logger, env } from "../config";
 import type { EffectiveSettings } from "../config";
 import { ScrapeType, JobStatus } from "@prisma/client";
+import {
+  langForCountry,
+  storefrontHeaderForCountry,
+} from "./app-store-markets";
 
 // ─── iTunes Search API types ────────────────────────────────────────────
 
@@ -30,116 +34,6 @@ interface ITunesSearchResponse {
   results: ITunesResult[];
 }
 
-// ─── Country → Language mapping ─────────────────────────────────────────
-
-const COUNTRY_LANG: Record<string, string> = {
-  us: "en",
-  gb: "en",
-  au: "en",
-  ca: "en",
-  nz: "en",
-  ie: "en",
-  za: "en",
-  sg: "en",
-  in: "en",
-  de: "de",
-  at: "de",
-  ch: "de",
-  fr: "fr",
-  be: "fr",
-  es: "es",
-  mx: "es",
-  ar: "es",
-  cl: "es",
-  co: "es",
-  pt: "pt",
-  br: "pt",
-  it: "it",
-  nl: "nl",
-  ja: "ja",
-  jp: "ja",
-  ko: "ko",
-  kr: "ko",
-  zh: "zh",
-  cn: "zh",
-  tw: "zh",
-  hk: "zh",
-  ru: "ru",
-  tr: "tr",
-  pl: "pl",
-  sv: "sv",
-  se: "sv",
-  no: "no",
-  da: "da",
-  dk: "da",
-  fi: "fi",
-  th: "th",
-  id: "id",
-  vi: "vi",
-  vn: "vi",
-  ms: "ms",
-  my: "ms",
-  el: "el",
-  gr: "el",
-  he: "he",
-  il: "he",
-  sa: "ar",
-  ae: "ar",
-  eg: "ar",
-  hi: "hi",
-  uk: "uk",
-  ua: "uk",
-  cs: "cs",
-  cz: "cs",
-  sk: "sk",
-  ro: "ro",
-  hu: "hu",
-  hr: "hr",
-  bg: "bg",
-};
-
-function langForCountry(country: string): string {
-  return COUNTRY_LANG[country.toLowerCase()] ?? "en";
-}
-
-// ─── Apple Store-Front IDs (for search hints API) ───────────────────────
-const STOREFRONT: Record<string, string> = {
-  us: "143441-1,29",
-  gb: "143444-2,29",
-  au: "143460-27,29",
-  ca: "143455-6,29",
-  de: "143443-4,29",
-  at: "143445-4,29",
-  ch: "143459-4,29",
-  fr: "143442-3,29",
-  be: "143446-3,29",
-  es: "143454-8,29",
-  mx: "143468-28,29",
-  pt: "143453-24,29",
-  br: "143503-15,29",
-  it: "143450-7,29",
-  nl: "143452-10,29",
-  jp: "143462-9,29",
-  kr: "143466-13,29",
-  cn: "143465-19,29",
-  tw: "143470-18,29",
-  hk: "143463-45,29",
-  ru: "143469-16,29",
-  tr: "143480-25,29",
-  se: "143456-17,29",
-  no: "143457-14,29",
-  dk: "143458-11,29",
-  fi: "143447-12,29",
-  pl: "143478-39,29",
-  in: "143467-50,29",
-  sg: "143464-48,29",
-  nz: "143461-27,29",
-  za: "143472-27,29",
-  ie: "143449-2,29",
-  th: "143475-35,29",
-  id: "143476-37,29",
-};
-
 // ─── App Store Scraper Service ──────────────────────────────────────────
 
 export class AppStoreScraper {
@@ -155,8 +49,10 @@ export class AppStoreScraper {
     if (countryOrSettings && typeof countryOrSettings === "object") {
       this.country = countryOrSettings.scrapeCountry;
       this.bundleId = countryOrSettings.ascBundleId;
+    } else if (typeof countryOrSettings === "string") {
+      this.country = countryOrSettings;
+      this.bundleId = "";
     } else {
-      console.log(`[AppStoreScraper] No settings provided.`);
       this.country = "";
       this.bundleId = "";
     }
@@ -180,7 +76,7 @@ export class AppStoreScraper {
   }
 
   async getSearchSuggestions(term: string): Promise<string[]> {
-    const storeFront = STOREFRONT[this.country.toLowerCase()] ?? STOREFRONT.us;
+    const storeFront = storefrontHeaderForCountry(this.country);
     const url = `https://search.itunes.apple.com/WebObjects/MZSearchHints.woa/wa/hints`;
     try {
       const { data: xml } = await axios.get<string>(url, {

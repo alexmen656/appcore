@@ -3,9 +3,9 @@ import type { EffectiveSettings } from "../config";
 import { AppStoreScraper } from "./appstore-scraper";
 import { AppleSearchAdsClient } from "./search-ads";
 import { ScrapeType, JobStatus } from "@prisma/client";
+import { langForCountry } from "./app-store-markets";
 
 export class KeywordTracker {
-  private scraper: AppStoreScraper;
   private searchAds: AppleSearchAdsClient | null = null;
   private searchAdsPopularity: Map<string, number> | null = null;
   private readonly bundleId: string;
@@ -25,7 +25,6 @@ export class KeywordTracker {
       this.country = "";
       this.ascAppId = "";
     }
-    this.scraper = new AppStoreScraper(settings ?? this.country);
 
     if (env.APPLE_ADS_CLIENT_ID) {
       this.searchAds = new AppleSearchAdsClient();
@@ -71,7 +70,7 @@ export class KeywordTracker {
     language?: string,
   ): Promise<number> {
     let added = 0;
-    const lang = language ?? country;
+    const lang = language ?? langForCountry(country);
     for (const term of terms) {
       const normalized = term.toLowerCase().trim();
       if (!normalized) continue;
@@ -99,8 +98,12 @@ export class KeywordTracker {
       return null;
     }
 
+    const scraper = new AppStoreScraper(
+      country,
+      keyword.language || langForCountry(country),
+    );
     const { results, popularity, difficulty, searchVolume } =
-      await this.scraper.analyzeKeyword(keywordTerm, 50);
+      await scraper.analyzeKeyword(keywordTerm, 50);
 
     const searchAdsData = await this.fetchSearchAdsData();
     const realPopularity = searchAdsData.get(keywordTerm.toLowerCase());

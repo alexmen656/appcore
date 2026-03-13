@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -40,6 +41,15 @@ export default function RankingHistoryChart({
   ownBundleId,
   onClose,
 }: Props) {
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   const ownLabel = "Your App";
   const chartData = (() => {
     if (!history?.rankings?.length) return [];
@@ -87,87 +97,95 @@ export default function RankingHistoryChart({
   })();
 
   return (
-    <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-6 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
-      <div className="flex items-start justify-between mb-5">
-        <div>
-          <h3 className="text-base font-semibold text-[#111827] dark:text-[#e8eaf0]">
-            Ranking History:{" "}
-            <span className="text-[#ea0e2b]">{keyword.term}</span>
-          </h3>
-          <div className="text-xs text-[#9ca3af] dark:text-[#5c6478] mt-1">
-            {keyword.country.toUpperCase()} · Popularity{" "}
-            {keyword.popularity ?? "—"} · Difficulty {keyword.difficulty ?? "—"}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+      <div
+        className="absolute inset-0 bg-black/40 dark:bg-black/60"
+        onClick={onClose}
+      />
+      <div className="relative w-full max-w-5xl max-h-[calc(100vh-2rem)] overflow-hidden rounded-2xl border border-[#eef0f3] bg-white shadow-2xl dark:border-[#2a2f3d] dark:bg-[#1c2028]">
+        <div className="flex items-start justify-between gap-4 border-b border-[#eef0f3] px-6 py-5 dark:border-[#2a2f3d]">
+          <div>
+            <h3 className="text-base font-semibold text-[#111827] dark:text-[#e8eaf0]">
+              Ranking History:{" "}
+              <span className="text-[#ea0e2b]">{keyword.term}</span>
+            </h3>
+            <div className="mt-1 text-xs text-[#9ca3af] dark:text-[#5c6478]">
+              {keyword.country.toUpperCase()} · Popularity {keyword.popularity ?? "—"} · Difficulty{" "}
+              {keyword.difficulty ?? "—"}
+            </div>
           </div>
+          <button className={btnSecSm} onClick={onClose}>
+            Close
+          </button>
         </div>
-        <button className={btnSecSm} onClick={onClose}>
-          Close
-        </button>
-      </div>
 
-      {loading ? (
-        <div className="flex justify-center py-12 text-[#9ca3af] dark:text-[#5c6478] gap-2">
-          <div className="spinner" /> Loading history…
+        <div className="max-h-[calc(100vh-9rem)] overflow-y-auto p-6">
+          {loading ? (
+            <div className="flex justify-center gap-2 py-16 text-[#9ca3af] dark:text-[#5c6478]">
+              <div className="spinner" /> Loading history…
+            </div>
+          ) : chartData.length === 0 ? (
+            <div className="py-16 text-center text-sm text-[#9ca3af] dark:text-[#5c6478]">
+              No ranking history yet. Run tracking first.
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={420}>
+              <LineChart
+                data={chartData}
+                margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 11, fill: "#9ca3af" }}
+                  tickLine={false}
+                />
+                <YAxis
+                  reversed
+                  domain={[1, "auto"]}
+                  tick={{ fontSize: 11, fill: "#9ca3af" }}
+                  tickLine={false}
+                  label={{
+                    value: "Rank",
+                    angle: -90,
+                    position: "insideLeft",
+                    style: { fontSize: 11, fill: "#9ca3af" },
+                  }}
+                  allowDecimals={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "#fff",
+                    border: "1px solid #eef0f3",
+                    borderRadius: 12,
+                    fontSize: 12,
+                    boxShadow: "0 4px 12px rgba(0,0,0,.06)",
+                  }}
+                  labelStyle={{ fontWeight: 600, marginBottom: 4 }}
+                />
+                <Legend
+                  verticalAlign="top"
+                  height={36}
+                  iconType="circle"
+                  wrapperStyle={{ fontSize: 12 }}
+                />
+                {appNames.map((name, i) => (
+                  <Line
+                    key={name}
+                    type="monotone"
+                    dataKey={name}
+                    stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                    strokeWidth={name === ownLabel ? 3 : 1.5}
+                    dot={{ r: name === ownLabel ? 4 : 2 }}
+                    activeDot={{ r: 6 }}
+                    connectNulls
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
-      ) : chartData.length === 0 ? (
-        <div className="py-12 text-center text-[#9ca3af] dark:text-[#5c6478] text-sm">
-          No ranking history yet. Run tracking first.
-        </div>
-      ) : (
-        <ResponsiveContainer width="100%" height={320}>
-          <LineChart
-            data={chartData}
-            margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-            <XAxis
-              dataKey="date"
-              tick={{ fontSize: 11, fill: "#9ca3af" }}
-              tickLine={false}
-            />
-            <YAxis
-              reversed
-              domain={[1, "auto"]}
-              tick={{ fontSize: 11, fill: "#9ca3af" }}
-              tickLine={false}
-              label={{
-                value: "Rank",
-                angle: -90,
-                position: "insideLeft",
-                style: { fontSize: 11, fill: "#9ca3af" },
-              }}
-              allowDecimals={false}
-            />
-            <Tooltip
-              contentStyle={{
-                background: "#fff",
-                border: "1px solid #eef0f3",
-                borderRadius: 12,
-                fontSize: 12,
-                boxShadow: "0 4px 12px rgba(0,0,0,.06)",
-              }}
-              labelStyle={{ fontWeight: 600, marginBottom: 4 }}
-            />
-            <Legend
-              verticalAlign="top"
-              height={36}
-              iconType="circle"
-              wrapperStyle={{ fontSize: 12 }}
-            />
-            {appNames.map((name, i) => (
-              <Line
-                key={name}
-                type="monotone"
-                dataKey={name}
-                stroke={CHART_COLORS[i % CHART_COLORS.length]}
-                strokeWidth={name === "Kalbuddy" ? 3 : 1.5}
-                dot={{ r: name === "Kalbuddy" ? 4 : 2 }}
-                activeDot={{ r: 6 }}
-                connectNulls
-              />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
-      )}
+      </div>
     </div>
   );
 }

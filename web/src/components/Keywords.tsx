@@ -102,6 +102,7 @@ export default function Keywords({ addToast }: Props) {
       return;
     }
     setSelectedKeyword(kw);
+    setHistory(null);
     setHistoryLoading(true);
     try {
       const res = await fetch(`/api/keywords/${kw.id}/history`, {

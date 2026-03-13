@@ -1,25 +1,7 @@
 import { inputCls, btnPrimSm } from "../../../styles";
+import { COUNTRIES } from "./storefronts";
 
-export const COUNTRIES: { code: string; label: string; lang: string }[] = [
-  { code: "de", label: "DE — Deutschland", lang: "de" },
-  { code: "us", label: "US — United States", lang: "en" },
-  { code: "gb", label: "GB — United Kingdom", lang: "en" },
-  { code: "at", label: "AT — Österreich", lang: "de" },
-  { code: "ch", label: "CH — Schweiz", lang: "de" },
-  { code: "fr", label: "FR — France", lang: "fr" },
-  { code: "es", label: "ES — España", lang: "es" },
-  { code: "it", label: "IT — Italia", lang: "it" },
-  { code: "nl", label: "NL — Netherlands", lang: "nl" },
-  { code: "pl", label: "PL — Poland", lang: "pl" },
-  { code: "tr", label: "TR — Türkiye", lang: "tr" },
-  { code: "br", label: "BR — Brasil", lang: "pt" },
-  { code: "mx", label: "MX — México", lang: "es" },
-  { code: "ca", label: "CA — Canada", lang: "en" },
-  { code: "au", label: "AU — Australia", lang: "en" },
-  { code: "jp", label: "JP — Japan", lang: "ja" },
-  { code: "kr", label: "KR — Korea", lang: "ko" },
-  { code: "cn", label: "CN — China", lang: "zh" },
-];
+export { COUNTRIES } from "./storefronts";
 
 interface Props {
   newTerm: string;

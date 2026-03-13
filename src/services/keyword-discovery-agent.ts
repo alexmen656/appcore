@@ -4,6 +4,7 @@ import { prisma, env, logger } from "../config";
 import type { EffectiveSettings } from "../config";
 import { ScrapeType, JobStatus } from "@prisma/client";
 import { AppStoreScraper } from "./appstore-scraper";
+import { langForCountry } from "./app-store-markets";
 
 const MIN_POPULARITY = 15;
 const MIN_RESULTS = 3;
@@ -131,6 +132,7 @@ export class KeywordDiscoveryAgent {
     const qualified = await this.scoreAndFilter([...candidates]);
 
     let added = 0;
+    const keywordLanguage = langForCountry(this.country);
     const ownApp = await prisma.app.findUnique({
       where: { bundleId: this.bundleId },
     });
@@ -138,7 +140,11 @@ export class KeywordDiscoveryAgent {
     for (const term of qualified) {
       const keyword = await prisma.keyword.upsert({
         where: { term_country: { term, country: this.country } },
-        create: { term, country: this.country, language: this.country },
+        create: {
+          term,
+          country: this.country,
+          language: keywordLanguage,
+        },
         update: {},
       });
 
