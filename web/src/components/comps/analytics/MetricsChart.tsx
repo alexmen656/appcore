@@ -78,7 +78,7 @@ export default function MetricsChart({ data, markers = [] }: Props) {
     setActiveMetrics((prev) => {
       const next = new Set(prev);
       if (next.has(key)) {
-        if (next.size === 1) return prev; // keep at least one
+        if (next.size === 1) return prev;
         next.delete(key);
       } else {
         next.add(key);
@@ -91,13 +91,11 @@ export default function MetricsChart({ data, markers = [] }: Props) {
     <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
         <div>
-          <div className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0]">Metrics over time</div>
-          <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mt-0.5">Daily breakdown</div>
+          <div className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0]">Metrics over time</div>
         </div>
         <div className="flex flex-wrap gap-1.5">
           {METRICS.map((m) => {
             const active = activeMetrics.has(m.key);
-            // dim engagement metrics if no data yet
             const noData =
               (m.key === "impressions" || m.key === "pageViews" || m.key === "sessions") &&
               !hasEngagement;

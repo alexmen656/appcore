@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import {
   useApi,
   apiPost,
@@ -6,6 +6,7 @@ import {
   authHeaders,
   getActiveBundleId,
 } from "../hooks/useApi";
+import { useClickOutside } from "../hooks/useClickOutside";
 import KeywordForm, { COUNTRIES } from "./comps/keywords/KeywordForm";
 import KeywordTable, { Keyword } from "./comps/keywords/KeywordTable";
 import RankingHistoryChart, {
@@ -28,6 +29,9 @@ export default function Keywords({ addToast }: Props) {
   const [history, setHistory] = useState<HistoryData | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [running, setRunning] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useClickOutside(menuRef, useCallback(() => setMenuOpen(false), []));
 
   const triggerAction = async (endpoint: string, label: string) => {
     setRunning(endpoint);
@@ -122,21 +126,35 @@ export default function Keywords({ addToast }: Props) {
         <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0]">
           Keywords
         </h1>
-        <div className="flex gap-2">
+        <div ref={menuRef} className="relative flex items-stretch">
           <button
-            onClick={() => triggerAction("track-keywords", "Track")}
+            onClick={() => triggerAction("keyword-discovery", "Discover Keywords")}
             disabled={!!running}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-[#111827] dark:text-[#e8eaf0] hover:border-[#ea0e2b] hover:text-[#ea0e2b] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 pl-3.5 pr-3 py-2 rounded-l-xl text-sm font-semibold bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {running === "track-keywords" ? <><div className="spinner" /> Tracking…</> : "Track Rankings"}
+            {running === "keyword-discovery" ? <><div className="spinner !w-3.5 !h-3.5" /> Discovering…</> : "Discover Keywords"}
           </button>
+          <div className="w-px bg-[#c80b24] opacity-40" />
           <button
-            onClick={() => triggerAction("discover-keywords", "Discover")}
+            onClick={() => setMenuOpen((o) => !o)}
             disabled={!!running}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-2.5 rounded-r-xl bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="More actions"
           >
-            {running === "discover-keywords" ? <><div className="spinner" /> Discovering…</> : "Discover Keywords"}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`w-3.5 h-3.5 transition-transform ${menuOpen ? "rotate-180" : ""}`}>
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
           </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl shadow-lg py-1 min-w-[170px]">
+              <button
+                onClick={() => { setMenuOpen(false); triggerAction("track-keywords", "Track Rankings"); }}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
+              >
+                Track Rankings
+              </button>
+            </div>
+          )}
         </div>
       </div>
       <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">

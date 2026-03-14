@@ -5,11 +5,11 @@ import type { GitHubStatus } from "../../../types";
 import { btnPrimary, btnSecondary } from "../../../styles";
 
 export default function GitHubSection() {
-  const { data: status, loading, refetch } = useApi<GitHubStatus>(
-    "/github/status",
-    [],
-    true,
-  );
+  const {
+    data: status,
+    loading,
+    refetch,
+  } = useApi<GitHubStatus>("/github/status", [], true);
   const [disconnecting, setDisconnecting] = useState(false);
 
   const handleConnect = async () => {
@@ -25,7 +25,12 @@ export default function GitHubSection() {
   };
 
   const handleDisconnect = async () => {
-    if (!confirm("Disconnect your GitHub account? Existing repo links will stop receiving webhooks.")) return;
+    if (
+      !confirm(
+        "Disconnect your GitHub account? Existing repo links will stop receiving webhooks.",
+      )
+    )
+      return;
     setDisconnecting(true);
     try {
       await apiPost("/github/disconnect");
@@ -37,12 +42,10 @@ export default function GitHubSection() {
     }
   };
 
-  // Check for ?github=connected in URL
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("github") === "connected") {
       refetch();
-      // Clean URL
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);

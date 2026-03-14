@@ -1023,7 +1023,7 @@ export default function App() {
   return (
     <div className="flex h-screen overflow-hidden">
       <ToastContainer toasts={toasts} />
-      <aside className="w-[275px] min-w-[275px] bg-[#f8f9fb] dark:bg-[#13161d] border-r border-[#e5e7eb] dark:border-[#2a2f3d] flex flex-col overflow-y-auto">
+      <aside className="w-[275px] min-w-[275px] bg-[#f8f9fb] dark:bg-[#252b38] border-r border-[#e5e7eb] dark:border-[#2a2f3d] flex flex-col overflow-y-auto">
         <div className="px-4 pt-6 pb-5 flex items-center gap-2.5">
           <img
             className="w-[42px] h-[42px] rounded-lg"
@@ -1033,9 +1033,6 @@ export default function App() {
           <div>
             <div className="text-2xl font-bold text-[#ea0e2b] tracking-[-0.3px]">
               AppCore
-            </div>
-            <div className="text-sm text-[#9ca3af] dark:text-[#5c6478] font-medium">
-              ASO Engine
             </div>
           </div>
         </div>
@@ -1069,7 +1066,7 @@ export default function App() {
         />
       </aside>
 
-      <main className="flex-1 overflow-y-auto px-8 py-7 bg-[#f8f9fb] dark:bg-[#0f1117]">
+      <main className="flex-1 overflow-y-auto px-7 py-6 bg-[#f8f9fb] dark:bg-[#0f1117]">
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />

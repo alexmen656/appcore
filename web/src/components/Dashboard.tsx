@@ -1,7 +1,6 @@
 import { useApi } from "../hooks/useApi";
 import StatsGrid from "./comps/dashboard/StatsGrid";
 import AppInfoCard from "./comps/dashboard/AppInfoCard";
-import ConfigurationTable from "./comps/dashboard/ConfigurationTable";
 import RecentSuggestionsTable from "./comps/dashboard/RecentSuggestionsTable";
 import LastJobStatus from "./comps/dashboard/LastJobStatus";
 import DownloadsChart from "./comps/analytics/DownloadsChart";
@@ -20,22 +19,23 @@ export default function Dashboard() {
       </div>
     );
   if (error)
-    return <div className="py-20 text-center text-gray-400 dark:text-[#5c6478]">{error}</div>;
+    return (
+      <div className="py-20 text-center text-gray-400 dark:text-[#5c6478]">
+        {error}
+      </div>
+    );
   if (!data) return null;
-  const { app, stats, config, lastJob, recentSuggestions } = data;
+  const { app, stats, lastJob, recentSuggestions } = data;
 
   return (
     <div>
-      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
+      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-5">
         Dashboard
       </h1>
-      <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">
-        Overview of your ASO engine
-      </p>
-
-      <StatsGrid stats={stats} />
 
       {app && <AppInfoCard app={app} />}
+
+      <StatsGrid stats={stats} />
 
       {downloads && (
         <div className="mb-5">
@@ -43,8 +43,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
-        <ConfigurationTable config={config} />
+      <div className="mb-5">
         <RecentSuggestionsTable suggestions={recentSuggestions} />
       </div>
 

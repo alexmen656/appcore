@@ -437,11 +437,8 @@ export default function Analytics({ addToast }: Props) {
 
       {hasEngagementData && (
         <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] mb-5">
-          <div className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-0.5">
-            Conversion funnel
-          </div>
-          <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mb-5">
-            From impressions to downloads for {rangeLabel(range)}
+          <div className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-2">
+            Conversion funnel ({rangeLabel(range)})
           </div>
           <div className="space-y-3">
             <FunnelRow
@@ -474,11 +471,8 @@ export default function Analytics({ addToast }: Props) {
         <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
           <div className="px-5 py-4 border-b border-[#f3f4f6] dark:border-[#2a2f3d] flex items-center justify-between">
             <div>
-              <div className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
-                Top Countries
-              </div>
-              <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mt-0.5">
-                {rangeLabel(range)}
+              <div className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+                Top Countries ({rangeLabel(range)})
               </div>
             </div>
             {hasEngagementData && (
@@ -576,11 +570,8 @@ export default function Analytics({ addToast }: Props) {
         </div>
 
         <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
-          <div className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-1">
+          <div className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-4">
             Rating Distribution
-          </div>
-          <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mb-4">
-            Based on synced reviews
           </div>
           {(reviews ?? []).length === 0 ? (
             <div className="py-8 text-center text-[13px] text-[#9ca3af] dark:text-[#5c6478]">
@@ -627,11 +618,8 @@ export default function Analytics({ addToast }: Props) {
       {(downloads?.byCountry ?? []).length > 0 && (
         <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl overflow-hidden mt-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
           <div className="px-5 py-4 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
-            <div className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
-              Full Country Breakdown
-            </div>
-            <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mt-0.5">
-              {rangeLabel(range)}
+            <div className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+              Full Country Breakdown ({rangeLabel(range)})
             </div>
           </div>
           <table className="w-full">

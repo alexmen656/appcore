@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useApi, apiPost, apiDelete, getActiveBundleId } from "../hooks/useApi";
+import { useClickOutside } from "../hooks/useClickOutside";
 import OwnAppCard, { AppItem } from "./comps/competitors/OwnAppCard";
 import CompetitorCard from "./comps/competitors/CompetitorCard";
 import CompetitorDetailModal from "./comps/CompetitorDetailModal";
@@ -13,6 +14,9 @@ export default function Competitors({ addToast }: Props) {
   const [discovering, setDiscovering] = useState(false);
   const [intelRunning, setIntelRunning] = useState(false);
   const [detailAppId, setDetailAppId] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useClickOutside(menuRef, useCallback(() => setMenuOpen(false), []));
 
   const discoverCompetitors = async () => {
     setDiscovering(true);
@@ -70,54 +74,35 @@ export default function Competitors({ addToast }: Props) {
         <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0]">
           Competitors
         </h1>
-        <div className="flex gap-2">
-          <button
-            onClick={runCompetitorIntel}
-            disabled={intelRunning}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-[#111827] dark:text-[#e8eaf0] hover:border-[#ea0e2b] hover:text-[#ea0e2b] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {intelRunning ? (
-              <>
-                <div className="spinner" /> Gathering…
-              </>
-            ) : (
-              <>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-                </svg>
-                Gather Intel
-              </>
-            )}
-          </button>
+        <div ref={menuRef} className="relative flex items-stretch">
           <button
             onClick={discoverCompetitors}
-            disabled={discovering}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={discovering || intelRunning}
+            className="inline-flex items-center gap-1.5 pl-3.5 pr-3 py-2 rounded-l-xl text-sm font-semibold bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-          {discovering ? (
-            <>
-              <div className="spinner" /> Discovering…
-            </>
-          ) : (
-            <>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-4 h-4"
-              >
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.35-4.35" />
-              </svg>
-              Discover Competitors
-            </>
-          )}
+            {discovering ? <><div className="spinner !w-3.5 !h-3.5" /> Discovering…</> : "Discover Competitors"}
           </button>
+          <div className="w-px bg-[#c80b24] opacity-40" />
+          <button
+            onClick={() => setMenuOpen((o) => !o)}
+            disabled={discovering || intelRunning}
+            className="px-2.5 rounded-r-xl bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="More actions"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`w-3.5 h-3.5 transition-transform ${menuOpen ? "rotate-180" : ""}`}>
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl shadow-lg py-1 min-w-[160px]">
+              <button
+                onClick={() => { setMenuOpen(false); runCompetitorIntel(); }}
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
+              >
+                Gather Intel
+              </button>
+            </div>
+          )}
         </div>
       </div>
       <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">

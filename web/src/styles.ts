@@ -5,7 +5,7 @@ export const TD =
   "px-4 py-3.5 border-b border-[#f3f4f6] dark:border-[#2a2f3d] text-[13px] align-middle";
 
 export const cardCls =
-  "bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-6 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]";
+  "bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]";
 
 export const btnPrimary =
   "inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed";
@@ -25,15 +25,19 @@ export const inputCls =
 export const textareaCls = `${inputCls} resize-y font-mono text-xs`;
 
 export const badgeVariants: Record<string, string> = {
-  pending: "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
-  approved: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
+  pending:
+    "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
+  approved:
+    "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
   applied: "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
   rejected: "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400",
   running: "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
-  title: "bg-violet-50 text-violet-700 dark:bg-violet-900/20 dark:text-violet-400",
+  title:
+    "bg-violet-50 text-violet-700 dark:bg-violet-900/20 dark:text-violet-400",
   subtitle: "bg-sky-50 text-sky-700 dark:bg-sky-900/20 dark:text-sky-400",
   keywords: "bg-pink-50 text-pink-700 dark:bg-pink-900/20 dark:text-pink-400",
-  description: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
+  description:
+    "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
 };
 
 export const badge = (v: string) =>
