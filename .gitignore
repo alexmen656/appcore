@@ -5,12 +5,7 @@ keys/
 *.p8
 .DS_Store
 apple_*
-AppCore copy.html
-AppCore copy 3.html
-AppCore copy 2.html
-Fringelo.html
 screenshots/*
 docs/*
-src/scripts/trigger-analytics-snapshot.ts
 appcore-builds/*
 .claude/*
