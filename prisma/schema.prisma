@@ -11,13 +11,31 @@ model User {
   id           String        @id @default(cuid())
   email        String        @unique
   name         String?
-  passwordHash String
+  passwordHash String?
   role         UserRole      @default(USER)
   settings     UserSettings?
+  passkeys     PasskeyCredential[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
   @@index([email])
+}
+
+model PasskeyCredential {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialId String   @unique
+  publicKey    Bytes
+  counter      BigInt   @default(0)
+  deviceType   String   @default("singleDevice")
+  backedUp     Boolean  @default(false)
+  transports   String[]
+  name         String?
+  createdAt    DateTime @default(now())
+  lastUsedAt   DateTime?
+
+  @@index([userId])
 }
 
 enum UserRole {

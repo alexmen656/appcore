@@ -9,6 +9,12 @@ const envSchema = z.object({
     .default("development"),
   DATABASE_URL: z.string().url(),
 
+  // Auth
+  JWT_SECRET: z.string().min(32).default("appcore-dev-secret-change-me-in-production-32x"),
+  WEBAUTHN_RP_ID: z.string().default("localhost"),
+  WEBAUTHN_RP_NAME: z.string().default("AppCore"),
+  WEBAUTHN_ORIGIN: z.string().default("http://localhost:5173"),
+
   // Apple Search Ads
   APPLE_ADS_CLIENT_ID: z.string().optional(),
   APPLE_ADS_KEY_PATH: z.string().default("./apple_ads_private_key.pem"),

@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { env } from "../config";
 
-const JWT_SECRET = process.env.JWT_SECRET ?? "appcore-dev-secret-change-me";
+const JWT_SECRET = env.JWT_SECRET;
 export const JWT_EXPIRES_IN = "30d";
 
 export interface JwtPayload {
