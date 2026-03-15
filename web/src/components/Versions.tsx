@@ -28,7 +28,6 @@ const FIELD_META: {
   type: "input" | "textarea";
   hint?: string;
   maxLength?: number;
-  level: "app" | "version";
 }[] = [
   {
     key: "name",
@@ -36,7 +35,6 @@ const FIELD_META: {
     type: "input",
     hint: "Max 30 characters",
     maxLength: 30,
-    level: "app",
   },
   {
     key: "subtitle",
@@ -44,7 +42,6 @@ const FIELD_META: {
     type: "input",
     hint: "Max 30 characters",
     maxLength: 30,
-    level: "app",
   },
   {
     key: "keywords",
@@ -52,7 +49,6 @@ const FIELD_META: {
     type: "textarea",
     hint: "Comma-separated, max 100 characters",
     maxLength: 100,
-    level: "version",
   },
   {
     key: "description",
@@ -60,7 +56,6 @@ const FIELD_META: {
     type: "textarea",
     hint: "Max 4000 characters",
     maxLength: 4000,
-    level: "version",
   },
   {
     key: "promotionalText",
@@ -68,7 +63,6 @@ const FIELD_META: {
     type: "textarea",
     hint: "Max 170 characters, can be updated without new version",
     maxLength: 170,
-    level: "version",
   },
   {
     key: "whatsNew",
@@ -76,21 +70,18 @@ const FIELD_META: {
     type: "textarea",
     hint: "Release notes for this version",
     maxLength: 4000,
-    level: "version",
   },
   {
     key: "supportUrl",
     label: "Support URL",
     type: "input",
     hint: "URL to your support page",
-    level: "app",
   },
   {
     key: "privacyPolicyUrl",
     label: "Privacy Policy URL",
     type: "input",
     hint: "URL to your privacy policy",
-    level: "app",
   },
 ];
 
@@ -162,12 +153,14 @@ function ActionButton({
   isActive,
   onSubmitForReview,
   onPushMetadata,
+  onRefetch,
 }: {
   canSubmitForReview: boolean;
   submitting: string | null;
   isActive: boolean;
   onSubmitForReview: () => void;
   onPushMetadata: () => void;
+  onRefetch: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -256,6 +249,27 @@ function ActionButton({
               </svg>
               Push Metadata
             </button>
+            <button
+              onClick={() => {
+                setOpen(false);
+                onRefetch();
+              }}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-4 h-4 text-[#6b7280] dark:text-[#8b93a5]"
+              >
+                <polyline points="23 4 23 10 17 10" />
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+              </svg>
+              Reload
+            </button>
           </div>
         )}
       </div>
@@ -311,6 +325,31 @@ function ActionButton({
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl shadow-lg py-1 min-w-[160px]">
+          <button
+            onClick={() => {
+              setOpen(false);
+              onRefetch();
+            }}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-4 h-4 text-[#6b7280] dark:text-[#8b93a5]"
+            >
+              <polyline points="23 4 23 10 17 10" />
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+            </svg>
+            Reload
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -394,15 +433,6 @@ function EditableField({
           <label className="text-[12px] font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide">
             {field.label}
           </label>
-          <span
-            className={`text-[9px] px-1.5 py-0.5 rounded font-medium uppercase tracking-wide ${
-              field.level === "app"
-                ? "bg-sky-50 text-sky-600"
-                : "bg-violet-50 text-violet-600"
-            }`}
-          >
-            {field.level === "app" ? "App" : "Version"}
-          </span>
         </div>
         <div className="flex items-center gap-2">
           {field.maxLength && editing && (
@@ -803,7 +833,7 @@ function ScreenshotsPanel({
   return (
     <div className={`${cardCls} mb-5`}>
       <div className="flex items-center gap-2 mb-4">
-        <h2 className="text-[13px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+        <h2 className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
           Screenshots
         </h2>
         <span className="text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
@@ -1051,9 +1081,9 @@ export default function Versions({ addToast }: Props) {
       <div className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-2.5 flex-wrap">
           {data.versionString && (
-            <span className="text-[13px] font-mono text-[#9ca3af] dark:text-[#5c6478] bg-[#f3f4f6] dark:bg-[#252b38] px-2 py-0.5 rounded-lg">
-              v{data.versionString}
-            </span>
+            <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0]">
+              Version {data.versionString}
+            </h1>
           )}
           {data.appStoreState && <StateBadge state={data.appStoreState} />}
           {!data.isEditable && data.appStoreState === "READY_FOR_SALE" && (
@@ -1064,30 +1094,13 @@ export default function Versions({ addToast }: Props) {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={refetch}
-            className="p-[8px] rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-[#6b7280] dark:text-[#8b93a5] hover:border-[#ea0e2b] hover:text-[#ea0e2b] transition-all"
-            title="Refresh"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-4 h-4"
-            >
-              <polyline points="23 4 23 10 17 10" />
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-            </svg>
-          </button>
           <ActionButton
             canSubmitForReview={canSubmitForReview}
             submitting={submitting}
             isActive={isActive}
             onSubmitForReview={submitForReview}
             onPushMetadata={submitMetadata}
+            onRefetch={refetch}
           />
         </div>
       </div>
@@ -1203,7 +1216,7 @@ export default function Versions({ addToast }: Props) {
         <div className={`${cardCls} flex flex-col gap-5`}>
           <div className="flex items-center justify-between pb-3 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
             <div className="flex items-center gap-2">
-              <span className="text-[14px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+              <span className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
                 {getLocaleName(activeLoc.locale)}
               </span>
               <span className="text-[11px] font-mono text-[#9ca3af] dark:text-[#5c6478]">
@@ -1264,9 +1277,6 @@ export default function Versions({ addToast }: Props) {
                   <div className="group">
                     <div className="text-[12px] font-semibold text-[#6b7280] uppercase tracking-wide mb-1.5 flex items-center gap-2">
                       Age Rating
-                      <span className="text-[9px] px-1.5 py-0.5 rounded font-medium uppercase tracking-wide bg-sky-50 text-sky-600">
-                        App
-                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[13px] text-[#111827] dark:text-[#e8eaf0] px-3.5 py-[9px] border border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#252b38] rounded-xl">
