@@ -5,29 +5,50 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { z } from "zod";
 import { prisma, logger, getEffectiveSettings } from "../config";
 
+function rejectUnauthorized(req: Request, res: Response) {
+  const base = `${req.protocol}://${req.get("host")}`;
+  res.setHeader(
+    "WWW-Authenticate",
+    `Bearer realm="${base}", resource_metadata="${base}/.well-known/oauth-protected-resource"`,
+  );
+  res.status(401).json({ error: "Unauthorized" });
+}
+
 export async function mcpAuth(req: Request, res: Response, next: NextFunction) {
   const header = req.headers.authorization;
   if (!header?.startsWith("Bearer ")) {
-    res
-      .status(401)
-      .json({ error: "MCP: Missing or invalid Authorization header" });
+    rejectUnauthorized(req, res);
     return;
   }
   const key = header.slice(7).trim();
   if (!key) {
-    res.status(401).json({ error: "MCP: Empty API key" });
+    rejectUnauthorized(req, res);
     return;
   }
   try {
     const settings = await prisma.userSettings.findFirst({
       where: { mcpApiKey: key, mcpEnabled: true },
     });
-    if (!settings) {
-      res.status(401).json({ error: "MCP: Invalid or disabled API key" });
+    if (settings) {
+      (req as any).mcpUserId = settings.userId;
+      next();
       return;
     }
-    (req as any).mcpUserId = settings.userId;
-    next();
+
+    const oauthToken = await prisma.oAuthToken.findUnique({
+      where: { accessToken: key },
+    });
+    if (oauthToken) {
+      const tokenSettings = await prisma.userSettings.findUnique({
+        where: { userId: oauthToken.userId },
+      });
+      if (tokenSettings?.mcpEnabled) {
+        (req as any).mcpUserId = oauthToken.userId;
+        next();
+        return;
+      }
+    }
+    rejectUnauthorized(req, res);
   } catch (err) {
     logger.error("MCP auth error", err);
     res.status(500).json({ error: "MCP: Internal auth error" });
@@ -40,7 +61,7 @@ export function createMcpServer(userId: string): McpServer {
     version: "1.0.0",
   });
 
-  // @ts-ignore - MCP SDK causes excessively deep type instantiation
+  // @ts-ignore
   server.tool(
     "list_apps",
     "List all apps managed in AppCore. Returns bundle IDs, names, and key metrics. " +
@@ -84,7 +105,7 @@ export function createMcpServer(userId: string): McpServer {
     },
   );
 
-  // @ts-ignore - MCP SDK causes excessively deep type instantiation
+  // @ts-ignore
   server.tool(
     "get_app_info",
     "Get current ASO metadata (title, subtitle, keywords, description) for a specific app. " +
@@ -262,7 +283,7 @@ export function createMcpServer(userId: string): McpServer {
     },
   );
 
-  // @ts-ignore - MCP SDK causes excessively deep type instantiation
+  // @ts-ignore
   server.tool(
     "get_suggestions",
     "Get AI-generated ASO suggestions (title, subtitle, keywords, description) for an app. " +
@@ -396,7 +417,7 @@ export function createMcpServer(userId: string): McpServer {
     },
   );
 
-  // @ts-ignore - MCP SDK causes excessively deep type instantiation
+  // @ts-ignore
   server.tool(
     "trigger_job",
     "Trigger a background job for an app. Available jobs: " +
@@ -487,7 +508,7 @@ export function createMcpServer(userId: string): McpServer {
     },
   );
 
-  // @ts-ignore - MCP SDK causes excessively deep type instantiation
+  // @ts-ignore
   server.tool(
     "get_reviews",
     "Get App Store reviews for an app. Returns rating, title, body, territory, and review date. " +
@@ -571,7 +592,7 @@ export function createMcpServer(userId: string): McpServer {
     },
   );
 
-  // @ts-ignore - MCP SDK causes excessively deep type instantiation
+  // @ts-ignore
   server.tool(
     "update_suggestion",
     "Update the status of an ASO suggestion. Use this to approve, reject, or mark suggestions as applied. " +

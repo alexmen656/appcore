@@ -339,6 +339,41 @@ enum JobStatus {
   FAILED
 }
 
+model OAuthClient {
+  id           String   @id @default(cuid())
+  clientId     String   @unique
+  clientSecret String
+  name         String
+  userId       String?
+  redirectUris String[]
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+}
+
+model OAuthCode {
+  id                  String   @id @default(cuid())
+  code                String   @unique
+  clientId            String
+  userId              String
+  redirectUri         String
+  codeChallenge       String?
+  codeChallengeMethod String?
+  expiresAt           DateTime
+  used                Boolean  @default(false)
+  createdAt           DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
+model OAuthToken {
+  id          String   @id @default(cuid())
+  accessToken String   @unique
+  clientId    String
+  userId      String
+  createdAt   DateTime @default(now())
+}
+
 model DeviceToken {
   id          String   @id @default(cuid())
   token       String   @unique

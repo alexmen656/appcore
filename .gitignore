@@ -13,3 +13,4 @@ screenshots/*
 docs/*
 src/scripts/trigger-analytics-snapshot.ts
 appcore-builds/*
+.claude/*

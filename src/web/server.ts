@@ -13,6 +13,7 @@ import { ascRouter } from "./api/asc";
 import { analyticsRouter } from "./api/analytics";
 import { schedulerRouter, scheduler } from "./api/scheduler";
 import { mcpRouter } from "./api/mcp";
+import { oauthRouter } from "./api/oauth";
 import { submissionsRouter } from "./api/submissions";
 import { githubRouter } from "./api/github";
 import { requireAuth } from "./auth";
@@ -26,6 +27,7 @@ import fs from "fs";
 const app = express();
 const PORT = process.env.WEB_PORT ?? 3100;
 
+app.set("trust proxy", 1);
 app.use(cors());
 app.use(express.json());
 
@@ -44,6 +46,29 @@ app.use("/api/github", githubRouter);
 app.use("/api/mcp", mcpRouter);
 app.use("/api/push", requireAuth, pushRouter);
 app.use("/api/autonomous", requireAuth, autonomousRouter);
+app.use("/", oauthRouter);
+
+app.get("/.well-known/oauth-protected-resource", (req, res) => {
+  const base = `${req.protocol}://${req.get("host")}`;
+  res.json({
+    resource: `${base}/mcp`,
+    authorization_servers: [base],
+  });
+});
+
+app.get("/.well-known/oauth-authorization-server", (req, res) => {
+  const base = `${req.protocol}://${req.get("host")}`;
+  res.json({
+    issuer: base,
+    authorization_endpoint: `${base}/authorize`,
+    token_endpoint: `${base}/token`,
+    registration_endpoint: `${base}/register`,
+    response_types_supported: ["code"],
+    grant_types_supported: ["authorization_code"],
+    code_challenge_methods_supported: ["S256"],
+    token_endpoint_auth_methods_supported: ["client_secret_post"],
+  });
+});
 app.post("/mcp", mcpAuth, createMcpHandler());
 
 const screenshotsDir = path.join(process.cwd(), "screenshots");

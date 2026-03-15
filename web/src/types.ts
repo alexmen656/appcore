@@ -269,6 +269,15 @@ export interface McpConfig {
   mcpApiKey: string | null;
 }
 
+export interface OAuthClient {
+  id: string;
+  clientId: string;
+  name: string;
+  redirectUris: string[];
+  userId: string | null;
+  createdAt: string;
+}
+
 export interface VersionSummary {
   versionId: string;
   versionString: string;
