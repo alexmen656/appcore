@@ -17,7 +17,7 @@ const envSchema = z.object({
 
   // Apple Search Ads
   APPLE_ADS_CLIENT_ID: z.string().optional(),
-  APPLE_ADS_KEY_PATH: z.string().default("./apple_ads_private_key.pem"),
+  APPLE_ADS_KEY_PATH: z.string().default("./keys/apple_ads_private_key.pem"),
   APPLE_ADS_KEY_ID: z.string().optional(),
   APPLE_ADS_TEAM_ID: z.string().optional(),
   APPLE_ADS_ORG_ID: z.string().optional(),

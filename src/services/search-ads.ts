@@ -12,7 +12,7 @@ interface SearchAdsToken {
 
 interface KeywordInsight {
   keyword: string;
-  popularity: number; // 5-100 scale
+  popularity: number;
   rankRange?: { low: number; high: number };
 }
 
@@ -48,7 +48,7 @@ export class AppleSearchAdsClient {
 
   private generateClientSecret(): string {
     const keyPath = path.resolve(
-      env.APPLE_ADS_KEY_PATH || "./apple_ads_private_key.pem",
+      env.APPLE_ADS_KEY_PATH || "./keys/apple_ads_private_key.pem",
     );
 
     if (!fs.existsSync(keyPath)) {
@@ -151,8 +151,6 @@ export class AppleSearchAdsClient {
     logger.info("Authenticated with Apple Search Ads API");
     return this.accessToken;
   }
-
-  // ─── Keyword Research ──────────────────────────────────────────────
 
   async getTargetingKeywords(
     appId: string,
