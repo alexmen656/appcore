@@ -8,7 +8,7 @@ import {
 } from "../hooks/useApi";
 import { useClickOutside } from "../hooks/useClickOutside";
 import KeywordForm, { COUNTRIES } from "./comps/keywords/KeywordForm";
-import KeywordTable, { Keyword } from "./comps/keywords/KeywordTable";
+import KeywordTable, { Keyword, SortKey } from "./comps/keywords/KeywordTable";
 import RankingHistoryChart, {
   HistoryData,
 } from "./comps/keywords/RankingHistoryChart";
@@ -22,16 +22,19 @@ export default function Keywords({ addToast }: Props) {
   const [newTerm, setNewTerm] = useState("");
   const [newCountry, setNewCountry] = useState("de");
   const [adding, setAdding] = useState(false);
-  const [sortBy, setSortBy] = useState<"popularity" | "term" | "rank">(
-    "popularity",
-  );
+  const [sortBy, setSortBy] = useState<SortKey>("popularity");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [filterCountry, setFilterCountry] = useState("");
   const [selectedKeyword, setSelectedKeyword] = useState<Keyword | null>(null);
   const [history, setHistory] = useState<HistoryData | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [running, setRunning] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  useClickOutside(menuRef, useCallback(() => setMenuOpen(false), []));
+  useClickOutside(
+    menuRef,
+    useCallback(() => setMenuOpen(false), []),
+  );
 
   const triggerAction = async (endpoint: string, label: string) => {
     setRunning(endpoint);
@@ -55,12 +58,33 @@ export default function Keywords({ addToast }: Props) {
       </div>
     );
 
+  const handleSort = (key: SortKey) => {
+    if (key === sortBy) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setSortBy(key);
+      setSortDir(key === "rank" ? "asc" : "desc");
+    }
+  };
+
   const keywords = data || [];
-  const sorted = [...keywords].sort((a, b) => {
+  const availableCountries = [
+    ...new Set(keywords.map((k) => k.country)),
+  ].sort();
+  const filtered = filterCountry
+    ? keywords.filter((k) => k.country === filterCountry)
+    : keywords;
+  const sorted = [...filtered].sort((a, b) => {
+    let cmp = 0;
     if (sortBy === "popularity")
-      return (b.popularity ?? -1) - (a.popularity ?? -1);
-    if (sortBy === "rank") return (a.ourRank ?? 999) - (b.ourRank ?? 999);
-    return a.term.localeCompare(b.term);
+      cmp = (a.popularity ?? -1) - (b.popularity ?? -1);
+    else if (sortBy === "rank") cmp = (a.ourRank ?? 999) - (b.ourRank ?? 999);
+    else if (sortBy === "difficulty")
+      cmp = (a.difficulty ?? -1) - (b.difficulty ?? -1);
+    else if (sortBy === "tracked")
+      cmp = (a.trackingCount ?? 0) - (b.trackingCount ?? 0);
+    else if (sortBy === "country") cmp = a.country.localeCompare(b.country);
+    else cmp = a.term.localeCompare(b.term);
+    return sortDir === "asc" ? cmp : -cmp;
   });
 
   const handleAdd = async (e: React.FormEvent) => {
@@ -128,11 +152,19 @@ export default function Keywords({ addToast }: Props) {
         </h1>
         <div ref={menuRef} className="relative flex items-stretch">
           <button
-            onClick={() => triggerAction("keyword-discovery", "Discover Keywords")}
+            onClick={() =>
+              triggerAction("keyword-discovery", "Discover Keywords")
+            }
             disabled={!!running}
             className="inline-flex items-center gap-1.5 pl-3.5 pr-3 py-2 rounded-l-xl text-sm font-semibold bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {running === "keyword-discovery" ? <><div className="spinner !w-3.5 !h-3.5" /> Discovering…</> : "Discover Keywords"}
+            {running === "keyword-discovery" ? (
+              <>
+                <div className="spinner !w-3.5 !h-3.5" /> Discovering…
+              </>
+            ) : (
+              "Discover Keywords"
+            )}
           </button>
           <div className="w-px bg-[#c80b24] opacity-40" />
           <button
@@ -141,14 +173,25 @@ export default function Keywords({ addToast }: Props) {
             className="px-2.5 rounded-r-xl bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="More actions"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`w-3.5 h-3.5 transition-transform ${menuOpen ? "rotate-180" : ""}`}>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={`w-3.5 h-3.5 transition-transform ${menuOpen ? "rotate-180" : ""}`}
+            >
               <polyline points="6 9 12 15 18 9" />
             </svg>
           </button>
           {menuOpen && (
             <div className="absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl shadow-lg py-1 min-w-[170px]">
               <button
-                onClick={() => { setMenuOpen(false); triggerAction("track-keywords", "Track Rankings"); }}
+                onClick={() => {
+                  setMenuOpen(false);
+                  triggerAction("track-keywords", "Track Rankings");
+                }}
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
               >
                 Track Rankings
@@ -167,8 +210,9 @@ export default function Keywords({ addToast }: Props) {
         newCountry={newCountry}
         setNewCountry={setNewCountry}
         adding={adding}
-        sortBy={sortBy}
-        setSortBy={setSortBy}
+        filterCountry={filterCountry}
+        setFilterCountry={setFilterCountry}
+        availableCountries={availableCountries}
         onSubmit={handleAdd}
       />
 
@@ -199,6 +243,9 @@ export default function Keywords({ addToast }: Props) {
         <KeywordTable
           keywords={sorted}
           selectedKeyword={selectedKeyword}
+          sortBy={sortBy}
+          sortDir={sortDir}
+          onSort={handleSort}
           onRowClick={loadHistory}
           onDelete={handleDelete}
         />
@@ -218,7 +265,9 @@ export default function Keywords({ addToast }: Props) {
       )}
 
       <div className="text-xs text-gray-400 dark:text-[#5c6478] mt-2">
-        {sorted.length} keyword{sorted.length !== 1 ? "s" : ""} tracked
+        {sorted.length}
+        {filterCountry ? ` of ${keywords.length}` : ""} keyword
+        {sorted.length !== 1 ? "s" : ""} tracked
       </div>
     </div>
   );

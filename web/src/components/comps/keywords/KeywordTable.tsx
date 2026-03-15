@@ -2,6 +2,7 @@ import { TH, TD, btnSecSm } from "../../../styles";
 import type { Keyword } from "../../../types";
 
 export type { Keyword };
+export type SortKey = "term" | "country" | "popularity" | "difficulty" | "rank" | "tracked";
 
 const rankColor = (rank: number | null) => {
   if (rank == null) return "text-gray-400 dark:text-[#5c6478]";
@@ -22,29 +23,60 @@ const diffColor = (d: number | null) =>
 interface Props {
   keywords: Keyword[];
   selectedKeyword: Keyword | null;
+  sortBy: SortKey;
+  sortDir: "asc" | "desc";
+  onSort: (key: SortKey) => void;
   onRowClick: (k: Keyword) => void;
   onDelete: (id: string, term: string) => void;
+}
+
+function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
+  return (
+    <span className={`inline-flex flex-col ml-1 leading-none ${active ? "opacity-100" : "opacity-25"}`}>
+      <svg viewBox="0 0 8 5" className={`w-2 h-1.5 ${active && dir === "asc" ? "text-[#ea0e2b]" : "text-current"}`} fill="currentColor">
+        <path d="M4 0L8 5H0z" />
+      </svg>
+      <svg viewBox="0 0 8 5" className={`w-2 h-1.5 ${active && dir === "desc" ? "text-[#ea0e2b]" : "text-current"}`} fill="currentColor">
+        <path d="M4 5L0 0h8z" />
+      </svg>
+    </span>
+  );
 }
 
 export default function KeywordTable({
   keywords,
   selectedKeyword,
+  sortBy,
+  sortDir,
+  onSort,
   onRowClick,
   onDelete,
 }: Props) {
+  const col = (key: SortKey, label: string) => (
+    <th
+      className={`${TH} cursor-pointer select-none hover:text-[#111827] dark:hover:text-[#e8eaf0] transition-colors`}
+      onClick={() => onSort(key)}
+    >
+      <span className="inline-flex items-center gap-0.5">
+        {label}
+        <SortIcon active={sortBy === key} dir={sortDir} />
+      </span>
+    </th>
+  );
+
   return (
     <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl overflow-hidden mb-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
       <table className="w-full border-collapse">
         <thead>
           <tr>
-            <th className={TH}>Keyword</th>
-            <th className={TH}>Country</th>
-            <th className={TH}>Popularity</th>
-            <th className={TH}>Difficulty</th>
+            {col("term", "Keyword")}
+            {col("country", "Country")}
+            {col("popularity", "Popularity")}
+            {col("difficulty", "Difficulty")}
             <th className={TH}>Results</th>
-            <th className={TH}>Our Rank</th>
+            {col("rank", "Our Rank")}
             <th className={TH}>Top Competitor</th>
-            <th className={TH}>Tracked</th>
+            {col("tracked", "Tracked")}
             <th className={TH}></th>
           </tr>
         </thead>

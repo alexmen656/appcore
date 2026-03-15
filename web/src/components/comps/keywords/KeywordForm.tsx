@@ -1,4 +1,4 @@
-import { inputCls, btnPrimSm } from "../../../styles";
+import { inputCls, btnPrimSm, btnPrimary } from "../../../styles";
 import { COUNTRIES } from "./storefronts";
 
 export { COUNTRIES } from "./storefronts";
@@ -9,8 +9,9 @@ interface Props {
   newCountry: string;
   setNewCountry: (v: string) => void;
   adding: boolean;
-  sortBy: "popularity" | "term" | "rank";
-  setSortBy: (v: "popularity" | "term" | "rank") => void;
+  filterCountry: string;
+  setFilterCountry: (v: string) => void;
+  availableCountries: string[];
   onSubmit: (e: React.FormEvent) => void;
 }
 
@@ -20,48 +21,56 @@ export default function KeywordForm({
   newCountry,
   setNewCountry,
   adding,
-  sortBy,
-  setSortBy,
+  filterCountry,
+  setFilterCountry,
+  availableCountries,
   onSubmit,
 }: Props) {
   return (
-    <form
-      onSubmit={onSubmit}
-      className="flex items-center gap-2.5 flex-wrap mb-6"
-    >
-      <input
-        className={`${inputCls} w-52`}
-        type="text"
-        placeholder="Add keyword to track…"
-        value={newTerm}
-        onChange={(e) => setNewTerm(e.target.value)}
-      />
-      <select
-        className={`${inputCls} cursor-pointer`}
-        value={newCountry}
-        onChange={(e) => setNewCountry(e.target.value)}
-      >
-        {COUNTRIES.map((c) => (
-          <option key={c.code} value={c.code}>
-            {c.label}
-          </option>
-        ))}
-      </select>
-      <button type="submit" className={btnPrimSm} disabled={adding}>
-        + Add
-      </button>
+    <div className="flex items-center gap-2.5 flex-wrap mb-6">
+      <form onSubmit={onSubmit} className="flex items-center gap-2.5">
+        <input
+          className={`${inputCls} w-100`}
+          type="text"
+          placeholder="Add keyword to track…"
+          value={newTerm}
+          onChange={(e) => setNewTerm(e.target.value)}
+        />
+        <select
+          className={`${inputCls} cursor-pointer`}
+          value={newCountry}
+          onChange={(e) => setNewCountry(e.target.value)}
+        >
+          {COUNTRIES.map((c) => (
+            <option key={c.code} value={c.code}>
+              {c.label}
+            </option>
+          ))}
+        </select>
+        <button type="submit" className={`${btnPrimary} w-100`} disabled={adding}>
+          + Add
+        </button>
+      </form>
       <div className="flex-1" />
-      <select
-        className={`${inputCls} cursor-pointer`}
-        value={sortBy}
-        onChange={(e) =>
-          setSortBy(e.target.value as "popularity" | "term" | "rank")
-        }
-      >
-        <option value="popularity">Sort by Popularity</option>
-        <option value="rank">Sort by Rank</option>
-        <option value="term">Sort by Term</option>
-      </select>
-    </form>
+      {availableCountries.length > 1 && (
+        <select
+          className={`${inputCls} cursor-pointer`}
+          value={filterCountry}
+          onChange={(e) => setFilterCountry(e.target.value)}
+        >
+          <option value="">All Markets</option>
+          {availableCountries.map((code) => {
+            const label =
+              COUNTRIES.find((c) => c.code === code)?.label ??
+              code.toUpperCase();
+            return (
+              <option key={code} value={code}>
+                {label}
+              </option>
+            );
+          })}
+        </select>
+      )}
+    </div>
   );
 }
