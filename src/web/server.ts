@@ -101,7 +101,7 @@ app.get("/status", (_req, res) => res.sendFile(statusPage));
 const screenshot = path.join(process.cwd(), "landing_page/screenshot.png");
 app.get("/screenshot.png", (_req, res) => res.sendFile(screenshot));
 
-const logo = path.join(process.cwd(), "logo.png");
+const logo = path.join(process.cwd(), "landing_page", "logo.png");
 app.get("/logo.png", (_req, res) => res.sendFile(logo));
 app.get("/app/logo.png", (_req, res) => res.sendFile(logo));
 
