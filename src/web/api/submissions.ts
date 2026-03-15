@@ -30,8 +30,6 @@ submissionsRouter.get("/preview", async (req, res) => {
   }
 });
 
-// ─── Submit metadata via Fastlane deliver ─────────────────────────────────────
-
 submissionsRouter.post("/metadata", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
@@ -79,8 +77,6 @@ submissionsRouter.post("/metadata", async (req, res) => {
   }
 });
 
-// ─── Submit for review via Fastlane ───────────────────────────────────────────
-
 submissionsRouter.post("/review", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
@@ -126,28 +122,6 @@ submissionsRouter.post("/review", async (req, res) => {
   }
 });
 
-// ─── Submit for review via ASC API (no Fastlane required) ─────────────────────
-
-submissionsRouter.post("/review-api", async (req, res) => {
-  try {
-    const settings = await getEffectiveSettings(req.user!.userId);
-    const bundleId = req.body.bundleId || settings.ascBundleId;
-    const effectiveSettings = { ...settings, ascBundleId: bundleId };
-
-    const { FastlaneService } = await import("../../services/fastlane");
-    const fl = new FastlaneService(effectiveSettings);
-    const result = await fl.submitForReviewViaAPI();
-
-    res.json(result);
-  } catch (err) {
-    res
-      .status(500)
-      .json({ error: String(err instanceof Error ? err.message : err) });
-  }
-});
-
-// ─── Status of latest / specific submission ───────────────────────────────────
-
 submissionsRouter.get("/status", async (_req, res) => {
   try {
     const { getLatestSubmission, getActiveSubmission } =
@@ -168,7 +142,7 @@ submissionsRouter.get("/status", async (_req, res) => {
         submission.status === "preparing" || submission.status === "running",
       jobId: submission.jobId,
       status: submission.status,
-      logs: submission.logs.slice(-100), // last 100 lines
+      logs: submission.logs.slice(-100),
       errors: submission.errors,
       startedAt: submission.startedAt,
     });

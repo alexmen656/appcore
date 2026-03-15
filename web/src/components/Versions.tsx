@@ -162,14 +162,12 @@ function ActionButton({
   isActive,
   onSubmitForReview,
   onPushMetadata,
-  onReviewAPI,
 }: {
   canSubmitForReview: boolean;
   submitting: string | null;
   isActive: boolean;
   onSubmitForReview: () => void;
   onPushMetadata: () => void;
-  onReviewAPI: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -257,34 +255,6 @@ function ActionButton({
                 <line x1="12" y1="3" x2="12" y2="15" />
               </svg>
               Push Metadata
-              <span className="ml-auto text-[10px] text-[#9ca3af] dark:text-[#5c6478]">
-                Fastlane
-              </span>
-            </button>
-            <div className="border-t border-[#f3f4f6] dark:border-[#2a2f3d] my-1" />
-            <button
-              onClick={() => {
-                setOpen(false);
-                onReviewAPI();
-              }}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-4 h-4 text-[#6b7280] dark:text-[#8b93a5]"
-              >
-                <polyline points="16 18 22 12 16 6" />
-                <polyline points="8 6 2 12 8 18" />
-              </svg>
-              Review via API
-              <span className="ml-auto text-[10px] text-[#9ca3af] dark:text-[#5c6478]">
-                Direct
-              </span>
             </button>
           </div>
         )}
@@ -341,31 +311,6 @@ function ActionButton({
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl shadow-lg py-1 min-w-[160px]">
-          <button
-            onClick={() => {
-              setOpen(false);
-              onReviewAPI();
-            }}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-4 h-4 text-[#6b7280] dark:text-[#8b93a5]"
-            >
-              <polyline points="16 18 22 12 16 6" />
-              <polyline points="8 6 2 12 8 18" />
-            </svg>
-            Review via API
-          </button>
-        </div>
-      )}
     </div>
   );
 }
@@ -797,21 +742,6 @@ function LatestBuildCard({
               </svg>
               {builtDate}
             </span>
-            {/*<span className="flex items-center gap-1 text-[12px] text-[#6b7280] dark:text-[#8b93a5] truncate">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-3.5 h-3.5 shrink-0"
-              >
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-              </svg>
-              <span className="truncate">{build.originalFilename}</span>
-            </span>*/}
           </div>
         </div>
       </div>
@@ -1027,21 +957,6 @@ export default function Versions({ addToast }: Props) {
     }
   };
 
-  const submitForReviewAPI = async () => {
-    setSubmitting("review-api");
-    try {
-      const res = await apiPost("/submissions/review-api", {
-        bundleId: getActiveBundleId(),
-      });
-      addToast(res.message || "Submitted", res.ok ? "success" : "error");
-      refetch();
-    } catch (e: any) {
-      addToast(e.message, "error");
-    } finally {
-      setSubmitting(null);
-    }
-  };
-
   const handleSave = useCallback(
     async (field: string, value: string, loc: VersionLocalization) => {
       try {
@@ -1173,7 +1088,6 @@ export default function Versions({ addToast }: Props) {
             isActive={isActive}
             onSubmitForReview={submitForReview}
             onPushMetadata={submitMetadata}
-            onReviewAPI={submitForReviewAPI}
           />
         </div>
       </div>

@@ -297,40 +297,6 @@ export class FastlaneService {
     }
   }
 
-  async submitForReviewViaAPI(): Promise<{ ok: boolean; message: string }> {
-    const app = await this.asc.getApp(this.settings.ascBundleId);
-    if (!app) throw new Error("App not found in App Store Connect");
-
-    const version = await this.asc.getEditableVersion(app.id);
-    if (!version) {
-      throw new Error(
-        "No editable version found. Create a new version first or wait until the current review resolves.",
-      );
-    }
-
-    const state = version.attributes.appStoreState;
-    if (state !== "PREPARE_FOR_SUBMISSION") {
-      throw new Error(
-        `Version ${version.attributes.versionString} is in state "${state}" and cannot be submitted for review. ` +
-          `Only versions in PREPARE_FOR_SUBMISSION state can be submitted.`,
-      );
-    }
-
-    try {
-      await this.asc.submitForReview(version.id);
-
-      logger.info(
-        `Submitted version ${version.attributes.versionString} for review via ASC API`,
-      );
-      return {
-        ok: true,
-        message: `Version ${version.attributes.versionString} submitted for App Review successfully.`,
-      };
-    } catch (err: any) {
-      const detail = err?.response?.data?.errors?.[0]?.detail ?? err.message;
-      throw new Error(`Submit for review failed: ${detail}`);
-    }
-  }
 
   private async loadFramedScreenshots(): Promise<Record<
     string,
