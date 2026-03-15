@@ -26,15 +26,6 @@ export async function mcpAuth(req: Request, res: Response, next: NextFunction) {
     return;
   }
   try {
-    const settings = await prisma.userSettings.findFirst({
-      where: { mcpApiKey: key, mcpEnabled: true },
-    });
-    if (settings) {
-      (req as any).mcpUserId = settings.userId;
-      next();
-      return;
-    }
-
     const oauthToken = await prisma.oAuthToken.findUnique({
       where: { accessToken: key },
     });

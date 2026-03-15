@@ -57,7 +57,6 @@ model UserSettings {
   aiProvider      String? @default("openai")
   ascVendorNumber          String?
   mcpEnabled  Boolean @default(false)
-  mcpApiKey   String?
   githubAccessToken  String?
   githubUsername     String?
   githubAvatarUrl    String?

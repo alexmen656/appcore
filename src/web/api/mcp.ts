@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { randomUUID, randomBytes } from "crypto";
+import { randomBytes } from "crypto";
 import { prisma } from "../../config";
 import { requireAuth } from "../auth";
 
@@ -13,7 +13,6 @@ mcpRouter.get("/config", async (req, res) => {
     });
     res.json({
       mcpEnabled: settings?.mcpEnabled ?? false,
-      mcpApiKey: settings?.mcpApiKey ?? null,
     });
   } catch (err) {
     res.status(500).json({ error: String(err) });
@@ -38,20 +37,6 @@ mcpRouter.put("/config", async (req, res) => {
   }
 });
 
-mcpRouter.post("/regenerate-key", async (req, res) => {
-  try {
-    const userId = req.user!.userId;
-    const newKey = `mcp_${randomUUID().replace(/-/g, "")}`;
-    await prisma.userSettings.upsert({
-      where: { userId },
-      create: { userId, mcpApiKey: newKey },
-      update: { mcpApiKey: newKey },
-    });
-    res.json({ ok: true, mcpApiKey: newKey });
-  } catch (err) {
-    res.status(500).json({ error: String(err) });
-  }
-});
 
 mcpRouter.get("/oauth-clients", async (req, res) => {
   try {

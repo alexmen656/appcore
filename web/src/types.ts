@@ -266,7 +266,6 @@ export interface SchedulerStatus {
 
 export interface McpConfig {
   mcpEnabled: boolean;
-  mcpApiKey: string | null;
 }
 
 export interface OAuthClient {

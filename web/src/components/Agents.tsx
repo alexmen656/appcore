@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useApi, apiPut, apiPost, apiDelete } from "../hooks/useApi";
 import SectionCard from "./comps/settings/SectionCard";
-import Field from "./comps/settings/Field";
 import type { McpConfig, OAuthClient } from "../types";
-import { inputCls, btnSecondary, btnSecSm, TH, TD } from "../styles";
+import { btnSecSm, TH, TD } from "../styles";
 
 interface Props {
   addToast: (msg: string, type?: "success" | "error") => void;
@@ -57,18 +56,10 @@ export default function Agents({ addToast }: Props) {
   );
 
   const [toggling, setToggling] = useState(false);
-  const [regenerating, setRegenerating] = useState(false);
-  const [showKey, setShowKey] = useState(false);
-  const [localKey, setLocalKey] = useState<string | null>(null);
-  const [configTab, setConfigTab] = useState<"http" | "stdio">("http");
-
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const displayKey = localKey ?? config?.mcpApiKey ?? null;
   const mcpUrl =
     typeof window !== "undefined" ? `${window.location.origin}/mcp` : "/mcp";
-  const mcpBaseUrl =
-    typeof window !== "undefined" ? window.location.origin : "";
 
   const handleToggle = async () => {
     if (!config) return;
@@ -84,22 +75,6 @@ export default function Agents({ addToast }: Props) {
       addToast("Failed to update MCP status", "error");
     } finally {
       setToggling(false);
-    }
-  };
-
-  const handleRegenerate = async () => {
-    setRegenerating(true);
-    try {
-      const result = await apiPost<{ ok: boolean; mcpApiKey: string }>(
-        "/mcp/regenerate-key",
-      );
-      setLocalKey(result.mcpApiKey);
-      setShowKey(true);
-      addToast("New API key generated", "success");
-    } catch {
-      addToast("Failed to generate key", "error");
-    } finally {
-      setRegenerating(false);
     }
   };
 
@@ -122,42 +97,10 @@ export default function Agents({ addToast }: Props) {
     addToast("Copied to clipboard", "success");
   };
 
-  const claudeDesktopHttpJson = JSON.stringify(
-    {
-      appcore: {
-        type: "http",
-        url: mcpUrl,
-        headers: {
-          Authorization: `Bearer ${displayKey ?? "<your-api-key>"}`,
-        },
-      },
-    },
-    null,
-    2,
-  );
-
   const appDir =
     typeof window !== "undefined"
       ? window.location.origin.replace(/:\d+$/, "")
       : "/path/to/appcore";
-
-  const claudeDesktopStdioJson = JSON.stringify(
-    {
-      appcore: {
-        command: "npx",
-        args: ["tsx", `${appDir}/src/mcp-stdio.ts`],
-        env: {
-          DATABASE_URL: "<your-database-url>",
-          MCP_API_KEY: displayKey ?? "<your-api-key>",
-        },
-      },
-    },
-    null,
-    2,
-  );
-
-  const activeJson =
-    configTab === "http" ? claudeDesktopHttpJson : claudeDesktopStdioJson;
 
   return (
     <div className="max-w-3xl">
@@ -165,8 +108,7 @@ export default function Agents({ addToast }: Props) {
         Agents
       </h1>
       <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">
-        Connect AI agents like Claude to your AppCore data via the Model Context
-        Protocol (MCP).
+        Connect AI agents like Claude Desktop via MCP
       </p>
 
       <SectionCard
@@ -202,86 +144,14 @@ export default function Agents({ addToast }: Props) {
         </div>
       </SectionCard>
 
-      <SectionCard
-        title="Connection Details"
-        desc="Use these credentials when configuring your MCP client. Treat the API key like a password."
-      >
-        <div className="flex flex-col gap-4">
-          <Field label="Server URL">
-            <div className="flex gap-2">
-              <input readOnly className={inputCls} value={mcpUrl} />
-              <button
-                onClick={() => copyToClipboard(mcpUrl)}
-                className={btnSecondary}
-              >
-                Copy
-              </button>
-            </div>
-          </Field>
-
-          <Field
-            label="API Key"
-            hint={
-              displayKey
-                ? undefined
-                : "No key generated yet. Click Regenerate to create one."
-            }
-          >
-            <div className="flex gap-2">
-              <input
-                readOnly
-                type={showKey ? "text" : "password"}
-                className={`${inputCls} font-mono`}
-                value={displayKey ?? ""}
-                placeholder={displayKey ? undefined : "No key generated"}
-              />
-              {displayKey && (
-                <button
-                  onClick={() => setShowKey((v) => !v)}
-                  className={btnSecondary}
-                >
-                  {showKey ? "Hide" : "Show"}
-                </button>
-              )}
-              {displayKey && (
-                <button
-                  onClick={() => copyToClipboard(displayKey)}
-                  className={btnSecondary}
-                >
-                  Copy
-                </button>
-              )}
-            </div>
-          </Field>
-
-          <div>
-            <button
-              onClick={handleRegenerate}
-              disabled={regenerating}
-              className={btnSecondary}
-            >
-              {regenerating ? "Generating…" : "Regenerate Key"}
-            </button>
-            {displayKey && (
-              <p className="text-[11px] text-gray-400 dark:text-[#5c6478] mt-1.5">
-                Regenerating invalidates the current key immediately.
-              </p>
-            )}
-          </div>
-        </div>
-      </SectionCard>
-
-      <SectionCard
-        title="OAuth Clients"
-        desc="Clients that have connected via OAuth. Claude.ai registers itself automatically — no manual setup needed."
-      >
+      <SectionCard title="OAuth Clients">
         <div className="mb-5 p-3.5 rounded-xl bg-[#f8f9fb] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d]">
           <p className="text-[12px] font-medium text-[#111827] dark:text-[#e8eaf0] mb-1.5">
-            How to connect Claude.ai
+            How to connect Claude Desktop
           </p>
           <ol className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] space-y-1 list-decimal list-inside">
             <li>
-              In Claude.ai → Settings → Connectors → Add custom connector.
+              In Claude Desktop → Settings → Connectors → Add custom connector.
             </li>
             <li>
               Enter the MCP Server URL:{" "}
@@ -297,11 +167,10 @@ export default function Agents({ addToast }: Props) {
               Leave OAuth Client ID and Secret{" "}
               <strong className="text-[#111827] dark:text-[#e8eaf0]">
                 empty
-              </strong>{" "}
-              — Claude.ai self-registers via DCR.
+              </strong>
             </li>
             <li>
-              Claude.ai opens an AppCore login page — sign in to authorize.
+              Claude.ai opens an AppCore login page - sign in to authorize.
             </li>
             <li>Done. The client appears in the table below.</li>
           </ol>
@@ -390,61 +259,6 @@ export default function Agents({ addToast }: Props) {
             </div>
           ))}
         </div>
-      </SectionCard>
-
-      <SectionCard
-        title="Claude Desktop Configuration"
-        desc='Add this snippet to your claude_desktop_config.json under "mcpServers" and restart Claude Desktop.'
-      >
-        <div className="flex gap-1 mb-4 bg-[#f8f9fb] dark:bg-[#252b38] p-1 rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] w-fit">
-          <button
-            onClick={() => setConfigTab("http")}
-            className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
-              configTab === "http"
-                ? "bg-white dark:bg-[#1c2028] text-[#111827] dark:text-[#e8eaf0] shadow-sm border border-[#eef0f3] dark:border-[#2a2f3d]"
-                : "text-[#9ca3af] dark:text-[#5c6478] hover:text-[#111827] dark:hover:text-[#e8eaf0]"
-            }`}
-          >
-            HTTP (Remote)
-          </button>
-          <button
-            onClick={() => setConfigTab("stdio")}
-            className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
-              configTab === "stdio"
-                ? "bg-white dark:bg-[#1c2028] text-[#111827] dark:text-[#e8eaf0] shadow-sm border border-[#eef0f3] dark:border-[#2a2f3d]"
-                : "text-[#9ca3af] dark:text-[#5c6478] hover:text-[#111827] dark:hover:text-[#e8eaf0]"
-            }`}
-          >
-            Local (stdio)
-          </button>
-        </div>
-
-        {configTab === "stdio" && (
-          <p className="text-[11px] text-[#ea0e2b] bg-[#ea0e2b]/5 border border-[#ea0e2b]/20 rounded-xl px-3 py-2 mb-3">
-            Replace <code className="font-mono">/path/to/appcore</code> with the
-            absolute path to your AppCore directory and set{" "}
-            <code className="font-mono">DATABASE_URL</code> to your PostgreSQL
-            connection string. No HTTP server needs to be running.
-          </p>
-        )}
-
-        <div className="relative">
-          <pre className="bg-[#111827] text-[#e5e7eb] text-[12px] font-mono p-4 rounded-xl overflow-x-auto leading-relaxed">
-            {activeJson}
-          </pre>
-          <button
-            onClick={() => copyToClipboard(activeJson)}
-            className="absolute top-2 right-2 px-2.5 py-1 rounded text-[11px] font-medium bg-white/10 text-white hover:bg-white/20 transition-colors"
-          >
-            Copy
-          </button>
-        </div>
-        <p className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] mt-3">
-          Config file location on macOS:{" "}
-          <code className="font-mono text-[#111827] dark:text-[#e8eaf0]">
-            ~/Library/Application Support/Claude/claude_desktop_config.json
-          </code>
-        </p>
       </SectionCard>
     </div>
   );
