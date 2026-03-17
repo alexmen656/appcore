@@ -134,7 +134,6 @@ suggestionsRouter.post("/bulk-approve", async (req, res) => {
   }
 });
 
-// ─── POST /suggestions/auto-apply ────────────────────────────────────────
 suggestionsRouter.post("/auto-apply", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);

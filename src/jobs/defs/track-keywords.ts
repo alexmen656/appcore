@@ -14,7 +14,6 @@ const trackKeywordsJob: JobDefinition = {
     const db = prisma;
     logger.info("[CRON] Starting keyword tracking...");
 
-    // Get previous rankings for comparison
     const ownApp = await db.app.findFirst({ where: { isOwnApp: true } });
     const previousRankings = new Map<string, number | null>();
 
@@ -38,13 +37,17 @@ const trackKeywordsJob: JobDefinition = {
     const rankings = await keywordTracker.trackAllKeywords();
     logger.info(`[CRON] Tracked ${rankings.size} keywords for user ${userId}`);
 
-    // Send push notifications for rank changes
     if (pushService.isConfigured()) {
       for (const [key, newRank] of rankings) {
         const oldRank = previousRankings.get(key) ?? null;
         if (oldRank !== newRank && (oldRank !== null || newRank !== null)) {
           const [term, country] = key.split("@");
-          await pushService.notifyKeywordRankChange(term, oldRank, newRank, country);
+          await pushService.notifyKeywordRankChange(
+            term,
+            oldRank,
+            newRank,
+            country,
+          );
         }
       }
     }

@@ -148,7 +148,7 @@ export function createMcpServer(userId: string): McpServer {
                 country: app.country,
                 title: app.currentTitle,
                 subtitle: app.currentSubtitle,
-                keywords: app.currentKeywords, //issue
+                keywords: app.currentKeywords,
                 description: app.currentDescription,
                 rating: app.snapshots[0]?.rating ?? null,
                 ratingsCount: app.snapshots[0]?.ratingsCount ?? null,

@@ -1,5 +1,4 @@
 import { Router, Request, Response } from "express";
-//import crypto from "crypto";
 import fs from "fs";
 import path from "path";
 import { logger, prisma } from "../../config";
@@ -20,8 +19,6 @@ import { frameWithFastlane } from "../../services/frame-screenshots";
 
 export const githubRouter = Router();
 
-// ─── OAuth: start ────────────────────────────────────────────────────────────
-// GET /api/github/oauth/start → returns the redirect URL
 githubRouter.get(
   "/oauth/start",
   requireAuth,
@@ -38,8 +35,6 @@ githubRouter.get(
   },
 );
 
-// ─── OAuth: callback ─────────────────────────────────────────────────────────
-// GET /api/github/oauth/callback?code=xxx&state=xxx
 githubRouter.get("/oauth/callback", async (req: Request, res: Response) => {
   try {
     const code = req.query.code as string;
@@ -78,8 +73,6 @@ githubRouter.get("/oauth/callback", async (req: Request, res: Response) => {
     });
 
     logger.info(`GitHub connected for user ${userId}: @${ghUser.login}`);
-
-    // Redirect back to the web UI settings page
     res.redirect("/settings?github=connected");
   } catch (err: any) {
     logger.error(`GitHub OAuth callback error: ${err.message}`);
@@ -87,7 +80,6 @@ githubRouter.get("/oauth/callback", async (req: Request, res: Response) => {
   }
 });
 
-// ─── GitHub connection status ────────────────────────────────────────────────
 githubRouter.get(
   "/status",
   requireAuth,
@@ -108,7 +100,6 @@ githubRouter.get(
   },
 );
 
-// ─── Disconnect GitHub ───────────────────────────────────────────────────────
 githubRouter.post(
   "/disconnect",
   requireAuth,
@@ -130,7 +121,6 @@ githubRouter.post(
   },
 );
 
-// ─── List user repos ─────────────────────────────────────────────────────────
 githubRouter.get("/repos", requireAuth, async (req: Request, res: Response) => {
   try {
     const settings = await prisma.userSettings.findUnique({
@@ -157,7 +147,6 @@ githubRouter.get("/repos", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-// ─── Link repo to app ────────────────────────────────────────────────────────
 githubRouter.post("/link", requireAuth, async (req: Request, res: Response) => {
   try {
     const { appId, repoFullName } = req.body;
@@ -172,7 +161,6 @@ githubRouter.post("/link", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-// ─── Unlink repo from app ────────────────────────────────────────────────────
 githubRouter.post(
   "/unlink",
   requireAuth,
@@ -191,7 +179,6 @@ githubRouter.post(
   },
 );
 
-// ─── Get linked repo for an app ──────────────────────────────────────────────
 githubRouter.get(
   "/app-repo/:appId",
   requireAuth,
@@ -217,7 +204,6 @@ githubRouter.get(
   },
 );
 
-// ─── Screenshot jobs for an app ──────────────────────────────────────────────
 githubRouter.get(
   "/screenshots/:appId",
   requireAuth,
@@ -240,7 +226,6 @@ githubRouter.get(
   },
 );
 
-// ─── Webhook endpoint (no auth — verified via HMAC) ─────────────────────────
 githubRouter.post("/webhook", async (req: Request, res: Response) => {
   try {
     const event = req.headers["x-github-event"] as string;
@@ -255,7 +240,6 @@ githubRouter.post("/webhook", async (req: Request, res: Response) => {
     const payload = req.body as GitHubWebhookPayload;
     const repoFullName = payload.repository.full_name;
 
-    // Find the app linked to this repo
     const app = await prisma.app.findFirst({
       where: { githubRepoFullName: repoFullName },
     });
@@ -266,7 +250,6 @@ githubRouter.post("/webhook", async (req: Request, res: Response) => {
       return;
     }
 
-    // Verify signature
     if (!app.githubWebhookSecret || !signature) {
       res.status(401).json({ error: "Missing signature or secret" });
       return;
@@ -286,7 +269,6 @@ githubRouter.post("/webhook", async (req: Request, res: Response) => {
       `GitHub push: ${repoFullName}@${branch} (${commitSha.slice(0, 7)}) by ${pusher}`,
     );
 
-    // Create screenshot job and kick off async
     const job = await prisma.screenshotJob.create({
       data: {
         appId: app.id,
@@ -301,7 +283,6 @@ githubRouter.post("/webhook", async (req: Request, res: Response) => {
     const settings = await prisma.userSettings.findFirst({
       where: { githubAccessToken: { not: null } },
     });
-    const repoUrl = `https://github.com/${repoFullName}.git`;
 
     runScreenshotGeneration(job.id).catch((err) =>
       logger.error(
@@ -311,7 +292,7 @@ githubRouter.post("/webhook", async (req: Request, res: Response) => {
 
     if (settings?.githubAccessToken) {
       runBuildJob(app.id, {
-        repoUrl,
+        repoUrl: `https://github.com/${repoFullName}.git`,
         accessToken: settings.githubAccessToken,
         branch,
         appName: app.name,
@@ -328,7 +309,6 @@ githubRouter.post("/webhook", async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/github/screenshots/frame/:jobId
 githubRouter.post(
   "/screenshots/frame/:jobId",
   requireAuth,
@@ -371,7 +351,6 @@ githubRouter.post(
         .map((e) => path.join(rawDir, e.name));
 
       const sourceDirs = subDirs.length > 0 ? subDirs : [rawDir];
-
       const framedUrls: string[] = [];
       const framedByLocale: Record<string, string[]> = {};
 
@@ -413,7 +392,6 @@ githubRouter.post(
   },
 );
 
-// POST /api/github/screenshots/test-local
 githubRouter.post(
   "/screenshots/test-local",
   requireAuth,
@@ -464,7 +442,6 @@ githubRouter.post(
   },
 );
 
-// GET /api/github/screenshots/latest-framed/:appId
 githubRouter.get(
   "/screenshots/latest-framed/:appId",
   requireAuth,

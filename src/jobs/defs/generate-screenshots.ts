@@ -68,7 +68,9 @@ async function runScreenshotGenerationViaWorker(
     if (result.ipaBuilt && result.ipaPath) {
       log(`Binary build succeeded — IPA stored on worker: ${result.ipaPath}`);
     } else {
-      log("Binary build was skipped or failed (non-fatal, screenshots continue)");
+      log(
+        "Binary build was skipped or failed (non-fatal, screenshots continue)",
+      );
     }
 
     const screenshotUrls: string[] = [];
@@ -226,7 +228,7 @@ async function autoFrameScreenshots(
           const descKey = Object.keys(descriptions).find(
             (k) => base === k || base.startsWith(k + "_"),
           );
-          // Prefer AI subline → raw description → app name
+
           const subtitle = descKey
             ? (localeSublines[descKey] ?? descriptions[descKey])
             : job.app.name;

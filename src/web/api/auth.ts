@@ -45,7 +45,6 @@ setInterval(
   5 * 60 * 1000,
 );
 
-// ─── POST /api/auth/register ─────────────────────────────────────────────────
 authRouter.post("/register", async (req, res) => {
   try {
     const { email, password, name } = req.body as {
@@ -95,7 +94,6 @@ authRouter.post("/register", async (req, res) => {
   }
 });
 
-// ─── POST /api/auth/login ────────────────────────────────────────────────────
 authRouter.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body as {
@@ -139,7 +137,6 @@ authRouter.post("/login", async (req, res) => {
   }
 });
 
-// ─── GET /api/auth/me ────────────────────────────────────────────────────────
 authRouter.get("/me", requireAuth, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
@@ -165,7 +162,6 @@ authRouter.get("/me", requireAuth, async (req, res) => {
   }
 });
 
-// ─── GET /api/auth/users ─────────────────────────────────────────────────────
 authRouter.get("/users", requireAuth, async (req, res) => {
   try {
     if (req.user!.role !== "ADMIN") {
@@ -188,7 +184,6 @@ authRouter.get("/users", requireAuth, async (req, res) => {
   }
 });
 
-// ─── DELETE /api/auth/users/:id ──────────────────────────────────────────────
 authRouter.delete("/users/:id", requireAuth, async (req, res) => {
   try {
     if (req.user!.role !== "ADMIN") {
@@ -209,7 +204,6 @@ authRouter.delete("/users/:id", requireAuth, async (req, res) => {
   }
 });
 
-// ─── POST /api/auth/passkey/register-options ───────────────────────
 authRouter.post("/passkey/register-options", requireAuth, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
@@ -249,7 +243,6 @@ authRouter.post("/passkey/register-options", requireAuth, async (req, res) => {
   }
 });
 
-// ─── POST /api/auth/passkey/register-verify ────────────────────────
 authRouter.post("/passkey/register-verify", requireAuth, async (req, res) => {
   try {
     const { registrationResponse, passkeyName } = req.body as {
@@ -301,7 +294,6 @@ authRouter.post("/passkey/register-verify", requireAuth, async (req, res) => {
   }
 });
 
-// ─── POST /api/auth/passkey/login-options ──────────────────────────
 authRouter.post("/passkey/login-options", async (req, res) => {
   try {
     const { email } = req.body as { email?: string };
@@ -342,7 +334,6 @@ authRouter.post("/passkey/login-options", async (req, res) => {
   }
 });
 
-// ─── POST /api/auth/passkey/login-verify ───────────────────────────
 authRouter.post("/passkey/login-verify", async (req, res) => {
   try {
     const { sessionId, assertionResponse } = req.body as {
@@ -414,16 +405,19 @@ authRouter.post("/passkey/login-verify", async (req, res) => {
   }
 });
 
-// ─── DELETE /api/auth/passkey/:id ────────────────────────────────────────────
 authRouter.delete("/passkey/:id", requireAuth, async (req, res) => {
   try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
     const cred = await prisma.passkeyCredential.findUnique({
-      where: { id: req.params.id },
+      where: { id: id ?? "" },
     });
+
     if (!cred || cred.userId !== req.user!.userId) {
       res.status(404).json({ error: "Passkey not found" });
       return;
     }
+
     await prisma.passkeyCredential.delete({ where: { id: cred.id } });
     res.json({ ok: true });
   } catch (err) {
