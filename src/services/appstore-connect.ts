@@ -150,7 +150,8 @@ export class AppStoreConnectClient {
       `/appInfos/${appInfoId}/appInfoLocalizations`,
       {
         params: {
-          "fields[appInfoLocalizations]": "locale,name,subtitle,privacyPolicyUrl",
+          "fields[appInfoLocalizations]":
+            "locale,name,subtitle,privacyPolicyUrl",
         },
       },
     );
@@ -249,6 +250,70 @@ export class AppStoreConnectClient {
         },
       );
       logger.info(`Updated version localization ${localizationId}`, updates);
+    } catch (err: any) {
+      const ascErrors = err?.response?.data?.errors;
+      if (ascErrors?.length) {
+        const detail = ascErrors
+          .map((e: any) => e.detail ?? e.title ?? JSON.stringify(e))
+          .join("; ");
+        throw new Error(`ASC ${err.response.status}: ${detail}`);
+      }
+      throw err;
+    }
+  }
+
+  async getAppInfoId(appId: string): Promise<string | null> {
+    const { data } = await this.client.get(`/apps/${appId}/appInfos`, {
+      params: { "fields[appInfos]": "appStoreState" },
+    });
+    return data.data?.[0]?.id ?? null;
+  }
+
+  async createAppInfoLocalization(
+    appInfoId: string,
+    locale: string,
+    name: string,
+  ): Promise<ASCAppInfoLocalization> {
+    try {
+      const { data } = await this.client.post("/appInfoLocalizations", {
+        data: {
+          type: "appInfoLocalizations",
+          attributes: { locale, name },
+          relationships: {
+            appInfo: { data: { type: "appInfos", id: appInfoId } },
+          },
+        },
+      });
+      return data.data;
+    } catch (err: any) {
+      const ascErrors = err?.response?.data?.errors;
+      if (ascErrors?.length) {
+        const detail = ascErrors
+          .map((e: any) => e.detail ?? e.title ?? JSON.stringify(e))
+          .join("; ");
+        throw new Error(`ASC ${err.response.status}: ${detail}`);
+      }
+      throw err;
+    }
+  }
+
+  async createVersionLocalization(
+    versionId: string,
+    locale: string,
+  ): Promise<ASCVersionLocalization> {
+    try {
+      const { data } = await this.client.post("/appStoreVersionLocalizations", {
+        data: {
+          type: "appStoreVersionLocalizations",
+          attributes: { locale },
+          relationships: {
+            appStoreVersion: {
+              data: { type: "appStoreVersions", id: versionId },
+            },
+          },
+        },
+      });
+      return data.data;
     } catch (err: any) {
       const ascErrors = err?.response?.data?.errors;
       if (ascErrors?.length) {

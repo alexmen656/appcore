@@ -85,6 +85,48 @@ const FIELD_META: {
   },
 ];
 
+const ALL_ASC_LOCALES = [
+  "ar-SA",
+  "ca",
+  "cs",
+  "da",
+  "de-DE",
+  "el",
+  "en-AU",
+  "en-CA",
+  "en-GB",
+  "en-US",
+  "es-ES",
+  "es-MX",
+  "fi",
+  "fr-CA",
+  "fr-FR",
+  "he",
+  "hi",
+  "hr",
+  "hu",
+  "id",
+  "it",
+  "ja",
+  "ko",
+  "ms",
+  "nl-NL",
+  "no",
+  "pl",
+  "pt-BR",
+  "pt-PT",
+  "ro",
+  "ru",
+  "sk",
+  "sv",
+  "th",
+  "tr",
+  "uk",
+  "vi",
+  "zh-Hans",
+  "zh-Hant",
+];
+
 const _localeNames = new Intl.DisplayNames(["en"], { type: "language" });
 
 function getLocaleName(locale: string): string {
@@ -898,6 +940,9 @@ export default function Versions({ addToast }: Props) {
     versionId ?? "",
   ]);
   const [activeLocale, setActiveLocale] = useState<string | null>(null);
+  const [showAddLocale, setShowAddLocale] = useState(false);
+  const [addingLocale, setAddingLocale] = useState(false);
+  const addLocaleRef = useRef<HTMLDivElement>(null);
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [submitStatus, setSubmitStatus] = useState<{
     active: boolean;
@@ -986,6 +1031,51 @@ export default function Versions({ addToast }: Props) {
       setSubmitting(null);
     }
   };
+
+  useEffect(() => {
+    if (!showAddLocale) return;
+    const handler = (e: MouseEvent) => {
+      if (
+        addLocaleRef.current &&
+        !addLocaleRef.current.contains(e.target as Node)
+      )
+        setShowAddLocale(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showAddLocale]);
+
+  const createLocalization = useCallback(
+    async (locale: string) => {
+      if (!data?.versionId) return;
+      setAddingLocale(true);
+      setShowAddLocale(false);
+      try {
+        const res = await fetch("/api/asc/versions/localizations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...authHeaders() },
+          body: JSON.stringify({
+            bundleId: getActiveBundleId(),
+            versionId: data.versionId,
+            locale,
+            name: data.appName,
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error ?? `HTTP ${res.status}`);
+        }
+        addToast(`Language ${locale} added`, "success");
+        refetch();
+        setActiveLocale(locale);
+      } catch (err: any) {
+        addToast(`Failed to add language: ${err.message}`, "error");
+      } finally {
+        setAddingLocale(false);
+      }
+    },
+    [data, addToast, refetch],
+  );
 
   const handleSave = useCallback(
     async (field: string, value: string, loc: VersionLocalization) => {
@@ -1177,32 +1267,79 @@ export default function Versions({ addToast }: Props) {
         </div>
       )}
 
-      {data.localizations.length > 1 && (
-        <div className="flex items-center gap-1.5 mb-5 overflow-x-auto pb-1 flex-wrap">
-          {data.localizations.map((loc) => (
-            <button
-              key={loc.locale}
-              onClick={() => setActiveLocale(loc.locale)}
-              className={`flex flex-col items-start px-3 py-2 rounded-xl transition-all whitespace-nowrap ${
-                loc.locale === activeLocale
-                  ? "bg-[#ea0e2b] text-white shadow-sm"
-                  : "bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] text-[#111827] dark:text-[#e8eaf0] hover:border-[#d1d5db] dark:hover:border-[#3a4050]"
-              }`}
-            >
-              <span className="text-[13px] font-medium leading-tight">
-                {getLocaleName(loc.locale)}
-              </span>
-              <span
-                className={`text-[10px] font-mono mt-0.5 ${
+      {(data.localizations.length > 1 || data.isEditable) && (
+        <div className="flex items-start gap-2 mb-5">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 flex-wrap flex-1 min-w-0">
+            {data.localizations.map((loc) => (
+              <button
+                key={loc.locale}
+                onClick={() => setActiveLocale(loc.locale)}
+                className={`flex flex-col items-start px-3 py-2 rounded-xl transition-all whitespace-nowrap ${
                   loc.locale === activeLocale
-                    ? "text-white/70"
-                    : "text-[#9ca3af]"
+                    ? "bg-[#ea0e2b] text-white shadow-sm"
+                    : "bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] text-[#111827] dark:text-[#e8eaf0] hover:border-[#d1d5db] dark:hover:border-[#3a4050]"
                 }`}
               >
-                {loc.locale}
-              </span>
-            </button>
-          ))}
+                <span className="text-[13px] font-medium leading-tight">
+                  {getLocaleName(loc.locale)}
+                </span>
+                <span
+                  className={`text-[10px] font-mono mt-0.5 ${
+                    loc.locale === activeLocale
+                      ? "text-white/70"
+                      : "text-[#9ca3af]"
+                  }`}
+                >
+                  {loc.locale}
+                </span>
+              </button>
+            ))}
+          </div>
+          {data.isEditable && data.versionId && (
+            <div ref={addLocaleRef} className="relative shrink-0">
+              <button
+                onClick={() => setShowAddLocale((v) => !v)}
+                disabled={addingLocale}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-[#d1d5db] dark:border-[#3a4050] text-[#6b7280] dark:text-[#8b93a5] hover:border-[#ea0e2b] hover:text-[#ea0e2b] transition-all text-[13px] font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {addingLocale ? (
+                  <div className="spinner !w-3.5 !h-3.5" />
+                ) : (
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="w-3.5 h-3.5"
+                  >
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                )}
+                Add Language
+              </button>
+              {showAddLocale && (
+                <div className="absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl shadow-lg py-1 min-w-[200px] max-h-64 overflow-y-auto">
+                  {ALL_ASC_LOCALES.filter(
+                    (l) => !data.localizations.some((loc) => loc.locale === l),
+                  ).map((locale) => (
+                    <button
+                      key={locale}
+                      onClick={() => createLocalization(locale)}
+                      className="w-full flex items-center justify-between gap-2 px-4 py-2 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
+                    >
+                      <span>{getLocaleName(locale)}</span>
+                      <span className="text-[11px] font-mono text-[#9ca3af] dark:text-[#5c6478]">
+                        {locale}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

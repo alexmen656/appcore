@@ -280,10 +280,15 @@ ascRouter.patch("/versions/metadata", async (req, res) => {
 
     const asc = await ascClientForUser(req.user!.userId);
 
-    if (field === "name" || field === "subtitle" || field === "privacyPolicyUrl") {
+    if (
+      field === "name" ||
+      field === "subtitle" ||
+      field === "privacyPolicyUrl"
+    ) {
       if (!appInfoLocalizationId) {
         res.status(400).json({
-          error: "appInfoLocalizationId is required for app info localization fields",
+          error:
+            "appInfoLocalizationId is required for app info localization fields",
         });
         return;
       }
@@ -322,7 +327,62 @@ ascRouter.patch("/versions/metadata", async (req, res) => {
   }
 });
 
-// ─── POST /api/asc/versions ────────────────────────────────────────────────
+ascRouter.post("/versions/localizations", async (req, res) => {
+  try {
+    const { bundleId, versionId, locale, name } = req.body as {
+      bundleId?: string;
+      versionId: string;
+      locale: string;
+      name: string;
+    };
+
+    if (!versionId || !locale || !name) {
+      res.status(400).json({ error: "versionId, locale and name are required" });
+      return;
+    }
+
+    const asc = await ascClientForUser(req.user!.userId);
+    const app = await asc.getApp(bundleId);
+    if (!app) {
+      res.status(404).json({ error: "App not found in App Store Connect" });
+      return;
+    }
+
+    const appInfoId = await asc.getAppInfoId(app.id);
+    if (!appInfoId) {
+      res.status(404).json({ error: "App info not found" });
+      return;
+    }
+
+    const tryCreate = async <T>(fn: () => Promise<T>): Promise<T | null> => {
+      try {
+        return await fn();
+      } catch (err: any) {
+        // 409 = already exists or cannot be created in current state — treat as success
+        if (err?.response?.status === 409 || err?.message?.includes("409")) {
+          return null;
+        }
+        throw err;
+      }
+    };
+
+    const [appInfoLoc, versionLoc] = await Promise.all([
+      tryCreate(() => asc.createAppInfoLocalization(appInfoId, locale, name)),
+      tryCreate(() => asc.createVersionLocalization(versionId, locale)),
+    ]);
+
+    res.json({
+      ok: true,
+      locale,
+      appInfoLocalizationId: appInfoLoc?.id ?? null,
+      versionLocalizationId: versionLoc?.id ?? null,
+    });
+  } catch (err: any) {
+    logger.error("ASC createLocalization failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
 ascRouter.post("/versions", async (req, res) => {
   try {
     const { bundleId, versionString, releaseType } = req.body as {
