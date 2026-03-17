@@ -148,7 +148,7 @@ export function createMcpServer(userId: string): McpServer {
                 country: app.country,
                 title: app.currentTitle,
                 subtitle: app.currentSubtitle,
-                keywords: app.currentKeywords,
+                keywords: app.currentKeywords, //issue
                 description: app.currentDescription,
                 rating: app.snapshots[0]?.rating ?? null,
                 ratingsCount: app.snapshots[0]?.ratingsCount ?? null,
@@ -186,21 +186,39 @@ export function createMcpServer(userId: string): McpServer {
     async ({ bundleId, limit }) => {
       const settings = await getEffectiveSettings(userId);
       const resolvedBundleId = bundleId || settings.ascBundleId;
+      if (!resolvedBundleId) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "No bundleId provided and no default configured. Call list_apps to see available apps.",
+            },
+          ],
+        };
+      }
 
-      const app = resolvedBundleId
-        ? await prisma.app.findUnique({ where: { bundleId: resolvedBundleId } })
-        : null;
+      const app = await prisma.app.findUnique({
+        where: { bundleId: resolvedBundleId },
+      });
+      if (!app) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `App not found: ${resolvedBundleId}. Call list_apps to see valid bundle IDs.`,
+            },
+          ],
+        };
+      }
 
       const keywords = await prisma.keyword.findMany({
-        where: app ? { rankings: { some: { appId: app.id } } } : undefined,
+        where: { rankings: { some: { appId: app.id } } },
         include: {
-          rankings: app
-            ? {
-                where: { appId: app.id },
-                orderBy: { trackedAt: "desc" },
-                take: 1,
-              }
-            : undefined,
+          rankings: {
+            where: { appId: app.id },
+            orderBy: { trackedAt: "desc" },
+            take: 1,
+          },
         },
         orderBy: { popularity: "desc" },
         take: limit,
@@ -460,14 +478,40 @@ export function createMcpServer(userId: string): McpServer {
               privateKey: settings.ascPrivateKey,
             });
             const ascLocalizations = settings.ascAppId
-              ? await asc.getAppInfoLocalizations(settings.ascAppId).catch(() => [])
+              ? await asc
+                  .getAppInfoLocalizations(settings.ascAppId)
+                  .catch(() => [])
               : [];
             const syncLocales =
               ascLocalizations.length > 0
-                ? ascLocalizations.map((l: any) => l.attributes?.locale ?? l.locale).filter(Boolean)
+                ? ascLocalizations
+                    .map((l: any) => l.attributes?.locale ?? l.locale)
+                    .filter(Boolean)
                 : ["en-US"];
+            const results: Record<string, any> = {};
             for (const locale of syncLocales) {
-              await asc.getCurrentASOState(locale);
+              const state = await asc.getCurrentASOState(locale);
+              if (state) results[locale] = state;
+            }
+            const primaryState = results[syncLocales[0]];
+            let effectiveBundleId = resolvedBundleId;
+            if (!effectiveBundleId && primaryState?.appId) {
+              const appByTrackId = await prisma.app.findFirst({
+                where: { trackId: BigInt(primaryState.appId) },
+                select: { bundleId: true },
+              });
+              effectiveBundleId = appByTrackId?.bundleId ?? "";
+            }
+            if (primaryState && effectiveBundleId) {
+              await prisma.app.update({
+                where: { bundleId: effectiveBundleId },
+                data: {
+                  currentTitle: primaryState.title,
+                  currentSubtitle: primaryState.subtitle,
+                  currentKeywords: primaryState.keywords,
+                  currentDescription: primaryState.description,
+                },
+              });
             }
           } else if (job === "track-keywords") {
             const { KeywordTracker } =

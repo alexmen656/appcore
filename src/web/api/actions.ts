@@ -51,12 +51,21 @@ actionsRouter.post("/sync", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
 
-    if (!settings.ascIssuerId || !settings.ascKeyId || !settings.ascPrivateKey) {
-      res.status(400).json({ error: "App Store Connect credentials not configured in Settings." });
+    if (
+      !settings.ascIssuerId ||
+      !settings.ascKeyId ||
+      !settings.ascPrivateKey
+    ) {
+      res
+        .status(400)
+        .json({
+          error: "App Store Connect credentials not configured in Settings.",
+        });
       return;
     }
 
-    const { AppStoreConnectClient } = await import("../../services/appstore-connect");
+    const { AppStoreConnectClient } =
+      await import("../../services/appstore-connect");
     const asc = new AppStoreConnectClient({
       issuerId: settings.ascIssuerId,
       keyId: settings.ascKeyId,
@@ -68,7 +77,9 @@ actionsRouter.post("/sync", async (req, res) => {
       : [];
     const locales =
       availableLocalizations.length > 0
-        ? availableLocalizations.map((l: any) => l.attributes?.locale ?? l.locale).filter(Boolean)
+        ? availableLocalizations
+            .map((l: any) => l.attributes?.locale ?? l.locale)
+            .filter(Boolean)
         : ["en-US"];
     const results: Record<string, any> = {};
 
@@ -78,20 +89,21 @@ actionsRouter.post("/sync", async (req, res) => {
     }
 
     const primaryState = results[locales[0]];
-    if (primaryState && settings.ascBundleId) {
-      await prisma.app.upsert({
-        where: { bundleId: settings.ascBundleId },
-        create: {
-          bundleId: settings.ascBundleId,
-          name: primaryState.name || "App",
-          isOwnApp: true,
-          currentTitle: primaryState.name,
-          currentSubtitle: primaryState.subtitle,
-          currentKeywords: primaryState.keywords,
-          currentDescription: primaryState.description,
-        },
-        update: {
-          currentTitle: primaryState.name,
+
+    let effectiveBundleId = settings.ascBundleId;
+    if (!effectiveBundleId && primaryState?.appId) {
+      const appByTrackId = await prisma.app.findFirst({
+        where: { trackId: BigInt(primaryState.appId) },
+        select: { bundleId: true },
+      });
+      effectiveBundleId = appByTrackId?.bundleId ?? "";
+    }
+
+    if (primaryState && effectiveBundleId) {
+      await prisma.app.update({
+        where: { bundleId: effectiveBundleId },
+        data: {
+          currentTitle: primaryState.title,
           currentSubtitle: primaryState.subtitle,
           currentKeywords: primaryState.keywords,
           currentDescription: primaryState.description,
@@ -131,9 +143,8 @@ actionsRouter.post("/discover-keywords", async (req, res) => {
     const settings = await getEffectiveSettings(req.user!.userId);
     const bundleId = req.body.bundleId || settings.ascBundleId;
     const effectiveSettings = { ...settings, ascBundleId: bundleId };
-    const { KeywordDiscoveryAgent } = await import(
-      "../../services/keyword-discovery-agent"
-    );
+    const { KeywordDiscoveryAgent } =
+      await import("../../services/keyword-discovery-agent");
     const agent = new KeywordDiscoveryAgent(effectiveSettings);
 
     res.json({ ok: true, message: "Keyword discovery started" });
@@ -161,16 +172,16 @@ actionsRouter.post("/discover-competitors", async (req, res) => {
 
     const app = await prisma.app.findUnique({ where: { bundleId } });
     const keywords = await prisma.keyword.findMany({
-      where: app
-        ? { rankings: { some: { appId: app.id } } }
-        : undefined,
+      where: app ? { rankings: { some: { appId: app.id } } } : undefined,
       orderBy: { popularity: "desc" },
       take: 10,
     });
     const searchTerms = keywords.map((k) => k.term);
 
     if (searchTerms.length === 0) {
-      res.status(400).json({ error: "No keywords tracked yet. Add keywords first." });
+      res
+        .status(400)
+        .json({ error: "No keywords tracked yet. Add keywords first." });
       return;
     }
 
@@ -205,21 +216,20 @@ actionsRouter.post("/competitor-intel", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
     const bundleId = req.body.bundleId || settings.ascBundleId;
-    const { CompetitorIntelService } = await import("../../services/competitor-intel");
+    const { CompetitorIntelService } =
+      await import("../../services/competitor-intel");
     const intel = new CompetitorIntelService(settings);
 
-    res.json({ ok: true, message: "Competitor intelligence gathering started" });
+    res.json({
+      ok: true,
+      message: "Competitor intelligence gathering started",
+    });
 
     intel
       .runFullIntelJob(bundleId)
-      .then((result) =>
-        logger.info("Competitor intel completed", result),
-      )
-      .catch((err) =>
-        logger.error("Competitor intel failed", err),
-      );
+      .then((result) => logger.info("Competitor intel completed", result))
+      .catch((err) => logger.error("Competitor intel failed", err));
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
 });
-
