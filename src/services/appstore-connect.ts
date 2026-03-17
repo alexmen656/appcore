@@ -203,6 +203,17 @@ export class AppStoreConnectClient {
     return data.data ?? [];
   }
 
+  private throwASCError(err: any): never {
+    const ascErrors = err?.response?.data?.errors;
+    if (ascErrors?.length) {
+      const detail = ascErrors
+        .map((e: any) => e.detail ?? e.title ?? JSON.stringify(e))
+        .join("; ");
+      throw new Error(`ASC ${err.response.status}: ${detail}`);
+    }
+    throw err;
+  }
+
   async updateAppInfoLocalization(
     localizationId: string,
     updates: { name?: string; subtitle?: string; privacyPolicyUrl?: string },
@@ -217,14 +228,7 @@ export class AppStoreConnectClient {
       });
       logger.info(`Updated app info localization ${localizationId}`, updates);
     } catch (err: any) {
-      const ascErrors = err?.response?.data?.errors;
-      if (ascErrors?.length) {
-        const detail = ascErrors
-          .map((e: any) => e.detail ?? e.title ?? JSON.stringify(e))
-          .join("; ");
-        throw new Error(`ASC ${err.response.status}: ${detail}`);
-      }
-      throw err;
+      this.throwASCError(err);
     }
   }
 
@@ -251,14 +255,7 @@ export class AppStoreConnectClient {
       );
       logger.info(`Updated version localization ${localizationId}`, updates);
     } catch (err: any) {
-      const ascErrors = err?.response?.data?.errors;
-      if (ascErrors?.length) {
-        const detail = ascErrors
-          .map((e: any) => e.detail ?? e.title ?? JSON.stringify(e))
-          .join("; ");
-        throw new Error(`ASC ${err.response.status}: ${detail}`);
-      }
-      throw err;
+      this.throwASCError(err);
     }
   }
 
@@ -286,14 +283,7 @@ export class AppStoreConnectClient {
       });
       return data.data;
     } catch (err: any) {
-      const ascErrors = err?.response?.data?.errors;
-      if (ascErrors?.length) {
-        const detail = ascErrors
-          .map((e: any) => e.detail ?? e.title ?? JSON.stringify(e))
-          .join("; ");
-        throw new Error(`ASC ${err.response.status}: ${detail}`);
-      }
-      throw err;
+      this.throwASCError(err);
     }
   }
 
@@ -315,14 +305,7 @@ export class AppStoreConnectClient {
       });
       return data.data;
     } catch (err: any) {
-      const ascErrors = err?.response?.data?.errors;
-      if (ascErrors?.length) {
-        const detail = ascErrors
-          .map((e: any) => e.detail ?? e.title ?? JSON.stringify(e))
-          .join("; ");
-        throw new Error(`ASC ${err.response.status}: ${detail}`);
-      }
-      throw err;
+      this.throwASCError(err);
     }
   }
 
@@ -335,23 +318,23 @@ export class AppStoreConnectClient {
       "WAITING_FOR_REVIEW",
     ];
 
-    for (const state of editableStates) {
-      const { data } = await this.client.get(
-        `/apps/${appId}/appStoreVersions`,
-        {
-          params: {
-            "filter[appStoreState]": state,
-            "filter[platform]": "IOS",
-            "fields[appStoreVersions]":
-              "versionString,appStoreState,platform,releaseType",
-          },
-        },
-      );
-      if (data.data?.length > 0) {
-        return data.data[0];
-      }
-    }
-    return null;
+    const results = await Promise.all(
+      editableStates.map((state) =>
+        this.client
+          .get(`/apps/${appId}/appStoreVersions`, {
+            params: {
+              "filter[appStoreState]": state,
+              "filter[platform]": "IOS",
+              "fields[appStoreVersions]":
+                "versionString,appStoreState,platform,releaseType",
+            },
+          })
+          .then(({ data }) => data.data?.[0] ?? null)
+          .catch(() => null),
+      ),
+    );
+
+    return results.find(Boolean) ?? null;
   }
 
   async createNewVersion(

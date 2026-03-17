@@ -452,18 +452,15 @@ export class AppStoreScraper {
         itunesData.price?.toString(),
       );
 
-      for (const c of changes) {
-        await prisma.appMetadataChange.create({
-          data: {
+      if (changes.length > 0) {
+        await prisma.appMetadataChange.createMany({
+          data: changes.map((c) => ({
             appId: app.id,
             field: c.field,
             oldValue: c.oldValue,
             newValue: c.newValue,
-          },
+          })),
         });
-      }
-
-      if (changes.length > 0) {
         logger.info(
           `Detected ${changes.length} metadata changes for ${bundleId}: ${changes.map((c) => c.field).join(", ")}`,
         );
@@ -494,22 +491,29 @@ export class AppStoreScraper {
 
     if (isOwnApp && itunesData.trackId) {
       const history = await this.scrapeVersionHistory(itunesData.trackId);
-      for (const { version, date } of history) {
-        const exists = await prisma.appMetadataChange.findFirst({
-          where: { appId: app.id, field: "version", newValue: version },
+      if (history.length > 0) {
+        const existing = await prisma.appMetadataChange.findMany({
+          where: { appId: app.id, field: "version" },
+          select: { newValue: true },
         });
-        if (!exists) {
-          await prisma.appMetadataChange.create({
-            data: {
+
+        const existingVersions = new Set(existing.map((e) => e.newValue));
+        const toCreate = history.filter(
+          ({ version }) => !existingVersions.has(version),
+        );
+
+        if (toCreate.length > 0) {
+          await prisma.appMetadataChange.createMany({
+            data: toCreate.map(({ version, date }) => ({
               appId: app.id,
               field: "version",
               oldValue: null,
               newValue: version,
               detectedAt: new Date(date),
-            },
+            })),
           });
           logger.info(
-            `Backfilled version ${version} (${date}) for ${bundleId}`,
+            `Backfilled ${toCreate.length} version(s) for ${bundleId}: ${toCreate.map((v) => v.version).join(", ")}`,
           );
         }
       }
@@ -552,21 +556,15 @@ export class AppStoreScraper {
     });
 
     if (ownApp) {
-      for (const competitorId of competitorIds) {
-        await prisma.competitorRelation.upsert({
-          where: {
-            appId_competitorId: {
-              appId: ownApp.id,
-              competitorId,
-            },
-          },
-          create: {
-            appId: ownApp.id,
-            competitorId,
-          },
-          update: {},
-        });
-      }
+      await Promise.all(
+        competitorIds.map((competitorId) =>
+          prisma.competitorRelation.upsert({
+            where: { appId_competitorId: { appId: ownApp.id, competitorId } },
+            create: { appId: ownApp.id, competitorId },
+            update: {},
+          }),
+        ),
+      );
     }
 
     logger.info(

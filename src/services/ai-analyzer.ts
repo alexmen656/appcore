@@ -371,16 +371,22 @@ export class AIAnalyzer {
     const results = new Map<string, ASOAnalysis>();
     const appData = await this.gatherAppData();
 
-    for (const locale of targetLocales) {
-      logger.info(`Running AI ASO analysis for locale: ${locale}`);
-      try {
-        const analysis = await this.analyzeForLocale(locale, appData);
-        results.set(locale, analysis);
-      } catch (error) {
-        logger.error(`AI analysis failed for locale ${locale}`, {
-          error: error instanceof Error ? error.message : error,
-        });
-      }
+    const analyses = await Promise.all(
+      targetLocales.map(async (locale) => {
+        logger.info(`Running AI ASO analysis for locale: ${locale}`);
+        try {
+          return { locale, analysis: await this.analyzeForLocale(locale, appData) };
+        } catch (error) {
+          logger.error(`AI analysis failed for locale ${locale}`, {
+            error: error instanceof Error ? error.message : error,
+          });
+          return null;
+        }
+      }),
+    );
+
+    for (const item of analyses) {
+      if (item) results.set(item.locale, item.analysis);
     }
 
     return results;
@@ -555,42 +561,32 @@ Generate detailed ASO optimization suggestions in ${lc.promptLang} for the ${lc.
     locale: string,
   ): Promise<void> {
     const suggestions = [
-      ...analysis.titleSuggestions.map((s) => ({
-        type: SuggestionType.TITLE as SuggestionType,
-        ...s,
-      })),
-      ...analysis.subtitleSuggestions.map((s) => ({
-        type: SuggestionType.SUBTITLE as SuggestionType,
-        ...s,
-      })),
-      ...analysis.keywordSuggestions.map((s) => ({
-        type: SuggestionType.KEYWORDS as SuggestionType,
-        ...s,
-      })),
-      ...analysis.descriptionSuggestions.map((s) => ({
-        type: SuggestionType.DESCRIPTION as SuggestionType,
-        ...s,
-      })),
+      ...analysis.titleSuggestions.map((s) => ({ type: SuggestionType.TITLE as SuggestionType, ...s })),
+      ...analysis.subtitleSuggestions.map((s) => ({ type: SuggestionType.SUBTITLE as SuggestionType, ...s })),
+      ...analysis.keywordSuggestions.map((s) => ({ type: SuggestionType.KEYWORDS as SuggestionType, ...s })),
+      ...analysis.descriptionSuggestions.map((s) => ({ type: SuggestionType.DESCRIPTION as SuggestionType, ...s })),
     ];
 
     const appBundleId = this.settings?.ascBundleId;
-    for (const suggestion of suggestions) {
-      await prisma.aSOSuggestion.create({
-        data: {
-          type: suggestion.type,
-          locale,
-          appBundleId,
-          suggestedValue: suggestion.value,
-          reasoning: suggestion.reasoning,
-          confidenceScore: suggestion.confidence,
-          status: SuggestionStatus.PENDING,
-          aiProvider: aiResponse.provider,
-          aiModel: aiResponse.model,
-          promptTokens: aiResponse.promptTokens,
-          completionTokens: aiResponse.completionTokens,
-        },
-      });
-    }
+    await Promise.all(
+      suggestions.map((suggestion) =>
+        prisma.aSOSuggestion.create({
+          data: {
+            type: suggestion.type,
+            locale,
+            appBundleId,
+            suggestedValue: suggestion.value,
+            reasoning: suggestion.reasoning,
+            confidenceScore: suggestion.confidence,
+            status: SuggestionStatus.PENDING,
+            aiProvider: aiResponse.provider,
+            aiModel: aiResponse.model,
+            promptTokens: aiResponse.promptTokens,
+            completionTokens: aiResponse.completionTokens,
+          },
+        }),
+      ),
+    );
 
     logger.info(
       `Saved ${suggestions.length} ASO suggestions for locale ${locale}`,

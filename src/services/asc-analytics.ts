@@ -139,21 +139,22 @@ export async function fetchSalesReports(
       }
 
       const reportDate = new Date(dateStr);
-      const countryCount = Object.keys(byCountry).length;
-      for (const [country, agg] of Object.entries(byCountry)) {
-        await prisma.appStoreAnalytics.upsert({
-          where: {
-            bundleId_reportDate_country: { bundleId, reportDate, country },
-          },
-          create: { bundleId, reportDate, country, ...agg },
-          update: agg,
-        });
-      }
-
-      if (countryCount > 0) {
+      const countryEntries = Object.entries(byCountry);
+      if (countryEntries.length > 0) {
+        await Promise.all(
+          countryEntries.map(([country, agg]) =>
+            prisma.appStoreAnalytics.upsert({
+              where: {
+                bundleId_reportDate_country: { bundleId, reportDate, country },
+              },
+              create: { bundleId, reportDate, country, ...agg },
+              update: agg,
+            }),
+          ),
+        );
         storedDays++;
         logger.debug(
-          `Sales report stored: ${bundleId} ${dateStr} (${countryCount} countries)`,
+          `Sales report stored: ${bundleId} ${dateStr} (${countryEntries.length} countries)`,
         );
       }
     } catch (err: any) {
@@ -312,18 +313,21 @@ async function processAnalyticsRequest(
             // Sessions live in the APP_USAGE "App Sessions" report, not here.
           }
 
-          for (const [key, metrics] of Object.entries(dayCountry)) {
-            const [dateStr, country] = key.split("::");
-            const reportDate = new Date(dateStr);
-            await prisma.appStoreAnalytics.upsert({
-              where: {
-                bundleId_reportDate_country: { bundleId, reportDate, country },
-              },
-              create: { bundleId, reportDate, country, ...metrics },
-              update: metrics,
-            });
-            storedRows++;
-          }
+          const entries = Object.entries(dayCountry);
+          await Promise.all(
+            entries.map(([key, metrics]) => {
+              const [dateStr, country] = key.split("::");
+              const reportDate = new Date(dateStr);
+              return prisma.appStoreAnalytics.upsert({
+                where: {
+                  bundleId_reportDate_country: { bundleId, reportDate, country },
+                },
+                create: { bundleId, reportDate, country, ...metrics },
+                update: metrics,
+              });
+            }),
+          );
+          storedRows += entries.length;
         } catch (err: any) {
           logger.warn(
             `Downloading/parsing engagement segment: ${err?.message ?? err}`,
@@ -554,28 +558,30 @@ export async function fetchReviews(
 
     const reviews: any[] = resp.data?.data ?? [];
 
-    for (const r of reviews) {
-      const attrs = r.attributes ?? {};
-      await prisma.appReview.upsert({
-        where: { ascReviewId: r.id },
-        create: {
-          ascReviewId: r.id,
-          bundleId,
-          rating: attrs.rating ?? 0,
-          title: attrs.title ?? null,
-          body: attrs.body ?? null,
-          reviewerNickname: attrs.reviewerNickname ?? null,
-          territory: attrs.territory ?? null,
-          reviewedAt: new Date(attrs.createdDate ?? Date.now()),
-        },
-        update: {
-          rating: attrs.rating ?? 0,
-          title: attrs.title ?? null,
-          body: attrs.body ?? null,
-        },
-      });
-      total++;
-    }
+    await Promise.all(
+      reviews.map((r) => {
+        const attrs = r.attributes ?? {};
+        return prisma.appReview.upsert({
+          where: { ascReviewId: r.id },
+          create: {
+            ascReviewId: r.id,
+            bundleId,
+            rating: attrs.rating ?? 0,
+            title: attrs.title ?? null,
+            body: attrs.body ?? null,
+            reviewerNickname: attrs.reviewerNickname ?? null,
+            territory: attrs.territory ?? null,
+            reviewedAt: new Date(attrs.createdDate ?? Date.now()),
+          },
+          update: {
+            rating: attrs.rating ?? 0,
+            title: attrs.title ?? null,
+            body: attrs.body ?? null,
+          },
+        });
+      }),
+    );
+    total += reviews.length;
 
     const nextCursor = resp.data?.links?.next;
     if (!nextCursor || reviews.length === 0) break;

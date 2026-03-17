@@ -1,20 +1,15 @@
 import { prisma } from "./database";
 
 export interface EffectiveSettings {
-  // App Store Connect
   ascIssuerId: string;
   ascKeyId: string;
   ascPrivateKey: string;
   ascAppId: string;
   ascBundleId: string;
   ascVendorNumber: string;
-
-  // AI
   openaiApiKey: string;
   anthropicApiKey: string;
   aiProvider: "openai" | "anthropic";
-
-  // Scraping (derived from App model, not user-editable)
   scrapeCountry: string;
 }
 

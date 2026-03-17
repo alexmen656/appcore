@@ -135,25 +135,31 @@ export class FastlaneService {
     const live = await this.asc.getLiveVersion(app.id);
     const version = editable ?? live;
 
-    const ascLocalizations = await this.asc.getAppInfoLocalizations(app.id).catch(() => []);
+    const ascLocalizations = await this.asc
+      .getAppInfoLocalizations(app.id)
+      .catch(() => []);
+
     const locales =
       ascLocalizations.length > 0
-        ? ascLocalizations.map((l: any) => l.attributes?.locale ?? l.locale).filter(Boolean)
+        ? ascLocalizations
+            .map((l: any) => l.attributes?.locale ?? l.locale)
+            .filter(Boolean)
         : ["en-US"];
-    const localeData: SubmissionPreview["locales"] = [];
 
-    for (const locale of locales) {
-      const state = await this.asc.getCurrentASOState(locale);
-      localeData.push({
-        locale,
-        name: state?.title ?? "",
-        subtitle: state?.subtitle ?? "",
-        keywords: state?.keywords ?? "",
-        description: state?.description ?? "",
-        whatsNew: state?.whatsNew ?? "",
-        promotionalText: state?.promotionalText ?? "",
-      });
-    }
+    const localeData: SubmissionPreview["locales"] = await Promise.all(
+      locales.map(async (locale) => {
+        const state = await this.asc.getCurrentASOState(locale);
+        return {
+          locale,
+          name: state?.title ?? "",
+          subtitle: state?.subtitle ?? "",
+          keywords: state?.keywords ?? "",
+          description: state?.description ?? "",
+          whatsNew: state?.whatsNew ?? "",
+          promotionalText: state?.promotionalText ?? "",
+        };
+      }),
+    );
 
     return {
       appId: app.id,
@@ -201,8 +207,7 @@ export class FastlaneService {
       submission.logs.push("Preparing metadata...");
       const localeData = await this.prepareMetadataLocales(action, overrides);
       submission.logs.push(
-        `Metadata prepared for ${Object.keys(localeData).length} locale(s)\n
-         Delegating to Fastlane worker...`,
+        `Metadata prepared for ${Object.keys(localeData).length} locale(s). Delegating to Fastlane worker...`,
       );
 
       submission.status = "running";
@@ -296,7 +301,6 @@ export class FastlaneService {
       };
     }
   }
-
 
   private async loadFramedScreenshots(): Promise<Record<
     string,

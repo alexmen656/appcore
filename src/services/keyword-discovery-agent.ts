@@ -1,33 +1,10 @@
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
-import { prisma, env, logger } from "../config";
+import { prisma, logger } from "../config";
 import type { EffectiveSettings } from "../config";
 import { ScrapeType, JobStatus } from "@prisma/client";
 import { AppStoreScraper } from "./appstore-scraper";
 import { langForCountry } from "./app-store-markets";
-
-const MIN_POPULARITY = 15;
-const MIN_RESULTS = 3;
-const MAX_SCORE_PER_RUN = 25;
-const MAX_AUTOCOMPLETE_SEEDS = 20;
-
-/**
- * Continuously discovers new relevant keywords to track using three strategies:
- *
- *   1. **Competitor text mining** – AI extracts candidates from competitor
- *      titles, subtitles, keyword fields and description excerpts.
- *
- *   2. **Autocomplete expansion** – feeds each tracked keyword into Apple's
- *      search-hints API and collects suggestions not yet tracked.
- *
- *   3. **Semantic expansion** – AI identifies keyword gaps given the app
- *      description and the current tracked-keyword set (synonyms, long-tail
- *      variants, use-case terms, etc.).
- *
- * Candidates from all three strategies are deduplicated, then scored with the
- * App Store analyzer. Only keywords that meet the minimum popularity and
- * result-count thresholds are added to tracking.
- */
 
 export class KeywordDiscoveryAgent {
   private readonly scraper: AppStoreScraper;
@@ -36,6 +13,10 @@ export class KeywordDiscoveryAgent {
   private openai?: OpenAI;
   private anthropic?: Anthropic;
   private readonly settings?: EffectiveSettings;
+  private readonly MIN_POPULARITY = 15;
+  private readonly MIN_RESULTS = 3;
+  private readonly MAX_SCORE_PER_RUN = 25;
+  private readonly MAX_AUTOCOMPLETE_SEEDS = 20;
 
   constructor(settings?: EffectiveSettings) {
     this.settings = settings;
@@ -131,43 +112,42 @@ export class KeywordDiscoveryAgent {
 
     const qualified = await this.scoreAndFilter([...candidates]);
 
-    let added = 0;
     const keywordLanguage = langForCountry(this.country);
     const ownApp = await prisma.app.findUnique({
       where: { bundleId: this.bundleId },
     });
 
-    for (const term of qualified) {
-      const keyword = await prisma.keyword.upsert({
-        where: { term_country: { term, country: this.country } },
-        create: {
-          term,
-          country: this.country,
-          language: keywordLanguage,
-        },
-        update: {},
-      });
-
-      if (ownApp) {
-        const existingRanking = await prisma.keywordRanking.findFirst({
-          where: { keywordId: keyword.id, appId: ownApp.id },
+    await Promise.all(
+      qualified.map(async (term) => {
+        const keyword = await prisma.keyword.upsert({
+          where: { term_country: { term, country: this.country } },
+          create: { term, country: this.country, language: keywordLanguage },
+          update: {},
         });
-        if (!existingRanking) {
-          await prisma.keywordRanking.create({
-            data: {
-              keywordId: keyword.id,
-              appId: ownApp.id,
-              rank: null,
-              country: this.country,
-            },
+
+        if (ownApp) {
+          const existingRanking = await prisma.keywordRanking.findFirst({
+            where: { keywordId: keyword.id, appId: ownApp.id },
           });
+          if (!existingRanking) {
+            await prisma.keywordRanking.create({
+              data: {
+                keywordId: keyword.id,
+                appId: ownApp.id,
+                rank: null,
+                country: this.country,
+              },
+            });
+          }
         }
-      }
+      }),
+    );
 
-      added++;
-    }
-
-    return { discovered: candidates.size, scored: qualified.length, added };
+    return {
+      discovered: candidates.size,
+      scored: qualified.length,
+      added: qualified.length,
+    };
   }
 
   private async discoverFromCompetitorTexts(
@@ -251,7 +231,7 @@ Return the 25 most valuable keyword candidates not yet tracked. Respond with JSO
   private async discoverFromAutocompleteExpansion(
     existing: Set<string>,
   ): Promise<string[]> {
-    const seeds = [...existing].slice(0, MAX_AUTOCOMPLETE_SEEDS);
+    const seeds = [...existing].slice(0, this.MAX_AUTOCOMPLETE_SEEDS);
     const discovered = new Set<string>();
 
     for (const seed of seeds) {
@@ -328,11 +308,11 @@ Return JSON only.`;
   }
 
   private async scoreAndFilter(candidates: string[]): Promise<string[]> {
-    const toScore = candidates.slice(0, MAX_SCORE_PER_RUN);
+    const toScore = candidates.slice(0, this.MAX_SCORE_PER_RUN);
     const qualified: string[] = [];
 
     logger.info(
-      `[Discovery] Scoring ${toScore.length} of ${candidates.length} candidates (min pop=${MIN_POPULARITY} min results=${MIN_RESULTS})`,
+      `[Discovery] Scoring ${toScore.length} of ${candidates.length} candidates (min pop=${this.MIN_POPULARITY} min results=${this.MIN_RESULTS})`,
     );
 
     for (const candidate of toScore) {
@@ -342,7 +322,10 @@ Return JSON only.`;
           25,
         );
 
-        if (popularity >= MIN_POPULARITY && searchVolume >= MIN_RESULTS) {
+        if (
+          popularity >= this.MIN_POPULARITY &&
+          searchVolume >= this.MIN_RESULTS
+        ) {
           qualified.push(candidate);
           logger.debug(
             `[Discovery] ✓ "${candidate}" accepted (pop=${popularity} results=${searchVolume})`,

@@ -33,8 +33,6 @@ export interface GitHubWebhookPayload {
   };
 }
 
-const GITHUB_AUTHORIZE_URL = "https://github.com/login/oauth/authorize";
-const GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token";
 const GITHUB_API = "https://api.github.com";
 
 export function getGitHubOAuthUrl(state: string): string {
@@ -45,7 +43,7 @@ export function getGitHubOAuthUrl(state: string): string {
     scope: "repo",
     state,
   });
-  return `${GITHUB_AUTHORIZE_URL}?${params}`;
+  return `https://github.com/login/oauth/authorize?${params}`;
 }
 
 export async function exchangeGitHubCode(code: string): Promise<string> {
@@ -55,7 +53,7 @@ export async function exchangeGitHubCode(code: string): Promise<string> {
     throw new Error("GitHub OAuth credentials not configured");
 
   const { data } = await axios.post(
-    GITHUB_TOKEN_URL,
+    "https://github.com/login/oauth/access_token",
     { client_id: clientId, client_secret: clientSecret, code },
     { headers: { Accept: "application/json" } },
   );

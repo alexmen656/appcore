@@ -187,19 +187,15 @@ class PushNotificationService {
   async sendToAll(
     payload: PushPayload,
   ): Promise<{ sent: number; failed: number }> {
-    const db = prisma;
-    const tokens = await db.deviceToken.findMany({
+    const tokens = await prisma.deviceToken.findMany({
       where: { isActive: true, platform: "ios" },
     });
 
-    let sent = 0;
-    let failed = 0;
-
-    for (const token of tokens) {
-      const success = await this.sendToDevice(token.token, payload);
-      if (success) sent++;
-      else failed++;
-    }
+    const results = await Promise.all(
+      tokens.map((token) => this.sendToDevice(token.token, payload)),
+    );
+    const sent = results.filter(Boolean).length;
+    const failed = results.length - sent;
 
     logger.info(
       `[PUSH] Broadcast: ${sent} sent, ${failed} failed (of ${tokens.length} devices)`,
@@ -211,19 +207,15 @@ class PushNotificationService {
     userId: string,
     payload: PushPayload,
   ): Promise<{ sent: number; failed: number }> {
-    const db = prisma;
-    const tokens = await db.deviceToken.findMany({
+    const tokens = await prisma.deviceToken.findMany({
       where: { userId, isActive: true, platform: "ios" },
     });
 
-    let sent = 0;
-    let failed = 0;
-
-    for (const token of tokens) {
-      const success = await this.sendToDevice(token.token, payload);
-      if (success) sent++;
-      else failed++;
-    }
+    const results = await Promise.all(
+      tokens.map((token) => this.sendToDevice(token.token, payload)),
+    );
+    const sent = results.filter(Boolean).length;
+    const failed = results.length - sent;
 
     return { sent, failed };
   }

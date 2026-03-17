@@ -1,11 +1,8 @@
 import axios from "axios";
-import * as cheerio from "cheerio";
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma, logger } from "../config";
 import type { EffectiveSettings } from "../config";
-
-// ─── RSS Review Feed Types ──────────────────────────────────────────────
 
 interface ScrapedReview {
   externalId: string;
@@ -16,15 +13,11 @@ interface ScrapedReview {
   reviewedAt: Date;
 }
 
-// ─── AI Response Helper ─────────────────────────────────────────────────
-
 interface AIResponse {
   content: string;
   provider: string;
   model: string;
 }
-
-// ─── Competitor Intelligence Service ────────────────────────────────────
 
 export class CompetitorIntelService {
   private openai?: OpenAI;
@@ -43,8 +36,6 @@ export class CompetitorIntelService {
     if (anthropicKey) this.anthropic = new Anthropic({ apiKey: anthropicKey });
   }
 
-  // ─── 1. Scrape Reviews from Apple RSS Feed ─────────────────────────
-
   async scrapeReviews(
     trackId: bigint | number,
     appId: string,
@@ -54,17 +45,18 @@ export class CompetitorIntelService {
     const tid = typeof trackId === "bigint" ? Number(trackId) : trackId;
     let totalSaved = 0;
 
-    // Apple provides up to 10 pages of reviews via RSS (10 reviews per page)
     for (let page = 1; page <= 10; page++) {
       try {
-        const url = `https://itunes.apple.com/${cc}/rss/customerreviews/page=${page}/id=${tid}/sortby=mostrecent/json`;
-        const { data } = await axios.get(url, { timeout: 10000 });
+        const { data } = await axios.get(
+          `https://itunes.apple.com/${cc}/rss/customerreviews/page=${page}/id=${tid}/sortby=mostrecent/json`,
+          { timeout: 10000 },
+        );
 
         const entries = data?.feed?.entry;
         if (!entries || !Array.isArray(entries)) break;
 
         const reviews: ScrapedReview[] = entries
-          .filter((e: any) => e?.["im:rating"]?.label) // skip the app info entry
+          .filter((e: any) => e?.["im:rating"]?.label)
           .map((e: any) => ({
             externalId:
               e.id?.label ??
@@ -99,12 +91,14 @@ export class CompetitorIntelService {
               },
             });
             totalSaved++;
-          } catch (err) {
-            // Skip duplicates silently
+          } catch (err: any) {
+            logger.debug(
+              `[Reviews] Upsert failed for review ${review.externalId}: ${err?.message ?? err}`,
+            );
           }
         }
 
-        if (reviews.length < 5) break; // No more pages
+        if (reviews.length < 5) break;
 
         await this.sleep(500);
       } catch (err) {
@@ -118,8 +112,6 @@ export class CompetitorIntelService {
     );
     return totalSaved;
   }
-
-  // ─── 2. Scrape reviews for ALL competitors ─────────────────────────
 
   async scrapeAllCompetitorReviews(
     bundleId: string,
@@ -154,8 +146,6 @@ export class CompetitorIntelService {
     );
     return { total, apps };
   }
-
-  // ─── 3. Summarize reviews for a competitor ──────────────────────────
 
   async summarizeReviews(appId: string): Promise<string> {
     const reviews = await prisma.competitorReview.findMany({
@@ -338,8 +328,6 @@ Be concise but thorough. Extract actionable insights.`;
     return changesDetected;
   }
 
-  // ─── 6. Detect changes for ALL competitors ─────────────────────────
-
   async detectAllMetadataChanges(
     bundleId: string,
   ): Promise<{ apps: number; changes: number }> {
@@ -352,19 +340,17 @@ Be concise but thorough. Extract actionable insights.`;
 
     if (!ownApp) throw new Error(`App not found: ${bundleId}`);
 
-    let totalChanges = 0;
-    let appsWithChanges = 0;
+    const results = await Promise.all(
+      ownApp.competitors.map((rel) =>
+        this.detectMetadataChanges(rel.competitor.id),
+      ),
+    );
 
-    for (const rel of ownApp.competitors) {
-      const changes = await this.detectMetadataChanges(rel.competitor.id);
-      totalChanges += changes;
-      if (changes > 0) appsWithChanges++;
-    }
+    const totalChanges = results.reduce((sum, n) => sum + n, 0);
+    const appsWithChanges = results.filter((n) => n > 0).length;
 
     return { apps: appsWithChanges, changes: totalChanges };
   }
-
-  // ─── 7. Get keyword rankings for a specific competitor ─────────────
 
   async getCompetitorKeywordRankings(
     competitorAppId: string,

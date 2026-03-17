@@ -69,21 +69,21 @@ export class KeywordTracker {
     country = this.country,
     language?: string,
   ): Promise<number> {
-    let added = 0;
     const lang = normalizeLanguage(language, country);
-    for (const term of terms) {
-      const normalized = term.toLowerCase().trim();
-      if (!normalized) continue;
+    const normalized = terms.map((t) => t.toLowerCase().trim()).filter(Boolean);
 
-      await prisma.keyword.upsert({
-        where: { term_country: { term: normalized, country } },
-        create: { term: normalized, country, language: lang },
-        update: {},
-      });
-      added++;
-    }
-    logger.info(`Added/verified ${added} keywords for tracking`);
-    return added;
+    await Promise.all(
+      normalized.map((term) =>
+        prisma.keyword.upsert({
+          where: { term_country: { term, country } },
+          create: { term, country, language: lang },
+          update: {},
+        }),
+      ),
+    );
+
+    logger.info(`Added/verified ${normalized.length} keywords for tracking`);
+    return normalized.length;
   }
 
   async trackKeywordRanking(
@@ -158,22 +158,26 @@ export class KeywordTracker {
       include: { competitor: true },
     });
 
-    for (const rel of competitors) {
-      const compRank =
-        results.findIndex((r) => r.bundleId === rel.competitor.bundleId) + 1 ||
-        null;
-
-      if (compRank) {
-        await prisma.keywordRanking.create({
-          data: {
-            keywordId: keyword.id,
-            appId: rel.competitorId,
-            rank: compRank,
-            country,
-          },
-        });
-      }
-    }
+    await Promise.all(
+      competitors
+        .map((rel) => ({
+          rel,
+          compRank:
+            results.findIndex((r) => r.bundleId === rel.competitor.bundleId) +
+              1 || null,
+        }))
+        .filter(({ compRank }) => compRank !== null)
+        .map(({ rel, compRank }) =>
+          prisma.keywordRanking.create({
+            data: {
+              keywordId: keyword.id,
+              appId: rel.competitorId,
+              rank: compRank,
+              country,
+            },
+          }),
+        ),
+    );
 
     logger.info(`Keyword "${keywordTerm}": our rank = ${rank ?? "not ranked"}`);
     return rank;
