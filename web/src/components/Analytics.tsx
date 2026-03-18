@@ -535,12 +535,20 @@ export default function Analytics({ addToast }: Props) {
                         className="hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors"
                       >
                         <td className={TD}>
-                          <span className="font-medium text-[#111827] dark:text-[#e8eaf0]">
-                            {countryName(r.country)}
-                          </span>
-                          <span className="ml-1.5 text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
-                            {r.country.toUpperCase()}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={`/app/country-flags/${r.country.toLowerCase()}.svg`}
+                              alt={r.country}
+                              className="w-5 h-4 rounded-xs object-cover shrink-0"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                            />
+                            <span className="font-medium text-[#111827] dark:text-[#e8eaf0]">
+                              {countryName(r.country)}
+                            </span>
+                            <span className="text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
+                              {r.country.toUpperCase()}
+                            </span>
+                          </div>
                         </td>
                         <td className={`${TD} text-right tabular-nums text-[#111827] dark:text-[#e8eaf0]`}>
                           {fmtNumber(val)}
@@ -654,12 +662,20 @@ export default function Analytics({ addToast }: Props) {
                       className="hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors"
                     >
                       <td className={TD}>
-                        <span className="font-medium text-[#111827] dark:text-[#e8eaf0]">
-                          {countryName(r.country)}
-                        </span>
-                        <span className="ml-1.5 text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
-                          {r.country.toUpperCase()}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={`/app/country-flags/${r.country.toLowerCase()}.svg`}
+                            alt={r.country}
+                            className="w-5 h-4 rounded-xs object-cover shrink-0"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          />
+                          <span className="font-medium text-[#111827] dark:text-[#e8eaf0]">
+                            {countryName(r.country)}
+                          </span>
+                          <span className="text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
+                            {r.country.toUpperCase()}
+                          </span>
+                        </div>
                       </td>
                       <td className={`${TD} text-right tabular-nums text-[#111827] dark:text-[#e8eaf0]`}>
                         {fmtNumber(r.downloads)}
