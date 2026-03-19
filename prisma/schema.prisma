@@ -7,13 +7,14 @@ datasource db {
 }
 
 model Team {
-  id        String       @id @default(cuid())
+  id        String        @id @default(cuid())
   name      String
   members   TeamMember[]
   invites   TeamInvite[]
   apps      App[]
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  settings  TeamSettings?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 }
 
 model TeamMember {
@@ -60,7 +61,6 @@ model User {
   name         String?
   passwordHash String?
   role         UserRole      @default(USER)
-  settings     UserSettings?
   passkeys     PasskeyCredential[]
   teamMembers  TeamMember[]
   createdAt    DateTime      @default(now())
@@ -91,10 +91,10 @@ enum UserRole {
   USER
 }
 
-model UserSettings {
+model TeamSettings {
   id     String @id @default(cuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teamId String @unique
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
   ascIssuerId   String?
   ascKeyId      String?
   ascPrivateKey String?

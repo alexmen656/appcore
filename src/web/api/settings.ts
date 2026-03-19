@@ -5,12 +5,12 @@ import { requireAuth } from "../auth";
 export const settingsRouter = Router();
 settingsRouter.use(requireAuth);
 
-// ─── GET /api/settings ───────────────────────────────────────────────────────
 settingsRouter.get("/", async (req, res) => {
   try {
-    const settings = await prisma.userSettings.findUnique({
-      where: { userId: req.user!.userId },
-    });
+    const teamId = req.user!.teamId;
+    const settings = teamId
+      ? await prisma.teamSettings.findUnique({ where: { teamId } })
+      : null;
 
     res.json(
       settings
@@ -48,9 +48,14 @@ settingsRouter.get("/", async (req, res) => {
   }
 });
 
-// ─── PUT /api/settings ───────────────────────────────────────────────────────
 settingsRouter.put("/", async (req, res) => {
   try {
+    const teamId = req.user!.teamId;
+    if (!teamId) {
+      res.status(403).json({ error: "No team" });
+      return;
+    }
+
     const {
       ascIssuerId,
       ascKeyId,
@@ -70,16 +75,17 @@ settingsRouter.put("/", async (req, res) => {
       data.ascPrivateKey = ascPrivateKey || null;
     if (ascAppId !== undefined) data.ascAppId = ascAppId || null;
     if (ascBundleId !== undefined) data.ascBundleId = ascBundleId || null;
-    if (ascVendorNumber !== undefined) data.ascVendorNumber = ascVendorNumber || null;
+    if (ascVendorNumber !== undefined)
+      data.ascVendorNumber = ascVendorNumber || null;
     if (openaiApiKey !== undefined && openaiApiKey !== "••••••••")
       data.openaiApiKey = openaiApiKey || null;
     if (anthropicApiKey !== undefined && anthropicApiKey !== "••••••••")
       data.anthropicApiKey = anthropicApiKey || null;
     if (aiProvider !== undefined) data.aiProvider = aiProvider || "openai";
 
-    await prisma.userSettings.upsert({
-      where: { userId: req.user!.userId },
-      create: { userId: req.user!.userId, ...data },
+    await prisma.teamSettings.upsert({
+      where: { teamId },
+      create: { teamId, ...data },
       update: data,
     });
 

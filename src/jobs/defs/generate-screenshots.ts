@@ -38,7 +38,7 @@ async function runScreenshotGenerationViaWorker(
   log: (msg: string) => void,
 ): Promise<void> {
   try {
-    const userWithToken = await prisma.userSettings.findFirst({
+    const userWithToken = await prisma.teamSettings.findFirst({
       where: { githubAccessToken: { not: null } },
     });
     if (!userWithToken?.githubAccessToken) {

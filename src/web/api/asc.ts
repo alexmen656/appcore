@@ -10,7 +10,13 @@ ascRouter.use(requireAuth);
 async function ascClientForUser(
   userId: string,
 ): Promise<AppStoreConnectClient> {
-  const s = await prisma.userSettings.findUnique({ where: { userId } });
+  const membership = await prisma.teamMember.findFirst({
+    where: { userId },
+    orderBy: { createdAt: "asc" },
+  });
+  const s = membership
+    ? await prisma.teamSettings.findUnique({ where: { teamId: membership.teamId } })
+    : null;
   if (s?.ascIssuerId && s?.ascKeyId && s?.ascPrivateKey) {
     return new AppStoreConnectClient({
       issuerId: s.ascIssuerId,

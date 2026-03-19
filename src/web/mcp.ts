@@ -30,9 +30,13 @@ export async function mcpAuth(req: Request, res: Response, next: NextFunction) {
       where: { accessToken: key },
     });
     if (oauthToken) {
-      const tokenSettings = await prisma.userSettings.findUnique({
+      const membership = await prisma.teamMember.findFirst({
         where: { userId: oauthToken.userId },
+        orderBy: { createdAt: "asc" },
       });
+      const tokenSettings = membership
+        ? await prisma.teamSettings.findUnique({ where: { teamId: membership.teamId } })
+        : null;
       if (tokenSettings?.mcpEnabled) {
         (req as any).mcpUserId = oauthToken.userId;
         next();

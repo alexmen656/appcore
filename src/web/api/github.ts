@@ -52,13 +52,23 @@ githubRouter.get("/oauth/callback", async (req: Request, res: Response) => {
       return;
     }
 
+    const membership = await prisma.teamMember.findFirst({
+      where: { userId },
+      orderBy: { createdAt: "asc" },
+    });
+    if (!membership) {
+      res.redirect("/settings?github=error");
+      return;
+    }
+
+    const teamId = membership.teamId;
     const accessToken = await exchangeGitHubCode(code);
     const ghUser = await getGitHubUser(accessToken);
 
-    await prisma.userSettings.upsert({
-      where: { userId },
+    await prisma.teamSettings.upsert({
+      where: { teamId },
       create: {
-        userId,
+        teamId,
         githubAccessToken: accessToken,
         githubUsername: ghUser.login,
         githubAvatarUrl: ghUser.avatar_url,
@@ -85,9 +95,10 @@ githubRouter.get(
   requireAuth,
   async (req: Request, res: Response) => {
     try {
-      const settings = await prisma.userSettings.findUnique({
-        where: { userId: req.user!.userId },
-      });
+      const teamId = req.user!.teamId;
+      const settings = teamId
+        ? await prisma.teamSettings.findUnique({ where: { teamId } })
+        : null;
       res.json({
         connected: !!settings?.githubAccessToken,
         username: settings?.githubUsername ?? null,
@@ -105,15 +116,18 @@ githubRouter.post(
   requireAuth,
   async (req: Request, res: Response) => {
     try {
-      await prisma.userSettings.update({
-        where: { userId: req.user!.userId },
-        data: {
-          githubAccessToken: null,
-          githubUsername: null,
-          githubAvatarUrl: null,
-          githubConnectedAt: null,
-        },
-      });
+      const teamId = req.user!.teamId;
+      if (teamId) {
+        await prisma.teamSettings.updateMany({
+          where: { teamId },
+          data: {
+            githubAccessToken: null,
+            githubUsername: null,
+            githubAvatarUrl: null,
+            githubConnectedAt: null,
+          },
+        });
+      }
       res.json({ ok: true });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -123,9 +137,10 @@ githubRouter.post(
 
 githubRouter.get("/repos", requireAuth, async (req: Request, res: Response) => {
   try {
-    const settings = await prisma.userSettings.findUnique({
-      where: { userId: req.user!.userId },
-    });
+    const teamId = req.user!.teamId;
+    const settings = teamId
+      ? await prisma.teamSettings.findUnique({ where: { teamId } })
+      : null;
     if (!settings?.githubAccessToken) {
       res.status(400).json({ error: "GitHub not connected" });
       return;
@@ -280,7 +295,7 @@ githubRouter.post("/webhook", async (req: Request, res: Response) => {
       },
     });
 
-    const settings = await prisma.userSettings.findFirst({
+    const settings = await prisma.teamSettings.findFirst({
       where: { githubAccessToken: { not: null } },
     });
 

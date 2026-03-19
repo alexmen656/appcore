@@ -26,10 +26,23 @@ const DEFAULTS: EffectiveSettings = {
   scrapeCountry: "de",
 };
 
+async function getTeamIdForUser(userId: string): Promise<string | null> {
+  const membership = await prisma.teamMember.findFirst({
+    where: { userId },
+    orderBy: { createdAt: "asc" },
+  });
+  return membership?.teamId ?? null;
+}
+
+export async function getTeamSettings(teamId: string) {
+  return prisma.teamSettings.findUnique({ where: { teamId } });
+}
+
 export async function getEffectiveSettings(
   userId: string,
 ): Promise<EffectiveSettings> {
-  const s = await prisma.userSettings.findUnique({ where: { userId } });
+  const teamId = await getTeamIdForUser(userId);
+  const s = teamId ? await getTeamSettings(teamId) : null;
 
   const bundleId = s?.ascBundleId ?? "";
   let scrapeCountry = DEFAULTS.scrapeCountry;

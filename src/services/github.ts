@@ -152,7 +152,10 @@ export async function linkRepoToApp(
   appId: string,
   repoFullName: string,
 ): Promise<void> {
-  const settings = await prisma.userSettings.findUnique({ where: { userId } });
+  const membership = await prisma.teamMember.findFirst({ where: { userId }, orderBy: { createdAt: "asc" } });
+  const settings = membership
+    ? await prisma.teamSettings.findUnique({ where: { teamId: membership.teamId } })
+    : null;
   if (!settings?.githubAccessToken)
     throw new Error("GitHub not connected. Connect in Settings first.");
 
@@ -193,7 +196,10 @@ export async function unlinkRepoFromApp(
   userId: string,
   appId: string,
 ): Promise<void> {
-  const settings = await prisma.userSettings.findUnique({ where: { userId } });
+  const membership = await prisma.teamMember.findFirst({ where: { userId }, orderBy: { createdAt: "asc" } });
+  const settings = membership
+    ? await prisma.teamSettings.findUnique({ where: { teamId: membership.teamId } })
+    : null;
   const app = await prisma.app.findUnique({ where: { id: appId } });
   if (!app) throw new Error("App not found");
 

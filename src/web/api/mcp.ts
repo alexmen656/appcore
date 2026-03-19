@@ -8,12 +8,11 @@ mcpRouter.use(requireAuth);
 
 mcpRouter.get("/config", async (req, res) => {
   try {
-    const settings = await prisma.userSettings.findUnique({
-      where: { userId: req.user!.userId },
-    });
-    res.json({
-      mcpEnabled: settings?.mcpEnabled ?? false,
-    });
+    const teamId = req.user!.teamId;
+    const settings = teamId
+      ? await prisma.teamSettings.findUnique({ where: { teamId } })
+      : null;
+    res.json({ mcpEnabled: settings?.mcpEnabled ?? false });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
@@ -22,13 +21,17 @@ mcpRouter.get("/config", async (req, res) => {
 mcpRouter.put("/config", async (req, res) => {
   try {
     const { mcpEnabled } = req.body as { mcpEnabled?: boolean };
-    const userId = req.user!.userId;
+    const teamId = req.user!.teamId;
+    if (!teamId) {
+      res.status(403).json({ error: "No team" });
+      return;
+    }
     const data: Record<string, any> = {};
     if (mcpEnabled !== undefined) data.mcpEnabled = Boolean(mcpEnabled);
 
-    await prisma.userSettings.upsert({
-      where: { userId },
-      create: { userId, ...data },
+    await prisma.teamSettings.upsert({
+      where: { teamId },
+      create: { teamId, ...data },
       update: data,
     });
     res.json({ ok: true });

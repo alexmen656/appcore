@@ -32,7 +32,7 @@ export async function generateScreenshotSublines(
     .sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999))
     .slice(0, 20);
 
-  const settings = await prisma.userSettings.findFirst();
+  const settings = await prisma.teamSettings.findFirst();
   const anthropicKey = settings?.anthropicApiKey;
   const openaiKey = settings?.openaiApiKey;
   const useAnthropic =
