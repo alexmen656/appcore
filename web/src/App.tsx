@@ -32,6 +32,7 @@ import AppSettings from "./components/AppSettings";
 import Analytics from "./components/Analytics";
 import Versions from "./components/Versions";
 import Login from "./components/Login";
+import Team from "./components/Team";
 import type {
   AuthUser,
   DashboardData,
@@ -165,6 +166,21 @@ const IconAgents = () => (
     <path d="M8 21h8M12 17v4" />
     <circle cx="12" cy="10" r="3" />
     <path d="M7 10h2M15 10h2" />
+  </svg>
+);
+const IconTeam = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
   </svg>
 );
 const IconMoon = () => (
@@ -600,6 +616,16 @@ function HeaderProfileMenu({
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
             </svg>
             Account Settings
+          </NavLink>
+          <NavLink
+            to="/team"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors text-[13px] text-[#1a1a2e] dark:text-[#e8eaf0] font-medium"
+          >
+            <span className="w-4 h-4 text-gray-400 dark:text-[#5c6478] shrink-0 flex items-center">
+              <IconTeam />
+            </span>
+            Team
           </NavLink>
           <button
             onClick={() => {
@@ -1093,6 +1119,12 @@ export default function App() {
             <Route
               path="/app-settings"
               element={<AppSettings addToast={addToast} />}
+            />
+            <Route
+              path="/team"
+              element={
+                <Team addToast={addToast} currentUserId={user.id} />
+              }
             />
           </Routes>
         </main>

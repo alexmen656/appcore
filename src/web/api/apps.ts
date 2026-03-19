@@ -8,11 +8,26 @@ export const appsRouter = Router();
 appsRouter.get("/", async (req, res) => {
   try {
     const bundleId = req.query.bundleId as string | undefined;
+    const userId = req.user!.userId;
+    const isAdmin = req.user!.role === "ADMIN";
     let whereClause: any = {};
+    let allowedOwnAppIds: string[] | null = null;
+
+    if (!isAdmin) {
+      const memberships = await prisma.appMember.findMany({
+        where: { userId },
+        select: { appId: true },
+      });
+      allowedOwnAppIds = memberships.map((m) => m.appId);
+    }
 
     if (bundleId) {
       const activeApp = await prisma.app.findUnique({ where: { bundleId } });
       if (activeApp) {
+        if (!isAdmin && !allowedOwnAppIds?.includes(activeApp.id)) {
+          res.json([]);
+          return;
+        }
         const rels = await prisma.competitorRelation.findMany({
           where: {
             OR: [{ appId: activeApp.id }, { competitorId: activeApp.id }],
@@ -25,6 +40,10 @@ appsRouter.get("/", async (req, res) => {
           OR: [{ id: activeApp.id }, { id: { in: relatedIds } }],
         };
       }
+    } else if (!isAdmin && allowedOwnAppIds !== null) {
+      whereClause = {
+        OR: [{ id: { in: allowedOwnAppIds } }, { isOwnApp: false }],
+      };
     }
 
     const apps = await prisma.app.findMany({
@@ -282,7 +301,6 @@ appsRouter.get("/:id/competitor-detail", async (req, res) => {
   }
 });
 
-// GET /api/apps/:id/signing
 appsRouter.get("/:id/signing", requireAuth, async (req, res) => {
   try {
     const app = await prisma.app.findUnique({
@@ -293,7 +311,10 @@ appsRouter.get("/:id/signing", requireAuth, async (req, res) => {
         signingTeamId: true,
       },
     });
-    if (!app) { res.status(404).json({ error: "App not found" }); return; }
+    if (!app) {
+      res.status(404).json({ error: "App not found" });
+      return;
+    }
     res.json({
       hasCert: !!app.signingCertP12,
       hasProfile: !!app.signingProvisioningProfile,
@@ -304,13 +325,13 @@ appsRouter.get("/:id/signing", requireAuth, async (req, res) => {
   }
 });
 
-// PUT /api/apps/:id/signing — upload signing creds (multipart base64 JSON body)
-// Body: { p12Base64, p12Password, profileBase64, teamId? }
 appsRouter.put("/:id/signing", requireAuth, async (req, res) => {
   try {
     const { p12Base64, p12Password, profileBase64, teamId } = req.body;
     if (!p12Base64 || !p12Password || !profileBase64) {
-      res.status(400).json({ error: "p12Base64, p12Password, and profileBase64 are required" });
+      res.status(400).json({
+        error: "p12Base64, p12Password, and profileBase64 are required",
+      });
       return;
     }
     await prisma.app.update({
@@ -328,7 +349,6 @@ appsRouter.put("/:id/signing", requireAuth, async (req, res) => {
   }
 });
 
-// DELETE /api/apps/:id/signing — remove signing creds
 appsRouter.delete("/:id/signing", requireAuth, async (req, res) => {
   try {
     await prisma.app.update({

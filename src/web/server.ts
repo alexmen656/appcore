@@ -20,6 +20,7 @@ import { requireAuth } from "./auth";
 import { mcpAuth, createMcpHandler } from "./mcp";
 import pushRouter from "./api/push";
 import { autonomousRouter } from "./api/autonomous";
+import { teamRouter } from "./api/team";
 import { pushService } from "../services/push-notification.js";
 import { initScheduler as initASOScheduler } from "../autonomous";
 import fs from "fs";
@@ -46,6 +47,7 @@ app.use("/api/github", githubRouter);
 app.use("/api/mcp", mcpRouter);
 app.use("/api/push", requireAuth, pushRouter);
 app.use("/api/autonomous", requireAuth, autonomousRouter);
+app.use("/api/team", teamRouter);
 app.use("/", oauthRouter);
 
 app.get("/.well-known/oauth-protected-resource", (req, res) => {
@@ -81,6 +83,7 @@ const HowItWorksPage = path.join(
   process.cwd(),
   "landing_page/how-it-works.html",
 );
+
 app.get("/how-it-works", (_req, res) => res.sendFile(HowItWorksPage));
 
 const featuresPage = path.join(process.cwd(), "landing_page/features.html");

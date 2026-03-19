@@ -93,6 +93,12 @@ ascRouter.post("/import", async (req, res) => {
       },
     });
 
+    await prisma.appMember.upsert({
+      where: { appId_userId: { appId: app.id, userId: req.user!.userId } },
+      create: { appId: app.id, userId: req.user!.userId, role: "OWNER" },
+      update: {},
+    });
+
     res.json({
       ok: true,
       app: {

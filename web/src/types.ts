@@ -196,6 +196,18 @@ export interface AuthUser {
   role: string;
 }
 
+export type AppRole = "OWNER" | "EDITOR" | "VIEWER";
+
+export interface TeamMember {
+  id: string;
+  userId: string;
+  email: string;
+  name: string | null;
+  role: AppRole;
+  invitedBy: string | null;
+  createdAt: string;
+}
+
 export interface SettingsData {
   ascIssuerId: string;
   ascKeyId: string;

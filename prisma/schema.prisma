@@ -14,6 +14,7 @@ model User {
   role         UserRole      @default(USER)
   settings     UserSettings?
   passkeys     PasskeyCredential[]
+  appMemberships AppMember[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -40,6 +41,27 @@ model PasskeyCredential {
 enum UserRole {
   ADMIN
   USER
+}
+
+enum AppRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+model AppMember {
+  id        String   @id @default(cuid())
+  appId     String
+  app       App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      AppRole  @default(VIEWER)
+  invitedBy String?
+  createdAt DateTime @default(now())
+
+  @@unique([appId, userId])
+  @@index([appId])
+  @@index([userId])
 }
 
 model UserSettings {
@@ -89,6 +111,7 @@ model App {
   rankings      KeywordRanking[]
   competitors   CompetitorRelation[] @relation("app_competitors")
   competitorOf  CompetitorRelation[] @relation("competitor_of")
+  members       AppMember[]
   screenshotJobs ScreenshotJob[]
   asoExperiments AsoExperiment[]
   competitorReviews   CompetitorReview[]
@@ -100,8 +123,6 @@ model App {
   @@index([bundleId])
   @@index([country])
 }
-
-
 
 model AppSnapshot {
   id             String   @id @default(cuid())
@@ -148,8 +169,6 @@ model Keyword {
   @@index([popularity])
 }
 
-
-
 model KeywordRanking {
   id          String   @id @default(cuid())
   keywordId   String
@@ -165,8 +184,6 @@ model KeywordRanking {
   @@index([trackedAt])
 }
 
-
-
 model CompetitorRelation {
   id            String   @id @default(cuid())
   appId         String
@@ -178,8 +195,6 @@ model CompetitorRelation {
 
   @@unique([appId, competitorId])
 }
-
-
 
 model ASOSuggestion {
   id              String   @id @default(cuid())
