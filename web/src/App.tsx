@@ -211,7 +211,7 @@ const sidebarLinks = [
 const sidebarOperations = [
   { to: "/agents", label: "Agents", icon: IconAgents },
   { to: "/actions", label: "Logs", icon: IconActions },
-  { to: "/app-settings", label: "App Settings", icon: IconSettings },
+  { to: "/app-settings", label: "Settings", icon: IconSettings },
 ];
 
 function AppAvatar({
@@ -570,6 +570,11 @@ function HeaderProfileMenu({
             <div className="text-[13px] font-semibold text-[#1a1a2e] dark:text-[#e8eaf0] truncate">
               {displayName}
             </div>
+            {user.email && (
+              <div className="text-[10px] text-[#9ca3af] dark:text-[#5c6478] truncate">
+                {user.email}
+              </div>
+            )}
             {user.role === "ADMIN" && (
               <div className="text-[10px] text-[#ea0e2b] font-medium uppercase tracking-wide">
                 Admin
@@ -594,7 +599,7 @@ function HeaderProfileMenu({
               <circle cx="12" cy="12" r="3" />
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
             </svg>
-            Settings
+            Account Settings
           </NavLink>
           <button
             onClick={() => {
@@ -991,16 +996,11 @@ export default function App() {
     <div className="flex flex-col h-screen overflow-hidden bg-[#f8f9fb] dark:bg-[#252b38]">
       <ToastContainer toasts={toasts} />
       <header className="h-[52px] bg-[#f8f9fb] dark:bg-[#0a0a0a] flex items-center px-4 shrink-0 z-20">
-        <div className="flex items-center gap-2.5">
-          <img
-            className="w-[28px] h-[28px] rounded-md"
-            src="/app/logo.png"
-            alt="AppCore Logo"
-          />
-          <span className="text-[17px] font-bold text-[#ea0e2b] tracking-[-0.3px]">
-            AppCore
+        <a href="/app/" className="flex items-center gap-2.5">
+          <span className="text-[26px] font-bold text-[#ea0e2b] tracking-[-0.3px]">
+            marteso
           </span>
-        </div>
+        </a>
         <div className="flex-1" />
         <div className="flex items-center gap-2 bg-black/[0.06] dark:bg-white/10 rounded-md px-3 py-1.5 text-sm text-[#6b7280] dark:text-white/50 w-44 mr-3 cursor-default select-none">
           <svg
@@ -1028,12 +1028,12 @@ export default function App() {
         />
       </header>
       <div className="flex flex-1 overflow-hidden">
-        <aside className="w-[240px] min-w-[240px] bg-[#f8f9fb] dark:bg-[#0a0a0a] flex flex-col overflow-y-auto">
+        <aside className="w-[250px] min-w-[250px] bg-[#f8f9fb] dark:bg-[#0a0a0a] flex flex-col overflow-y-auto">
           <AppSwitcher current={dash?.app ?? null} addToast={addToast} />
           <div className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-[0.8px] text-[#9ca3af] dark:text-[#5c6478]">
             Navigation
           </div>
-          <nav className="px-2 flex-1">
+          <nav className="px-2 flex-1 flex flex-col">
             {sidebarLinks.map((link) => (
               <NavLink key={link.to} to={link.to} className={navLinkClass}>
                 {link.icon && <link.icon />}
@@ -1041,15 +1041,14 @@ export default function App() {
               </NavLink>
             ))}
             <VersionsSidebarSection navLinkClass={navLinkClass} />
-            <div className="px-3 pb-1 pt-2 mt-4 text-xs font-semibold uppercase tracking-[0.8px] text-[#9ca3af] dark:text-[#5c6478]">
-              Operations
+            <div className="mt-auto pb-3">
+              {sidebarOperations.map((link) => (
+                <NavLink key={link.to} to={link.to} className={navLinkClass}>
+                  {link.icon && <link.icon />}
+                  {link.label}
+                </NavLink>
+              ))}
             </div>
-            {sidebarOperations.map((link) => (
-              <NavLink key={link.to} to={link.to} className={navLinkClass}>
-                {link.icon && <link.icon />}
-                {link.label}
-              </NavLink>
-            ))}
           </nav>
         </aside>
 
