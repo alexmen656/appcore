@@ -21,7 +21,6 @@ async function ascClientForUser(
   return new AppStoreConnectClient();
 }
 
-// ─── GET /api/asc/apps ──────────────────────────────────────────────────────
 ascRouter.get("/apps", async (req, res) => {
   try {
     const asc = await ascClientForUser(req.user!.userId);
@@ -63,7 +62,6 @@ ascRouter.get("/apps", async (req, res) => {
   }
 });
 
-// ─── POST /api/asc/import ──────────────────────────────────────────────────
 ascRouter.post("/import", async (req, res) => {
   try {
     const { ascId, bundleId, name } = req.body as {
@@ -77,6 +75,8 @@ ascRouter.post("/import", async (req, res) => {
       return;
     }
 
+    const teamId = req.user!.teamId ?? undefined;
+
     const app = await prisma.app.upsert({
       where: { bundleId },
       create: {
@@ -85,18 +85,14 @@ ascRouter.post("/import", async (req, res) => {
         trackId: BigInt(ascId),
         isOwnApp: true,
         country: "us",
+        teamId,
       },
       update: {
         name,
         trackId: BigInt(ascId),
         isOwnApp: true,
+        ...(teamId ? { teamId } : {}),
       },
-    });
-
-    await prisma.appMember.upsert({
-      where: { appId_userId: { appId: app.id, userId: req.user!.userId } },
-      create: { appId: app.id, userId: req.user!.userId, role: "OWNER" },
-      update: {},
     });
 
     res.json({
@@ -128,7 +124,6 @@ ascRouter.post("/import", async (req, res) => {
   }
 });
 
-// ─── GET /api/asc/versions/list ───────────────────────────────────────────
 ascRouter.get("/versions/list", async (req, res) => {
   try {
     const bundleId = (req.query.bundleId as string) || undefined;
@@ -164,7 +159,6 @@ ascRouter.get("/versions/list", async (req, res) => {
   }
 });
 
-// ─── GET /api/asc/versions ─────────────────────────────────────────────────
 ascRouter.get("/versions", async (req, res) => {
   try {
     const bundleId = (req.query.bundleId as string) || undefined;
@@ -268,7 +262,6 @@ ascRouter.get("/versions", async (req, res) => {
   }
 });
 
-// ─── PATCH /api/asc/versions/metadata ──────────────────────────────────────
 ascRouter.patch("/versions/metadata", async (req, res) => {
   try {
     const { appInfoLocalizationId, versionLocalizationId, field, value } =
@@ -343,7 +336,9 @@ ascRouter.post("/versions/localizations", async (req, res) => {
     };
 
     if (!versionId || !locale || !name) {
-      res.status(400).json({ error: "versionId, locale and name are required" });
+      res
+        .status(400)
+        .json({ error: "versionId, locale and name are required" });
       return;
     }
 
@@ -364,7 +359,6 @@ ascRouter.post("/versions/localizations", async (req, res) => {
       try {
         return await fn();
       } catch (err: any) {
-        // 409 = already exists or cannot be created in current state — treat as success
         if (err?.response?.status === 409 || err?.message?.includes("409")) {
           return null;
         }

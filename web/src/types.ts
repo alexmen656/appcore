@@ -194,6 +194,7 @@ export interface AuthUser {
   email: string;
   name: string | null;
   role: string;
+  teamId: string | null;
 }
 
 export type AppRole = "OWNER" | "EDITOR" | "VIEWER";

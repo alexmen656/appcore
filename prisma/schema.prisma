@@ -6,6 +6,54 @@ datasource db {
   provider = "postgresql"
 }
 
+model Team {
+  id        String       @id @default(cuid())
+  name      String
+  members   TeamMember[]
+  invites   TeamInvite[]
+  apps      App[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+model TeamMember {
+  id        String   @id @default(cuid())
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      TeamRole @default(MEMBER)
+  createdAt DateTime @default(now())
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+}
+
+model TeamInvite {
+  id         String    @id @default(cuid())
+  teamId     String
+  team       Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  email      String
+  role       TeamRole  @default(MEMBER)
+  token      String    @unique
+  invitedBy  String
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([teamId])
+  @@index([token])
+  @@index([email])
+}
+
+enum TeamRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
 model User {
   id           String        @id @default(cuid())
   email        String        @unique
@@ -14,7 +62,7 @@ model User {
   role         UserRole      @default(USER)
   settings     UserSettings?
   passkeys     PasskeyCredential[]
-  appMemberships AppMember[]
+  teamMembers  TeamMember[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
@@ -43,27 +91,6 @@ enum UserRole {
   USER
 }
 
-enum AppRole {
-  OWNER
-  EDITOR
-  VIEWER
-}
-
-model AppMember {
-  id        String   @id @default(cuid())
-  appId     String
-  app       App      @relation(fields: [appId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role      AppRole  @default(VIEWER)
-  invitedBy String?
-  createdAt DateTime @default(now())
-
-  @@unique([appId, userId])
-  @@index([appId])
-  @@index([userId])
-}
-
 model UserSettings {
   id     String @id @default(cuid())
   userId String @unique
@@ -89,7 +116,9 @@ model App {
   id            String   @id @default(cuid())
   bundleId      String   @unique
   name          String
-  trackId       BigInt?     @unique
+  teamId        String?
+  team          Team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  trackId       BigInt?  @unique
   country       String   @default("de")
   isOwnApp      Boolean  @default(false)
   currentTitle       String?
@@ -111,7 +140,6 @@ model App {
   rankings      KeywordRanking[]
   competitors   CompetitorRelation[] @relation("app_competitors")
   competitorOf  CompetitorRelation[] @relation("competitor_of")
-  members       AppMember[]
   screenshotJobs ScreenshotJob[]
   asoExperiments AsoExperiment[]
   competitorReviews   CompetitorReview[]
@@ -122,6 +150,7 @@ model App {
 
   @@index([bundleId])
   @@index([country])
+  @@index([teamId])
 }
 
 model AppSnapshot {
@@ -131,13 +160,13 @@ model AppSnapshot {
   title          String
   subtitle       String?
   description    String
-  keywords       String?   
+  keywords       String?
   rating         Float?
   ratingsCount   Int?
   price           Float?
   version        String?
   releaseNotes   String?
-  screenshotUrls String[]  
+  screenshotUrls String[]
   iconUrl        String?
   developerName  String?
   category       String?
@@ -190,7 +219,7 @@ model CompetitorRelation {
   app           App      @relation("app_competitors", fields: [appId], references: [id], onDelete: Cascade)
   competitorId  String
   competitor    App      @relation("competitor_of", fields: [competitorId], references: [id], onDelete: Cascade)
-  relevanceScore Float?   
+  relevanceScore Float?
   addedAt        DateTime @default(now())
 
   @@unique([appId, competitorId])
@@ -199,7 +228,7 @@ model CompetitorRelation {
 model ASOSuggestion {
   id              String   @id @default(cuid())
   type            SuggestionType
-  locale          String   @default("en-US") 
+  locale          String   @default("en-US")
   suggestedValue  String
   reasoning       String
   appBundleId     String?
@@ -211,7 +240,7 @@ model ASOSuggestion {
   status          SuggestionStatus @default(PENDING)
   appliedAt       DateTime?
   resultNotes     String?
-  aiProvider      String    
+  aiProvider      String
   aiModel         String
   promptTokens    Int?
   completionTokens Int?
@@ -267,14 +296,14 @@ model AppStoreAnalytics {
   id          String   @id @default(cuid())
   bundleId    String
   reportDate  DateTime
-  country     String   
-  downloads   Int      @default(0) 
-  updates     Int      @default(0) 
-  reDownloads Int      @default(0) 
-  proceeds    Float    @default(0) 
-  impressions Int      @default(0) 
-  pageViews   Int      @default(0) 
-  sessions    Int      @default(0) 
+  country     String
+  downloads   Int      @default(0)
+  updates     Int      @default(0)
+  reDownloads Int      @default(0)
+  proceeds    Float    @default(0)
+  impressions Int      @default(0)
+  pageViews   Int      @default(0)
+  sessions    Int      @default(0)
   createdAt   DateTime @default(now())
 
   @@unique([bundleId, reportDate, country])
@@ -394,7 +423,6 @@ model DeviceToken {
   bundleId    String?
   platform    String   @default("ios")
   isActive    Boolean  @default(true)
-
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

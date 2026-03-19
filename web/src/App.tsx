@@ -33,6 +33,7 @@ import Analytics from "./components/Analytics";
 import Versions from "./components/Versions";
 import Login from "./components/Login";
 import Team from "./components/Team";
+import InviteAccept from "./components/InviteAccept";
 import type {
   AuthUser,
   DashboardData,
@@ -1008,6 +1009,12 @@ export default function App() {
   }
 
   if (!user) {
+    // Allow invite links without being logged in
+    const hash = window.location.hash;
+    const inviteMatch = hash.match(/^#\/invite\/([a-f0-9]+)$/);
+    if (inviteMatch) {
+      return <InviteAccept onAuth={(u) => setUser(u)} />;
+    }
     return <Login onAuth={(u) => setUser(u)} />;
   }
 
@@ -1122,9 +1129,11 @@ export default function App() {
             />
             <Route
               path="/team"
-              element={
-                <Team addToast={addToast} currentUserId={user.id} />
-              }
+              element={<Team addToast={addToast} currentUserId={user.id} />}
+            />
+            <Route
+              path="/invite/:token"
+              element={<InviteAccept onAuth={(u) => setUser(u)} />}
             />
           </Routes>
         </main>

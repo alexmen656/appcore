@@ -8,23 +8,14 @@ export const appsRouter = Router();
 appsRouter.get("/", async (req, res) => {
   try {
     const bundleId = req.query.bundleId as string | undefined;
-    const userId = req.user!.userId;
     const isAdmin = req.user!.role === "ADMIN";
+    const teamId = req.user!.teamId;
     let whereClause: any = {};
-    let allowedOwnAppIds: string[] | null = null;
-
-    if (!isAdmin) {
-      const memberships = await prisma.appMember.findMany({
-        where: { userId },
-        select: { appId: true },
-      });
-      allowedOwnAppIds = memberships.map((m) => m.appId);
-    }
 
     if (bundleId) {
       const activeApp = await prisma.app.findUnique({ where: { bundleId } });
       if (activeApp) {
-        if (!isAdmin && !allowedOwnAppIds?.includes(activeApp.id)) {
+        if (!isAdmin && activeApp.teamId && activeApp.teamId !== teamId) {
           res.json([]);
           return;
         }
@@ -40,9 +31,9 @@ appsRouter.get("/", async (req, res) => {
           OR: [{ id: activeApp.id }, { id: { in: relatedIds } }],
         };
       }
-    } else if (!isAdmin && allowedOwnAppIds !== null) {
+    } else if (!isAdmin && teamId) {
       whereClause = {
-        OR: [{ id: { in: allowedOwnAppIds } }, { isOwnApp: false }],
+        OR: [{ teamId }, { isOwnApp: false }],
       };
     }
 

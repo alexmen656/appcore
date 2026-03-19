@@ -41,23 +41,37 @@ export function preloadApi(path: string, skipBundleId = false): Promise<void> {
   const promise = fetch(url, { headers: authHeaders() })
     .then((r) => {
       if (!r.ok) return;
-      return r.json().then((d) => { apiCache.set(url, d); });
+      return r.json().then((d) => {
+        apiCache.set(url, d);
+      });
     })
     .catch(() => {})
-    .finally(() => { apiPreloading.delete(url); });
+    .finally(() => {
+      apiPreloading.delete(url);
+    });
   apiPreloading.set(url, promise);
   return promise;
 }
 
-export function useApi<T>(path: string, deps: any[] = [], skipBundleId = false) {
-  const getUrl = () => skipBundleId ? `${BASE}${path}` : buildUrl(path);
+export function useApi<T>(
+  path: string,
+  deps: any[] = [],
+  skipBundleId = false,
+) {
+  const getUrl = () => (skipBundleId ? `${BASE}${path}` : buildUrl(path));
 
-  const [data, setData] = useState<T | null>(() => apiCache.get(getUrl()) ?? null);
+  const [data, setData] = useState<T | null>(
+    () => apiCache.get(getUrl()) ?? null,
+  );
   const [loading, setLoading] = useState(() => !apiCache.has(getUrl()));
   const [error, setError] = useState<string | null>(null);
 
   const refetch = useCallback(() => {
     const url = getUrl();
+    if (!getToken()) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     fetch(url, { headers: authHeaders() })

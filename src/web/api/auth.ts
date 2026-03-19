@@ -47,10 +47,11 @@ setInterval(
 
 authRouter.post("/register", async (req, res) => {
   try {
-    const { email, password, name } = req.body as {
+    const { email, password, name, inviteToken } = req.body as {
       email?: string;
       password?: string;
       name?: string;
+      inviteToken?: string;
     };
 
     if (!email || !password) {
@@ -69,16 +70,47 @@ authRouter.post("/register", async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
-    const role = "USER";
+    const displayName = name ?? email.split("@")[0];
+
+    // Check for invite token
+    let invite = inviteToken
+      ? await prisma.teamInvite.findUnique({ where: { token: inviteToken } })
+      : null;
+
+    if (invite && (invite.acceptedAt || invite.expiresAt < new Date())) {
+      invite = null; // expired or already used — ignore, register without team
+    }
 
     const user = await prisma.user.create({
-      data: { email, name: name ?? email.split("@")[0], passwordHash, role },
+      data: { email, name: displayName, passwordHash, role: "USER" },
     });
+
+    let teamId: string | null = null;
+
+    if (invite) {
+      await prisma.teamMember.create({
+        data: { teamId: invite.teamId, userId: user.id, role: invite.role },
+      });
+      await prisma.teamInvite.update({
+        where: { id: invite.id },
+        data: { acceptedAt: new Date() },
+      });
+      teamId = invite.teamId;
+    } else {
+      const team = await prisma.team.create({
+        data: {
+          name: `${displayName}'s Team`,
+          members: { create: { userId: user.id, role: "OWNER" } },
+        },
+      });
+      teamId = team.id;
+    }
 
     const token = signToken({
       userId: user.id,
       email: user.email,
       role: user.role,
+      teamId,
     });
     res.status(201).json({
       token,
@@ -87,6 +119,7 @@ authRouter.post("/register", async (req, res) => {
         email: user.email,
         name: user.name,
         role: user.role,
+        teamId,
       },
     });
   } catch (err) {
@@ -118,10 +151,16 @@ authRouter.post("/login", async (req, res) => {
       return;
     }
 
+    const membership = await prisma.teamMember.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: "asc" },
+    });
+
     const token = signToken({
       userId: user.id,
       email: user.email,
       role: user.role,
+      teamId: membership?.teamId ?? null,
     });
     res.json({
       token,
@@ -130,8 +169,60 @@ authRouter.post("/login", async (req, res) => {
         email: user.email,
         name: user.name,
         role: user.role,
+        teamId: membership?.teamId ?? null,
       },
     });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+authRouter.post("/accept-invite", requireAuth, async (req, res) => {
+  try {
+    const { token: inviteToken } = req.body as { token?: string };
+    if (!inviteToken) {
+      res.status(400).json({ error: "token required" });
+      return;
+    }
+
+    const invite = await prisma.teamInvite.findUnique({
+      where: { token: inviteToken },
+    });
+    if (!invite || invite.acceptedAt || invite.expiresAt < new Date()) {
+      res.status(400).json({ error: "Invalid or expired invite" });
+      return;
+    }
+    if (invite.email !== req.user!.email) {
+      res
+        .status(403)
+        .json({ error: "This invite is for a different email address" });
+      return;
+    }
+
+    await prisma.teamMember.upsert({
+      where: {
+        teamId_userId: { teamId: invite.teamId, userId: req.user!.userId },
+      },
+      create: {
+        teamId: invite.teamId,
+        userId: req.user!.userId,
+        role: invite.role,
+      },
+      update: { role: invite.role },
+    });
+    await prisma.teamInvite.update({
+      where: { id: invite.id },
+      data: { acceptedAt: new Date() },
+    });
+
+    const newToken = signToken({
+      userId: req.user!.userId,
+      email: req.user!.email,
+      role: req.user!.role,
+      teamId: invite.teamId,
+    });
+
+    res.json({ ok: true, teamId: invite.teamId, token: newToken });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
@@ -150,13 +241,18 @@ authRouter.get("/me", requireAuth, async (req, res) => {
         passkeys: {
           select: { id: true, name: true, createdAt: true, lastUsedAt: true },
         },
+        teamMembers: {
+          select: { teamId: true, role: true },
+          orderBy: { createdAt: "asc" },
+          take: 1,
+        },
       },
     });
     if (!user) {
       res.status(404).json({ error: "User not found" });
       return;
     }
-    res.json(user);
+    res.json({ ...user, teamId: user.teamMembers[0]?.teamId ?? null });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
@@ -385,10 +481,15 @@ authRouter.post("/passkey/login-verify", async (req, res) => {
     });
 
     const { user } = cred;
+    const membership = await prisma.teamMember.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: "asc" },
+    });
     const token = signToken({
       userId: user.id,
       email: user.email,
       role: user.role,
+      teamId: membership?.teamId ?? null,
     });
 
     res.json({
@@ -398,6 +499,7 @@ authRouter.post("/passkey/login-verify", async (req, res) => {
         email: user.email,
         name: user.name,
         role: user.role,
+        teamId: membership?.teamId ?? null,
       },
     });
   } catch (err) {

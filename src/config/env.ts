@@ -10,7 +10,10 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url(),
 
   // Auth
-  JWT_SECRET: z.string().min(32).default("appcore-dev-secret-change-me-in-production-32x"),
+  JWT_SECRET: z
+    .string()
+    .min(32)
+    .default("appcore-dev-secret-change-me-in-production-32x"),
   WEBAUTHN_RP_ID: z.string().default("localhost"),
   WEBAUTHN_RP_NAME: z.string().default("AppCore"),
   WEBAUTHN_ORIGIN: z.string().default("http://localhost:5173"),
@@ -30,6 +33,11 @@ const envSchema = z.object({
   // Fastlane Worker (MacOS)
   FASTLANE_WORKER_URL: z.string().url().optional(),
   FASTLANE_WORKER_SECRET: z.string().optional(),
+
+  // Email (Resend)
+  RESEND_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().default("noreply@marteso.com"),
+  APP_URL: z.string().default("http://localhost:5173"),
 
   // Logging
   LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),
