@@ -6,7 +6,7 @@ import Foundation
 final class APIService {
     static let shared = APIService()
 
-    let baseURL = "https://appcore.fringelo.com"
+    let baseURL = "https://marteso.com"
 
     private var token: String? {
         get { KeychainHelper.load(key: "auth_token") }
