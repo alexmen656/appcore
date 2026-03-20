@@ -148,6 +148,7 @@ export interface Keyword {
   difficulty: number | null;
   searchVolume: number | null;
   ourRank: number | null;
+  rankTrend: number | null;
   topCompetitor: { name: string; rank: number } | null;
   trackingCount: number;
   suggestionCount: number;

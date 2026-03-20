@@ -22,7 +22,7 @@ keywordsRouter.get("/", async (req, res) => {
         rankings: {
           where: ownApp ? { appId: ownApp.id } : undefined,
           orderBy: { trackedAt: "desc" },
-          take: 1,
+          take: 2,
         },
         _count: { select: { suggestions: true } },
       },
@@ -56,6 +56,13 @@ keywordsRouter.get("/", async (req, res) => {
             })
           : 0;
 
+        const currentRank = k.rankings[0]?.rank ?? null;
+        const previousRank = k.rankings[1]?.rank ?? null;
+        const rankTrend =
+          currentRank != null && previousRank != null
+            ? previousRank - currentRank
+            : null;
+
         return {
           id: k.id,
           term: k.term,
@@ -64,7 +71,8 @@ keywordsRouter.get("/", async (req, res) => {
           popularity: k.popularity,
           difficulty: k.difficulty,
           searchVolume: k.searchVolume,
-          ourRank: k.rankings[0]?.rank ?? null,
+          ourRank: currentRank,
+          rankTrend,
           topCompetitor,
           trackingCount: ourRankingCount,
           suggestionCount: k._count.suggestions,

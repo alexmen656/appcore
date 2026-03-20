@@ -2,13 +2,45 @@ import { TH, TD, btnSecSm } from "../../../styles";
 import type { Keyword } from "../../../types";
 
 export type { Keyword };
-export type SortKey = "term" | "country" | "popularity" | "difficulty" | "rank" | "tracked";
+export type SortKey =
+  | "term"
+  | "country"
+  | "popularity"
+  | "difficulty"
+  | "rank"
+  | "tracked";
 
 const rankColor = (rank: number | null) => {
   if (rank == null) return "text-gray-400 dark:text-[#5c6478]";
   if (rank <= 5) return "text-emerald-600 font-semibold";
   if (rank <= 20) return "text-amber-600 font-semibold";
   return "text-red-500 font-semibold";
+};
+
+const trendDisplay = (trend: number | null) => {
+  if (trend == null)
+    return <span className="text-gray-400 dark:text-[#5c6478]">—</span>;
+  if (trend === 0)
+    return (
+      <span className="text-gray-400 dark:text-[#5c6478] text-xs">±0</span>
+    );
+  if (trend > 0)
+    return (
+      <span className="inline-flex items-center gap-0.5 text-emerald-600 font-medium text-xs">
+        <svg viewBox="0 0 8 8" className="w-2 h-2" fill="currentColor">
+          <path d="M4 0L8 8H0z" />
+        </svg>
+        +{trend}
+      </span>
+    );
+  return (
+    <span className="inline-flex items-center gap-0.5 text-red-500 font-medium text-xs">
+      <svg viewBox="0 0 8 8" className="w-2 h-2" fill="currentColor">
+        <path d="M4 8L0 0h8z" />
+      </svg>
+      {trend}
+    </span>
+  );
 };
 
 const diffColor = (d: number | null) =>
@@ -32,11 +64,21 @@ interface Props {
 
 function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
   return (
-    <span className={`inline-flex flex-col ml-1 leading-none ${active ? "opacity-100" : "opacity-25"}`}>
-      <svg viewBox="0 0 8 5" className={`w-2 h-1.5 ${active && dir === "asc" ? "text-[#ea0e2b]" : "text-current"}`} fill="currentColor">
+    <span
+      className={`inline-flex flex-col ml-1 leading-none ${active ? "opacity-100" : "opacity-25"}`}
+    >
+      <svg
+        viewBox="0 0 8 5"
+        className={`w-2 h-1.5 ${active && dir === "asc" ? "text-[#ea0e2b]" : "text-current"}`}
+        fill="currentColor"
+      >
         <path d="M4 0L8 5H0z" />
       </svg>
-      <svg viewBox="0 0 8 5" className={`w-2 h-1.5 ${active && dir === "desc" ? "text-[#ea0e2b]" : "text-current"}`} fill="currentColor">
+      <svg
+        viewBox="0 0 8 5"
+        className={`w-2 h-1.5 ${active && dir === "desc" ? "text-[#ea0e2b]" : "text-current"}`}
+        fill="currentColor"
+      >
         <path d="M4 5L0 0h8z" />
       </svg>
     </span>
@@ -75,6 +117,7 @@ export default function KeywordTable({
             {col("difficulty", "Difficulty")}
             <th className={TH}>Results</th>
             {col("rank", "Our Rank")}
+            <th className={TH}>Trend</th>
             <th className={TH}>Top Competitor</th>
             {col("tracked", "Tracked")}
             <th className={TH}></th>
@@ -87,8 +130,14 @@ export default function KeywordTable({
               onClick={() => onRowClick(k)}
               className={`cursor-pointer hover:bg-gray-50/60 dark:hover:bg-white/[0.03] ${selectedKeyword?.id === k.id ? "!bg-blue-50/60 dark:!bg-blue-900/20" : ""}`}
             >
-              <td className={`${TD} font-medium text-[#111827] dark:text-[#e8eaf0]`}>{k.term}</td>
-              <td className={`${TD} text-[#6b7280] dark:text-[#8b93a5]`}>{k.country}</td>
+              <td
+                className={`${TD} font-medium text-[#111827] dark:text-[#e8eaf0]`}
+              >
+                {k.term}
+              </td>
+              <td className={`${TD} text-[#6b7280] dark:text-[#8b93a5]`}>
+                {k.country}
+              </td>
               <td className={TD}>
                 {k.popularity != null ? (
                   <span className="flex items-center gap-1.5 text-[#111827] dark:text-[#e8eaf0]">
@@ -132,9 +181,12 @@ export default function KeywordTable({
                 {k.ourRank != null ? (
                   <span className={rankColor(k.ourRank)}>#{k.ourRank}</span>
                 ) : (
-                  <span className="text-[#9ca3af] dark:text-[#5c6478] text-xs">not ranked</span>
+                  <span className="text-[#9ca3af] dark:text-[#5c6478] text-xs">
+                    not ranked
+                  </span>
                 )}
               </td>
+              <td className={TD}>{trendDisplay(k.rankTrend)}</td>
               <td className={TD}>
                 {k.topCompetitor ? (
                   <span className="text-xs text-gray-500 dark:text-[#8b93a5]">
@@ -149,7 +201,9 @@ export default function KeywordTable({
                   <span className="text-gray-400 dark:text-[#5c6478]">—</span>
                 )}
               </td>
-              <td className={`${TD} text-[#9ca3af] dark:text-[#5c6478] text-xs`}>
+              <td
+                className={`${TD} text-[#9ca3af] dark:text-[#5c6478] text-xs`}
+              >
                 {k.trackingCount}×
               </td>
               <td className={TD}>
