@@ -18,6 +18,7 @@ import type {
   GitHubRepo,
   AppRepoLink,
   ScreenshotJob,
+  BuildJob,
   AppItem,
 } from "../types";
 
@@ -567,6 +568,133 @@ function JobRow({
               No logs captured.
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function BuildJobsTable({ appId }: { appId: string }) {
+  const { data: jobs, loading } = useApi<BuildJob[]>(
+    `/github/builds/${appId}`,
+    [appId],
+    true,
+  );
+  const [expandedJob, setExpandedJob] = useState<string | null>(null);
+
+  const statusBadge = (s: string) => {
+    const colors: Record<string, string> = {
+      PENDING:
+        "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
+      RUNNING:
+        "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
+      COMPLETED:
+        "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
+      FAILED: "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400",
+    };
+    return `inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium ${colors[s] ?? "bg-gray-50 text-gray-600 dark:bg-[#252b38] dark:text-[#8b93a5]"}`;
+  };
+
+  return (
+    <div className={`${cardCls} mb-5`}>
+      <h2 className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-1">
+        Build Jobs
+      </h2>
+      <p className="text-xs text-[#9ca3af] dark:text-[#5c6478] mb-4">
+        Binary build runs triggered by GitHub pushes.
+      </p>
+
+      {loading ? (
+        <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-[#5c6478] py-8 justify-center">
+          <div className="spinner !w-4 !h-4" /> Loading…
+        </div>
+      ) : !jobs || jobs.length === 0 ? (
+        <div className="text-center py-8 text-sm text-gray-400 dark:text-[#5c6478]">
+          No build jobs yet. Link a repo and push a commit to trigger one.
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {jobs.map((j) => (
+            <div
+              key={j.id}
+              className="border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl overflow-hidden"
+            >
+              <button
+                className="w-full flex items-center gap-4 px-4 py-3 hover:bg-[#fafbfc] dark:hover:bg-white/[0.03] transition-colors text-left"
+                onClick={() =>
+                  setExpandedJob(expandedJob === j.id ? null : j.id)
+                }
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    {j.commitSha && (
+                      <span className="text-[13px] font-mono text-[#111827] dark:text-[#e8eaf0]">
+                        {j.commitSha.slice(0, 7)}
+                      </span>
+                    )}
+                    {j.branch && (
+                      <span className="text-[12px] font-mono bg-[#f3f4f6] dark:bg-[#252b38] dark:text-[#8b93a5] px-1.5 py-0.5 rounded">
+                        {j.branch}
+                      </span>
+                    )}
+                    <span className={statusBadge(j.status)}>{j.status}</span>
+                    {j.ipaPath && (
+                      <span className="text-[11px] text-emerald-600 dark:text-emerald-400">
+                        IPA ready
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
+                    {new Date(j.createdAt).toLocaleString()}
+                  </div>
+                </div>
+                <svg
+                  className={`w-4 h-4 text-[#9ca3af] dark:text-[#5c6478] shrink-0 transition-transform ${expandedJob === j.id ? "rotate-180" : ""}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+
+              {expandedJob === j.id && (
+                <div className="border-t border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#161920] px-4 py-3">
+                  {j.errors.length > 0 && (
+                    <div className="mb-3 p-3 rounded-lg bg-red-50 border border-red-200">
+                      <div className="text-[11px] font-medium text-red-700 uppercase tracking-wide mb-1">
+                        Errors
+                      </div>
+                      <pre className="text-[12px] text-red-600 whitespace-pre-wrap break-all font-mono">
+                        {j.errors.join("\n")}
+                      </pre>
+                    </div>
+                  )}
+                  {j.logs.length > 0 ? (
+                    <div>
+                      <div className="text-[11px] font-medium text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide mb-2">
+                        Logs
+                      </div>
+                      <pre className="text-[11px] text-[#e5e7eb] bg-[#111827] rounded-lg p-3 overflow-x-auto max-h-[400px] overflow-y-auto font-mono leading-relaxed">
+                        {j.logs.join("\n")}
+                      </pre>
+                    </div>
+                  ) : (
+                    <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478]">
+                      No logs captured.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>

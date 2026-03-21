@@ -249,6 +249,20 @@ export interface AppRepoLink {
   repoName: string | null;
 }
 
+export interface BuildJob {
+  id: string;
+  appId: string;
+  branch: string | null;
+  commitSha: string | null;
+  status: string;
+  logs: string[];
+  errors: string[];
+  ipaPath: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+}
+
 export interface ScreenshotJob {
   id: string;
   appId: string;

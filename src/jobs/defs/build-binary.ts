@@ -11,11 +11,21 @@ export async function runBuildJob(
     bundleId: string;
     gymScheme?: string;
     exportMethod?: string;
+    commitSha?: string;
   },
 ): Promise<void> {
   logger.info(
     `[build:${appId}] Starting binary build for ${params.bundleId}@${params.branch ?? "default"}`,
   );
+
+  const buildJob = await prisma.buildJob.create({
+    data: {
+      appId,
+      branch: params.branch ?? null,
+      commitSha: params.commitSha ?? null,
+      status: "PENDING",
+    },
+  });
 
   const app = await prisma.app.findUnique({
     where: { id: appId },
@@ -41,6 +51,11 @@ export async function runBuildJob(
       `[build:${appId}] Signing credentials found (teamId: ${app?.signingTeamId ?? "not set"})`,
     );
   }
+
+  await prisma.buildJob.update({
+    where: { id: buildJob.id },
+    data: { status: "RUNNING", startedAt: new Date() },
+  });
 
   try {
     const result = await workerClient.build({
@@ -69,7 +84,26 @@ export async function runBuildJob(
         `[build:${appId}] Binary build did not produce an IPA (ok=${result.ok}, ipaBuilt=${result.ipaBuilt})`,
       );
     }
+
+    await prisma.buildJob.update({
+      where: { id: buildJob.id },
+      data: {
+        status: result.ok && result.ipaBuilt ? "COMPLETED" : "FAILED",
+        logs: JSON.stringify(result.logs ?? []),
+        errors: JSON.stringify(result.errors ?? []),
+        ipaPath: result.ipaPath ?? null,
+        completedAt: new Date(),
+      },
+    });
   } catch (err: any) {
     logger.error(`[build:${appId}] Binary build error: ${err.message}`);
+    await prisma.buildJob.update({
+      where: { id: buildJob.id },
+      data: {
+        status: "FAILED",
+        errors: JSON.stringify([err.message]),
+        completedAt: new Date(),
+      },
+    });
   }
 }

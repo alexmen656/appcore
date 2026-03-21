@@ -220,6 +220,29 @@ githubRouter.get(
 );
 
 githubRouter.get(
+  "/builds/:appId",
+  requireAuth,
+  async (req: Request, res: Response) => {
+    try {
+      const jobs = await prisma.buildJob.findMany({
+        where: { appId: req.params.appId as string },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+      });
+      res.json(
+        jobs.map((j) => ({
+          ...j,
+          logs: j.logs ? JSON.parse(j.logs) : [],
+          errors: j.errors ? JSON.parse(j.errors) : [],
+        })),
+      );
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+);
+
+githubRouter.get(
   "/screenshots/:appId",
   requireAuth,
   async (req: Request, res: Response) => {
@@ -312,6 +335,7 @@ githubRouter.post("/webhook", async (req: Request, res: Response) => {
         branch,
         appName: app.name,
         bundleId: app.bundleId,
+        commitSha,
       }).catch((err) =>
         logger.error(`Binary build failed for app ${app.id}: ${err.message}`),
       );

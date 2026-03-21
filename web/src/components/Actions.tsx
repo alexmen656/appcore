@@ -2,7 +2,7 @@ import { useState } from "react";
 import { apiPost, useApi, getActiveBundleId } from "../hooks/useApi";
 import ActionCard, { ActionCardDef } from "./comps/actions/ActionCard";
 import JobHistoryTable, { Job } from "./comps/actions/JobHistoryTable";
-import { ScreenshotJobsTable } from "./Screenshots";
+import { ScreenshotJobsTable, BuildJobsTable } from "./Screenshots";
 import type { AppItem } from "../types";
 
 const ACTION_CARDS: ActionCardDef[] = [
@@ -177,6 +177,7 @@ export default function Actions({ addToast }: Props) {
 
       {activeApp && (
         <>
+          <BuildJobsTable appId={activeApp.id} />
           <ScreenshotJobsTable appId={activeApp.id} addToast={addToast} />
         </>
       )}

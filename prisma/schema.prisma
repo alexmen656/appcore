@@ -141,6 +141,7 @@ model App {
   competitors   CompetitorRelation[] @relation("app_competitors")
   competitorOf  CompetitorRelation[] @relation("competitor_of")
   screenshotJobs ScreenshotJob[]
+  buildJobs      BuildJob[]
   asoExperiments AsoExperiment[]
   competitorReviews   CompetitorReview[]
   reviewSummaries     CompetitorReviewSummary[]
@@ -465,6 +466,23 @@ model ScreenshotJob {
 
   @@index([appId, createdAt])
   @@index([commitSha])
+}
+
+model BuildJob {
+  id          String    @id @default(cuid())
+  appId       String
+  app         App       @relation(fields: [appId], references: [id], onDelete: Cascade)
+  branch      String?
+  commitSha   String?
+  status      JobStatus @default(PENDING)
+  logs        String?
+  errors      String?
+  ipaPath     String?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([appId, createdAt])
 }
 
 model AsoExperiment {
