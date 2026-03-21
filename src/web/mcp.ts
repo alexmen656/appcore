@@ -359,7 +359,7 @@ export function createMcpServer(userId: string): McpServer {
 
   server.tool(
     "get_analytics",
-    "Get downloads, revenue, impressions, and page views summary for an app over a configurable date range. " +
+    "Get downloads, updates, revenue, impressions, page views, and sessions summary for an app over a configurable date range. " +
       "Use list_apps to find available bundle IDs.",
     {
       bundleId: z
@@ -395,6 +395,7 @@ export function createMcpServer(userId: string): McpServer {
             updates: true,
             impressions: true,
             pageViews: true,
+            sessions: true,
           },
         }),
         prisma.appReview.aggregate({
@@ -418,6 +419,7 @@ export function createMcpServer(userId: string): McpServer {
                 totalProceedsUsd: downloadAgg._sum.proceeds ?? 0,
                 totalImpressions: downloadAgg._sum.impressions ?? 0,
                 totalPageViews: downloadAgg._sum.pageViews ?? 0,
+                totalSessions: downloadAgg._sum.sessions ?? 0,
                 avgRating: reviewAgg._avg.rating ?? null,
                 totalReviews: reviewAgg._count.id,
               },

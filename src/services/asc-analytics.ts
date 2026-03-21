@@ -171,15 +171,6 @@ export async function fetchSalesReports(
   return storedDays;
 }
 
-/**
- * Fetch and store all APP_STORE_ENGAGEMENT report data from a single analytics
- * report request (works for both ONGOING and ONE_TIME_SNAPSHOT requests).
- *
- * The "App Store Discovery and Engagement" report is an event-log format:
- *   Date | Event | Page Type | Source Type | Territory | Counts | Unique Counts
- * "Impressions" = rows where Event == "Impression", summed via Counts.
- * "Page views"  = rows where Event == "Page view",  summed via Counts.
- */
 async function processAnalyticsRequest(
   settings: EffectiveSettings,
   bundleId: string,
@@ -191,8 +182,8 @@ async function processAnalyticsRequest(
   const sinceCutoff = new Date();
   sinceCutoff.setDate(sinceCutoff.getDate() - daysBack);
 
-  // --- 1. List reports for this request, keep only APP_STORE_ENGAGEMENT ---
-  let reportIds: string[] = [];
+  const TRACKED_CATEGORIES = ["APP_STORE_ENGAGEMENT", "APP_USAGE"];
+  let reportItems: Array<{ id: string; category: string }> = [];
   try {
     const reportsResp = await axios.get(
       `${BASE}/analyticsReportRequests/${requestId}/reports`,
@@ -203,15 +194,19 @@ async function processAnalyticsRequest(
       `Analytics request ${requestId}: ${reports.length} report(s) – categories: ${reports.map((r) => r.attributes?.category).join(", ")}`,
     );
 
-    // Filter by the correct attribute: `category` (not `reportType`)
-    const relevant = reports.filter(
-      (r: any) => r.attributes?.category === "APP_STORE_ENGAGEMENT",
+    const relevant = reports.filter((r: any) =>
+      TRACKED_CATEGORIES.includes(r.attributes?.category),
     );
-    reportIds = relevant.map((r: any) => r.id).filter(Boolean);
+    reportItems = relevant
+      .map((r: any) => ({
+        id: r.id as string,
+        category: r.attributes?.category as string,
+      }))
+      .filter((r) => r.id);
 
-    if (reportIds.length === 0) {
+    if (reportItems.length === 0) {
       logger.info(
-        `No APP_STORE_ENGAGEMENT reports available yet for request ${requestId} (${bundleId}).`,
+        `No APP_STORE_ENGAGEMENT or APP_USAGE reports available yet for request ${requestId} (${bundleId}).`,
       );
       return 0;
     }
@@ -224,7 +219,8 @@ async function processAnalyticsRequest(
 
   let storedRows = 0;
 
-  for (const reportId of reportIds) {
+  for (const reportItem of reportItems) {
+    const reportId = reportItem.id;
     // --- 2. List daily instances within the time window ---
     let instances: any[] = [];
     try {
@@ -275,14 +271,9 @@ async function processAnalyticsRequest(
           if (rows.length === 0) continue;
 
           logger.debug(
-            `Engagement segment columns: ${Object.keys(rows[0]).join(" | ")}`,
+            `${reportItem.category} segment columns: ${Object.keys(rows[0]).join(" | ")}`,
           );
 
-          // --- 4. Aggregate by (Date, Territory) using Event-based parsing ---
-          // The Discovery & Engagement report is an event log:
-          //   Event = "Impression"  → add Counts to impressions
-          //   Event = "Page view"   → add Counts to pageViews
-          // There is NO pre-aggregated "Impressions" column in this report.
           const dayCountry: Record<
             string,
             { impressions: number; pageViews: number; sessions: number }
@@ -301,16 +292,32 @@ async function processAnalyticsRequest(
             if (!dayCountry[key])
               dayCountry[key] = { impressions: 0, pageViews: 0, sessions: 0 };
 
-            const eventType = (row["Event"] ?? row["event"] ?? "").trim();
-            const counts =
-              parseInt(row["Counts"] ?? row["counts"] ?? "0", 10) || 0;
+            if (reportItem.category === "APP_USAGE") {
+              const appSessions =
+                parseInt(
+                  row["Sessions"] ??
+                    row["App Sessions"] ??
+                    row["app sessions"] ??
+                    "0",
+                  10,
+                ) || 0;
+              if (appSessions > 0) dayCountry[key].sessions += appSessions;
 
-            if (eventType === "Impression") {
-              dayCountry[key].impressions += counts;
-            } else if (eventType === "Page view") {
-              dayCountry[key].pageViews += counts;
+              const eventType = (row["Event"] ?? row["event"] ?? "").trim();
+              const counts =
+                parseInt(row["Counts"] ?? row["counts"] ?? "0", 10) || 0;
+              if (eventType === "App Session")
+                dayCountry[key].sessions += counts;
+            } else {
+              const eventType = (row["Event"] ?? row["event"] ?? "").trim();
+              const counts =
+                parseInt(row["Counts"] ?? row["counts"] ?? "0", 10) || 0;
+              if (eventType === "Impression") {
+                dayCountry[key].impressions += counts;
+              } else if (eventType === "Page view") {
+                dayCountry[key].pageViews += counts;
+              }
             }
-            // Sessions live in the APP_USAGE "App Sessions" report, not here.
           }
 
           const entries = Object.entries(dayCountry);
@@ -318,12 +325,23 @@ async function processAnalyticsRequest(
             entries.map(([key, metrics]) => {
               const [dateStr, country] = key.split("::");
               const reportDate = new Date(dateStr);
+              const updateFields =
+                reportItem.category === "APP_USAGE"
+                  ? { sessions: metrics.sessions }
+                  : {
+                      impressions: metrics.impressions,
+                      pageViews: metrics.pageViews,
+                    };
               return prisma.appStoreAnalytics.upsert({
                 where: {
-                  bundleId_reportDate_country: { bundleId, reportDate, country },
+                  bundleId_reportDate_country: {
+                    bundleId,
+                    reportDate,
+                    country,
+                  },
                 },
                 create: { bundleId, reportDate, country, ...metrics },
-                update: metrics,
+                update: updateFields,
               });
             }),
           );
