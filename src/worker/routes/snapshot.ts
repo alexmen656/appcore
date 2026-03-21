@@ -129,6 +129,8 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
         "",
         "concurrent_simulators(true)",
         "",
+        "skip_html(true)",
+        "",
       ].join("\n"),
     );
 

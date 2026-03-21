@@ -5,6 +5,20 @@ import os from "os";
 import { findFastlane } from "../fastlane-utils";
 import { execAsync, buildWithGym } from "./shared";
 
+function findConfigFile(dir: string): string | null {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name.startsWith(".") || entry.name === "fastlane") continue;
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      const found = findConfigFile(full);
+      if (found) return found;
+    } else if (entry.name === "config.json") {
+      return full;
+    }
+  }
+  return null;
+}
+
 export const buildRouter = Router();
 
 interface BuildRequest {
@@ -54,6 +68,20 @@ buildRouter.post("/build", async (req: Request, res: Response) => {
     );
     logs.push("Clone complete");
 
+    let resolvedScheme = gymScheme;
+    const configFile = findConfigFile(tmpDir);
+    if (configFile) {
+      try {
+        const cfg = JSON.parse(fs.readFileSync(configFile, "utf8"))?._config ?? {};
+        if (cfg.scheme) {
+          resolvedScheme = cfg.scheme;
+          logs.push(`[config] Using scheme from config.json: ${resolvedScheme}`);
+        }
+      } catch {
+        logs.push("[config] Warning: could not parse config.json");
+      }
+    }
+
     const fastlanePath = await findFastlane();
     logs.push(`Using fastlane: ${fastlanePath}`);
 
@@ -61,7 +89,7 @@ buildRouter.post("/build", async (req: Request, res: Response) => {
       tmpDir,
       appName,
       bundleId,
-      gymScheme,
+      resolvedScheme,
       exportMethod,
       fastlanePath,
       logs,

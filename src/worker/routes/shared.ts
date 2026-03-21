@@ -232,9 +232,11 @@ export async function buildWithGym(
   logs.push(`[gym] IPA found at: ${ipaFile}`);
 
   const buildsDir = path.join(BUILDS_BASE_DIR, bundleId);
+  const historyDir = path.join(buildsDir, "history");
   fs.mkdirSync(buildsDir, { recursive: true });
+  fs.mkdirSync(historyDir, { recursive: true });
   const destIpa = path.join(buildsDir, "latest.ipa");
-  const destIpa2 = path.join(buildsDir, "history", `${Date.now()}.ipa`);
+  const destIpa2 = path.join(historyDir, `${Date.now()}.ipa`);
   fs.copyFileSync(ipaFile, destIpa);
   fs.copyFileSync(ipaFile, destIpa2);
   const ipaSize = fs.statSync(destIpa).size;
