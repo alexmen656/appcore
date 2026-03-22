@@ -2,9 +2,22 @@ import { Router, Request, Response } from "express";
 import { randomBytes, createHash } from "crypto";
 import bcrypt from "bcryptjs";
 import express from "express";
+import rateLimit from "express-rate-limit";
 import { prisma, logger } from "../../config";
 
 export const oauthRouter = Router();
+
+const oauthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again later" },
+});
+
+oauthRouter.use("/register", oauthLimiter);
+oauthRouter.use("/token", oauthLimiter);
+oauthRouter.use("/authorize", oauthLimiter);
 
 oauthRouter.post("/register", async (req: Request, res: Response) => {
   res.setHeader("Cache-Control", "no-store");

@@ -1,6 +1,7 @@
 import path from "path";
 import fs from "fs";
 import { logger, prisma } from "../../config";
+import { decryptNullable } from "../../config/encryption";
 import { frameWithFastlane } from "../../services/frame-screenshots";
 import { workerClient } from "../../services/worker-client";
 import {
@@ -53,7 +54,7 @@ async function runScreenshotGenerationViaWorker(
     const repoUrl = `https://github.com/${job.app.githubRepoFullName}.git`;
     const result = await workerClient.snapshot({
       repoUrl,
-      accessToken: userWithToken.githubAccessToken,
+      accessToken: decryptNullable(userWithToken.githubAccessToken)!,
       branch: job.branch ?? undefined,
       appName: job.app.name,
       bundleId: job.app.bundleId,

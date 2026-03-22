@@ -39,6 +39,9 @@ const envSchema = z.object({
   EMAIL_FROM: z.string().default("noreply@marteso.com"),
   APP_URL: z.string().default("http://localhost:5173"),
 
+  // node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+  ENCRYPTION_KEY: z.string().length(64).optional(),
+
   // Logging
   LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),
 });

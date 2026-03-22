@@ -2,6 +2,7 @@ import crypto from "crypto";
 import axios from "axios";
 import { logger, prisma } from "../config";
 import { env } from "../config/env";
+import { decryptNullable } from "../config/encryption";
 
 export interface GitHubUser {
   login: string;
@@ -159,12 +160,13 @@ export async function linkRepoToApp(
   if (!settings?.githubAccessToken)
     throw new Error("GitHub not connected. Connect in Settings first.");
 
+  const token = decryptNullable(settings.githubAccessToken)!;
   const app = await prisma.app.findUnique({ where: { id: appId } });
   if (!app) throw new Error("App not found");
 
   if (app.githubRepoFullName && app.githubWebhookId) {
     await deleteWebhook(
-      settings.githubAccessToken,
+      token,
       app.githubRepoFullName,
       app.githubWebhookId,
     ).catch((err) => logger.warn(`Error removing old webhook: ${err.message}`));
@@ -173,7 +175,7 @@ export async function linkRepoToApp(
   const [owner, name] = repoFullName.split("/");
   const secret = crypto.randomBytes(32).toString("hex");
   const webhookId = await createWebhook(
-    settings.githubAccessToken,
+    token,
     repoFullName,
     secret,
   );
@@ -209,7 +211,7 @@ export async function unlinkRepoFromApp(
     settings?.githubAccessToken
   ) {
     await deleteWebhook(
-      settings.githubAccessToken,
+      decryptNullable(settings.githubAccessToken)!,
       app.githubRepoFullName,
       app.githubWebhookId,
     ).catch((err) => logger.warn(`Error removing webhook: ${err.message}`));

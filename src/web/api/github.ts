@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { logger, prisma } from "../../config";
 import { requireAuth } from "../auth";
+import { encrypt, decryptNullable } from "../../config/encryption";
 import {
   getGitHubOAuthUrl,
   exchangeGitHubCode,
@@ -64,18 +65,19 @@ githubRouter.get("/oauth/callback", async (req: Request, res: Response) => {
     const teamId = membership.teamId;
     const accessToken = await exchangeGitHubCode(code);
     const ghUser = await getGitHubUser(accessToken);
+    const encryptedToken = encrypt(accessToken);
 
     await prisma.teamSettings.upsert({
       where: { teamId },
       create: {
         teamId,
-        githubAccessToken: accessToken,
+        githubAccessToken: encryptedToken,
         githubUsername: ghUser.login,
         githubAvatarUrl: ghUser.avatar_url,
         githubConnectedAt: new Date(),
       },
       update: {
-        githubAccessToken: accessToken,
+        githubAccessToken: encryptedToken,
         githubUsername: ghUser.login,
         githubAvatarUrl: ghUser.avatar_url,
         githubConnectedAt: new Date(),
@@ -145,7 +147,7 @@ githubRouter.get("/repos", requireAuth, async (req: Request, res: Response) => {
       res.status(400).json({ error: "GitHub not connected" });
       return;
     }
-    const repos = await listUserRepos(settings.githubAccessToken);
+    const repos = await listUserRepos(decryptNullable(settings.githubAccessToken)!);
     res.json(
       repos.map((r) => ({
         id: r.id,

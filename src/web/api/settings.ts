@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../../config";
 import { requireAuth } from "../auth";
+import { encrypt } from "../../config/encryption";
 
 export const settingsRouter = Router();
 settingsRouter.use(requireAuth);
@@ -72,15 +73,15 @@ settingsRouter.put("/", async (req, res) => {
     if (ascIssuerId !== undefined) data.ascIssuerId = ascIssuerId || null;
     if (ascKeyId !== undefined) data.ascKeyId = ascKeyId || null;
     if (ascPrivateKey !== undefined && ascPrivateKey !== "••••••••")
-      data.ascPrivateKey = ascPrivateKey || null;
+      data.ascPrivateKey = ascPrivateKey ? encrypt(ascPrivateKey) : null;
     if (ascAppId !== undefined) data.ascAppId = ascAppId || null;
     if (ascBundleId !== undefined) data.ascBundleId = ascBundleId || null;
     if (ascVendorNumber !== undefined)
       data.ascVendorNumber = ascVendorNumber || null;
     if (openaiApiKey !== undefined && openaiApiKey !== "••••••••")
-      data.openaiApiKey = openaiApiKey || null;
+      data.openaiApiKey = openaiApiKey ? encrypt(openaiApiKey) : null;
     if (anthropicApiKey !== undefined && anthropicApiKey !== "••••••••")
-      data.anthropicApiKey = anthropicApiKey || null;
+      data.anthropicApiKey = anthropicApiKey ? encrypt(anthropicApiKey) : null;
     if (aiProvider !== undefined) data.aiProvider = aiProvider || "openai";
 
     await prisma.teamSettings.upsert({

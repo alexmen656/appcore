@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import crypto from "crypto";
 
 export function workerAuth(req: Request, res: Response, next: NextFunction) {
   const secret = process.env.FASTLANE_WORKER_SECRET;
@@ -15,7 +16,12 @@ export function workerAuth(req: Request, res: Response, next: NextFunction) {
   }
 
   const token = authHeader.slice(7);
-  if (token !== secret) {
+  const tokenBuf = Buffer.from(token);
+  const secretBuf = Buffer.from(secret);
+  const valid =
+    tokenBuf.length === secretBuf.length &&
+    crypto.timingSafeEqual(tokenBuf, secretBuf);
+  if (!valid) {
     res.status(403).json({ error: "Invalid worker secret" });
     return;
   }

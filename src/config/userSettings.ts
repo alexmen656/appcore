@@ -1,4 +1,5 @@
 import { prisma } from "./database";
+import { decryptNullable } from "./encryption";
 
 export interface EffectiveSettings {
   ascIssuerId: string;
@@ -57,12 +58,13 @@ export async function getEffectiveSettings(
   return {
     ascIssuerId: s?.ascIssuerId ?? DEFAULTS.ascIssuerId,
     ascKeyId: s?.ascKeyId ?? DEFAULTS.ascKeyId,
-    ascPrivateKey: s?.ascPrivateKey ?? DEFAULTS.ascPrivateKey,
+    ascPrivateKey: decryptNullable(s?.ascPrivateKey) ?? DEFAULTS.ascPrivateKey,
     ascAppId: s?.ascAppId ?? DEFAULTS.ascAppId,
     ascBundleId: bundleId,
     ascVendorNumber: s?.ascVendorNumber ?? DEFAULTS.ascVendorNumber,
-    openaiApiKey: s?.openaiApiKey ?? DEFAULTS.openaiApiKey,
-    anthropicApiKey: s?.anthropicApiKey ?? DEFAULTS.anthropicApiKey,
+    openaiApiKey: decryptNullable(s?.openaiApiKey) ?? DEFAULTS.openaiApiKey,
+    anthropicApiKey:
+      decryptNullable(s?.anthropicApiKey) ?? DEFAULTS.anthropicApiKey,
     aiProvider: s?.aiProvider === "anthropic" ? "anthropic" : "openai",
     scrapeCountry,
   };
