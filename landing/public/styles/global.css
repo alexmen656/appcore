@@ -1,0 +1,470 @@
+:root {
+  --bg-primary: #0d0d0d;
+  --bg-secondary: #1a1a1a;
+  --bg-tertiary: #242424;
+  --text-primary: #ffffff;
+  --text-secondary: #9ca3af;
+  --text-tertiary: #6b7280;
+  --accent: #ea0e2b;
+  --accent-dim: rgba(234, 14, 43, 0.1);
+  --accent-blue: #5e6ad2;
+  --accent-blue-dim: rgba(94, 106, 210, 0.1);
+  --border: rgba(255, 255, 255, 0.08);
+  --green: #4ade80;
+  --yellow: #fbbf24;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ── Nav ── */
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: rgba(13, 13, 13, 0.8);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s;
+}
+
+nav.scrolled {
+  border-bottom-color: var(--border);
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 32px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: var(--text-primary);
+}
+
+.logo-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.logo-name {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--accent);
+}
+
+.nav-links {
+  display: flex;
+  gap: 32px;
+  align-items: center;
+}
+
+.nav-links a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 450;
+  transition: color 0.2s;
+}
+
+.nav-links a:hover,
+.nav-links a.active {
+  color: var(--text-primary);
+}
+
+.nav-cta {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* ── Buttons ── */
+.btn {
+  padding: 8px 16px;
+  font-size: 15px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.btn-ghost:hover {
+  color: var(--text-primary);
+}
+
+.btn-primary {
+  background: #ea0e2b;
+  color: white;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.btn-large {
+  padding: 12px 24px;
+  font-size: 15px;
+}
+
+/* ── Section shared ── */
+.section-label {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+/* ── Page header (inner pages) ── */
+.page-header {
+  padding: 120px 32px 80px;
+  max-width: 1200px;
+  margin: 64px auto 0;
+  text-align: center;
+}
+
+h1 {
+  font-size: 56px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin-bottom: 20px;
+  background: linear-gradient(to bottom, #ffffff, #a0a0a0);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.page-description {
+  font-size: 20px;
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* ── CTA section ── */
+.cta {
+  max-width: 800px;
+  margin: 0 auto 120px;
+  padding: 80px 32px;
+  text-align: center;
+  border-top: 1px solid var(--border);
+}
+
+.cta h2 {
+  font-size: 40px;
+  margin-bottom: 16px;
+  letter-spacing: -0.02em;
+}
+
+.cta p {
+  font-size: 18px;
+  color: var(--text-secondary);
+  margin-bottom: 32px;
+}
+
+.cta-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* ── Pricing cards (shared between index + pricing page) ── */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.pricing-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px;
+  position: relative;
+  transition: border-color 0.2s;
+}
+
+.pricing-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.pricing-card.featured {
+  border-color: var(--accent);
+  background: var(--bg-tertiary);
+}
+
+.pricing-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 12px;
+  border-radius: 100px;
+  white-space: nowrap;
+}
+
+.pricing-tier {
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+}
+
+.pricing-price {
+  font-size: 48px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  margin-bottom: 4px;
+}
+
+.pricing-price sup {
+  font-size: 24px;
+  vertical-align: super;
+  margin-right: 2px;
+}
+
+.pricing-period {
+  font-size: 14px;
+  color: var(--text-tertiary);
+  margin-bottom: 24px;
+}
+
+.pricing-description {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+.pricing-divider {
+  height: 1px;
+  background: var(--border);
+  margin-bottom: 24px;
+}
+
+.pricing-features-list {
+  list-style: none;
+  margin-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pricing-features-list li {
+  font-size: 14px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.check {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.check svg {
+  width: 10px;
+  height: 10px;
+  stroke: var(--accent);
+}
+
+.pricing-cta {
+  width: 100%;
+  text-align: center;
+  padding: 10px 0;
+}
+
+/* ── FAQ ── */
+.faq-section {
+  max-width: 800px;
+  margin: 0 auto 120px;
+  padding: 0 32px;
+}
+
+.faq-header {
+  margin-bottom: 48px;
+}
+
+.faq-header h2 {
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.faq-item {
+  border-top: 1px solid var(--border);
+  padding: 24px 0;
+}
+
+.faq-question {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.faq-answer {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+/* ── Footer ── */
+footer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 64px 32px 32px;
+  border-top: 1px solid var(--border);
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 64px;
+  margin-bottom: 48px;
+}
+
+.footer-brand p {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-top: 16px;
+  line-height: 1.6;
+}
+
+.footer-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-column h4 {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+}
+
+.footer-column ul {
+  list-style: none;
+}
+
+.footer-column ul li {
+  margin-bottom: 12px;
+}
+
+.footer-column ul li a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.2s;
+}
+
+.footer-column ul li a:hover {
+  color: var(--text-primary);
+}
+
+.footer-bottom {
+  padding-top: 32px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.footer-bottom-links {
+  display: flex;
+  gap: 24px;
+}
+
+.footer-bottom a {
+  color: var(--text-tertiary);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footer-bottom a:hover {
+  color: var(--text-secondary);
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .nav-links {
+    display: none;
+  }
+
+  h1 {
+    font-size: 36px;
+  }
+
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .pricing-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "dev": "concurrently \"tsx watch src/web/server.ts\" \"cd web && npx vite\"",
+    "dev": "concurrently \"tsx watch src/web/server.ts\" \"cd web && npx vite\" \"cd landing && npm run dev\"",
     "start": "tsx src/web/server.ts",
     "worker": "tsx src/worker/server.ts",
     "web:build": "cd web && npx vite build",
@@ -14,7 +14,7 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "mcp": "tsx src/mcp-stdio.ts",
-    "deploy": "cd web && npx vite build && cd .. && rsync -az --exclude 'node_modules' --exclude '.env' --exclude 'web/node_modules' --exclude 'web/dist' -e 'ssh -i ~/.ssh/oracle' . ubuntu@144.21.36.217:~/appcore/ && rsync -az -e 'ssh -i ~/.ssh/oracle' web/dist ubuntu@144.21.36.217:~/appcore/web/ && ssh -i ~/.ssh/oracle ubuntu@144.21.36.217 'export PATH=/home/ubuntu/.local/share/fnm/node-versions/v22.22.1/installation/bin:$PATH && cd ~/appcore && npm install && npx prisma generate && pm2 restart appcore'"
+    "deploy": "cd web && npx vite build && cd ../landing && npm run build && cd .. && rsync -az --exclude 'node_modules' --exclude '.env' --exclude 'web/node_modules' --exclude 'web/dist' --exclude 'landing/node_modules' --exclude 'landing/dist' -e 'ssh -i ~/.ssh/oracle' . ubuntu@144.21.36.217:~/appcore/ && rsync -az -e 'ssh -i ~/.ssh/oracle' web/dist ubuntu@144.21.36.217:~/appcore/web/ && rsync -az -e 'ssh -i ~/.ssh/oracle' landing/dist ubuntu@144.21.36.217:~/appcore/landing/ && ssh -i ~/.ssh/oracle ubuntu@144.21.36.217 'export PATH=/home/ubuntu/.local/share/fnm/node-versions/v22.22.1/installation/bin:$PATH && cd ~/appcore && npm install && npx prisma generate && pm2 restart appcore'"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.37.0",

@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import path from "path";
+import http from "http";
 import { logger, prisma } from "../config";
 import { appsRouter } from "./api/apps";
 import { suggestionsRouter } from "./api/suggestions";
@@ -76,37 +77,42 @@ app.post("/mcp", mcpAuth, createMcpHandler());
 const screenshotsDir = path.join(process.cwd(), "screenshots");
 app.use("/screenshots", express.static(screenshotsDir));
 
-const landingPage = path.join(process.cwd(), "landing_page/AppCore.html");
-app.get("/", (_req, res) => res.sendFile(landingPage));
+const landingDist = path.join(process.cwd(), "landing/dist");
+const landingPublic = path.join(process.cwd(), "landing/public");
+const ASTRO_PORT = 4321;
 
-const HowItWorksPage = path.join(
-  process.cwd(),
-  "landing_page/how-it-works.html",
+app.get("/app/logo.png", (_req, res) =>
+  res.sendFile(path.join(landingPublic, "logo.png")),
 );
 
-app.get("/how-it-works", (_req, res) => res.sendFile(HowItWorksPage));
-
-const featuresPage = path.join(process.cwd(), "landing_page/features.html");
-app.get("/features", (_req, res) => res.sendFile(featuresPage));
-
-const changelogPage = path.join(process.cwd(), "landing_page/changelog.html");
-app.get("/changelog", (_req, res) => res.sendFile(changelogPage));
-
-const blogPage = path.join(process.cwd(), "landing_page/blog.html");
-app.get("/blog", (_req, res) => res.sendFile(blogPage));
-
-const pricingPage = path.join(process.cwd(), "landing_page/pricing.html");
-app.get("/pricing", (_req, res) => res.sendFile(pricingPage));
-
-const statusPage = path.join(process.cwd(), "landing_page/status.html");
-app.get("/status", (_req, res) => res.sendFile(statusPage));
-
-const screenshot = path.join(process.cwd(), "landing_page/screenshot.png");
-app.get("/screenshot.png", (_req, res) => res.sendFile(screenshot));
-
-const logo = path.join(process.cwd(), "landing_page", "logo.png");
-app.get("/logo.png", (_req, res) => res.sendFile(logo));
-app.get("/app/logo.png", (_req, res) => res.sendFile(logo));
+if (process.env.NODE_ENV !== "production") {
+  app.use((req, res, next) => {
+    if (req.path.startsWith("/api") || req.path.startsWith("/app")) {
+      return next();
+    }
+    const proxyReq = http.request(
+      {
+        hostname: "localhost",
+        port: ASTRO_PORT,
+        path: req.url,
+        method: req.method,
+        headers: { ...req.headers, host: `localhost:${ASTRO_PORT}` },
+      },
+      (proxyRes) => {
+        res.writeHead(proxyRes.statusCode ?? 200, proxyRes.headers);
+        proxyRes.pipe(res);
+      },
+    );
+    req.pipe(proxyReq);
+    proxyReq.on("error", () => {
+      res
+        .status(502)
+        .send("Astro dev server not running — cd landing && npm run dev");
+    });
+  });
+} else {
+  app.use(express.static(landingDist));
+}
 
 const webDist = path.join(__dirname, "../../web/dist");
 app.use("/app", express.static(webDist));
@@ -115,7 +121,7 @@ app.get("/app/*", (_req, res) => {
 });
 
 app.listen(PORT, () => {
-  logger.info(`AppCore Web UI running at http://localhost:${PORT}`);
+  logger.info(`Marteso Web UI running at http://localhost:${PORT}`);
   scheduler.start();
   logger.info("Background scheduler started automatically");
 

@@ -1,0 +1,47 @@
+# Marteso — ASO Platform for Mobile Teams
+
+> Marteso is an App Store Optimization (ASO) platform by Fringelo Group that helps mobile teams grow organic downloads on the Apple App Store and Google Play Store.
+
+## What Marteso does
+
+Marteso provides tools for:
+- **Keyword Research**: Discover high-volume, low-competition keywords across 180+ countries and all app categories. Each keyword is scored by search volume (0–100) and difficulty (Easy / Medium / Hard).
+- **Rank Tracking**: Monitor keyword positions daily on the App Store and Google Play. Supports 90-day historical charts and instant alerts for rank changes.
+- **AI Metadata Optimizer**: AI-assisted suggestions for app titles, subtitles, and descriptions. Real-time character counts, keyword density checks, and multi-locale support.
+- **Competitor Analysis**: Track any competitor app's keyword strategy, metadata changes, ratings, and reviews. Includes keyword gap reports.
+- **Review Management**: Unified inbox for reviews from all storefronts. AI sentiment analysis, topic categorization, and in-dashboard response.
+- **A/B Testing**: Run icon, screenshot, and description experiments on the App Store. Statistical significance reporting and automatic winner detection.
+
+## Pricing
+
+- **Starter** (free forever): 1 app, 50 keywords tracked, daily rank updates, 3 competitor apps, review inbox
+- **Pro** (€49/app/month, or €39 billed annually): Unlimited apps, 500 keywords, AI metadata optimizer, unlimited competitors, A/B testing, weekly email reports, Slack notifications
+- **Agency** (custom pricing): Everything in Pro + white-label reports, client workspace management, API access, dedicated account manager
+
+## Company
+
+- Product: Marteso
+- Parent company: Fringelo Group
+- Website: https://marteso.com
+- App: https://marteso.com/app/
+- Docs: https://docs.fringelo.com
+- Contact: hello@fringelo.com
+
+## Key facts
+
+- 2.4M+ keywords tracked
+- 180+ countries supported
+- +38% average organic growth after 60 days
+- Supports both iOS (App Store) and Android (Google Play)
+- OAuth 2.0 integration with App Store Connect and Google Play Console (read-only)
+- Built by Fringelo Group, © 2026
+
+## Pages
+
+- / — Homepage and product overview
+- /features — Detailed feature descriptions
+- /how-it-works — Step-by-step setup guide and FAQ
+- /pricing — Pricing plans and feature comparison table
+- /blog — ASO guides, growth tips, and product updates
+- /changelog — Product changelog
+- /status — System status

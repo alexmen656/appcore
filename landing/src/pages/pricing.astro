@@ -1,0 +1,337 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is the Marteso Starter plan really free forever?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. No credit card required, no trial expiry. The Starter plan is permanently free for one app with up to 50 tracked keywords. You upgrade only when you need more."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How does Marteso Pro plan pricing work?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "You pay €49/month per app you connect on Pro. If you have three apps, it's €147/month. Annual billing saves 20% across all apps."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I cancel Marteso at any time?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Cancel from your account settings at any time. Monthly plans remain active until the end of the billing period. Annual plans are refunded on a pro-rata basis within the first 30 days."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does Marteso offer a free trial of the Pro plan?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Instead of a time-limited trial, Marteso offers a permanent free Starter plan. For qualifying teams, a 14-day extended Pro trial is available on request."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What payment methods does Marteso accept?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Marteso accepts all major credit cards (Visa, Mastercard, Amex) and SEPA direct debit. Agency and enterprise customers can also pay by invoice."
+      }
+    }
+  ]
+};
+---
+
+<Layout
+  title="Marteso Pricing — Free ASO Plan + Pro from €49/app/month"
+  description="Marteso offers a free forever plan for indie developers, Pro at €49/app/month, and custom Agency pricing. No credit card required to start."
+  activeNav="pricing"
+  canonicalPath="/pricing"
+  jsonLd={faqSchema}
+>
+  <div class="page-header">
+    <div class="section-label">Pricing</div>
+    <h1>Simple, transparent pricing</h1>
+    <p class="page-description">Start for free. Upgrade when you're ready to scale.</p>
+    <div class="billing-toggle">
+      <div class="toggle-option active" id="toggle-monthly">Monthly</div>
+      <div class="toggle-option" id="toggle-annual">Annual <span class="save-badge">Save 20%</span></div>
+    </div>
+  </div>
+
+  <section class="pricing-section">
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <div class="pricing-tier">Starter</div>
+        <div class="pricing-price"><sup>€</sup>0</div>
+        <div class="pricing-period">forever free</div>
+        <div class="pricing-description">For indie developers and early-stage apps getting started with ASO.</div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features-list">
+          <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>1 app</li>
+          <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>50 keywords tracked</li>
+          <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Daily rank updates</li>
+          <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>3 competitor apps</li>
+          <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Review inbox</li>
+        </ul>
+        <a href="https://marteso.com/app/signup/" class="btn btn-secondary pricing-cta">Get started free</a>
+      </div>
+
+      <div class="pricing-card featured">
+        <div class="pricing-badge">Most popular</div>
+        <div class="pricing-tier">Pro</div>
+        <div class="pricing-price" id="pro-price"><sup>€</sup>49</div>
+        <div class="pricing-period" id="pro-period">per app / month</div>
+        <div class="pricing-description">For growing apps that need deeper insights and full optimization tooling.</div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features-list">
+          <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Unlimited apps</li>
+          <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>500 keywords tracked</li>
+          <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>AI metadata optimizer</li>
+          <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Unlimited competitors</li>
+          <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>A/B testing</li>
+          <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Weekly email reports</li>
+          <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Slack notifications</li>
+        </ul>
+        <a href="https://marteso.com/app/signup/" class="btn btn-primary pricing-cta">Start with Pro</a>
+      </div>
+
+      <div class="pricing-card">
+        <div class="pricing-tier">Agency</div>
+        <div class="pricing-price" style="font-size: 36px; padding-top: 8px;">Custom</div>
+        <div class="pricing-period">talk to us</div>
+        <div class="pricing-description">For agencies and studios managing multiple clients and dozens of apps.</div>
+        <div class="pricing-divider"></div>
+        <ul class="pricing-features-list">
+          <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Everything in Pro</li>
+          <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>White-label reports</li>
+          <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Client workspace management</li>
+          <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>API access</li>
+          <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Dedicated account manager</li>
+          <li><span class="check"><svg viewBox="0 0 12 12" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 6 5 9 10 3"/></svg></span>Custom SLA &amp; onboarding</li>
+        </ul>
+        <a href="mailto:hello@fringelo.com" class="btn btn-secondary pricing-cta">Contact sales</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="comparison-section">
+    <div class="comparison-header">
+      <h2>Compare plans</h2>
+      <p>Everything you get on each plan, side by side.</p>
+    </div>
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th style="width:40%"></th>
+          <th class="tier-header">Starter</th>
+          <th class="tier-header featured">Pro</th>
+          <th class="tier-header">Agency</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="category-row"><td colspan="4">Apps &amp; Keywords</td></tr>
+        <tr><td>Apps connected</td><td>1</td><td>Unlimited</td><td>Unlimited</td></tr>
+        <tr><td>Keywords tracked</td><td>50</td><td>500</td><td>Custom</td></tr>
+        <tr><td>Rank update frequency</td><td>Daily</td><td>Daily (priority)</td><td>Daily (priority)</td></tr>
+        <tr><td>Countries supported</td><td>5</td><td>180+</td><td>180+</td></tr>
+
+        <tr class="category-row"><td colspan="4">Competitor Intelligence</td></tr>
+        <tr><td>Competitor apps tracked</td><td>3</td><td>Unlimited</td><td>Unlimited</td></tr>
+        <tr><td>Keyword gap report</td><td><span class="no">–</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
+        <tr><td>Metadata change history</td><td><span class="no">–</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
+
+        <tr class="category-row"><td colspan="4">Optimization Tools</td></tr>
+        <tr><td>AI metadata optimizer</td><td><span class="no">–</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
+        <tr><td>A/B testing</td><td><span class="no">–</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
+        <tr><td>Localization support</td><td>1 locale</td><td>All locales</td><td>All locales</td></tr>
+
+        <tr class="category-row"><td colspan="4">Reporting &amp; Alerts</td></tr>
+        <tr><td>Review inbox</td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
+        <tr><td>Weekly email reports</td><td><span class="no">–</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
+        <tr><td>Slack notifications</td><td><span class="no">–</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
+        <tr><td>White-label reports</td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="yes">✓</span></td></tr>
+
+        <tr class="category-row"><td colspan="4">Support &amp; Access</td></tr>
+        <tr><td>Support</td><td>Community</td><td>Email</td><td>Dedicated manager</td></tr>
+        <tr><td>API access</td><td><span class="no">–</span></td><td><span class="no">–</span></td><td><span class="yes">✓</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="faq-section">
+    <div class="faq-header">
+      <div class="section-label">FAQ</div>
+      <h2>Pricing questions</h2>
+    </div>
+    <div class="faq-item">
+      <div class="faq-question">Is the Starter plan really free forever?</div>
+      <div class="faq-answer">Yes. No credit card required, no trial expiry. The Starter plan is permanently free for one app with up to 50 tracked keywords. You upgrade only when you need more.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-question">How does the Pro plan "per app" pricing work?</div>
+      <div class="faq-answer">You pay €49/month per app you connect on Pro. If you have three apps, it's €147/month. There's no cap on the number of apps — just multiply by the number you need. Annual billing saves 20% across all apps.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-question">Can I cancel at any time?</div>
+      <div class="faq-answer">Yes. Cancel from your account settings at any time. If you're on a monthly plan, your Pro features remain active until the end of the billing period. Annual plans are refunded on a pro-rata basis within the first 30 days.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-question">Do you offer a free trial of the Pro plan?</div>
+      <div class="faq-answer">We don't offer a time-limited trial — instead, the Starter plan gives you a real, permanent free tier to try Marteso at no cost. If you want to test Pro features, reach out and we'll set up a demo or a 14-day extended trial for qualifying teams.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-question">What payment methods do you accept?</div>
+      <div class="faq-answer">We accept all major credit cards (Visa, Mastercard, Amex) and SEPA direct debit. Agency and enterprise customers can also pay by invoice.</div>
+    </div>
+  </section>
+
+  <section class="cta">
+    <h2>Start for free today.</h2>
+    <p>No credit card. No commitment. Upgrade when you're ready.</p>
+    <div class="cta-buttons">
+      <a href="https://marteso.com/app/signup/" class="btn btn-primary btn-large">Get started free</a>
+      <a href="mailto:hello@fringelo.com" class="btn btn-secondary btn-large">Talk to sales</a>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .billing-toggle {
+    display: inline-flex;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px;
+    margin-top: 24px;
+    gap: 4px;
+  }
+
+  .toggle-option {
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+  }
+
+  .toggle-option.active {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+
+  .save-badge {
+    font-size: 11px;
+    background: rgba(74, 222, 128, 0.15);
+    color: #4ade80;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+    font-weight: 600;
+  }
+
+  .pricing-section {
+    max-width: 1200px;
+    margin: 0 auto 80px;
+    padding: 0 32px;
+  }
+
+  .comparison-section {
+    max-width: 1000px;
+    margin: 0 auto 120px;
+    padding: 0 32px;
+  }
+
+  .comparison-header {
+    margin-bottom: 32px;
+  }
+
+  .comparison-header h2 {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+
+  .comparison-header p {
+    font-size: 15px;
+    color: var(--text-secondary);
+  }
+
+  .comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  .comparison-table th,
+  .comparison-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .comparison-table td:not(:first-child) {
+    text-align: center;
+    color: var(--text-secondary);
+  }
+
+  .tier-header {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-tertiary);
+    text-align: center !important;
+  }
+
+  .tier-header.featured { color: var(--accent); }
+
+  .category-row td {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+    background: var(--bg-secondary);
+    padding: 8px 16px;
+  }
+
+  .yes { color: #4ade80; font-weight: 600; }
+  .no { color: var(--text-tertiary); }
+
+  @media (max-width: 768px) {
+    .comparison-section { overflow-x: auto; }
+  }
+</style>
+
+<script>
+  const monthly = document.getElementById('toggle-monthly');
+  const annual = document.getElementById('toggle-annual');
+  const price = document.getElementById('pro-price');
+  const period = document.getElementById('pro-period');
+
+  monthly?.addEventListener('click', () => {
+    monthly.classList.add('active');
+    annual?.classList.remove('active');
+    if (price) price.innerHTML = '<sup>€</sup>49';
+    if (period) period.textContent = 'per app / month';
+  });
+
+  annual?.addEventListener('click', () => {
+    annual.classList.add('active');
+    monthly?.classList.remove('active');
+    if (price) price.innerHTML = '<sup>€</sup>39';
+    if (period) period.textContent = 'per app / month, billed annually';
+  });
+</script>

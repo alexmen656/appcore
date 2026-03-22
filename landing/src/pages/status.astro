@@ -1,0 +1,325 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Status - Marteso">
+  <div class="page-header">
+    <div class="section-label">System Status</div>
+    <div class="global-status">
+      <div class="status-dot"></div>
+      <span class="global-status-text">All systems operational</span>
+    </div>
+    <div class="last-updated">Last updated: March 8, 2026 at 14:32 UTC</div>
+  </div>
+
+  <div class="status-section">
+
+    <div class="status-group">
+      <div class="status-group-header">
+        <h3>Core Platform</h3>
+        <span class="status-group-indicator operational"><div style="width:8px;height:8px;border-radius:50%;background:var(--green)"></div>Operational</span>
+      </div>
+      <div class="service-row"><div class="service-info"><span class="service-name">Dashboard &amp; Web App</span><span class="service-desc">marteso.com</span></div><div class="service-status operational"><div class="dot"></div>Operational</div></div>
+      <div class="service-row"><div class="service-info"><span class="service-name">Authentication</span><span class="service-desc">Login and session management</span></div><div class="service-status operational"><div class="dot"></div>Operational</div></div>
+      <div class="service-row"><div class="service-info"><span class="service-name">REST API</span><span class="service-desc">api.fringelo.com</span></div><div class="service-status operational"><div class="dot"></div>Operational</div></div>
+    </div>
+
+    <div class="status-group">
+      <div class="status-group-header">
+        <h3>Data Ingestion</h3>
+        <span class="status-group-indicator operational"><div style="width:8px;height:8px;border-radius:50%;background:var(--green)"></div>Operational</span>
+      </div>
+      <div class="service-row"><div class="service-info"><span class="service-name">App Store Rank Crawler</span><span class="service-desc">iOS keyword rankings · 180+ countries</span></div><div class="service-status operational"><div class="dot"></div>Operational</div></div>
+      <div class="service-row"><div class="service-info"><span class="service-name">Google Play Rank Crawler</span><span class="service-desc">Android keyword rankings</span></div><div class="service-status operational"><div class="dot"></div>Operational</div></div>
+      <div class="service-row"><div class="service-info"><span class="service-name">App Store Connect Sync</span><span class="service-desc">Metadata and sales data import</span></div><div class="service-status operational"><div class="dot"></div>Operational</div></div>
+      <div class="service-row"><div class="service-info"><span class="service-name">Google Play Console Sync</span><span class="service-desc">Metadata and install data import</span></div><div class="service-status operational"><div class="dot"></div>Operational</div></div>
+    </div>
+
+    <div class="status-group">
+      <div class="status-group-header">
+        <h3>AI &amp; Processing</h3>
+        <span class="status-group-indicator operational"><div style="width:8px;height:8px;border-radius:50%;background:var(--green)"></div>Operational</span>
+      </div>
+      <div class="service-row"><div class="service-info"><span class="service-name">AI Metadata Optimizer</span><span class="service-desc">Title, subtitle, and description suggestions</span></div><div class="service-status operational"><div class="dot"></div>Operational</div></div>
+      <div class="service-row"><div class="service-info"><span class="service-name">Review Sentiment Analysis</span><span class="service-desc">AI review classification and summarization</span></div><div class="service-status operational"><div class="dot"></div>Operational</div></div>
+      <div class="service-row"><div class="service-info"><span class="service-name">Keyword Volume Processing</span><span class="service-desc">Search volume and difficulty scoring</span></div><div class="service-status operational"><div class="dot"></div>Operational</div></div>
+    </div>
+
+    <div class="status-group">
+      <div class="status-group-header">
+        <h3>Notifications &amp; Reporting</h3>
+        <span class="status-group-indicator operational"><div style="width:8px;height:8px;border-radius:50%;background:var(--green)"></div>Operational</span>
+      </div>
+      <div class="service-row"><div class="service-info"><span class="service-name">Email Notifications</span><span class="service-desc">Rank alerts and weekly reports</span></div><div class="service-status operational"><div class="dot"></div>Operational</div></div>
+      <div class="service-row"><div class="service-info"><span class="service-name">Slack Integration</span><span class="service-desc">Real-time Slack notifications</span></div><div class="service-status operational"><div class="dot"></div>Operational</div></div>
+    </div>
+
+  </div>
+
+  <div class="uptime-section">
+    <div class="uptime-header">
+      <h2>Uptime - last 90 days</h2>
+      <p>Each bar represents one day</p>
+    </div>
+    <div class="uptime-row">
+      <span class="uptime-label">Dashboard &amp; API</span>
+      <div class="uptime-bars" id="bars-dashboard"></div>
+      <span class="uptime-pct">99.97%</span>
+    </div>
+    <div class="uptime-row">
+      <span class="uptime-label">iOS Rank Crawler</span>
+      <div class="uptime-bars" id="bars-ios"></div>
+      <span class="uptime-pct">99.91%</span>
+    </div>
+    <div class="uptime-row">
+      <span class="uptime-label">Android Rank Crawler</span>
+      <div class="uptime-bars" id="bars-android"></div>
+      <span class="uptime-pct">99.88%</span>
+    </div>
+    <div class="uptime-row">
+      <span class="uptime-label">AI Processing</span>
+      <div class="uptime-bars" id="bars-ai"></div>
+      <span class="uptime-pct">100%</span>
+    </div>
+  </div>
+
+  <div class="incidents-section">
+    <div class="incidents-header">
+      <h2>Recent incidents</h2>
+      <p>Past 90 days · resolved incidents shown</p>
+    </div>
+
+    <div class="incident-card">
+      <div class="incident-top">
+        <span class="incident-title">Google Play rank updates delayed by up to 36 hours</span>
+        <span class="incident-badge badge-resolved">Resolved</span>
+      </div>
+      <div class="incident-date">Feb 14, 2026 · Duration: 4h 12m</div>
+      <div class="incident-body">A rate-limit change on Google's side caused our crawler to back off and delay rank updates for approximately 4 hours for Android apps. All pending updates were processed in order once the issue was resolved. No data was lost.</div>
+    </div>
+
+    <div class="incident-card">
+      <div class="incident-top">
+        <span class="incident-title">App Store Connect OAuth intermittently failing</span>
+        <span class="incident-badge badge-resolved">Resolved</span>
+      </div>
+      <div class="incident-date">Jan 28, 2026 · Duration: 52m</div>
+      <div class="incident-body">Apple's OAuth endpoint returned intermittent 503 errors for approximately 52 minutes. Some users were unable to connect new apps or re-authenticate during this window. Existing data and rankings were unaffected.</div>
+    </div>
+
+    <div style="margin-top:24px;text-align:center;">
+      <div class="no-incidents">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block;margin:0 auto 10px;width:24px;height:24px;stroke:var(--green)">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        No other incidents in the past 90 days.
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .page-header {
+    padding: 120px 32px 64px;
+    max-width: 1200px;
+    margin: 64px auto 0;
+    text-align: center;
+  }
+
+  .global-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(74, 222, 128, 0.1);
+    border: 1px solid rgba(74, 222, 128, 0.25);
+    border-radius: 100px;
+    padding: 10px 20px;
+    margin-bottom: 16px;
+  }
+
+  .status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .global-status-text { font-size: 15px; font-weight: 500; color: var(--green); }
+  .last-updated { font-size: 13px; color: var(--text-tertiary); }
+
+  .status-section {
+    max-width: 900px;
+    margin: 0 auto 80px;
+    padding: 0 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .status-group {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .status-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-tertiary);
+  }
+
+  .status-group-header h3 { font-size: 14px; font-weight: 600; }
+
+  .status-group-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .status-group-indicator.operational { color: var(--green); }
+
+  .service-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .service-row:last-child { border-bottom: none; }
+
+  .service-info { display: flex; flex-direction: column; gap: 2px; }
+  .service-name { font-size: 14px; font-weight: 500; }
+  .service-desc { font-size: 12px; color: var(--text-tertiary); }
+
+  .service-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .service-status .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .service-status.operational { color: var(--green); }
+  .service-status.operational .dot { background: var(--green); }
+
+  /* Uptime */
+  .uptime-section {
+    max-width: 900px;
+    margin: 0 auto 64px;
+    padding: 0 32px;
+  }
+
+  .uptime-header { margin-bottom: 24px; }
+  .uptime-header h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .uptime-header p { font-size: 13px; color: var(--text-tertiary); }
+
+  .uptime-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+
+  .uptime-label { font-size: 13px; color: var(--text-secondary); width: 160px; flex-shrink: 0; }
+
+  .uptime-bars {
+    flex: 1;
+    display: flex;
+    gap: 2px;
+    height: 28px;
+    align-items: stretch;
+  }
+
+  .uptime-pct { font-size: 13px; font-weight: 600; color: var(--green); width: 48px; text-align: right; flex-shrink: 0; }
+
+  /* Incidents */
+  .incidents-section {
+    max-width: 900px;
+    margin: 0 auto 120px;
+    padding: 0 32px;
+  }
+
+  .incidents-header { margin-bottom: 24px; }
+  .incidents-header h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 4px; }
+  .incidents-header p { font-size: 13px; color: var(--text-tertiary); }
+
+  .incident-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 12px;
+  }
+
+  .incident-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    gap: 16px;
+  }
+
+  .incident-title { font-size: 15px; font-weight: 500; }
+
+  .incident-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  .badge-resolved { background: rgba(74,222,128,0.12); color: #4ade80; }
+
+  .incident-date { font-size: 12px; color: var(--text-tertiary); margin-bottom: 10px; font-family: 'SF Mono', monospace; }
+  .incident-body { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+
+  .no-incidents {
+    font-size: 14px;
+    color: var(--text-tertiary);
+    padding: 32px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+</style>
+
+<script>
+  function generateBars(containerId: string, incidentDays: number[]) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    for (let i = 89; i >= 0; i--) {
+      const bar = document.createElement('div');
+      bar.className = 'uptime-bar' + (incidentDays.includes(i) ? ' incident' : '');
+      bar.style.flex = '1';
+      bar.style.borderRadius = '2px';
+      bar.style.background = incidentDays.includes(i) ? 'var(--accent)' : 'rgba(74,222,128,0.4)';
+      container.appendChild(bar);
+    }
+  }
+
+  generateBars('bars-dashboard', [43]);
+  generateBars('bars-ios', [43, 44]);
+  generateBars('bars-android', [43, 44, 60]);
+  generateBars('bars-ai', []);
+</script>
