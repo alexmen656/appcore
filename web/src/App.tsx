@@ -1100,7 +1100,7 @@ export default function App() {
     }`;
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-[#f8f9fb] dark:bg-[#252b38]">
+    <div className="flex flex-col h-screen overflow-hidden bg-[#f8f9fb] dark:bg-[#0a0a0a]">
       <ToastContainer toasts={toasts} />
       <header className="h-[52px] bg-[#f8f9fb] dark:bg-[#0a0a0a] flex items-center px-4 shrink-0 z-20">
         <a href="/app/" className="flex items-center gap-2.5">
