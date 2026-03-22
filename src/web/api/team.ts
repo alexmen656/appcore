@@ -263,6 +263,79 @@ teamRouter.delete("/members/:id", async (req, res) => {
   }
 });
 
+teamRouter.get("/members/:id/apps", async (req, res) => {
+  try {
+    const teamId = req.user!.teamId;
+    if (!teamId) {
+      res.status(403).json({ error: "No team" });
+      return;
+    }
+
+    const me = await getMyMembership(req.user!.userId, teamId);
+    if (!canManageTeam(me?.role) && req.user!.role !== "ADMIN") {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+
+    const member = await prisma.teamMember.findUnique({
+      where: { id: req.params.id },
+      include: { appAccess: { select: { appId: true } } },
+    });
+    if (!member || member.teamId !== teamId) {
+      res.status(404).json({ error: "Member not found" });
+      return;
+    }
+
+    res.json({ appIds: member.appAccess.map((a) => a.appId) });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+teamRouter.put("/members/:id/apps", async (req, res) => {
+  try {
+    const { appIds } = req.body as { appIds?: string[] };
+    if (!Array.isArray(appIds)) {
+      res.status(400).json({ error: "appIds array required" });
+      return;
+    }
+
+    const teamId = req.user!.teamId;
+    if (!teamId) {
+      res.status(403).json({ error: "No team" });
+      return;
+    }
+
+    const me = await getMyMembership(req.user!.userId, teamId);
+    if (!canManageTeam(me?.role) && req.user!.role !== "ADMIN") {
+      res.status(403).json({ error: "Forbidden" });
+      return;
+    }
+
+    const member = await prisma.teamMember.findUnique({
+      where: { id: req.params.id },
+    });
+    if (!member || member.teamId !== teamId) {
+      res.status(404).json({ error: "Member not found" });
+      return;
+    }
+
+    await prisma.teamMemberAppAccess.deleteMany({
+      where: { teamMemberId: req.params.id },
+    });
+    if (appIds.length > 0) {
+      await prisma.teamMemberAppAccess.createMany({
+        data: appIds.map((appId) => ({ teamMemberId: req.params.id, appId })),
+        skipDuplicates: true,
+      });
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 teamRouter.put("/", async (req, res) => {
   try {
     const { name } = req.body as { name?: string };

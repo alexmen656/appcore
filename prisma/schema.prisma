@@ -24,11 +24,24 @@ model TeamMember {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   role      TeamRole @default(MEMBER)
+  appAccess TeamMemberAppAccess[]
   createdAt DateTime @default(now())
 
   @@unique([teamId, userId])
   @@index([teamId])
   @@index([userId])
+}
+
+model TeamMemberAppAccess {
+  id           String     @id @default(cuid())
+  teamMemberId String
+  teamMember   TeamMember @relation(fields: [teamMemberId], references: [id], onDelete: Cascade)
+  appId        String
+  app          App        @relation(fields: [appId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([teamMemberId, appId])
+  @@index([teamMemberId])
 }
 
 model TeamInvite {
@@ -136,6 +149,7 @@ model App {
   signingCertPassword   String?
   signingProvisioningProfile String?
   signingTeamId         String?
+  memberAccess  TeamMemberAppAccess[]
   snapshots     AppSnapshot[]
   rankings      KeywordRanking[]
   competitors   CompetitorRelation[] @relation("app_competitors")

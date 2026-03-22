@@ -32,9 +32,21 @@ appsRouter.get("/", async (req, res) => {
         };
       }
     } else if (!isAdmin && teamId) {
-      whereClause = {
-        OR: [{ teamId }, { isOwnApp: false }],
-      };
+      const member = await prisma.teamMember.findUnique({
+        where: { teamId_userId: { teamId, userId: req.user!.userId } },
+        include: { appAccess: true },
+      });
+      const isPrivileged = member?.role === "OWNER" || member?.role === "ADMIN";
+      if (!isPrivileged && member && member.appAccess.length > 0) {
+        const allowedAppIds = member.appAccess.map((a) => a.appId);
+        whereClause = {
+          OR: [{ id: { in: allowedAppIds } }, { isOwnApp: false }],
+        };
+      } else {
+        whereClause = {
+          OR: [{ teamId }, { isOwnApp: false }],
+        };
+      }
     }
 
     const apps = await prisma.app.findMany({
