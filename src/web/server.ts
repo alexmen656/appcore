@@ -85,7 +85,9 @@ app.get("/app/logo.png", (_req, res) =>
   res.sendFile(path.join(landingPublic, "logo.png")),
 );
 
-if (process.env.NODE_ENV !== "production") {
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(landingDist));
+} else {
   app.use((req, res, next) => {
     if (req.path.startsWith("/api") || req.path.startsWith("/app")) {
       return next();
@@ -110,8 +112,6 @@ if (process.env.NODE_ENV !== "production") {
         .send("Astro dev server not running — cd landing && npm run dev");
     });
   });
-} else {
-  app.use(express.static(landingDist));
 }
 
 const webDist = path.join(__dirname, "../../web/dist");
