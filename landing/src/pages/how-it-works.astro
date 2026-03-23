@@ -77,6 +77,14 @@ const faqSchema = {
         "@type": "Answer",
         "text": "You'll receive a notification before you hit the limit. Existing tracked keywords continue to update uninterrupted. You can either upgrade your plan or remove keywords you no longer need."
       }
+    },
+    {
+      "@type": "Question",
+      "name": "Where does Marteso's keyword data come from?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Keyword rankings are crawled directly from App Store and Google Play search results, updated every 24 hours. Search volume estimates are derived from Apple Search Ads impression signals combined with our proprietary crawl database. Competitor metadata is pulled from public store listings."
+      }
     }
   ]
 };
@@ -132,6 +140,12 @@ const faqSchema = {
             <div class="detail-card"><h4>Volume scoring</h4><p>Relative search demand on a 0–100 scale, updated weekly per country.</p></div>
             <div class="detail-card"><h4>Difficulty rating</h4><p>How competitive the top 10 results are. Easy, Medium, or Hard.</p></div>
             <div class="detail-card"><h4>Gap analysis</h4><p>Find keywords your competitors rank for that you're currently missing.</p></div>
+          </div>
+          <div class="data-source-note">
+            <div class="data-source-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <p><strong>Where the data comes from:</strong> Keyword rankings are crawled directly from App Store and Google Play search results, updated daily. Search volume estimates are derived from Apple Search Ads impression signals and our proprietary crawl database — the same underlying data source used across the ASO industry. Competitor metadata is pulled from public store listings.</p>
           </div>
         </div>
       </div>
@@ -193,6 +207,10 @@ const faqSchema = {
     <div class="faq-item">
       <div class="faq-question">What happens if I exceed my keyword limit?</div>
       <div class="faq-answer">You'll receive a notification before you hit the limit. Existing tracked keywords continue to update uninterrupted. You can either upgrade your plan or remove keywords you no longer need to stay within your quota.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-question">Where does Marteso's keyword data come from?</div>
+      <div class="faq-answer">Keyword rankings are crawled directly from App Store and Google Play search results — we run live queries and record position data, updated every 24 hours. Search volume estimates are derived from Apple Search Ads impression signals (the popularity scores Apple exposes via their Search Ads API) combined with our own crawl database. This is the standard data source used across the ASO industry — the same signals that tools like AppFollow, MobileAction, and Sensor Tower build on. Competitor data is pulled entirely from public store listings — no private API access required.</div>
     </div>
   </section>
 
@@ -309,6 +327,39 @@ const faqSchema = {
     font-size: 12px;
     color: var(--text-secondary);
     line-height: 1.5;
+  }
+
+  .data-source-note {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    margin-top: 20px;
+    padding: 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  .data-source-icon {
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: var(--text-tertiary);
+  }
+
+  .data-source-icon svg {
+    stroke: var(--text-tertiary);
+  }
+
+  .data-source-note p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  .data-source-note strong {
+    color: var(--text-primary);
+    font-weight: 500;
   }
 
   @media (max-width: 768px) {
