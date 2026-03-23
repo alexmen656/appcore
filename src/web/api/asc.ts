@@ -417,6 +417,37 @@ ascRouter.post("/versions/localizations", async (req, res) => {
   }
 });
 
+ascRouter.delete("/versions/localizations", async (req, res) => {
+  try {
+    const { appInfoLocalizationId, versionLocalizationId } = req.body as {
+      appInfoLocalizationId?: string;
+      versionLocalizationId?: string;
+    };
+
+    if (!appInfoLocalizationId && !versionLocalizationId) {
+      res
+        .status(400)
+        .json({ error: "At least one localization ID is required" });
+      return;
+    }
+
+    const asc = await ascClientForUser(req.user!.userId);
+    await Promise.all([
+      appInfoLocalizationId
+        ? asc.deleteAppInfoLocalization(appInfoLocalizationId)
+        : Promise.resolve(),
+      versionLocalizationId
+        ? asc.deleteVersionLocalization(versionLocalizationId)
+        : Promise.resolve(),
+    ]);
+
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error("ASC deleteLocalization failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
 ascRouter.post("/versions/localizations/translate", async (req, res) => {
   try {
     const { targetLocale, sourceLocale, sourceFields } = req.body as {

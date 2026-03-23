@@ -942,6 +942,7 @@ export default function Versions({ addToast }: Props) {
   const [activeLocale, setActiveLocale] = useState<string | null>(null);
   const [showAddLocale, setShowAddLocale] = useState(false);
   const [addingLocale, setAddingLocale] = useState(false);
+  const [removingLocale, setRemovingLocale] = useState<string | null>(null);
   const addLocaleRef = useRef<HTMLDivElement>(null);
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [submitStatus, setSubmitStatus] = useState<{
@@ -1109,8 +1110,10 @@ export default function Versions({ addToast }: Props) {
                 .filter(([, v]) => v && v.trim())
                 .map(([field, value]) => {
                   const isAppInfoField = appInfoFields.includes(field);
-                  if (isAppInfoField && !created.appInfoLocalizationId) return null;
-                  if (!isAppInfoField && !created.versionLocalizationId) return null;
+                  if (isAppInfoField && !created.appInfoLocalizationId)
+                    return null;
+                  if (!isAppInfoField && !created.versionLocalizationId)
+                    return null;
                   return fetch("/api/asc/versions/metadata", {
                     method: "PATCH",
                     headers: {
@@ -1156,6 +1159,41 @@ export default function Versions({ addToast }: Props) {
       }
     },
     [data, addToast, refetch],
+  );
+
+  const removeLocale = useCallback(
+    async (loc: VersionLocalization) => {
+      if (!data?.versionId) return;
+      if (!confirm(`Remove ${getLocaleName(loc.locale)} (${loc.locale})?`))
+        return;
+      setRemovingLocale(loc.locale);
+      try {
+        const res = await fetch("/api/asc/versions/localizations", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json", ...authHeaders() },
+          body: JSON.stringify({
+            appInfoLocalizationId: loc.appInfoLocalizationId ?? undefined,
+            versionLocalizationId: loc.versionLocalizationId ?? undefined,
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error ?? `HTTP ${res.status}`);
+        }
+        addToast(`Language ${loc.locale} removed`, "success");
+        if (activeLocale === loc.locale)
+          setActiveLocale(
+            data.localizations.find((l) => l.locale !== loc.locale)?.locale ??
+              null,
+          );
+        refetch();
+      } catch (err: any) {
+        addToast(`Failed to remove language: ${err.message}`, "error");
+      } finally {
+        setRemovingLocale(null);
+      }
+    },
+    [data, activeLocale, addToast, refetch],
   );
 
   const handleSave = useCallback(
@@ -1352,28 +1390,57 @@ export default function Versions({ addToast }: Props) {
         <div className="flex items-start gap-2 mb-5">
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 flex-wrap flex-1 min-w-0">
             {data.localizations.map((loc) => (
-              <button
-                key={loc.locale}
-                onClick={() => setActiveLocale(loc.locale)}
-                className={`flex flex-col items-start px-3 py-2 rounded-xl transition-all whitespace-nowrap ${
-                  loc.locale === activeLocale
-                    ? "bg-[#ea0e2b] text-white shadow-sm"
-                    : "bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] text-[#111827] dark:text-[#e8eaf0] hover:border-[#d1d5db] dark:hover:border-[#3a4050]"
-                }`}
-              >
-                <span className="text-[13px] font-medium leading-tight">
-                  {getLocaleName(loc.locale)}
-                </span>
-                <span
-                  className={`text-[10px] font-mono mt-0.5 ${
+              <div key={loc.locale} className="relative group">
+                <button
+                  onClick={() => setActiveLocale(loc.locale)}
+                  className={`flex flex-col items-start px-3 py-2 rounded-xl transition-all whitespace-nowrap ${
                     loc.locale === activeLocale
-                      ? "text-white/70"
-                      : "text-[#9ca3af]"
+                      ? "bg-[#ea0e2b] text-white shadow-sm"
+                      : "bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] text-[#111827] dark:text-[#e8eaf0] hover:border-[#d1d5db] dark:hover:border-[#3a4050]"
                   }`}
                 >
-                  {loc.locale}
-                </span>
-              </button>
+                  <span className="text-[13px] font-medium leading-tight pr-3">
+                    {getLocaleName(loc.locale)}
+                  </span>
+                  <span
+                    className={`text-[10px] font-mono mt-0.5 ${
+                      loc.locale === activeLocale
+                        ? "text-white/70"
+                        : "text-[#9ca3af]"
+                    }`}
+                  >
+                    {loc.locale}
+                  </span>
+                </button>
+                {data.isEditable && data.localizations.length > 1 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeLocale(loc);
+                    }}
+                    disabled={removingLocale === loc.locale}
+                    className={`absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity ${
+                      loc.locale === activeLocale
+                        ? "bg-white/20 hover:bg-white/40 text-white"
+                        : "bg-[#f3f4f6] dark:bg-[#2a2f3d] hover:bg-red-100 dark:hover:bg-red-900/30 text-[#9ca3af] hover:text-[#ea0e2b]"
+                    }`}
+                    title="Remove language"
+                  >
+                    {removingLocale === loc.locale ? (
+                      <div className="spinner !w-2.5 !h-2.5" />
+                    ) : (
+                      <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                        <path
+                          d="M1 1l6 6M7 1L1 7"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    )}
+                  </button>
+                )}
+              </div>
             ))}
           </div>
           {data.isEditable && data.versionId && (

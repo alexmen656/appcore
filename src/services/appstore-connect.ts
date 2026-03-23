@@ -273,7 +273,9 @@ export class AppStoreConnectClient {
       "PENDING_DEVELOPER_RELEASE",
       "IN_REVIEW",
     ]);
-    const editable = infos.find((i) => editableStates.has(i.attributes?.appStoreState));
+    const editable = infos.find((i) =>
+      editableStates.has(i.attributes?.appStoreState),
+    );
     return editable?.id ?? infos[0]?.id ?? null;
   }
 
@@ -316,6 +318,26 @@ export class AppStoreConnectClient {
       });
       return data.data;
     } catch (err: any) {
+      this.throwASCError(err);
+    }
+  }
+
+  async deleteAppInfoLocalization(localizationId: string): Promise<void> {
+    try {
+      await this.client.delete(`/appInfoLocalizations/${localizationId}`);
+    } catch (err: any) {
+      if (err?.response?.status === 500) return;
+      this.throwASCError(err);
+    }
+  }
+
+  async deleteVersionLocalization(localizationId: string): Promise<void> {
+    try {
+      await this.client.delete(
+        `/appStoreVersionLocalizations/${localizationId}`,
+      );
+    } catch (err: any) {
+      if (err?.response?.status === 500) return;
       this.throwASCError(err);
     }
   }
