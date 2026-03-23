@@ -364,6 +364,57 @@ export class AIAnalyzer {
     };
   }
 
+  async translateLocalization(
+    sourceLocale: string,
+    targetLocale: string,
+    sourceFields: Partial<
+      Record<
+        | "name"
+        | "subtitle"
+        | "keywords"
+        | "description"
+        | "promotionalText"
+        | "whatsNew",
+        string
+      >
+    >,
+  ): Promise<Record<string, string>> {
+    const sourceConfig = getLocaleConfig(sourceLocale);
+    const targetConfig = getLocaleConfig(targetLocale);
+
+    const fieldsToTranslate = Object.entries(sourceFields).filter(
+      ([, v]) => v && v.trim(),
+    ) as [string, string][];
+    if (fieldsToTranslate.length === 0) return {};
+
+    const keywordsInstruction =
+      "keywords" in sourceFields
+        ? `\nFor the "keywords" field: suggest the best App Store keywords for the ${targetConfig.market} market. Even without exact market data, use your knowledge of the app and the ${targetConfig.language}-speaking market. Keep comma-separated and under 100 characters total.`
+        : "";
+
+    const userPrompt = `Translate the following App Store metadata from ${sourceConfig.language} to ${targetConfig.language}.
+Return a JSON object with the same keys, containing the translated values. No explanations.
+${keywordsInstruction}
+
+${fieldsToTranslate.map(([k, v]) => `${k}: ${v}`).join("\n\n")}`;
+
+    const aiResponse = await this.query(
+      `You are an expert App Store localization specialist. Translate app metadata accurately and naturally for the target locale, adapting tone and phrasing for the local market. Return only a JSON object with the translated values.`,
+      userPrompt,
+    );
+
+    try {
+      const raw = aiResponse.content.trim();
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if (jsonMatch) return JSON.parse(jsonMatch[0]);
+    } catch {
+      logger.warn("Failed to parse AI translation response", {
+        content: aiResponse.content,
+      });
+    }
+    return {};
+  }
+
   async analyzeAndSuggest(
     locales?: string[],
   ): Promise<Map<string, ASOAnalysis>> {
@@ -375,7 +426,10 @@ export class AIAnalyzer {
       targetLocales.map(async (locale) => {
         logger.info(`Running AI ASO analysis for locale: ${locale}`);
         try {
-          return { locale, analysis: await this.analyzeForLocale(locale, appData) };
+          return {
+            locale,
+            analysis: await this.analyzeForLocale(locale, appData),
+          };
         } catch (error) {
           logger.error(`AI analysis failed for locale ${locale}`, {
             error: error instanceof Error ? error.message : error,
@@ -561,10 +615,22 @@ Generate detailed ASO optimization suggestions in ${lc.promptLang} for the ${lc.
     locale: string,
   ): Promise<void> {
     const suggestions = [
-      ...analysis.titleSuggestions.map((s) => ({ type: SuggestionType.TITLE as SuggestionType, ...s })),
-      ...analysis.subtitleSuggestions.map((s) => ({ type: SuggestionType.SUBTITLE as SuggestionType, ...s })),
-      ...analysis.keywordSuggestions.map((s) => ({ type: SuggestionType.KEYWORDS as SuggestionType, ...s })),
-      ...analysis.descriptionSuggestions.map((s) => ({ type: SuggestionType.DESCRIPTION as SuggestionType, ...s })),
+      ...analysis.titleSuggestions.map((s) => ({
+        type: SuggestionType.TITLE as SuggestionType,
+        ...s,
+      })),
+      ...analysis.subtitleSuggestions.map((s) => ({
+        type: SuggestionType.SUBTITLE as SuggestionType,
+        ...s,
+      })),
+      ...analysis.keywordSuggestions.map((s) => ({
+        type: SuggestionType.KEYWORDS as SuggestionType,
+        ...s,
+      })),
+      ...analysis.descriptionSuggestions.map((s) => ({
+        type: SuggestionType.DESCRIPTION as SuggestionType,
+        ...s,
+      })),
     ];
 
     const appBundleId = this.settings?.ascBundleId;

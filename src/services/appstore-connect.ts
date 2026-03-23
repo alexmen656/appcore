@@ -137,17 +137,16 @@ export class AppStoreConnectClient {
 
   async getAppInfoLocalizations(
     appId: string,
+    appInfoId?: string,
   ): Promise<ASCAppInfoLocalization[]> {
-    const { data: appInfos } = await this.client.get(
-      `/apps/${appId}/appInfos`,
-      { params: { "fields[appInfos]": "appStoreState" } },
-    );
-
-    const appInfoId = appInfos.data?.[0]?.id;
-    if (!appInfoId) return [];
+    let resolvedAppInfoId = appInfoId;
+    if (!resolvedAppInfoId) {
+      resolvedAppInfoId = await this.getAppInfoId(appId);
+    }
+    if (!resolvedAppInfoId) return [];
 
     const { data } = await this.client.get(
-      `/appInfos/${appInfoId}/appInfoLocalizations`,
+      `/appInfos/${resolvedAppInfoId}/appInfoLocalizations`,
       {
         params: {
           "fields[appInfoLocalizations]":
@@ -263,7 +262,19 @@ export class AppStoreConnectClient {
     const { data } = await this.client.get(`/apps/${appId}/appInfos`, {
       params: { "fields[appInfos]": "appStoreState" },
     });
-    return data.data?.[0]?.id ?? null;
+    const infos: any[] = data.data ?? [];
+    const editableStates = new Set([
+      "PREPARE_FOR_SUBMISSION",
+      "DEVELOPER_REJECTED",
+      "REJECTED",
+      "METADATA_REJECTED",
+      "WAITING_FOR_REVIEW",
+      "WAITING_FOR_EXPORT_COMPLIANCE",
+      "PENDING_DEVELOPER_RELEASE",
+      "IN_REVIEW",
+    ]);
+    const editable = infos.find((i) => editableStates.has(i.attributes?.appStoreState));
+    return editable?.id ?? infos[0]?.id ?? null;
   }
 
   async createAppInfoLocalization(

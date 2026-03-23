@@ -1065,7 +1065,88 @@ export default function Versions({ addToast }: Props) {
           const err = await res.json().catch(() => ({}));
           throw new Error(err.error ?? `HTTP ${res.status}`);
         }
-        addToast(`Language ${locale} added`, "success");
+        const created = await res.json();
+
+        const sourceLoc =
+          data.localizations.find((l) => l.locale === "en-US") ??
+          data.localizations[0];
+
+        if (
+          sourceLoc &&
+          (created.appInfoLocalizationId || created.versionLocalizationId)
+        ) {
+          addToast(`Language ${locale} added — translating with AI…`, "info");
+          try {
+            const translateRes = await fetch(
+              "/api/asc/versions/localizations/translate",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  ...authHeaders(),
+                },
+                body: JSON.stringify({
+                  targetLocale: locale,
+                  sourceLocale: sourceLoc.locale,
+                  sourceFields: {
+                    name: sourceLoc.name || data.appName || "",
+                    subtitle: sourceLoc.subtitle ?? "",
+                    keywords: sourceLoc.keywords ?? "",
+                    description: sourceLoc.description ?? "",
+                    promotionalText: sourceLoc.promotionalText ?? "",
+                    whatsNew: sourceLoc.whatsNew ?? "",
+                  },
+                }),
+              },
+            );
+
+            if (translateRes.ok) {
+              const { fields } = await translateRes.json();
+              const appInfoFields = ["name", "subtitle", "privacyPolicyUrl"];
+              const savePromises = Object.entries(
+                fields as Record<string, string>,
+              )
+                .filter(([, v]) => v && v.trim())
+                .map(([field, value]) => {
+                  const isAppInfoField = appInfoFields.includes(field);
+                  if (isAppInfoField && !created.appInfoLocalizationId) return null;
+                  if (!isAppInfoField && !created.versionLocalizationId) return null;
+                  return fetch("/api/asc/versions/metadata", {
+                    method: "PATCH",
+                    headers: {
+                      "Content-Type": "application/json",
+                      ...authHeaders(),
+                    },
+                    body: JSON.stringify({
+                      appInfoLocalizationId: isAppInfoField
+                        ? created.appInfoLocalizationId
+                        : undefined,
+                      versionLocalizationId: !isAppInfoField
+                        ? created.versionLocalizationId
+                        : undefined,
+                      field,
+                      value,
+                    }),
+                  });
+                })
+                .filter(Boolean);
+
+              await Promise.allSettled(savePromises);
+              await new Promise((r) => setTimeout(r, 1500));
+              addToast(
+                `Language ${locale} added and pre-filled with AI`,
+                "success",
+              );
+            } else {
+              addToast(`Language ${locale} added`, "success");
+            }
+          } catch {
+            addToast(`Language ${locale} added`, "success");
+          }
+        } else {
+          addToast(`Language ${locale} added`, "success");
+        }
+
         refetch();
         setActiveLocale(locale);
       } catch (err: any) {

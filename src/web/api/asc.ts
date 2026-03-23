@@ -3,6 +3,7 @@ import axios from "axios";
 import { prisma, logger, getEffectiveSettings } from "../../config";
 import { requireAuth } from "../auth";
 import { AppStoreConnectClient } from "../../services/appstore-connect";
+import { AIAnalyzer } from "../../services/ai-analyzer";
 
 export const ascRouter = Router();
 ascRouter.use(requireAuth);
@@ -15,7 +16,9 @@ async function ascClientForUser(
     orderBy: { createdAt: "asc" },
   });
   const s = membership
-    ? await prisma.teamSettings.findUnique({ where: { teamId: membership.teamId } })
+    ? await prisma.teamSettings.findUnique({
+        where: { teamId: membership.teamId },
+      })
     : null;
   if (s?.ascIssuerId && s?.ascKeyId && s?.ascPrivateKey) {
     return new AppStoreConnectClient({
@@ -361,11 +364,19 @@ ascRouter.post("/versions/localizations", async (req, res) => {
       return;
     }
 
-    const tryCreate = async <T>(fn: () => Promise<T>): Promise<T | null> => {
+    const tryCreate = async <T>(
+      fn: () => Promise<T>,
+      swallow500 = false,
+    ): Promise<T | null> => {
       try {
         return await fn();
       } catch (err: any) {
-        if (err?.response?.status === 409 || err?.message?.includes("409")) {
+        const msg: string = err?.message ?? "";
+        if (msg.includes("409")) return null;
+        if (swallow500 && msg.includes("500")) {
+          logger.warn(
+            `Skipping creation (locale not supported by ASC): ${msg.split("\n")[0]}`,
+          );
           return null;
         }
         throw err;
@@ -373,18 +384,72 @@ ascRouter.post("/versions/localizations", async (req, res) => {
     };
 
     const [appInfoLoc, versionLoc] = await Promise.all([
-      tryCreate(() => asc.createAppInfoLocalization(appInfoId, locale, name)),
+      tryCreate(
+        () => asc.createAppInfoLocalization(appInfoId, locale, name),
+        true,
+      ),
       tryCreate(() => asc.createVersionLocalization(versionId, locale)),
     ]);
 
+    let appInfoLocalizationId = appInfoLoc?.id ?? null;
+    if (!appInfoLocalizationId) {
+      const existing = await asc.getAppInfoLocalizations(app.id, appInfoId);
+      appInfoLocalizationId =
+        existing.find((l) => l.attributes.locale === locale)?.id ?? null;
+    }
+
+    let versionLocalizationId = versionLoc?.id ?? null;
+    if (!versionLocalizationId) {
+      const versionLocs = await asc.getVersionLocalizations(versionId);
+      versionLocalizationId =
+        versionLocs.find((l: any) => l.attributes.locale === locale)?.id ??
+        null;
+    }
     res.json({
       ok: true,
       locale,
-      appInfoLocalizationId: appInfoLoc?.id ?? null,
-      versionLocalizationId: versionLoc?.id ?? null,
+      appInfoLocalizationId,
+      versionLocalizationId,
     });
   } catch (err: any) {
     logger.error("ASC createLocalization failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.post("/versions/localizations/translate", async (req, res) => {
+  try {
+    const { targetLocale, sourceLocale, sourceFields } = req.body as {
+      targetLocale: string;
+      sourceLocale: string;
+      sourceFields: {
+        name?: string;
+        subtitle?: string;
+        keywords?: string;
+        description?: string;
+        promotionalText?: string;
+        whatsNew?: string;
+      };
+    };
+
+    if (!targetLocale || !sourceLocale || !sourceFields) {
+      res.status(400).json({
+        error: "targetLocale, sourceLocale, and sourceFields are required",
+      });
+      return;
+    }
+
+    const settings = await getEffectiveSettings(req.user!.userId);
+    const analyzer = new AIAnalyzer(settings);
+
+    const fields = await analyzer.translateLocalization(
+      sourceLocale,
+      targetLocale,
+      sourceFields,
+    );
+    res.json({ ok: true, fields });
+  } catch (err: any) {
+    logger.error("ASC translateLocalization failed", err);
     res.status(500).json({ error: err.message ?? String(err) });
   }
 });
