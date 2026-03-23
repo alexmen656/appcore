@@ -22,6 +22,7 @@ import { mcpAuth, createMcpHandler } from "./mcp";
 import pushRouter from "./api/push";
 import { autonomousRouter } from "./api/autonomous";
 import { teamRouter } from "./api/team";
+import { searchRouter } from "./api/search";
 import { pushService } from "../services/push-notification.js";
 import { initScheduler as initASOScheduler } from "../autonomous";
 import fs from "fs";
@@ -49,6 +50,7 @@ app.use("/api/mcp", mcpRouter);
 app.use("/api/push", requireAuth, pushRouter);
 app.use("/api/autonomous", requireAuth, autonomousRouter);
 app.use("/api/team", teamRouter);
+app.use("/api/search", requireAuth, searchRouter);
 app.use("/", oauthRouter);
 
 app.get("/.well-known/oauth-protected-resource", (req, res) => {

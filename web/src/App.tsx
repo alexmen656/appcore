@@ -34,6 +34,7 @@ import Versions from "./components/Versions";
 import Login from "./components/Login";
 import Team from "./components/Team";
 import InviteAccept from "./components/InviteAccept";
+import SearchModal from "./components/SearchModal";
 import type {
   AuthUser,
   DashboardData,
@@ -1040,6 +1041,7 @@ export default function App() {
   const { toasts, addToast } = useToast();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [dark, setDark] = useState(() => {
     return localStorage.getItem("theme") === "dark";
   });
@@ -1067,6 +1069,17 @@ export default function App() {
         setAuthLoading(false);
       })
       .catch(() => setAuthLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen((o) => !o);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
   }, []);
 
   const handleLogout = () => {
@@ -1101,6 +1114,7 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-[#f8f9fb] dark:bg-[#0a0a0a]">
+      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
       <ToastContainer toasts={toasts} />
       <header className="h-[52px] bg-[#f8f9fb] dark:bg-[#0a0a0a] flex items-center px-4 shrink-0 z-20">
         <a href="/app/" className="flex items-center gap-2.5">
@@ -1109,7 +1123,10 @@ export default function App() {
           </span>
         </a>
         <div className="flex-1" />
-        <div className="flex items-center gap-2 bg-black/[0.06] dark:bg-white/10 rounded-md px-3 py-1.5 text-sm text-[#6b7280] dark:text-white/50 w-44 mr-3 cursor-default select-none">
+        <button
+          onClick={() => setSearchOpen(true)}
+          className="flex items-center gap-2 bg-black/[0.06] dark:bg-white/10 rounded-md px-3 py-1.5 text-sm text-[#6b7280] dark:text-white/50 w-44 mr-3 cursor-pointer select-none hover:bg-black/[0.09] dark:hover:bg-white/[0.15] transition-colors"
+        >
           <svg
             className="w-3.5 h-3.5 shrink-0"
             viewBox="0 0 24 24"
@@ -1126,7 +1143,7 @@ export default function App() {
           <span className="ml-auto text-[10px] bg-black/[0.08] dark:bg-white/20 rounded px-1 py-0.5 font-mono">
             ⌘K
           </span>
-        </div>
+        </button>
         <HelpMenu />
         <HeaderProfileMenu
           user={user}
