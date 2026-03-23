@@ -112,14 +112,14 @@ export default function KeywordTable({
         <thead>
           <tr>
             {col("term", "Keyword")}
-            {col("country", "Country")}
+            {col("country", "Store")}
             {col("popularity", "Popularity")}
             {col("difficulty", "Difficulty")}
             <th className={TH}>Results</th>
             {col("rank", "Our Rank")}
             <th className={TH}>Trend</th>
             <th className={TH}>Top Competitor</th>
-            {col("tracked", "Tracked")}
+            {/* {col("tracked", "Tracked")} */}
             <th className={TH}></th>
           </tr>
         </thead>
@@ -136,7 +136,14 @@ export default function KeywordTable({
                 {k.term}
               </td>
               <td className={`${TD} text-[#6b7280] dark:text-[#8b93a5]`}>
-                {k.country}
+                <span className="inline-flex items-center gap-1.5">
+                  <img
+                    src={`/app/country-flags/${k.country.toLowerCase()}.svg`}
+                    alt={k.country}
+                    className="w-4 h-3 rounded-xs object-cover shrink-0"
+                  />
+                  {k.country.toUpperCase()}
+                </span>
               </td>
               <td className={TD}>
                 {k.popularity != null ? (
@@ -201,14 +208,14 @@ export default function KeywordTable({
                   <span className="text-gray-400 dark:text-[#5c6478]">—</span>
                 )}
               </td>
-              <td
+              {/* <td
                 className={`${TD} text-[#9ca3af] dark:text-[#5c6478] text-xs`}
               >
                 {k.trackingCount}×
-              </td>
+              </td> */}
               <td className={TD}>
                 <button
-                  className={`${btnSecSm} !text-red-500 !border-red-100 hover:!bg-red-50`}
+                  className={`${btnSecSm} !text-red-500 !border-red-100 dark:!border-red-900/40 hover:!bg-red-50 dark:hover:!bg-red-900/20`}
                   onClick={(e) => {
                     e.stopPropagation();
                     onDelete(k.id, k.term);
