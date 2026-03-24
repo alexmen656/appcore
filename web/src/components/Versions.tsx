@@ -1295,7 +1295,7 @@ export default function Versions({ addToast }: Props) {
             </h1>
           )}
           {data.appStoreState && <StateBadge state={data.appStoreState} />}
-          {!data.isEditable && data.appStoreState === "READY_FOR_SALE" && (
+          {!data.isEditable && (data.appStoreState === "READY_FOR_SALE" || data.appStoreState === "REPLACED_WITH_NEW_VERSION") && (
             <span className="text-[11px] text-amber-600 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full font-medium">
               Read-only
             </span>
