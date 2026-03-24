@@ -53,6 +53,7 @@ nav.scrolled {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: relative;
 }
 
 .logo {
@@ -80,6 +81,9 @@ nav.scrolled {
   display: flex;
   gap: 32px;
   align-items: center;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .nav-links a {

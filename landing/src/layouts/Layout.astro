@@ -1,5 +1,5 @@
 ---
-import '../styles/global.css';
+import "../styles/global.css";
 
 interface Props {
   title: string;
@@ -21,28 +21,34 @@ const {
 
 const siteUrl = "https://marteso.com";
 const canonicalUrl = canonicalPath ? `${siteUrl}${canonicalPath}` : siteUrl;
-const ogImageUrl = ogImage.startsWith("http") ? ogImage : `${siteUrl}${ogImage}`;
+const ogImageUrl = ogImage.startsWith("http")
+  ? ogImage
+  : `${siteUrl}${ogImage}`;
 
 const orgSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  "name": "Marteso",
-  "url": siteUrl,
-  "logo": `${siteUrl}/logo.png`,
-  "description": "ASO platform for mobile teams to grow organic downloads on the App Store and Google Play.",
-  "parentOrganization": {
+  name: "Marteso",
+  url: siteUrl,
+  logo: `${siteUrl}/logo.png`,
+  description:
+    "ASO platform for mobile teams to grow organic downloads on the App Store and Google Play.",
+  parentOrganization: {
     "@type": "Organization",
-    "name": "Fringelo Group",
-    "url": "https://fringelo.com"
+    name: "Fringelo Group",
+    url: "https://fringelo.com",
   },
-  "contactPoint": {
+  contactPoint: {
     "@type": "ContactPoint",
-    "email": "hello@fringelo.com",
-    "contactType": "customer support"
-  }
+    email: "hello@fringelo.com",
+    contactType: "customer support",
+  },
 };
 
-const schemas = [orgSchema, ...(jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [])];
+const schemas = [
+  orgSchema,
+  ...(jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : []),
+];
 ---
 
 <!doctype html>
@@ -68,7 +74,11 @@ const schemas = [orgSchema, ...(jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [json
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageUrl} />
-    <script type="application/ld+json" is:inline set:html={JSON.stringify(schemas)} />
+    <script
+      type="application/ld+json"
+      is:inline
+      set:html={JSON.stringify(schemas)}
+    />
   </head>
   <body>
     <nav id="nav">
@@ -79,15 +89,30 @@ const schemas = [orgSchema, ...(jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [json
           </div>
         </a>
         <div class="nav-links">
-          <a href="/features" class:list={[{ active: activeNav === 'features' }]}>Features</a>
-          <a href="/how-it-works" class:list={[{ active: activeNav === 'how-it-works' }]}>How it works</a>
+          <a
+            href="/features"
+            class:list={[{ active: activeNav === "features" }]}>Features</a
+          >
+          <a
+            href="/how-it-works"
+            class:list={[{ active: activeNav === "how-it-works" }]}
+            >How it works</a
+          >
           <a href="https://docs.fringelo.com/">Docs</a>
-          <a href="/pricing" class:list={[{ active: activeNav === 'pricing' }]}>Pricing</a>
-          <a href="/blog" class:list={[{ active: activeNav === 'blog' }]}>Blog</a>
+          <a href="/pricing" class:list={[{ active: activeNav === "pricing" }]}
+            >Pricing</a
+          >
+          <a href="/blog" class:list={[{ active: activeNav === "blog" }]}
+            >Blog</a
+          >
         </div>
         <div class="nav-cta">
-          <a href="https://marteso.com/app/login/" class="btn btn-ghost">Login</a>
-          <a href="https://marteso.com/app/signup/" class="btn btn-primary">Start free</a>
+          <a href="https://marteso.com/app/login/" class="btn btn-ghost"
+            >Login</a
+          >
+          <a href="https://marteso.com/app/signup/" class="btn btn-primary"
+            >Start free</a
+          >
         </div>
       </div>
     </nav>
@@ -100,12 +125,15 @@ const schemas = [orgSchema, ...(jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [json
       <div class="footer-grid">
         <div class="footer-brand">
           <div class="footer-logo">
-            <div class="logo-mark">
+            <!--<div class="logo-mark">
               <img height="32" width="32" src="/logo.png" alt="Marteso logo" />
-            </div>
-            <span class="logo-name">Marteso</span>
+            </div>-->
+            <span class="logo-name">marteso</span>
           </div>
-          <p>The ASO platform for mobile teams. Grow organic downloads on the App Store and Google Play. Part of the Fringelo ecosystem.</p>
+          <p>
+            The ASO platform for mobile teams. Grow organic downloads on the App
+            Store and Google Play. Part of the Fringelo ecosystem.
+          </p>
         </div>
         <div class="footer-column">
           <h4>Product</h4>
@@ -145,10 +173,10 @@ const schemas = [orgSchema, ...(jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [json
     </footer>
 
     <script>
-      window.addEventListener('scroll', () => {
-        const nav = document.getElementById('nav');
+      window.addEventListener("scroll", () => {
+        const nav = document.getElementById("nav");
         if (!nav) return;
-        nav.classList.toggle('scrolled', window.scrollY > 0);
+        nav.classList.toggle("scrolled", window.scrollY > 0);
       });
     </script>
   </body>
