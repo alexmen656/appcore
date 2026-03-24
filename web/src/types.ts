@@ -247,6 +247,7 @@ export interface AppRepoLink {
   repoFullName: string | null;
   repoOwner: string | null;
   repoName: string | null;
+  iosDir: string | null;
 }
 
 export interface BuildJob {

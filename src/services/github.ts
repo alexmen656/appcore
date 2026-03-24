@@ -90,6 +90,18 @@ export async function listUserRepos(
   return repos;
 }
 
+export async function listRepoDirs(
+  accessToken: string,
+  repoFullName: string,
+): Promise<string[]> {
+  const { data } = await axios.get<
+    { type: string; name: string; path: string }[]
+  >(`${GITHUB_API}/repos/${repoFullName}/contents`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return data.filter((e) => e.type === "dir").map((e) => e.name);
+}
+
 export async function createWebhook(
   accessToken: string,
   repoFullName: string,
@@ -152,10 +164,16 @@ export async function linkRepoToApp(
   userId: string,
   appId: string,
   repoFullName: string,
+  iosDir?: string | null,
 ): Promise<void> {
-  const membership = await prisma.teamMember.findFirst({ where: { userId }, orderBy: { createdAt: "asc" } });
+  const membership = await prisma.teamMember.findFirst({
+    where: { userId },
+    orderBy: { createdAt: "asc" },
+  });
   const settings = membership
-    ? await prisma.teamSettings.findUnique({ where: { teamId: membership.teamId } })
+    ? await prisma.teamSettings.findUnique({
+        where: { teamId: membership.teamId },
+      })
     : null;
   if (!settings?.githubAccessToken)
     throw new Error("GitHub not connected. Connect in Settings first.");
@@ -174,11 +192,7 @@ export async function linkRepoToApp(
 
   const [owner, name] = repoFullName.split("/");
   const secret = crypto.randomBytes(32).toString("hex");
-  const webhookId = await createWebhook(
-    token,
-    repoFullName,
-    secret,
-  );
+  const webhookId = await createWebhook(token, repoFullName, secret);
 
   await prisma.app.update({
     where: { id: appId },
@@ -188,6 +202,7 @@ export async function linkRepoToApp(
       githubRepoFullName: repoFullName,
       githubWebhookId: BigInt(webhookId),
       githubWebhookSecret: secret,
+      githubIosDir: iosDir ?? null,
     },
   });
 
@@ -198,9 +213,14 @@ export async function unlinkRepoFromApp(
   userId: string,
   appId: string,
 ): Promise<void> {
-  const membership = await prisma.teamMember.findFirst({ where: { userId }, orderBy: { createdAt: "asc" } });
+  const membership = await prisma.teamMember.findFirst({
+    where: { userId },
+    orderBy: { createdAt: "asc" },
+  });
   const settings = membership
-    ? await prisma.teamSettings.findUnique({ where: { teamId: membership.teamId } })
+    ? await prisma.teamSettings.findUnique({
+        where: { teamId: membership.teamId },
+      })
     : null;
   const app = await prisma.app.findUnique({ where: { id: appId } });
   if (!app) throw new Error("App not found");

@@ -219,32 +219,42 @@ ascRouter.get("/versions", async (req, res) => {
 
     const localeMap = new Map<string, any>();
 
-    for (const info of appInfoLocalizations) {
-      const loc = info.attributes.locale;
-      localeMap.set(loc, {
-        locale: loc,
-        appInfoLocalizationId: info.id,
-        name: info.attributes.name ?? "",
-        subtitle: info.attributes.subtitle ?? "",
-        privacyPolicyUrl: info.attributes.privacyPolicyUrl ?? "",
-        description: "",
-        keywords: "",
-        whatsNew: "",
-        promotionalText: "",
-        versionLocalizationId: null,
-      });
+    // For editable (current) versions, show all locales from appInfoLocalizations
+    // so newly added languages appear and can be filled in.
+    // For historical (non-editable) versions, only show locales that were
+    // actually published — i.e. those present in versionLocalizations.
+    if (isEditable) {
+      for (const info of appInfoLocalizations) {
+        const loc = info.attributes.locale;
+        localeMap.set(loc, {
+          locale: loc,
+          appInfoLocalizationId: info.id,
+          name: info.attributes.name ?? "",
+          subtitle: info.attributes.subtitle ?? "",
+          privacyPolicyUrl: info.attributes.privacyPolicyUrl ?? "",
+          description: "",
+          keywords: "",
+          whatsNew: "",
+          promotionalText: "",
+          versionLocalizationId: null,
+        });
+      }
     }
+
+    const appInfoById = new Map(
+      appInfoLocalizations.map((info: any) => [info.attributes.locale, info]),
+    );
 
     for (const vl of versionLocalizations) {
       const loc = vl.attributes.locale;
-      const existing = localeMap.get(loc) ?? {
-        locale: loc,
-        appInfoLocalizationId: null,
-        name: "",
-        subtitle: "",
-      };
+      const existing = localeMap.get(loc);
+      const appInfo = appInfoById.get(loc) as any | undefined;
       localeMap.set(loc, {
-        ...existing,
+        locale: loc,
+        appInfoLocalizationId: existing?.appInfoLocalizationId ?? appInfo?.id ?? null,
+        name: existing?.name ?? appInfo?.attributes.name ?? "",
+        subtitle: existing?.subtitle ?? appInfo?.attributes.subtitle ?? "",
+        privacyPolicyUrl: existing?.privacyPolicyUrl ?? appInfo?.attributes.privacyPolicyUrl ?? "",
         versionLocalizationId: vl.id,
         description: vl.attributes.description ?? "",
         keywords: vl.attributes.keywords ?? "",

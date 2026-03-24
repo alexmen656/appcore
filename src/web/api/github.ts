@@ -9,6 +9,7 @@ import {
   exchangeGitHubCode,
   getGitHubUser,
   listUserRepos,
+  listRepoDirs,
   linkRepoToApp,
   unlinkRepoFromApp,
   verifyWebhookSignature,
@@ -147,7 +148,9 @@ githubRouter.get("/repos", requireAuth, async (req: Request, res: Response) => {
       res.status(400).json({ error: "GitHub not connected" });
       return;
     }
-    const repos = await listUserRepos(decryptNullable(settings.githubAccessToken)!);
+    const repos = await listUserRepos(
+      decryptNullable(settings.githubAccessToken)!,
+    );
     res.json(
       repos.map((r) => ({
         id: r.id,
@@ -164,14 +167,39 @@ githubRouter.get("/repos", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+githubRouter.get(
+  "/repo-dirs/:owner/:repo",
+  requireAuth,
+  async (req: Request, res: Response) => {
+    try {
+      const teamId = req.user!.teamId;
+      const settings = teamId
+        ? await prisma.teamSettings.findUnique({ where: { teamId } })
+        : null;
+      if (!settings?.githubAccessToken) {
+        res.status(400).json({ error: "GitHub not connected" });
+        return;
+      }
+      const repoFullName = `${req.params.owner}/${req.params.repo}`;
+      const dirs = await listRepoDirs(
+        decryptNullable(settings.githubAccessToken)!,
+        repoFullName,
+      );
+      res.json(dirs);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+);
+
 githubRouter.post("/link", requireAuth, async (req: Request, res: Response) => {
   try {
-    const { appId, repoFullName } = req.body;
+    const { appId, repoFullName, iosDir } = req.body;
     if (!appId || !repoFullName) {
       res.status(400).json({ error: "appId and repoFullName required" });
       return;
     }
-    await linkRepoToApp(req.user!.userId, appId, repoFullName);
+    await linkRepoToApp(req.user!.userId, appId, repoFullName, iosDir ?? null);
     res.json({ ok: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -207,6 +235,7 @@ githubRouter.get(
           githubRepoOwner: true,
           githubRepoName: true,
           githubRepoFullName: true,
+          githubIosDir: true,
         },
       });
       res.json({
@@ -214,6 +243,7 @@ githubRouter.get(
         repoFullName: app?.githubRepoFullName ?? null,
         repoOwner: app?.githubRepoOwner ?? null,
         repoName: app?.githubRepoName ?? null,
+        iosDir: app?.githubIosDir ?? null,
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message });

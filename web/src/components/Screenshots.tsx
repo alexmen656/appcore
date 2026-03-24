@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import {
   useApi,
   apiPost,
@@ -128,6 +128,10 @@ export function RepoLinker({
   const [repos, setRepos] = useState<GitHubRepo[] | null>(null);
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [selectedRepo, setSelectedRepo] = useState("");
+  const [dirs, setDirs] = useState<string[] | null>(null);
+  const [loadingDirs, setLoadingDirs] = useState(false);
+  const [selectedDir, setSelectedDir] = useState<string>("");
+  const [step, setStep] = useState<"repo" | "dir">("repo");
   const [linking, setLinking] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
 
@@ -144,14 +148,45 @@ export function RepoLinker({
     }
   };
 
+  const loadDirs = async (repoFullName: string) => {
+    const [owner, repo] = repoFullName.split("/");
+    setLoadingDirs(true);
+    setDirs(null);
+    try {
+      const res = await fetch(`/api/github/repo-dirs/${owner}/${repo}`, {
+        headers: authHeaders(),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setDirs(await res.json());
+    } catch (err: any) {
+      addToast(`Failed to load directories: ${err.message}`, "error");
+      setDirs([]);
+    } finally {
+      setLoadingDirs(false);
+    }
+  };
+
+  const handleRepoNext = () => {
+    if (!selectedRepo) return;
+    setStep("dir");
+    setSelectedDir("");
+    loadDirs(selectedRepo);
+  };
+
   const handleLink = async () => {
     if (!selectedRepo) return;
     setLinking(true);
     try {
-      await apiPost("/github/link", { appId, repoFullName: selectedRepo });
+      await apiPost("/github/link", {
+        appId,
+        repoFullName: selectedRepo,
+        iosDir: selectedDir || null,
+      });
       addToast(`Linked ${selectedRepo} → ${appName}`, "success");
       setShowPicker(false);
       setSelectedRepo("");
+      setSelectedDir("");
+      setStep("repo");
       refetch();
     } catch (err: any) {
       addToast(err.message, "error");
@@ -173,6 +208,8 @@ export function RepoLinker({
 
   const openPicker = () => {
     setShowPicker(true);
+    setStep("repo");
+    setSelectedDir("");
     if (!repos) loadRepos();
   };
 
@@ -202,7 +239,9 @@ export function RepoLinker({
                   {link.repoFullName}
                 </div>
                 <div className="text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
-                  Repo connected
+                  {link.iosDir
+                    ? `iOS folder: ${link.iosDir}/`
+                    : "Repo connected"}
                 </div>
               </div>
             </div>
@@ -237,43 +276,99 @@ export function RepoLinker({
 
       {showPicker && (
         <div className="mt-4 border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl p-4 bg-[#f8f9fb] dark:bg-[#161920]">
-          <h3 className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0] mb-3">
-            Select a repository
-          </h3>
-          {loadingRepos ? (
-            <div className="flex items-center gap-2 text-sm text-[#9ca3af] dark:text-[#5c6478] py-4">
-              <div className="spinner !w-4 !h-4" /> Loading repositories…
-            </div>
+          {step === "repo" ? (
+            <>
+              <h3 className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0] mb-3">
+                Select a repository
+              </h3>
+              {loadingRepos ? (
+                <div className="flex items-center gap-2 text-sm text-[#9ca3af] dark:text-[#5c6478] py-4">
+                  <div className="spinner !w-4 !h-4" /> Loading repositories…
+                </div>
+              ) : (
+                <>
+                  <select
+                    className="w-full px-3 py-2 rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-sm text-[#111827] dark:text-[#e8eaf0] mb-3"
+                    value={selectedRepo}
+                    onChange={(e) => setSelectedRepo(e.target.value)}
+                  >
+                    <option value="">— Choose a repo —</option>
+                    {repos?.map((r) => (
+                      <option key={r.id} value={r.fullName}>
+                        {r.fullName}
+                        {r.private ? " 🔒" : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="flex gap-2">
+                    <button
+                      className={btnPrimary}
+                      onClick={handleRepoNext}
+                      disabled={!selectedRepo}
+                    >
+                      Next
+                    </button>
+                    <button
+                      className={btnSecondary}
+                      onClick={() => setShowPicker(false)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              )}
+            </>
           ) : (
             <>
-              <select
-                className="w-full px-3 py-2 rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-sm text-[#111827] dark:text-[#e8eaf0] mb-3"
-                value={selectedRepo}
-                onChange={(e) => setSelectedRepo(e.target.value)}
-              >
-                <option value="">— Choose a repo —</option>
-                {repos?.map((r) => (
-                  <option key={r.id} value={r.fullName}>
-                    {r.fullName}
-                    {r.private ? " 🔒" : ""}
-                  </option>
-                ))}
-              </select>
-              <div className="flex gap-2">
-                <button
-                  className={btnPrimary}
-                  onClick={handleLink}
-                  disabled={!selectedRepo || linking}
-                >
-                  {linking ? "Linking…" : "Link"}
-                </button>
-                <button
-                  className={btnSecondary}
-                  onClick={() => setShowPicker(false)}
-                >
-                  Cancel
-                </button>
-              </div>
+              <h3 className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0] mb-0.5">
+                iOS app folder
+              </h3>
+              <p className="text-xs text-[#9ca3af] dark:text-[#5c6478] mb-3">
+                Select the folder that contains the iOS app code (e.g.{" "}
+                <code className="font-mono">ios</code> for React Native). Leave
+                as root if the Xcode project is at the repo root.
+              </p>
+              {loadingDirs ? (
+                <div className="flex items-center gap-2 text-sm text-[#9ca3af] dark:text-[#5c6478] py-4">
+                  <div className="spinner !w-4 !h-4" /> Scanning folders…
+                </div>
+              ) : (
+                <>
+                  <select
+                    className="w-full px-3 py-2 rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-sm text-[#111827] dark:text-[#e8eaf0] mb-3"
+                    value={selectedDir}
+                    onChange={(e) => setSelectedDir(e.target.value)}
+                  >
+                    <option value="">/ (repo root)</option>
+                    {dirs?.map((d) => (
+                      <option key={d} value={d}>
+                        {d}/
+                      </option>
+                    ))}
+                  </select>
+                  <div className="flex gap-2">
+                    <button
+                      className={btnPrimary}
+                      onClick={handleLink}
+                      disabled={linking}
+                    >
+                      {linking ? "Linking…" : "Link"}
+                    </button>
+                    <button
+                      className={btnSecondary}
+                      onClick={() => setStep("repo")}
+                    >
+                      Back
+                    </button>
+                    <button
+                      className={btnSecondary}
+                      onClick={() => setShowPicker(false)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              )}
             </>
           )}
         </div>
