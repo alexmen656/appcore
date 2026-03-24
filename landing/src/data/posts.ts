@@ -18,6 +18,223 @@ export interface Post {
 
 export const posts: Post[] = [
   {
+    slug: 'screenshot-text-aso-ranking',
+    title: 'Your app screenshots are now a ranking factor — here\'s the proof',
+    category: 'ASO',
+    catClass: 'cat-aso',
+    date: 'March 20, 2026',
+    author: { initials: 'LK', name: 'Lena K.' },
+    readTime: '7 min read',
+    excerpt:
+      'Since the June 2025 App Store algorithm update, Apple has been indexing the visible text in your screenshot captions as a ranking signal. One app doubled its downloads without touching a single metadata field — here\'s what happened and how to act on it.',
+    content: [
+      {
+        type: 'p',
+        text: 'For years, screenshots were treated as a conversion tool — something you optimized to convince users to install after they\'d already found your app. That framing is now incomplete. Since the June 2025 App Store algorithm update, screenshot captions appear to be actively contributing to keyword rankings.',
+      },
+      {
+        type: 'p',
+        text: 'Apple has not officially confirmed OCR-based screenshot indexing. AppTweak has explicitly stated they can\'t verify the mechanism. But the effect is real, empirically measurable, and already changing how serious ASO teams think about their store listing.',
+      },
+      { type: 'h2', text: 'The case study that started this' },
+      {
+        type: 'p',
+        text: 'Pi Digits, a small utility app for memorizing pi, saw its organic downloads roughly double in the months following the June 2025 update — with no changes to its title, subtitle, or keyword field. The only explanation that fits the data: Apple began indexing the text visible in the app\'s screenshots, which contained specific, searchable terms like "memorize pi digits" and "pi calculator."',
+      },
+      {
+        type: 'p',
+        text: 'This is first-party evidence, not a hypothesis. The correlation between the algorithm update timing and the download lift is direct. And it\'s consistent with a broader pattern reported by ASO professionals across multiple app categories since mid-2025.',
+      },
+      {
+        type: 'callout',
+        text: 'Whether Apple uses OCR, Vision framework analysis, or semantic understanding of images is secondary. The effect is the same: text your users can read in your screenshots is contributing to your keyword rankings.',
+      },
+      { type: 'h2', text: 'Active vs. passive screenshot keywords' },
+      {
+        type: 'p',
+        text: 'The most important distinction to understand is between active and passive screenshot copy. Passive copy is the marketing language that sounds good but nobody ever types into a search bar. Active copy maps directly to search intent.',
+      },
+      {
+        type: 'ul',
+        items: [
+          'Passive (bad): "Easy to Use", "Beautiful Design", "The #1 App for Productivity" — descriptive but unsearchable',
+          'Active (good): "Memorize Pi Digits", "Pi Calculator", "Learn Pi" — these are actual search queries',
+          'Passive: "Stay organized and focused every day" — sounds like a tagline, not a keyword',
+          'Active: "Daily Task Manager", "Focus Timer", "Habit Tracker" — terms users actually search',
+        ],
+      },
+      {
+        type: 'p',
+        text: 'The test: would someone type this phrase into the App Store search bar? If yes, it\'s an active keyword. If it only makes sense as a marketing headline, it\'s passive. Your screenshots should contain as many active keywords as your design allows without looking cluttered.',
+      },
+      { type: 'h2', text: 'OCR optimization: making your text machine-readable' },
+      {
+        type: 'p',
+        text: 'If Apple is using optical character recognition or image-to-text analysis, the legibility of your screenshot text directly affects whether those keywords get picked up. A few principles that matter:',
+      },
+      {
+        type: 'ul',
+        items: [
+          'High contrast: Text must be clearly distinguishable from the background. White text on a pale blue background is risky. Black text on white, or white text on dark — safe.',
+          'Simple fonts: Decorative typefaces, heavy drop shadows, and text embedded in complex illustrations may not parse cleanly. Use clean, modern sans-serif fonts for keyword-critical captions.',
+          'Prominent placement: Caption text above or below the device frame (not inside the UI mockup) is most likely to be parsed as intentional copy rather than UI chrome.',
+          'Avoid text on noisy backgrounds: Gradients, photos, or textured backgrounds behind your caption text reduce readability for both humans and machines.',
+        ],
+      },
+      { type: 'h2', text: 'Screenshots reinforce metadata — they don\'t replace it' },
+      {
+        type: 'p',
+        text: 'An important nuance: screenshot keywords and metadata keywords are not in competition. Your keyword field, title, and subtitle still carry significantly more ranking weight. What screenshots do is reinforce and amplify those signals.',
+      },
+      {
+        type: 'p',
+        text: 'Unlike your keyword field, where repeating a term from your title is wasted space, repeating important keywords across your screenshots is actually beneficial. Each screenshot is a separate signal. Using your primary keyword in three different screenshot captions is not redundant — it\'s reinforcement.',
+      },
+      {
+        type: 'callout',
+        text: 'Think of your screenshots as providing additional keyword space beyond your 160-character metadata limit. Unlike the keyword field, there\'s no hard cap — just design constraints.',
+      },
+      { type: 'h2', text: 'What to audit today' },
+      {
+        type: 'p',
+        text: 'Pull up your current screenshots and read every line of visible text. For each piece of copy, ask: is this an active keyword someone would search, or is it marketing language? Then make a list of your top 10–15 target keywords and check how many of them appear anywhere in your screenshot copy.',
+      },
+      {
+        type: 'p',
+        text: 'If the overlap is low — if your screenshots are full of passive marketing copy and none of your growth-tier keywords appear in them — you have a fast, low-risk optimization opportunity. Screenshot updates don\'t require App Review approval; they go live within hours.',
+      },
+      { type: 'h2', text: 'Localized screenshots as extra keyword space' },
+      {
+        type: 'p',
+        text: 'If you\'re already running localized screenshots, the keyword implications extend across markets. Each localized screenshot set is independently indexable. This means your screenshot keyword strategy should be part of your broader localization approach — not an afterthought applied to the default locale only.',
+      },
+    ],
+  },
+  {
+    slug: 'cross-localization-keyword-strategy',
+    title: 'Cross-localization: how to unlock 800+ keyword characters in the US App Store',
+    category: 'Guide',
+    catClass: 'cat-guide',
+    date: 'March 12, 2026',
+    author: { initials: 'MR', name: 'Marc R.' },
+    readTime: '9 min read',
+    excerpt:
+      'The US App Store doesn\'t just index your English metadata — it indexes keywords from up to 10 localizations simultaneously. Here\'s how to use that to multiply your keyword footprint without touching your primary listing.',
+    content: [
+      {
+        type: 'p',
+        text: 'Most developers set up their App Store listing once in English and move on. Advanced ASO teams treat the App Store\'s localization architecture as a keyword expansion system. The difference in potential keyword coverage is enormous.',
+      },
+      {
+        type: 'p',
+        text: 'This is not a gray area or an exploit. Apple explicitly allows it. The strategy is called cross-localization, and it\'s been empirically verified by every major ASO research firm — AppTweak, Phiture, Appfigures — using deliberate test keywords.',
+      },
+      { type: 'h2', text: 'How the App Store actually indexes localizations' },
+      {
+        type: 'p',
+        text: 'For any given storefront, Apple doesn\'t just index your primary language metadata. It indexes keywords from a set of secondary localizations for that same country. In the US App Store, that list includes 10 localizations:',
+      },
+      {
+        type: 'ul',
+        items: [
+          'English (US) — your primary listing',
+          'Arabic',
+          'Chinese Simplified',
+          'Chinese Traditional',
+          'French',
+          'Korean',
+          'Portuguese (Brazil)',
+          'Russian',
+          'Spanish (Mexico)',
+          'Vietnamese',
+        ],
+      },
+      {
+        type: 'p',
+        text: 'Each localization has its own 100-character keyword field, plus title and subtitle. The keyword field alone gives you 10 × 100 = 1,000 characters of potential keyword space for the US market. In practice, with deduplication rules, the realistic ceiling is around 800 effective characters.',
+      },
+      { type: 'h2', text: 'The sacrifice strategy' },
+      {
+        type: 'p',
+        text: 'Here\'s the key insight: Apple doesn\'t require you to write the native language in each localization. You can fill the Russian keyword field with English keywords. You can fill the French keyword field with English keywords. The secondary localization is simply a slot — what you put in it is your choice.',
+      },
+      {
+        type: 'p',
+        text: 'The "sacrifice" framing comes from the trade-off: if you fill your Russian localization with English keywords, you\'re sacrificing any organic ranking potential in the Russian App Store in exchange for ~160 more English keyword characters in the US store. For most Western-market apps, this is an obvious trade.',
+      },
+      {
+        type: 'callout',
+        text: 'For markets you have no plans to enter, every secondary localization slot is effectively free keyword space. Treat it accordingly.',
+      },
+      { type: 'h2', text: 'The rules you must follow' },
+      {
+        type: 'p',
+        text: 'Cross-localization has two hard constraints that will undermine your strategy if you ignore them:',
+      },
+      {
+        type: 'ul',
+        items: [
+          'No duplicates across localizations: Apple counts each unique keyword stem once, regardless of how many times it appears across your localization slots. If "tracker" appears in your EN-US keywords AND your FR keywords, you get credit for it once. Deduplication is total.',
+          'Keywords don\'t combine cross-localization: If "habit" is in your EN-US slot and "tracker" is in your FR slot, you will NOT rank for "habit tracker." Each localization must form complete, meaningful keyword combinations on its own.',
+        ],
+      },
+      {
+        type: 'p',
+        text: 'The second rule is the most commonly misunderstood. You can\'t split a two-word phrase across two localizations to "save space." The phrase must appear in a single localization to generate a ranking signal for that combination.',
+      },
+      { type: 'h2', text: 'Field weighting across your listing' },
+      {
+        type: 'p',
+        text: 'Before building your cross-localization keyword map, understand the weighting hierarchy within each localization:',
+      },
+      {
+        type: 'ul',
+        items: [
+          'Title (30 characters): highest ranking weight — words at the beginning carry more weight than words at the end',
+          'Subtitle (30 characters): medium weight — use it for your second-best keyword phrase',
+          'Keyword field (100 characters): lowest weight, but the largest slot — treat it as supporting vocabulary for your title and subtitle themes',
+        ],
+      },
+      {
+        type: 'p',
+        text: 'Critical: never repeat in your keyword field any word that already appears in your title or subtitle. You get zero additional ranking benefit from the repetition, and you waste character budget. The keyword field is for net-new terms only.',
+      },
+      { type: 'h2', text: 'A practical example: mapping the US store' },
+      {
+        type: 'p',
+        text: 'Say you\'re building cross-localization for a productivity app targeting the US. Your EN-US listing covers your primary keyword cluster. Here\'s how to extend it:',
+      },
+      {
+        type: 'ul',
+        items: [
+          'ES-MX (Spanish Mexico): Use genuine Spanish keywords — "organizador de tareas", "lista de pendientes" — there\'s a large Spanish-speaking US audience worth targeting here, don\'t sacrifice this one',
+          'RU (Russian): Fill with English keywords from your secondary cluster — terms you couldn\'t fit in EN-US',
+          'FR (French): More English keywords — a third cluster of terms you haven\'t used elsewhere',
+          'KO, AR, VI: If these markets aren\'t targets, use them for English long-tail expansions',
+          'ZH-HANS, ZH-HANT, PT-BR: Evaluate whether these markets are worth targeting natively before sacrificing them',
+        ],
+      },
+      { type: 'h2', text: 'The EN-GB mistake' },
+      {
+        type: 'p',
+        text: 'One of the most common cross-localization errors: adding EN-GB to your US strategy. EN-GB is not indexed by the US App Store. It\'s indexed in the UK storefront, Australia, and other English-speaking markets — but not the US. If you\'re trying to expand US keyword coverage, EN-GB does nothing for you.',
+      },
+      {
+        type: 'p',
+        text: 'EN-GB is still worth maintaining as a separate strategy for UK and Oceania markets. Just don\'t conflate it with your US optimization.',
+      },
+      { type: 'h2', text: 'Maintaining your keyword map over time' },
+      {
+        type: 'p',
+        text: 'Cross-localization creates a keyword spread across multiple App Store Connect pages. Without a tracking system, it\'s easy to accidentally introduce duplicates during updates — especially when you change your primary EN-US keywords and don\'t audit the secondary slots for overlap.',
+      },
+      {
+        type: 'p',
+        text: 'Build a master keyword spreadsheet that lists every keyword across every localization in a single view. Before any update, run a duplicate check. This is the most error-prone part of the strategy, and it\'s where most teams eventually break their own keyword architecture.',
+      },
+    ],
+  },
+  {
     slug: 'how-to-pick-keywords-that-actually-rank-in-2026',
     title: 'How to pick keywords that actually rank in 2026',
     category: 'ASO',
