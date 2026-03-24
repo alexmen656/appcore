@@ -58,6 +58,7 @@ async function runScreenshotGenerationViaWorker(
       branch: job.branch ?? undefined,
       appName: job.app.name,
       bundleId: job.app.bundleId,
+      iosDir: job.app.githubIosDir ?? undefined,
     });
 
     logs.push(...result.logs);

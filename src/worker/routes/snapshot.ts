@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { findFastlane } from "../fastlane-utils";
-import { execAsync } from "./shared";
+import { execAsync, resolveRepoWorkDir } from "./shared";
 
 export const snapshotRouter = Router();
 
@@ -13,6 +13,7 @@ interface SnapshotRequest {
   branch?: string;
   appName: string;
   bundleId: string;
+  iosDir?: string;
   exportMethod?: string;
 }
 
@@ -40,7 +41,7 @@ function findConfigFile(dir: string): string | null {
 
 snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
   const body = req.body as SnapshotRequest;
-  const { repoUrl, accessToken, branch, appName, bundleId } = body;
+  const { repoUrl, accessToken, branch, appName, bundleId, iosDir } = body;
 
   if (!repoUrl || !accessToken) {
     res.status(400).json({ error: "Missing required fields" });
@@ -69,13 +70,15 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
 
     logs.push("Clone complete");
 
+    const workDir = resolveRepoWorkDir(tmpDir, iosDir, logs);
+
     let descriptions: Record<string, string> = {};
     let frameConfig: Record<string, string> = {};
     let scheme = appName;
     let effectiveDevices = DEFAULT_DEVICES;
     let effectiveLanguages = DEFAULT_LANGUAGES;
 
-    const configFile = findConfigFile(tmpDir);
+    const configFile = findConfigFile(workDir);
     if (configFile) {
       try {
         const parsed = JSON.parse(fs.readFileSync(configFile, "utf8"));
@@ -95,11 +98,11 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
         const { _config: _, ...rest } = parsed;
         descriptions = rest;
         logs.push(
-          `Loaded config.json from ${path.relative(tmpDir, configFile)} — scheme: ${scheme}, devices: ${effectiveDevices.join(", ")}, languages: ${effectiveLanguages.join(", ")}, ${Object.keys(descriptions).length} description(s)`,
+          `Loaded config.json from ${path.relative(workDir, configFile)} — scheme: ${scheme}, devices: ${effectiveDevices.join(", ")}, languages: ${effectiveLanguages.join(", ")}, ${Object.keys(descriptions).length} description(s)`,
         );
       } catch {
         logs.push(
-          `Warning: could not parse ${path.relative(tmpDir, configFile)}`,
+          `Warning: could not parse ${path.relative(workDir, configFile)}`,
         );
       }
     } else {
@@ -108,7 +111,7 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
       );
     }
 
-    const fastlaneDir = path.join(tmpDir, "fastlane");
+    const fastlaneDir = path.join(workDir, "fastlane");
     fs.mkdirSync(fastlaneDir, { recursive: true });
     fs.writeFileSync(
       path.join(fastlaneDir, "Snapfile"),
@@ -129,7 +132,7 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
         "",
         "concurrent_simulators(true)",
         "",
-        "skip_html(true)",
+       // "skip_html(true)",
         "",
       ].join("\n"),
     );
@@ -141,7 +144,7 @@ const fastlanePath = await findFastlane();
       const { stdout, stderr } = await execAsync(
         `${fastlanePath} snapshot 2>&1`,
         {
-          cwd: tmpDir,
+          cwd: workDir,
           timeout: 900_000,
           env: { ...process.env, FASTLANE_DISABLE_COLORS: "1" },
           maxBuffer: 10 * 1024 * 1024,
@@ -167,7 +170,7 @@ const fastlanePath = await findFastlane();
 
     logs.push("fastlane snapshot completed");
 
-    const screenshotsDir = path.join(tmpDir, "fastlane", "screenshots");
+    const screenshotsDir = path.join(workDir, "fastlane", "screenshots");
     const screenshots: Record<
       string,
       Array<{ filename: string; data: string }>

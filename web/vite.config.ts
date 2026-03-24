@@ -6,7 +6,7 @@ export default defineConfig({
   base: "/app/",
   plugins: [tailwindcss(), react()],
   server: {
-    allowedHosts: ["faeb-85-127-44-161.ngrok-free.app"],
+    allowedHosts: ["f483-85-127-44-161.ngrok-free.app"],
     port: 5173,
     proxy: {
       "/api": {

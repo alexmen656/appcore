@@ -19,6 +19,30 @@ export interface SigningCreds {
   teamId?: string;
 }
 
+export function resolveRepoWorkDir(
+  repoDir: string,
+  iosDir: string | undefined,
+  logs: string[],
+): string {
+  const raw = iosDir?.trim();
+  if (!raw) return repoDir;
+
+  const normalized = raw.replace(/^\/+|\/+$/g, "");
+  if (!normalized || normalized === ".") return repoDir;
+
+  const workDir = path.resolve(repoDir, normalized);
+  const relative = path.relative(repoDir, workDir);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    throw new Error(`Invalid iosDir path: ${iosDir}`);
+  }
+  if (!fs.existsSync(workDir) || !fs.statSync(workDir).isDirectory()) {
+    throw new Error(`Configured iosDir not found in repo: ${normalized}`);
+  }
+
+  logs.push(`[repo] Using iOS subdirectory: ${normalized}`);
+  return workDir;
+}
+
 export async function installSigningCreds(
   creds: SigningCreds,
   logs: string[],

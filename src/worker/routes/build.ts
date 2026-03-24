@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { findFastlane } from "../fastlane-utils";
-import { execAsync, buildWithGym } from "./shared";
+import { execAsync, buildWithGym, resolveRepoWorkDir } from "./shared";
 
 function findConfigFile(dir: string): string | null {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -27,6 +27,7 @@ interface BuildRequest {
   branch?: string;
   appName: string;
   bundleId: string;
+  iosDir?: string;
   gymScheme?: string;
   exportMethod?: string;
 }
@@ -39,6 +40,7 @@ buildRouter.post("/build", async (req: Request, res: Response) => {
     branch,
     appName,
     bundleId,
+    iosDir,
     gymScheme,
     exportMethod = "app-store",
   } = body;
@@ -68,8 +70,10 @@ buildRouter.post("/build", async (req: Request, res: Response) => {
     );
     logs.push("Clone complete");
 
+    const workDir = resolveRepoWorkDir(tmpDir, iosDir, logs);
+
     let resolvedScheme = gymScheme;
-    const configFile = findConfigFile(tmpDir);
+    const configFile = findConfigFile(workDir);
     if (configFile) {
       try {
         const cfg = JSON.parse(fs.readFileSync(configFile, "utf8"))?._config ?? {};
@@ -86,7 +90,7 @@ buildRouter.post("/build", async (req: Request, res: Response) => {
     logs.push(`Using fastlane: ${fastlanePath}`);
 
     const ipaPath = await buildWithGym(
-      tmpDir,
+      workDir,
       appName,
       bundleId,
       resolvedScheme,

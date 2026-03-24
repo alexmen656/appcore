@@ -9,6 +9,7 @@ export async function runBuildJob(
     branch?: string;
     appName: string;
     bundleId: string;
+    iosDir?: string;
     gymScheme?: string;
     exportMethod?: string;
     commitSha?: string;
@@ -34,6 +35,7 @@ export async function runBuildJob(
       signingCertPassword: true,
       signingProvisioningProfile: true,
       signingTeamId: true,
+      githubIosDir: true,
     },
   });
 
@@ -60,6 +62,7 @@ export async function runBuildJob(
   try {
     const result = await workerClient.build({
       ...params,
+      iosDir: params.iosDir ?? app?.githubIosDir ?? undefined,
       ...(hasSigning && {
         signingCertP12: app!.signingCertP12!,
         signingCertPassword: app!.signingCertPassword!,

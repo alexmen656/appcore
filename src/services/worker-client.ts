@@ -39,6 +39,7 @@ export interface WorkerSnapshotParams {
   branch?: string;
   appName: string;
   bundleId: string;
+  iosDir?: string;
   exportMethod?: string;
   buildBinary?: boolean;
 }
@@ -60,6 +61,7 @@ export interface WorkerBuildParams {
   branch?: string;
   appName: string;
   bundleId: string;
+  iosDir?: string;
   gymScheme?: string;
   exportMethod?: string;
   signingCertP12?: string;
