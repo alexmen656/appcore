@@ -1,5 +1,5 @@
 {
-  "name": "appcore-aso",
+  "name": "marteso-aso",
   "version": "0.1.0",
   "description": "Automated ASO optimization engine for App Store using AI",
   "main": "dist/index.js",
