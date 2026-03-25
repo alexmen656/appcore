@@ -30,6 +30,10 @@ interface BuildRequest {
   iosDir?: string;
   gymScheme?: string;
   exportMethod?: string;
+  signingCertP12?: string;
+  signingCertPassword?: string;
+  signingProvisioningProfile?: string;
+  signingTeamId?: string;
 }
 
 buildRouter.post("/build", async (req: Request, res: Response) => {
@@ -43,7 +47,21 @@ buildRouter.post("/build", async (req: Request, res: Response) => {
     iosDir,
     gymScheme,
     exportMethod = "app-store",
+    signingCertP12,
+    signingCertPassword,
+    signingProvisioningProfile,
+    signingTeamId,
   } = body;
+
+  const signingCreds =
+    signingCertP12 && signingCertPassword && signingProvisioningProfile
+      ? {
+          p12Base64: signingCertP12,
+          p12Password: signingCertPassword,
+          profileBase64: signingProvisioningProfile,
+          teamId: signingTeamId,
+        }
+      : undefined;
 
   if (!repoUrl || !accessToken || !bundleId) {
     res.status(400).json({
@@ -76,10 +94,13 @@ buildRouter.post("/build", async (req: Request, res: Response) => {
     const configFile = findConfigFile(workDir);
     if (configFile) {
       try {
-        const cfg = JSON.parse(fs.readFileSync(configFile, "utf8"))?._config ?? {};
+        const cfg =
+          JSON.parse(fs.readFileSync(configFile, "utf8"))?._config ?? {};
         if (cfg.scheme) {
           resolvedScheme = cfg.scheme;
-          logs.push(`[config] Using scheme from config.json: ${resolvedScheme}`);
+          logs.push(
+            `[config] Using scheme from config.json: ${resolvedScheme}`,
+          );
         }
       } catch {
         logs.push("[config] Warning: could not parse config.json");
@@ -97,6 +118,7 @@ buildRouter.post("/build", async (req: Request, res: Response) => {
       exportMethod,
       fastlanePath,
       logs,
+      signingCreds,
     );
 
     res.json({ ok: true, logs, errors, ipaBuilt: true, ipaPath });

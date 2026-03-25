@@ -123,6 +123,8 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
         ...effectiveDevices.map((d) => `  "${d}",`),
         "])",
         "",
+        `#ios_version "latest"`,
+        "",
         `languages([${effectiveLanguages.map((l) => `"${l}"`).join(", ")}])`,
         "",
         `scheme("${scheme}")`,
@@ -133,7 +135,7 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
         "concurrent_simulators(true)",
         "",
        // "skip_html(true)",
-        "",
+        "",//26.3.1
       ].join("\n"),
     );
 

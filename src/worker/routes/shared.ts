@@ -46,7 +46,7 @@ export function resolveRepoWorkDir(
 export async function installSigningCreds(
   creds: SigningCreds,
   logs: string[],
-): Promise<() => Promise<void>> {
+): Promise<{ cleanup: () => Promise<void>; profileUuid: string }> {
   const tmpSignDir = path.join(os.tmpdir(), `signing-${Date.now()}`);
   fs.mkdirSync(tmpSignDir, { recursive: true });
 
@@ -107,7 +107,7 @@ export async function installSigningCreds(
     .map((k) => k.trim().replace(/"/g, ""));
 
   await execAsync(
-    `security list-keychains -d user -s "${keychainName}" ${existing.join(' "')}"`.trim(),
+    `security list-keychains -d user -s "${keychainName}" ${existing.map((k) => `"${k}"`).join(" ")}`,
   );
   logs.push("[signing] Keychain added to search list");
 
@@ -146,7 +146,7 @@ export async function installSigningCreds(
     }
   };
 
-  return cleanup;
+  return { cleanup, profileUuid };
 }
 
 export async function buildWithGym(
@@ -164,9 +164,12 @@ export async function buildWithGym(
   );
 
   let signingCleanup: (() => Promise<void>) | undefined;
+  let installedProfileUuid: string | undefined;
   if (signingCreds) {
     logs.push("[gym] Installing signing credentials ...");
-    signingCleanup = await installSigningCreds(signingCreds, logs);
+    const { cleanup, profileUuid } = await installSigningCreds(signingCreds, logs);
+    signingCleanup = cleanup;
+    installedProfileUuid = profileUuid;
     logs.push("[gym] Signing credentials installed");
   } else {
     logs.push(
@@ -191,6 +194,24 @@ export async function buildWithGym(
     ];
     if (signingCreds?.teamId) {
       gymfileLines.push(`xcargs("DEVELOPMENT_TEAM=${signingCreds.teamId}")`);
+    }
+    if (installedProfileUuid) {
+      gymfileLines.push(
+        `export_options({`,
+        `  method: "${exportMethod}",`,
+        `  signingStyle: "manual",`,
+        `  provisioningProfiles: {`,
+        `    "${bundleId}" => "${installedProfileUuid}"`,
+        `  }`,
+        `})`,
+      );
+    } else {
+      gymfileLines.push(
+        `export_options({`,
+        `  method: "${exportMethod}",`,
+        `  signingStyle: "automatic"`,
+        `})`,
+      );
     }
     fs.writeFileSync(gymfilePath, gymfileLines.join("\n"));
     logs.push(`[gym] Gymfile written:\n${gymfileLines.join("\n")}`);
