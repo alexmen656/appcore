@@ -14,3 +14,5 @@ So solution would be to have all devices with newest ios
 
 
 dont start build process when certificates are missing
+
+fastlane is broken it makes ios 26.3.1 to 26.3 whoch dont matches our simulators
