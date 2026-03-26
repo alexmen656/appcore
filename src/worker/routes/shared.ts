@@ -6,6 +6,16 @@ import os from "os";
 
 export const execAsync = promisify(exec);
 
+export function findConfigFile(dir: string): string | null {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name.startsWith(".") || entry.name === "fastlane") continue;
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) { const found = findConfigFile(full); if (found) return found; }
+    else if (entry.name === "config.json") return full;
+  }
+  return null;
+}
+
 export const BUILDS_BASE_DIR = path.join(
   os.homedir(),
   "appcore",

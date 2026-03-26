@@ -52,30 +52,17 @@ deliverRouter.post("/deliver", async (req: Request, res: Response) => {
     for (const [locale, data] of Object.entries(locales)) {
       const localeDir = path.join(metadataRoot, locale);
       fs.mkdirSync(localeDir, { recursive: true });
-
-      fs.writeFileSync(path.join(localeDir, "name.txt"), data.name);
-      fs.writeFileSync(path.join(localeDir, "subtitle.txt"), data.subtitle);
-      fs.writeFileSync(path.join(localeDir, "keywords.txt"), data.keywords);
-      fs.writeFileSync(
-        path.join(localeDir, "description.txt"),
-        data.description,
-      );
-      fs.writeFileSync(
-        path.join(localeDir, "release_notes.txt"),
-        data.whatsNew,
-      );
-      fs.writeFileSync(
-        path.join(localeDir, "promotional_text.txt"),
-        data.promotionalText,
-      );
-      fs.writeFileSync(
-        path.join(localeDir, "support_url.txt"),
-        data.supportUrl,
-      );
-      fs.writeFileSync(
-        path.join(localeDir, "marketing_url.txt"),
-        data.marketingUrl,
-      );
+      for (const [file, content] of Object.entries({
+        "name.txt": data.name,
+        "subtitle.txt": data.subtitle,
+        "keywords.txt": data.keywords,
+        "description.txt": data.description,
+        "release_notes.txt": data.whatsNew,
+        "promotional_text.txt": data.promotionalText,
+        "support_url.txt": data.supportUrl,
+        "marketing_url.txt": data.marketingUrl,
+      }))
+        fs.writeFileSync(path.join(localeDir, file), content);
     }
     fs.writeFileSync(
       path.join(metadataRoot, "copyright.txt"),
@@ -85,6 +72,7 @@ deliverRouter.post("/deliver", async (req: Request, res: Response) => {
 
     const screenshotsRoot = path.join(tmpDir, "screenshots");
     const hasScreenshots = screenshots && Object.keys(screenshots).length > 0;
+    
     if (hasScreenshots) {
       let totalScreenshots = 0;
       for (const [locale, images] of Object.entries(screenshots!)) {

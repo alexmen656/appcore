@@ -3,21 +3,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { findFastlane } from "../fastlane-utils";
-import { execAsync, buildWithGym, resolveRepoWorkDir } from "./shared";
-
-function findConfigFile(dir: string): string | null {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.name.startsWith(".") || entry.name === "fastlane") continue;
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      const found = findConfigFile(full);
-      if (found) return found;
-    } else if (entry.name === "config.json") {
-      return full;
-    }
-  }
-  return null;
-}
+import { execAsync, buildWithGym, resolveRepoWorkDir, findConfigFile } from "./shared";
 
 export const buildRouter = Router();
 
@@ -80,10 +66,10 @@ buildRouter.post("/build", async (req: Request, res: Response) => {
       "https://",
       `https://x-access-token:${accessToken}@`,
     );
-    const branchArg = branch ? `--branch ${branch}` : "";
+    
     logs.push(`Cloning repo${branch ? ` @${branch}` : ""} ...`);
     await execAsync(
-      `git clone --depth 1 ${branchArg} "${cloneUrl}" "${tmpDir}"`,
+      `git clone --depth 1 ${branch ? `--branch ${branch}` : ""} "${cloneUrl}" "${tmpDir}"`,
       { timeout: 120_000 },
     );
     logs.push("Clone complete");
