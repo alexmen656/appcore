@@ -39,10 +39,15 @@ const config: Config = {
 
   themeConfig: {
     colorMode: {
+      defaultMode: 'dark',
       respectPrefersColorScheme: true,
     },
     navbar: {
       title: 'Marteso',
+      logo: {
+        alt: 'Marteso Logo',
+        src: 'img/logo.png',
+      },
       items: [
         {
           type: 'docSidebar',
