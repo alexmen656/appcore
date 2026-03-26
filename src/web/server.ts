@@ -82,6 +82,39 @@ app.use("/screenshots", express.static(screenshotsDir));
 const landingDist = path.join(process.cwd(), "landing/dist");
 const landingPublic = path.join(process.cwd(), "landing/public");
 const ASTRO_PORT = 4321;
+const DOCS_PORT = 3030;
+
+const docsDist = path.join(process.cwd(), "docs-site/build");
+if (process.env.NODE_ENV === "production") {
+  app.use("/docs", express.static(docsDist));
+  app.get("/docs/*", (_req, res) =>
+    res.sendFile(path.join(docsDist, "index.html")),
+  );
+} else {
+  app.use("/docs", (req, res) => {
+    const proxyReq = http.request(
+      {
+        hostname: "localhost",
+        port: DOCS_PORT,
+        path: "/docs" + req.url,
+        method: req.method,
+        headers: { ...req.headers, host: `localhost:${DOCS_PORT}` },
+      },
+      (proxyRes) => {
+        res.writeHead(proxyRes.statusCode ?? 200, proxyRes.headers);
+        proxyRes.pipe(res);
+      },
+    );
+    req.pipe(proxyReq);
+    proxyReq.on("error", () => {
+      res
+        .status(502)
+        .send(
+          "Docs dev server not running — cd docs-site && npm start -- --port 3030",
+        );
+    });
+  });
+}
 
 app.get("/app/logo.png", (_req, res) =>
   res.sendFile(path.join(landingPublic, "logo.png")),
