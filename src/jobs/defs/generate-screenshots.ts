@@ -103,7 +103,13 @@ async function runScreenshotGenerationViaWorker(
         allFilenames.map((f) => {
           const base = f.replace(/\.[^.]+$/, "");
           const match = base.match(/^(.+?)(?:_[a-z]{2}-[A-Z]{2}_|_[a-z]{2}_)/);
-          return match ? match[1] : base;
+          const extracted = match ? match[1] : base;
+
+          return (
+            Object.keys(descriptions).find(
+              (k) => extracted === k || extracted.startsWith(k + "_"),
+            ) ?? extracted
+          );
         }),
       ),
     ];

@@ -16,3 +16,5 @@ So solution would be to have all devices with newest ios
 dont start build process when certificates are missing
 
 fastlane is broken it makes ios 26.3.1 to 26.3 whoch dont matches our simulators
+
+fastlane deliver crashes with "No data" on first-ever app submission because AppStoreReviewDetail doesn't exist yet in ASC and fetch_app_store_review_detail raises instead of returning nil. Patched locally: change line 688 in `/opt/homebrew/Cellar/fastlane/2.232.0/libexec/gems/fastlane-2.232.0/deliver/lib/deliver/upload_metadata.rb` to `app_store_review_detail = version.fetch_app_store_review_detail rescue nil`. Re-apply after `fastlane update_fastlane`.

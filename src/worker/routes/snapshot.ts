@@ -197,7 +197,7 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
       );
       try {
         const { stdout } = await execAsync(
-          `set -o pipefail && xcodebuild ${projectArg} -scheme "${scheme}" ${destinations} FASTLANE_SNAPSHOT=YES FASTLANE_LANGUAGE=${lang} build test 2>&1 | xcpretty --no-color || true`,
+          `set -o pipefail && xcodebuild ${projectArg} -scheme "${scheme}" ${destinations} FASTLANE_SNAPSHOT=YES FASTLANE_LANGUAGE=${lang} build test 2>&1 | tee /tmp/xcodebuild-snapshot.log | xcpretty --no-color; STATUS=\${PIPESTATUS[0]}; if [ $STATUS -ne 0 ]; then echo "[snapshot] xcodebuild exited with status $STATUS (some tests may have failed)"; grep -E "Test Case.*failed|error:" /tmp/xcodebuild-snapshot.log | head -20 || true; fi; exit 0`,
           {
             cwd: workDir,
             timeout: 900_000,
