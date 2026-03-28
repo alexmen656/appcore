@@ -315,3 +315,37 @@ code {
 ::selection {
   background: rgba(234, 14, 43, 0.25);
 }
+
+.sidebar-item-with-icon {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: center;
+  gap: 0;
+}
+
+.sidebar-item-with-icon > .sidebar-icon {
+  flex-shrink: 0;
+  color: var(--ifm-color-content-secondary);
+  opacity: 0.7;
+  transition: color 0.12s, opacity 0.12s;
+  margin-left: 4px;
+  pointer-events: none;
+}
+
+.sidebar-item-with-icon:has(.menu__link--active) > .sidebar-icon {
+  color: var(--ifm-color-primary);
+  opacity: 1;
+}
+
+.sidebar-item-with-icon:has(.menu__link:hover) > .sidebar-icon {
+  color: var(--ifm-color-content);
+  opacity: 1;
+}
+
+.sidebar-item-with-icon:has(.menu__list-item-collapsible) > .sidebar-icon {
+  margin-left: 6px;
+}
+
+.sidebar-item-with-icon > :last-child {
+  min-width: 0;
+}

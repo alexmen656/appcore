@@ -1,17 +1,38 @@
-import type { SidebarsConfig } from "@docusaurus/plugin-content-docs";
+import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
 
 const sidebars: SidebarsConfig = {
   docsSidebar: [
-    "intro",
     {
-      type: "category",
-      label: "Infrastructure",
-      items: ["infrastructure/fastlane-worker"],
+      type: 'doc',
+      id: 'intro',
+      label: 'Introduction',
+      customProps: { icon: 'intro' },
     },
     {
-      type: "category",
-      label: "iOS",
-      items: ["ios/code-signing"],
+      type: 'category',
+      label: 'Infrastructure',
+      customProps: { icon: 'Infrastructure' },
+      items: [
+        {
+          type: 'doc',
+          id: 'infrastructure/fastlane-worker',
+          label: 'Fastlane Worker',
+          customProps: { icon: 'fastlane-worker' },
+        },
+      ],
+    },
+    {
+      type: 'category',
+      label: 'iOS',
+      customProps: { icon: 'iOS' },
+      items: [
+        {
+          type: 'doc',
+          id: 'ios/code-signing',
+          label: 'Code Signing',
+          customProps: { icon: 'code-signing' },
+        },
+      ],
     },
   ],
 };
