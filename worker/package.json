@@ -1,0 +1,20 @@
+{
+  "name": "appcore-worker",
+  "version": "0.1.0",
+  "description": "Fastlane worker for AppCore — runs on Mac Mini",
+  "main": "src/server.ts",
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "dev": "tsx watch src/server.ts"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.12.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
