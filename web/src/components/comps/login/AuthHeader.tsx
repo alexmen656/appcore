@@ -6,13 +6,9 @@ export default function AuthHeader({ mode }: Props) {
   return (
     <>
       <div className="flex items-center gap-3 mb-8">
-        {/*<img
-          src="/app/logo.svg"
-          alt="AppCore"
-          className="h-10 w-10 rounded-xl object-cover"
-        />*/}
+        <img src="/app/logo.svg" alt="Marteso" className="h-7 w-auto" />
         <div>
-          <div className="text-3xl font-bold text-[#ea0e2b] leading-tight">
+          <div className="text-3xl font-bold leading-tight bg-gradient-to-br from-[#D94412] to-[#C4001E] bg-clip-text text-transparent">
             marteso
           </div>
           {/*<<div className="text-xs text-[#9ca3af] dark:text-[#5c6478]">

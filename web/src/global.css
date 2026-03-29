@@ -5,8 +5,10 @@
 :root {
   --sidebar-bg: #f8f9fb;
   --content-bg: #f8f9fb;
-  --accent: #ea0e2b;
-  --accent-hover: #c80b24;
+  --accent: #C4001E;
+  --accent-hover: #A8001A;
+  --accent-orange: #D94412;
+  --accent-gradient: linear-gradient(135deg, #D94412, #C4001E);
   --text-primary: #111827;
   --text-secondary: #6b7280;
   --text-muted: #9ca3af;

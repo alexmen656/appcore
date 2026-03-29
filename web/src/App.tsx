@@ -249,7 +249,7 @@ function AppAvatar({
     <img src={url} alt="" className={`${px} ${cls}`} />
   ) : (
     <div
-      className={`${px} ${cls} ${accent ? "bg-[#ea0e2b]" : "bg-[#c8cdd3]"} text-sm`}
+      className={`${px} ${cls} ${accent ? "bg-[#C4001E]" : "bg-[#c8cdd3]"} text-sm`}
     >
       {name.charAt(0).toUpperCase()}
     </div>
@@ -419,7 +419,7 @@ function AppSwitcher({
                     strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="w-3.5 h-3.5 shrink-0 text-[#ea0e2b] ml-auto"
+                    className="w-3.5 h-3.5 shrink-0 text-[#C4001E] ml-auto"
                   >
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
@@ -531,7 +531,7 @@ function AppSwitcher({
                         type="button"
                         disabled={importing === app.ascId}
                         onClick={() => importApp(app)}
-                        className="shrink-0 px-3 py-1.5 rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] bg-transparent text-[#111827] dark:text-[#e8eaf0] text-xs font-medium hover:border-[#ea0e2b] hover:text-[#ea0e2b] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="shrink-0 px-3 py-1.5 rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] bg-transparent text-[#111827] dark:text-[#e8eaf0] text-xs font-medium hover:border-[#C4001E] hover:text-[#C4001E] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {importing === app.ascId ? "Importing…" : "Import"}
                       </button>
@@ -651,7 +651,7 @@ function HeaderProfileMenu({
         onClick={() => setOpen(!open)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-black/[0.06] dark:hover:bg-white/10 transition-colors text-[#374151] dark:text-white/80 text-sm font-medium"
       >
-        <div className="w-6 h-6 rounded-full bg-[#ea0e2b] flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+        <div className="w-6 h-6 rounded-full bg-[#C4001E] flex items-center justify-center text-white text-[10px] font-bold shrink-0">
           {initials}
         </div>
         Account
@@ -668,7 +668,7 @@ function HeaderProfileMenu({
               </div>
             )}
             {user.role === "ADMIN" && (
-              <div className="text-[10px] text-[#ea0e2b] font-medium uppercase tracking-wide">
+              <div className="text-[10px] text-[#C4001E] font-medium uppercase tracking-wide">
                 Admin
               </div>
             )}
@@ -905,7 +905,7 @@ function VersionsSidebarSection({
           onClick={handleToggle}
           className={`flex-1 flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-sm font-medium transition-all [&_svg]:w-[18px] [&_svg]:h-[18px] ${
             isAnyVersionActive
-              ? "bg-white dark:bg-[#1c2028] text-[#1a1a2e] dark:text-[#e8eaf0] shadow-sm [&>svg:first-child]:opacity-100 [&>svg:first-child]:text-[#ea0e2b]"
+              ? "bg-white dark:bg-[#1c2028] text-[#1a1a2e] dark:text-[#e8eaf0] shadow-sm [&>svg:first-child]:opacity-100 [&>svg:first-child]:text-[#C4001E]"
               : "text-[#6b7280] dark:text-[#8b93a5] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] [&>svg:first-child]:opacity-60"
           }`}
         >
@@ -926,7 +926,7 @@ function VersionsSidebarSection({
         <button
           onClick={openNewForm}
           title="New version"
-          className="p-[7px] rounded-lg text-[#9ca3af] dark:text-[#5c6478] hover:text-[#ea0e2b] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all"
+          className="p-[7px] rounded-lg text-[#9ca3af] dark:text-[#5c6478] hover:text-[#C4001E] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all"
         >
           <svg
             viewBox="0 0 24 24"
@@ -956,14 +956,14 @@ function VersionsSidebarSection({
               if (e.key === "Escape") setShowNewForm(false);
             }}
             placeholder="e.g. 2.1.0"
-            className="w-full px-3 py-[7px] text-[13px] rounded-lg border border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] focus:outline-none focus:border-[#ea0e2b]"
+            className="w-full px-3 py-[7px] text-[13px] rounded-lg border border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] focus:outline-none focus:border-[#C4001E]"
           />
           <select
             value={newReleaseType}
             onChange={(e) =>
               setNewReleaseType(e.target.value as "MANUAL" | "AFTER_APPROVAL")
             }
-            className="w-full px-3 py-[7px] text-[13px] rounded-lg border border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] focus:outline-none focus:border-[#ea0e2b]"
+            className="w-full px-3 py-[7px] text-[13px] rounded-lg border border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] focus:outline-none focus:border-[#C4001E]"
           >
             <option value="MANUAL">Manual Release</option>
             <option value="AFTER_APPROVAL">After Approval</option>
@@ -972,7 +972,7 @@ function VersionsSidebarSection({
             <button
               onClick={handleCreate}
               disabled={creating || !newVersionStr.trim()}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-[6px] rounded-lg text-[12px] font-semibold bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-[6px] rounded-lg text-[12px] font-semibold bg-[#C4001E] text-white hover:bg-[#A8001A] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {creating ? (
                 <>
@@ -1108,7 +1108,7 @@ export default function App() {
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-sm font-medium mb-0.5 transition-all [&_svg]:w-[18px] [&_svg]:h-[18px] ${
       isActive
-        ? "bg-white dark:bg-[#1c2028] text-[#1a1a2e] dark:text-[#e8eaf0] shadow-sm [&_svg]:opacity-100 [&_svg]:text-[#ea0e2b]"
+        ? "bg-white dark:bg-[#1c2028] text-[#1a1a2e] dark:text-[#e8eaf0] shadow-sm [&_svg]:opacity-100 [&_svg]:text-[#C4001E]"
         : "text-[#6b7280] dark:text-[#8b93a5] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] [&_svg]:opacity-60"
     }`;
 
@@ -1118,7 +1118,8 @@ export default function App() {
       <ToastContainer toasts={toasts} />
       <header className="h-[52px] bg-[#f8f9fb] dark:bg-[#0a0a0a] flex items-center px-4 shrink-0 z-20">
         <a href="/app/" className="flex items-center gap-2.5">
-          <span className="text-[26px] font-bold text-[#ea0e2b] tracking-[-0.3px]">
+          <img src="/app/logo.svg" alt="Marteso" className="h-[22px] w-auto" />
+          <span className="text-[24px] font-bold tracking-[-0.3px] bg-gradient-to-br from-[#D94412] to-[#C4001E] bg-clip-text text-transparent">
             marteso
           </span>
         </a>
