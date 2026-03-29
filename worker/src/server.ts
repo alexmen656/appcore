@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import { workerAuth } from "./auth";
 import { workerRouter } from "./routes/index";
