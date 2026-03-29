@@ -46,7 +46,7 @@ const config: Config = {
       title: 'Marteso',
       logo: {
         alt: 'Marteso Logo',
-        src: 'img/logo.png',
+        src: 'img/logo.svg',
       },
       items: [
         {

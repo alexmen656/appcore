@@ -116,8 +116,8 @@ if (process.env.NODE_ENV === "production") {
   });
 }
 
-app.get("/app/logo.png", (_req, res) =>
-  res.sendFile(path.join(landingPublic, "logo.png")),
+app.get("/app/logo.svg", (_req, res) =>
+  res.sendFile(path.join(landingPublic, "logo.svg")),
 );
 
 if (process.env.NODE_ENV === "production") {

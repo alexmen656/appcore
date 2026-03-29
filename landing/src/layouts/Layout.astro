@@ -30,7 +30,7 @@ const orgSchema = {
   "@type": "Organization",
   name: "Marteso",
   url: siteUrl,
-  logo: `${siteUrl}/logo.png`,
+  logo: `${siteUrl}/logo.svg`,
   description:
     "ASO platform for mobile teams to grow organic downloads on the App Store and Google Play.",
   parentOrganization: {
@@ -59,7 +59,7 @@ const schemas = [
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalUrl} />
-    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="icon" type="image/png" href="/logo.svg" />
     <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
 
     <meta property="og:type" content="website" />
@@ -84,6 +84,9 @@ const schemas = [
     <nav id="nav">
       <div class="nav-container">
         <a href="/" class="logo">
+          <div class="logo-mark">
+            <img height="32" width="42" src="/logo.svg" alt="Marteso logo" />
+          </div>
           <div class="logo-text">
             <span class="logo-name">marteso</span>
           </div>
@@ -125,9 +128,9 @@ const schemas = [
       <div class="footer-grid">
         <div class="footer-brand">
           <div class="footer-logo">
-            <!--<div class="logo-mark">
-              <img height="32" width="32" src="/logo.png" alt="Marteso logo" />
-            </div>-->
+            <div class="logo-mark">
+              <img height="32" width="42" src="/logo.svg" alt="Marteso logo" />
+            </div>
             <span class="logo-name">marteso</span>
           </div>
           <p>

@@ -7,7 +7,7 @@ export default function AuthHeader({ mode }: Props) {
     <>
       <div className="flex items-center gap-3 mb-8">
         {/*<img
-          src="/app/logo.png"
+          src="/app/logo.svg"
           alt="AppCore"
           className="h-10 w-10 rounded-xl object-cover"
         />*/}

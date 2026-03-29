@@ -5,8 +5,10 @@
   --text-primary: #ffffff;
   --text-secondary: #9ca3af;
   --text-tertiary: #6b7280;
-  --accent: #ea0e2b;
-  --accent-dim: rgba(234, 14, 43, 0.1);
+  --accent: #C4001E;
+  --accent-orange: #D94412;
+  --accent-gradient: linear-gradient(135deg, #D94412, #C4001E);
+  --accent-dim: rgba(204, 0, 34, 0.1);
   --accent-blue: #5e6ad2;
   --accent-blue-dim: rgba(94, 106, 210, 0.1);
   --border: rgba(255, 255, 255, 0.08);
@@ -74,9 +76,16 @@ nav.scrolled {
   font-size: 26px;
   font-weight: 700;
   letter-spacing: -0.03em;
-  color: var(--accent);
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
+.logo-mark {
+  width: 42px;
+  height: 32px;
+}
 .nav-links {
   display: flex;
   gap: 32px;
@@ -127,7 +136,7 @@ nav.scrolled {
 }
 
 .btn-primary {
-  background: #ea0e2b;
+  background: var(--accent-gradient);
   color: white;
 }
 
