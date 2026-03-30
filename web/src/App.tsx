@@ -34,6 +34,7 @@ import Versions from "./components/Versions";
 import Login from "./components/Login";
 import Team from "./components/Team";
 import InviteAccept from "./components/InviteAccept";
+import Onboarding from "./components/Onboarding";
 import SearchModal from "./components/SearchModal";
 import type {
   AuthUser,
@@ -1041,6 +1042,7 @@ export default function App() {
   const { toasts, addToast } = useToast();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [dark, setDark] = useState(() => {
     return localStorage.getItem("theme") === "dark";
@@ -1096,13 +1098,32 @@ export default function App() {
   }
 
   if (!user) {
-    // Allow invite links without being logged in
     const hash = window.location.hash;
     const inviteMatch = hash.match(/^#\/invite\/([a-f0-9]+)$/);
     if (inviteMatch) {
       return <InviteAccept onAuth={(u) => setUser(u)} />;
     }
-    return <Login onAuth={(u) => setUser(u)} />;
+    return (
+      <Login
+        onAuth={(u) => {
+          setUser(u);
+          if (localStorage.getItem("marteso_onboarding") === "1") {
+            setShowOnboarding(true);
+          }
+        }}
+      />
+    );
+  }
+
+  if (showOnboarding) {
+    return (
+      <Onboarding
+        onComplete={() => {
+          localStorage.removeItem("marteso_onboarding");
+          setShowOnboarding(false);
+        }}
+      />
+    );
   }
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>

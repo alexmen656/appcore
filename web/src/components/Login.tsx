@@ -84,9 +84,13 @@ export default function Login({ onAuth }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+    
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      // Show passkey prompt instead of logging in directly
+      if (mode === "register") {
+        localStorage.setItem("marteso_onboarding", "1");
+      }
+
       setPendingAuth({ token: data.token, user: data.user });
     } catch (err: any) {
       setError(err.message);
