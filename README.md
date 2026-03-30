@@ -83,3 +83,9 @@ Add the PNG frame files to `~/.fastlane/frameit/latest/` on each machine:
 - `Apple iPhone 16 Pro Max Natural Titanium.png`
 
 These are downloaded automatically by `fastlane frameit` on first run, but may need to be copied manually between machines if offline.
+
+
+
+
+notes:
+we need to disable mac minis 1 minute auto sleep

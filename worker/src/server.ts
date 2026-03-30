@@ -4,7 +4,7 @@ import { workerAuth } from "./auth";
 import { workerRouter } from "./routes/index";
 
 const app = express();
-const PORT = process.env.FASTLANE_WORKER_PORT ?? 3200;
+const PORT = Number(process.env.FASTLANE_WORKER_PORT ?? 3200);
 
 app.use(express.json({ limit: "500mb" }));
 
@@ -20,7 +20,7 @@ app.get("/health", async (_req, res) => {
 
 app.use("/worker", workerAuth, workerRouter);
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`🔧 Fastlane Worker running on port ${PORT}`);
   console.log(`   Endpoints:`);
   console.log(`     GET  /health           - Health check (no auth)`);

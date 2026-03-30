@@ -202,10 +202,14 @@ export async function buildWithGym(
       `output_directory("./build")`,
       `output_name("${bundleId}")`,
     ];
-    if (signingCreds?.teamId) {
-      gymfileLines.push(`xcargs("DEVELOPMENT_TEAM=${signingCreds.teamId}")`);
-    }
     if (installedProfileUuid) {
+      const xcargs = [
+        `CODE_SIGN_STYLE=Manual`,
+        `CODE_SIGN_IDENTITY="iPhone Distribution"`,
+        `PROVISIONING_PROFILE_SPECIFIER=${installedProfileUuid}`,
+        signingCreds?.teamId ? `DEVELOPMENT_TEAM=${signingCreds.teamId}` : "",
+      ].filter(Boolean).join(" ");
+      gymfileLines.push(`xcargs("${xcargs}")`);
       gymfileLines.push(
         `export_options({`,
         `  method: "${exportMethod}",`,
