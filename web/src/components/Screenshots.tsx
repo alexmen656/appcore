@@ -384,12 +384,13 @@ export function ScreenshotJobsTable({
   appId: string;
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }) {
-  const { data: jobs, loading } = useApi<ScreenshotJob[]>(
+  const { data: jobs, loading, refetch } = useApi<ScreenshotJob[]>(
     `/github/screenshots/${appId}`,
     [appId],
     true,
   );
   const [expandedJob, setExpandedJob] = useState<string | null>(null);
+  const [triggering, setTriggering] = useState(false);
 
   const statusBadge = (s: string) => {
     const colors: Record<string, string> = {
@@ -404,11 +405,29 @@ export function ScreenshotJobsTable({
     return `inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium ${colors[s] ?? "bg-gray-50 text-gray-600 dark:bg-[#252b38] dark:text-[#8b93a5]"}`;
   };
 
+  async function handleTrigger() {
+    setTriggering(true);
+    try {
+      await apiPost(`/github/screenshots/trigger/${appId}`);
+      addToast("Screenshot job started", "success");
+      setTimeout(refetch, 800);
+    } catch {
+      addToast("Failed to trigger screenshot job", "error");
+    } finally {
+      setTriggering(false);
+    }
+  }
+
   return (
     <div className={`${cardCls} mb-5`}>
-      <h2 className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-1">
-        Screenshot Jobs
-      </h2>
+      <div className="flex items-center justify-between mb-1">
+        <h2 className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+          Screenshot Jobs
+        </h2>
+        <button onClick={handleTrigger} disabled={triggering} className={btnSecSm}>
+          {triggering ? "Starting…" : "Run Now"}
+        </button>
+      </div>
       <p className="text-xs text-[#9ca3af] dark:text-[#5c6478] mb-4">
         Recent screenshot generation runs triggered by GitHub pushes.
       </p>
@@ -486,7 +505,6 @@ function JobRow({
 
   return (
     <div className="border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl overflow-hidden">
-      {/* Summary row */}
       <button
         className="w-full flex items-center gap-4 px-4 py-3 hover:bg-[#fafbfc] dark:hover:bg-white/[0.03] transition-colors text-left"
         onClick={onToggle}
@@ -530,7 +548,6 @@ function JobRow({
         </svg>
       </button>
 
-      {/* Expanded details */}
       {expanded && (
         <div className="border-t border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#161920] px-4 py-3">
           {job.error && (
@@ -544,7 +561,6 @@ function JobRow({
             </div>
           )}
 
-          {/* Screenshot count + Frame button */}
           {job.status === "COMPLETED" && (
             <div className="mb-3 flex items-center gap-3">
               {job.screenshotUrls.length > 0 && (
@@ -571,7 +587,6 @@ function JobRow({
             </div>
           )}
 
-          {/* Frame form */}
           {showFrameForm && (
             <div className="mb-4 p-4 rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028]">
               <div className="text-[12px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-3">
@@ -622,7 +637,6 @@ function JobRow({
             </div>
           )}
 
-          {/* Framed screenshot thumbnails */}
           {framedUrls.length > 0 && (
             <div className="mb-4">
               <div className="text-[11px] font-medium text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide mb-2">
@@ -648,7 +662,6 @@ function JobRow({
             </div>
           )}
 
-          {/* Logs */}
           {job.logs && job.logs.length > 0 ? (
             <div>
               <div className="text-[11px] font-medium text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide mb-1">
@@ -669,13 +682,20 @@ function JobRow({
   );
 }
 
-export function BuildJobsTable({ appId }: { appId: string }) {
-  const { data: jobs, loading } = useApi<BuildJob[]>(
+export function BuildJobsTable({
+  appId,
+  addToast,
+}: {
+  appId: string;
+  addToast: (msg: string, type: "success" | "error" | "info") => void;
+}) {
+  const { data: jobs, loading, refetch } = useApi<BuildJob[]>(
     `/github/builds/${appId}`,
     [appId],
     true,
   );
   const [expandedJob, setExpandedJob] = useState<string | null>(null);
+  const [triggering, setTriggering] = useState(false);
 
   const statusBadge = (s: string) => {
     const colors: Record<string, string> = {
@@ -690,11 +710,29 @@ export function BuildJobsTable({ appId }: { appId: string }) {
     return `inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium ${colors[s] ?? "bg-gray-50 text-gray-600 dark:bg-[#252b38] dark:text-[#8b93a5]"}`;
   };
 
+  async function handleTrigger() {
+    setTriggering(true);
+    try {
+      await apiPost(`/github/builds/trigger/${appId}`);
+      addToast("Build job started", "success");
+      setTimeout(refetch, 800);
+    } catch {
+      addToast("Failed to trigger build job", "error");
+    } finally {
+      setTriggering(false);
+    }
+  }
+
   return (
     <div className={`${cardCls} mb-5`}>
-      <h2 className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-1">
-        Build Jobs
-      </h2>
+      <div className="flex items-center justify-between mb-1">
+        <h2 className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+          Build Jobs
+        </h2>
+        <button onClick={handleTrigger} disabled={triggering} className={btnSecSm}>
+          {triggering ? "Starting…" : "Run Now"}
+        </button>
+      </div>
       <p className="text-xs text-[#9ca3af] dark:text-[#5c6478] mb-4">
         Binary build runs triggered by GitHub pushes.
       </p>

@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import axios from "axios";
 import fs from "fs";
 import path from "path";
 import { logger, prisma } from "../../config";
@@ -295,6 +296,59 @@ githubRouter.get(
     }
   },
 );
+
+async function getAppAndToken(appId: string, res: Response) {
+  const app = await prisma.app.findUnique({ where: { id: appId } });
+  if (!app) { res.status(404).json({ error: "App not found" }); return null; }
+  if (!app.githubRepoFullName) { res.status(400).json({ error: "No GitHub repo linked" }); return null; }
+  const settings = await prisma.teamSettings.findFirst({ where: { githubAccessToken: { not: null } } });
+  if (!settings?.githubAccessToken) { res.status(400).json({ error: "No GitHub access token configured" }); return null; }
+  const token = decryptNullable(settings.githubAccessToken)!;
+  return { app, token };
+}
+
+async function fetchLatestCommit(repoFullName: string, token: string) {
+  const { data } = await axios.get(
+    `https://api.github.com/repos/${repoFullName}/git/refs/heads`,
+    { headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" } },
+  );
+  const ref = Array.isArray(data) ? data[0] : null;
+  return {
+    commitSha: (ref?.object?.sha ?? "unknown") as string,
+    branch: (ref?.ref?.replace("refs/heads/", "") ?? "main") as string,
+  };
+}
+
+githubRouter.post("/screenshots/trigger/:appId", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const ctx = await getAppAndToken(req.params.appId as string, res);
+    if (!ctx) return;
+    const { commitSha, branch } = await fetchLatestCommit(ctx.app.githubRepoFullName!, ctx.token);
+    const job = await prisma.screenshotJob.create({
+      data: { appId: ctx.app.id, commitSha, commitMessage: "[manual trigger]", branch, pusher: req.user!.userId, status: "PENDING" },
+    });
+    runScreenshotGeneration(job.id).catch((err) => logger.error(`Screenshot job ${job.id} failed: ${err.message}`));
+    res.json({ ok: true, jobId: job.id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+githubRouter.post("/builds/trigger/:appId", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const ctx = await getAppAndToken(req.params.appId as string, res);
+    if (!ctx) return;
+    const { commitSha, branch } = await fetchLatestCommit(ctx.app.githubRepoFullName!, ctx.token);
+    runBuildJob(ctx.app.id, {
+      repoUrl: `https://github.com/${ctx.app.githubRepoFullName}.git`,
+      accessToken: ctx.token,
+      branch, appName: ctx.app.name, bundleId: ctx.app.bundleId, commitSha,
+    }).catch((err) => logger.error(`Build job for app ${ctx.app.id} failed: ${err.message}`));
+    res.json({ ok: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 githubRouter.post("/webhook", async (req: Request, res: Response) => {
   try {

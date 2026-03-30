@@ -177,7 +177,7 @@ export default function Actions({ addToast }: Props) {
 
       {activeApp && (
         <>
-          <BuildJobsTable appId={activeApp.id} />
+          <BuildJobsTable appId={activeApp.id} addToast={addToast} />
           <ScreenshotJobsTable appId={activeApp.id} addToast={addToast} />
         </>
       )}
