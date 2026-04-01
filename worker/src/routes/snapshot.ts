@@ -96,12 +96,12 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
       "https://",
       `https://x-access-token:${accessToken}@`,
     );
-    logs.push(`Cloning repo${branch ? ` @${branch}` : ""} ...`);
+    logs.push(`[repo] Cloning repo${branch ? ` @${branch}` : ""} ...`);
     await execAsync(
       `git clone --depth 1 ${branch ? `--branch ${branch}` : ""} "${cloneUrl}" "${tmpDir}"`,
       { timeout: 120_000 },
     );
-    logs.push("Clone complete");
+    logs.push(`[repo] Clone complete`);
 
     const workDir = resolveRepoWorkDir(tmpDir, iosDir, logs);
     let descriptions: Record<string, string> = {};
@@ -129,16 +129,20 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
         const { _config: _, ...rest } = parsed;
         descriptions = rest;
         logs.push(
-          `Loaded config.json from ${path.relative(workDir, configFile)} \n - scheme: ${scheme} \n - devices: ${effectiveDevices.join(", ")} \n - languages: ${effectiveLanguages.join(", ")} \n - ${Object.keys(descriptions).length} description${Object.keys(descriptions).length === 1 ? "" : "s"}`,
+          `[config] Loaded config.json from ${path.relative(workDir, configFile)}\n 
+                    - scheme: ${scheme} \n - devices: ${effectiveDevices.join(", ")}\n
+                    - languages: ${effectiveLanguages.join(", ")}\n
+                    - ${Object.keys(descriptions).length}\n 
+                    - description${Object.keys(descriptions).length === 1 ? "" : "s"}`,
         );
       } catch {
         logs.push(
-          `Warning: could not parse ${path.relative(workDir, configFile)}`,
+          `[config] Warning: could not parse ${path.relative(workDir, configFile)}`,
         );
       }
     } else {
       logs.push(
-        `No config.json found — using defaults (scheme: ${scheme}, devices: ${effectiveDevices.join(", ")})`,
+        `[config] No config.json found — using defaults (scheme: ${scheme}, devices: ${effectiveDevices.join(", ")})`,
       );
     }
 
@@ -186,7 +190,7 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
       .join(" ");
 
     logs.push(
-      `[snapshot] Running xcodebuild directly with destinations:\n ${snapDevices.join(",\n")}`,
+      `[snapshot] Running xcodebuild directly with destinations:\n${snapDevices.join("\n           - ")}`,
     );
 
     for (const lang of effectiveLanguages) {
@@ -227,7 +231,9 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
             path.join(fastlaneCacheDir, file),
             path.join(langDir, file),
           );
-        logs.push(`[snapshot] ${lang}: copied ${images.length} screenshot${images.length === 1 ? "" : "s"}`);
+        logs.push(
+          `[snapshot] ${lang}: copied ${images.length} screenshot${images.length === 1 ? "" : "s"}`,
+        );
       }
     }
 
@@ -256,7 +262,7 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
         0,
       );
       logs.push(
-        `Collected ${totalFiles} screenshot${totalFiles === 1 ? "" : "s"} across ${Object.keys(screenshots).length} locale${Object.keys(screenshots).length === 1 ? "" : "s"}`,
+        `[snapshot] Collected ${totalFiles} screenshot${totalFiles === 1 ? "" : "s"} across ${Object.keys(screenshots).length} locale${Object.keys(screenshots).length === 1 ? "" : "s"}`,
       );
     } else {
       logs.push("No screenshots directory found after run");

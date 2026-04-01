@@ -82,7 +82,7 @@ async function runScreenshotGenerationViaWorker(
       if (locale !== "default") detectedLocales.push(locale);
     }
     log(
-      `Saved ${screenshotUrls.length} screenshot(s) from worker`,
+      `[snapshot] Saved ${screenshotUrls.length} screenshot${screenshotUrls.length === 1 ? "" : "s"} from worker`,
     );
 
     const descriptions = result.descriptions ?? {};
