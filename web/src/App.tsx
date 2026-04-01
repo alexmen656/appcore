@@ -578,7 +578,7 @@ function HelpMenu() {
       {open && (
         <div className="absolute right-0 top-[calc(100%+6px)] w-48 bg-white dark:bg-[#1c2028] border border-[#e5e7eb] dark:border-[#2a2f3d] rounded-xl shadow-lg z-50 overflow-hidden py-1">
           <a
-            href="https://docs.marteso.com"
+            href="https://marteso.com/docs"
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setOpen(false)}
