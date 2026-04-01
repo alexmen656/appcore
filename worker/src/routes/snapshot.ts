@@ -129,10 +129,11 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
         const { _config: _, ...rest } = parsed;
         descriptions = rest;
         logs.push(
-          `[config] Loaded config.json from ${path.relative(workDir, configFile)}\n 
-                    - scheme: ${scheme} \n - devices: ${effectiveDevices.join(", ")}\n
-                    - languages: ${effectiveLanguages.join(", ")}\n
-                    - ${Object.keys(descriptions).length}\n 
+          `[config] Loaded config.json from ${path.relative(workDir, configFile)}
+                    - scheme: ${scheme}
+                    - devices: ${effectiveDevices.join(", ")}
+                    - languages: ${effectiveLanguages.join(", ")}
+                    - ${Object.keys(descriptions).length}
                     - description${Object.keys(descriptions).length === 1 ? "" : "s"}`,
         );
       } catch {
@@ -190,7 +191,7 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
       .join(" ");
 
     logs.push(
-      `[snapshot] Running xcodebuild directly with destinations:\n${snapDevices.join("\n           - ")}`,
+      `[snapshot] Running xcodebuild with destinations:\n           - ${snapDevices.join("\n           - ")}`,
     );
 
     for (const lang of effectiveLanguages) {
