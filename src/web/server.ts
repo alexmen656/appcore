@@ -51,7 +51,7 @@ app.use("/api/push", requireAuth, pushRouter);
 app.use("/api/autonomous", requireAuth, autonomousRouter);
 app.use("/api/team", teamRouter);
 app.use("/api/search", requireAuth, searchRouter);
-app.use("/", oauthRouter);
+app.use("/oauth", oauthRouter);
 
 app.get("/.well-known/oauth-protected-resource", (req, res) => {
   const base = `${req.protocol}://${req.get("host")}`;
@@ -65,9 +65,9 @@ app.get("/.well-known/oauth-authorization-server", (req, res) => {
   const base = `${req.protocol}://${req.get("host")}`;
   res.json({
     issuer: base,
-    authorization_endpoint: `${base}/authorize`,
-    token_endpoint: `${base}/token`,
-    registration_endpoint: `${base}/register`,
+    authorization_endpoint: `${base}/oauth/authorize`,
+    token_endpoint: `${base}/oauth/token`,
+    registration_endpoint: `${base}/oauth/register`,
     response_types_supported: ["code"],
     grant_types_supported: ["authorization_code"],
     code_challenge_methods_supported: ["S256"],

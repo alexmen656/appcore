@@ -164,36 +164,142 @@ oauthRouter.get("/authorize", async (req: Request, res: Response) => {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Authorize – AppCore</title>
+  <title>Authorize – Marteso</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-    .card { background: #fff; border-radius: 12px; padding: 36px 32px; width: 100%; max-width: 380px; box-shadow: 0 4px 24px rgba(0,0,0,.1); }
-    .logo { text-align: center; margin-bottom: 20px; font-size: 22px; font-weight: 700; color: #111; }
-    .logo span { color: #4f46e5; }
-    h1 { font-size: 17px; font-weight: 600; color: #111; margin-bottom: 6px; }
-    .sub { font-size: 13px; color: #666; margin-bottom: 24px; }
-    .client-name { color: #4f46e5; font-weight: 600; }
-    label { display: block; font-size: 13px; font-weight: 500; color: #374151; margin-bottom: 4px; }
-    input[type=email], input[type=password] { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; margin-bottom: 14px; outline: none; transition: border-color .15s; }
-    input[type=email]:focus, input[type=password]:focus { border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,.15); }
-    button { width: 100%; padding: 11px; background: #4f46e5; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background .15s; }
-    button:hover { background: #4338ca; }
-    .error { color: #dc2626; font-size: 13px; margin-bottom: 14px; padding: 10px 12px; background: #fef2f2; border-radius: 6px; border: 1px solid #fecaca; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0a0a0a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .card {
+      background: #111111;
+      border: 1px solid #222222;
+      border-radius: 16px;
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 8px 40px rgba(0,0,0,.6);
+    }
+    .logo-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .logo-svg {
+      width: 52px;
+      height: 39px;
+    }
+    .brand {
+      font-size: 20px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #FF6B00, #CC0022);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.3px;
+    }
+    h1 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #f5f5f5;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+    .sub {
+      font-size: 13px;
+      color: #888;
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .client-name {
+      background: linear-gradient(135deg, #FF6B00, #CC0022);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 600;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: #aaa;
+      margin-bottom: 5px;
+      letter-spacing: 0.02em;
+    }
+    input[type=email], input[type=password] {
+      width: 100%;
+      padding: 11px 14px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      font-size: 14px;
+      color: #f5f5f5;
+      margin-bottom: 16px;
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    input[type=email]:focus, input[type=password]:focus {
+      border-color: #FF6B00;
+      box-shadow: 0 0 0 3px rgba(255,107,0,.15);
+    }
+    input::placeholder { color: #555; }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #FF6B00, #CC0022);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s;
+      letter-spacing: 0.01em;
+    }
+    button:hover { opacity: 0.9; }
+    .error {
+      color: #f87171;
+      font-size: 13px;
+      margin-bottom: 16px;
+      padding: 10px 14px;
+      background: rgba(220,38,38,.1);
+      border-radius: 8px;
+      border: 1px solid rgba(220,38,38,.25);
+    }
   </style>
 </head>
 <body>
   <div class="card">
-    <div class="logo">App<span>Core</span></div>
+    <div class="logo-wrap">
+      <svg class="logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 210">
+        <defs>
+          <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#FF6B00"/>
+            <stop offset="100%" stop-color="#CC0022"/>
+          </linearGradient>
+        </defs>
+        <path d="M 36 165 L 36 78 A 46 46 0 0 1 128 78 L 128 145"
+          fill="none" stroke="url(#grad)" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M 128 145 L 128 78 A 46 46 0 0 1 220 78 L 220 165"
+          fill="none" stroke="url(#grad)" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="brand">Marteso</span>
+    </div>
     <h1>Authorize <span class="client-name">${escapeHtml(client.name)}</span></h1>
     <p class="sub">Sign in to grant access to your ASO data.</p>
     ${errorHtml}
-    <form method="POST" action="/authorize">
+    <form method="POST" action="/oauth/authorize">
       ${hiddenFields}
       <label for="email">Email</label>
-      <input type="email" id="email" name="email" required autofocus autocomplete="email">
+      <input type="email" id="email" name="email" required autofocus autocomplete="email" placeholder="you@example.com">
       <label for="password">Password</label>
-      <input type="password" id="password" name="password" required autocomplete="current-password">
+      <input type="password" id="password" name="password" required autocomplete="current-password" placeholder="••••••••">
       <button type="submit">Authorize access</button>
     </form>
   </div>
@@ -240,7 +346,11 @@ oauthRouter.post(
 
       const user = await prisma.user.findUnique({
         where: { email },
-        include: { settings: true },
+        include: {
+          teamMembers: {
+            include: { team: { include: { settings: true } } },
+          },
+        },
       });
       if (!user || !user.passwordHash) {
         redirectToForm("Invalid email or password");
@@ -253,7 +363,10 @@ oauthRouter.post(
         return;
       }
 
-      if (!user.settings?.mcpEnabled) {
+      const mcpEnabled = user.teamMembers.some(
+        (m) => m.team.settings?.mcpEnabled,
+      );
+      if (!mcpEnabled) {
         redirectToForm(
           "MCP access is not enabled. Enable it in AppCore settings first.",
         );
