@@ -205,7 +205,7 @@ export async function buildWithGym(
     if (installedProfileUuid) {
       const xcargs = [
         `CODE_SIGN_STYLE=Manual`,
-        `CODE_SIGN_IDENTITY="iPhone Distribution"`,
+        `CODE_SIGN_IDENTITY=\\"iPhone Distribution\\"`,
         `PROVISIONING_PROFILE_SPECIFIER=${installedProfileUuid}`,
         signingCreds?.teamId ? `DEVELOPMENT_TEAM=${signingCreds.teamId}` : "",
       ].filter(Boolean).join(" ");

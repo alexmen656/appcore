@@ -12,6 +12,7 @@ module.exports = {
       cwd: __dirname,
       env: {
         NODE_ENV: "production",
+        PATH: `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:${process.env.PATH ?? ""}`,
         ...env,
       },
     },
