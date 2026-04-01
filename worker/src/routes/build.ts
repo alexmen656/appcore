@@ -67,12 +67,12 @@ buildRouter.post("/build", async (req: Request, res: Response) => {
       `https://x-access-token:${accessToken}@`,
     );
     
-    logs.push(`Cloning repo${branch ? ` @${branch}` : ""} ...`);
+    logs.push(`[repo] Cloning repo${branch ? ` @${branch}` : ""} ...`);
     await execAsync(
       `git clone --depth 1 ${branch ? `--branch ${branch}` : ""} "${cloneUrl}" "${tmpDir}"`,
       { timeout: 120_000 },
     );
-    logs.push("Clone complete");
+    logs.push("[repo] Clone complete");
 
     const workDir = resolveRepoWorkDir(tmpDir, iosDir, logs);
 
@@ -94,8 +94,6 @@ buildRouter.post("/build", async (req: Request, res: Response) => {
     }
 
     const fastlanePath = await findFastlane();
-    logs.push(`Using fastlane: ${fastlanePath}`);
-
     const ipaPath = await buildWithGym(
       workDir,
       appName,

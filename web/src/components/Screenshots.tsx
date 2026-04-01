@@ -6,7 +6,26 @@ const LOG_PREFIX_COLORS: { prefix: string; color: string }[] = [
   { prefix: "[build]", color: "#a78bfa" },
   { prefix: "[frame]", color: "#34d399" },
   { prefix: "[framing]", color: "#b9fc00" },
+  { prefix: "[signing]", color: "#38c600" },
+  { prefix: "[config]", color: "#0169fb" },
 ];
+
+function renderLogLine(line: string, i: number) {
+  const entry = LOG_PREFIX_COLORS.find(({ prefix }) => line.startsWith(prefix));
+  if (entry) {
+    return (
+      <span key={i} className="block text-[#e5e7eb]">
+        <span style={{ color: entry.color }}>{entry.prefix}</span>
+        {line.slice(entry.prefix.length)}
+      </span>
+    );
+  }
+  return (
+    <span key={i} className="block text-[#e5e7eb]">
+      {line}
+    </span>
+  );
+}
 
 import {
   useApi,
@@ -393,11 +412,11 @@ export function ScreenshotJobsTable({
   appId: string;
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }) {
-  const { data: jobs, loading, refetch } = useApi<ScreenshotJob[]>(
-    `/github/screenshots/${appId}`,
-    [appId],
-    true,
-  );
+  const {
+    data: jobs,
+    loading,
+    refetch,
+  } = useApi<ScreenshotJob[]>(`/github/screenshots/${appId}`, [appId], true);
   const [expandedJob, setExpandedJob] = useState<string | null>(null);
   const [triggering, setTriggering] = useState(false);
 
@@ -433,7 +452,11 @@ export function ScreenshotJobsTable({
         <h2 className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
           Screenshot Jobs
         </h2>
-        <button onClick={handleTrigger} disabled={triggering} className={btnSecSm}>
+        <button
+          onClick={handleTrigger}
+          disabled={triggering}
+          className={btnSecSm}
+        >
           {triggering ? "Starting…" : "Run Now"}
         </button>
       </div>
@@ -677,24 +700,7 @@ function JobRow({
                 Logs ({job.logs.length} lines)
               </div>
               <pre className="text-[11px] bg-[#111827] rounded-lg p-3 overflow-x-auto max-h-[400px] overflow-y-auto font-mono leading-relaxed">
-                {job.logs.map((line, i) => {
-                  const entry = LOG_PREFIX_COLORS.find(({ prefix }) =>
-                    line.startsWith(prefix),
-                  );
-                  if (entry) {
-                    return (
-                      <span key={i} className="block text-[#e5e7eb]">
-                        <span style={{ color: entry.color }}>{entry.prefix}</span>
-                        {line.slice(entry.prefix.length)}
-                      </span>
-                    );
-                  }
-                  return (
-                    <span key={i} className="block text-[#e5e7eb]">
-                      {line}
-                    </span>
-                  );
-                })}
+                {job.logs.map(renderLogLine)}
               </pre>
             </div>
           ) : (
@@ -715,11 +721,11 @@ export function BuildJobsTable({
   appId: string;
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }) {
-  const { data: jobs, loading, refetch } = useApi<BuildJob[]>(
-    `/github/builds/${appId}`,
-    [appId],
-    true,
-  );
+  const {
+    data: jobs,
+    loading,
+    refetch,
+  } = useApi<BuildJob[]>(`/github/builds/${appId}`, [appId], true);
   const [expandedJob, setExpandedJob] = useState<string | null>(null);
   const [triggering, setTriggering] = useState(false);
 
@@ -755,7 +761,11 @@ export function BuildJobsTable({
         <h2 className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
           Build Jobs
         </h2>
-        <button onClick={handleTrigger} disabled={triggering} className={btnSecSm}>
+        <button
+          onClick={handleTrigger}
+          disabled={triggering}
+          className={btnSecSm}
+        >
           {triggering ? "Starting…" : "Run Now"}
         </button>
       </div>
@@ -841,8 +851,8 @@ export function BuildJobsTable({
                       <div className="text-[11px] font-medium text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide mb-2">
                         Logs
                       </div>
-                      <pre className="text-[11px] text-[#e5e7eb] bg-[#111827] rounded-lg p-3 overflow-x-auto max-h-[400px] overflow-y-auto font-mono leading-relaxed">
-                        {j.logs.join("\n")}
+                      <pre className="text-[11px] bg-[#111827] rounded-lg p-3 overflow-x-auto max-h-[400px] overflow-y-auto font-mono leading-relaxed">
+                        {j.logs.map(renderLogLine)}
                       </pre>
                     </div>
                   ) : (
