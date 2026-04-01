@@ -49,7 +49,7 @@ async function runScreenshotGenerationViaWorker(
       throw new Error("No GitHub repo linked to this app");
     }
 
-    log("Delegating screenshot generation to Fastlane worker...");
+    log("Delegating screenshot generation to worker...");
 
     const repoUrl = `https://github.com/${job.app.githubRepoFullName}.git`;
     const result = await workerClient.snapshot({
@@ -67,14 +67,6 @@ async function runScreenshotGenerationViaWorker(
       throw new Error(`Worker snapshot failed: ${result.errors.join("; ")}`);
     }
 
-    if (result.ipaBuilt && result.ipaPath) {
-      log(`Binary build succeeded — IPA stored on worker: ${result.ipaPath}`);
-    } else {
-      log(
-        "Binary build was skipped or failed (non-fatal, screenshots continue)",
-      );
-    }
-
     const screenshotUrls: string[] = [];
     const detectedLocales: string[] = [];
 
@@ -90,7 +82,7 @@ async function runScreenshotGenerationViaWorker(
       if (locale !== "default") detectedLocales.push(locale);
     }
     log(
-      `Saved ${screenshotUrls.length} screenshot(s) from worker to ${outputDir}`,
+      `Saved ${screenshotUrls.length} screenshot(s) from worker`,
     );
 
     const descriptions = result.descriptions ?? {};
@@ -123,7 +115,7 @@ async function runScreenshotGenerationViaWorker(
     let sublines: ScreenshotSublines = {};
     if (hasDescriptions) {
       log(
-        `Generating AI sublines for ${Object.keys(effectiveDescriptions).length} screen(s)...`,
+        `[framing] Generating AI sublines for ${Object.keys(effectiveDescriptions).length} screen(s)...`,
       );
       try {
         sublines = await generateScreenshotSublines(
@@ -132,7 +124,7 @@ async function runScreenshotGenerationViaWorker(
           detectedLocales.length > 0 ? detectedLocales : ["en-US"],
         );
         log(
-          `AI sublines generated for ${Object.keys(sublines).length} locale(s)`,
+          `[framing] AI sublines generated for ${Object.keys(sublines).length} locale(s)`,
         );
       } catch (sublineErr: any) {
         log(`Subline generation failed (non-fatal): ${sublineErr.message}`);
@@ -273,9 +265,9 @@ async function autoFrameScreenshots(
       data: { framedByLocale: framedByLocale } as any,
     });
     log(
-      `Auto-framing complete: ${Object.values(framedByLocale).flat().length} image(s)`,
+      `[framing] Auto-framing complete: ${Object.values(framedByLocale).flat().length} image(s)`,
     );
   } catch (frameErr: any) {
-    log(`Auto-framing failed (non-fatal): ${frameErr.message}`);
+    log(`[framing] Auto-framing failed (non-fatal): ${frameErr.message}`);
   }
 }

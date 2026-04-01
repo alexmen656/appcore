@@ -129,7 +129,7 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
         const { _config: _, ...rest } = parsed;
         descriptions = rest;
         logs.push(
-          `Loaded config.json from ${path.relative(workDir, configFile)} — scheme: ${scheme}, devices: ${effectiveDevices.join(", ")}, languages: ${effectiveLanguages.join(", ")}, ${Object.keys(descriptions).length} description(s)`,
+          `Loaded config.json from ${path.relative(workDir, configFile)} \n - scheme: ${scheme} \n - devices: ${effectiveDevices.join(", ")} \n - languages: ${effectiveLanguages.join(", ")} \n - ${Object.keys(descriptions).length} description${Object.keys(descriptions).length === 1 ? "" : "s"}`,
         );
       } catch {
         logs.push(
@@ -186,7 +186,7 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
       .join(" ");
 
     logs.push(
-      `[snapshot] Running xcodebuild directly with destinations: ${snapDevices.join(", ")}`,
+      `[snapshot] Running xcodebuild directly with destinations:\n ${snapDevices.join(",\n")}`,
     );
 
     for (const lang of effectiveLanguages) {
@@ -227,11 +227,11 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
             path.join(fastlaneCacheDir, file),
             path.join(langDir, file),
           );
-        logs.push(`[snapshot] ${lang}: copied ${images.length} screenshot(s)`);
+        logs.push(`[snapshot] ${lang}: copied ${images.length} screenshot${images.length === 1 ? "" : "s"}`);
       }
     }
 
-    logs.push("fastlane snapshot completed");
+    logs.push("[snapshot] fastlane snapshot completed");
 
     const screenshots: Record<
       string,
@@ -256,7 +256,7 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
         0,
       );
       logs.push(
-        `Collected ${totalFiles} screenshot(s) across ${Object.keys(screenshots).length} locale(s)`,
+        `Collected ${totalFiles} screenshot${totalFiles === 1 ? "" : "s"} across ${Object.keys(screenshots).length} locale${Object.keys(screenshots).length === 1 ? "" : "s"}`,
       );
     } else {
       logs.push("No screenshots directory found after run");
