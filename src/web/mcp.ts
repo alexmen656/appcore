@@ -35,7 +35,9 @@ export async function mcpAuth(req: Request, res: Response, next: NextFunction) {
         orderBy: { createdAt: "asc" },
       });
       const tokenSettings = membership
-        ? await prisma.teamSettings.findUnique({ where: { teamId: membership.teamId } })
+        ? await prisma.teamSettings.findUnique({
+            where: { teamId: membership.teamId },
+          })
         : null;
       if (tokenSettings?.mcpEnabled) {
         (req as any).mcpUserId = oauthToken.userId;
@@ -52,14 +54,14 @@ export async function mcpAuth(req: Request, res: Response, next: NextFunction) {
 
 export function createMcpServer(userId: string): McpServer {
   const server = new McpServer({
-    name: "AppCore ASO",
+    name: "Marteso ASO",
     version: "1.0.0",
   });
 
   // @ts-ignore
   server.tool(
     "list_apps",
-    "List all apps managed in AppCore. Returns bundle IDs, names, and key metrics. " +
+    "List all apps managed in Marteso. Returns bundle IDs, names, and key metrics. " +
       "Always call this first to discover available bundle IDs before using other tools.",
     {
       ownOnly: z
@@ -168,6 +170,86 @@ export function createMcpServer(userId: string): McpServer {
     },
   );
 
+  // @ts-ignore
+  server.tool(
+    "get_versions",
+    "Get version history for an app from scraped App Store snapshots. " +
+      "Returns version number, release notes, and when each version was first detected. " +
+      "Use list_apps to find the bundleId first.",
+    {
+      bundleId: z
+        .string()
+        .optional()
+        .describe(
+          "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted.",
+        ),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(50)
+        .default(10)
+        .describe("Max versions to return (default 10, max 50)"),
+    },
+    async ({ bundleId, limit }) => {
+      const settings = await getEffectiveSettings(userId);
+      const resolvedBundleId = bundleId || settings.ascBundleId;
+      if (!resolvedBundleId) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "No bundleId provided and no default configured. Call list_apps to see available apps.",
+            },
+          ],
+        };
+      }
+
+      const app = await prisma.app.findUnique({
+        where: { bundleId: resolvedBundleId },
+      });
+      if (!app) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `App not found: ${resolvedBundleId}. Call list_apps to see valid bundle IDs.`,
+            },
+          ],
+        };
+      }
+
+      const snapshots = await prisma.appSnapshot.findMany({
+        where: { appId: app.id, version: { not: null } },
+        orderBy: { scrapedAt: "desc" },
+        select: { version: true, releaseNotes: true, scrapedAt: true },
+      });
+
+      const seen = new Set<string>();
+      const versions: {
+        version: string;
+        releaseNotes: string | null;
+        firstDetectedAt: Date;
+      }[] = [];
+      for (const s of snapshots) {
+        if (s.version && !seen.has(s.version)) {
+          seen.add(s.version);
+          versions.push({
+            version: s.version,
+            releaseNotes: s.releaseNotes ?? null,
+            firstDetectedAt: s.scrapedAt,
+          });
+          if (versions.length >= limit) break;
+        }
+      }
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(versions, null, 2) }],
+      };
+    },
+  );
+
+  // @ts-ignore
   server.tool(
     "get_keywords",
     "Get tracked keywords with current App Store rankings, popularity scores, and difficulty for an app. " +
@@ -244,6 +326,7 @@ export function createMcpServer(userId: string): McpServer {
     },
   );
 
+  // @ts-ignore
   server.tool(
     "get_competitors",
     "Get competitor apps tracked for an app, including ratings, relevance scores, and latest metadata. " +
@@ -259,12 +342,15 @@ export function createMcpServer(userId: string): McpServer {
     async ({ bundleId }) => {
       const settings = await getEffectiveSettings(userId);
       const resolvedBundleId = bundleId || settings.ascBundleId;
+
       if (!resolvedBundleId) {
         return { content: [{ type: "text", text: "No bundleId configured." }] };
       }
+
       const app = await prisma.app.findUnique({
         where: { bundleId: resolvedBundleId },
       });
+
       if (!app) {
         return {
           content: [
@@ -293,6 +379,310 @@ export function createMcpServer(userId: string): McpServer {
       return {
         content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
       };
+    },
+  );
+
+  // @ts-ignore
+  server.tool(
+    "list_asc_versions",
+    "List all App Store Connect versions for an app with their states (e.g. READY_FOR_SALE, PREPARE_FOR_SUBMISSION, IN_REVIEW). " +
+      "Use this to discover versionId values for get_version_metadata and update_version_metadata.",
+    {
+      bundleId: z
+        .string()
+        .optional()
+        .describe(
+          "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted.",
+        ),
+    },
+    async ({ bundleId }) => {
+      const settings = await getEffectiveSettings(userId);
+      const resolvedBundleId = bundleId || settings.ascBundleId;
+      if (!settings.ascIssuerId || !settings.ascKeyId || !settings.ascPrivateKey) {
+        return {
+          content: [{ type: "text", text: "App Store Connect credentials not configured. Set them in Marteso settings." }],
+        };
+      }
+      try {
+        const { AppStoreConnectClient } =
+          await import("../services/appstore-connect");
+        const asc = new AppStoreConnectClient({
+          issuerId: settings.ascIssuerId,
+          keyId: settings.ascKeyId,
+          privateKey: settings.ascPrivateKey,
+        });
+        const appRecord = resolvedBundleId
+          ? await prisma.app.findUnique({ where: { bundleId: resolvedBundleId }, select: { trackId: true } })
+          : null;
+        let ascAppId = settings.ascAppId || appRecord?.trackId?.toString() || "";
+        if (!ascAppId && resolvedBundleId) {
+          const ascApp = await asc.getApp(resolvedBundleId);
+          ascAppId = ascApp?.id ?? "";
+        }
+        if (!ascAppId) {
+          return {
+            content: [{ type: "text", text: `Could not resolve ASC App ID for bundle ID: ${resolvedBundleId || "(none)"}` }],
+          };
+        }
+        const versions = await asc.listVersions(ascAppId);
+        const result = versions.map((v: any) => ({
+          versionId: v.id,
+          versionString: v.attributes?.versionString,
+          appStoreState: v.attributes?.appStoreState,
+          platform: v.attributes?.platform,
+          isEditable: [
+            "PREPARE_FOR_SUBMISSION",
+            "DEVELOPER_REJECTED",
+            "REJECTED",
+            "METADATA_REJECTED",
+            "WAITING_FOR_REVIEW",
+          ].includes(v.attributes?.appStoreState),
+        }));
+        return {
+          content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+        };
+      } catch (err: any) {
+        return {
+          content: [
+            { type: "text", text: `ASC error: ${err?.message ?? String(err)}` },
+          ],
+        };
+      }
+    },
+  );
+
+  // @ts-ignore
+  server.tool(
+    "get_version_metadata",
+    "Get full App Store Connect metadata for a version across all locales. " +
+      "Returns name, subtitle, keywords, description, whatsNew (release notes), and promotionalText per locale. " +
+      "Use list_asc_versions to get a versionId, or omit it to use the current editable version.",
+    {
+      bundleId: z
+        .string()
+        .optional()
+        .describe(
+          "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted.",
+        ),
+      versionId: z
+        .string()
+        .optional()
+        .describe(
+          "ASC version ID from list_asc_versions. Uses the current editable version if omitted.",
+        ),
+      locale: z
+        .string()
+        .optional()
+        .describe(
+          "Return only this locale (e.g. 'en-US', 'de-DE'). Returns all locales if omitted.",
+        ),
+    },
+    async ({ bundleId, versionId, locale }) => {
+      const settings = await getEffectiveSettings(userId);
+      if (!settings.ascIssuerId || !settings.ascKeyId || !settings.ascPrivateKey) {
+        return {
+          content: [{ type: "text", text: "App Store Connect credentials not configured." }],
+        };
+      }
+      const resolvedBundleId = bundleId || settings.ascBundleId;
+      try {
+        const { AppStoreConnectClient } =
+          await import("../services/appstore-connect");
+        const asc = new AppStoreConnectClient({
+          issuerId: settings.ascIssuerId,
+          keyId: settings.ascKeyId,
+          privateKey: settings.ascPrivateKey,
+        });
+        const appRecord = resolvedBundleId
+          ? await prisma.app.findUnique({ where: { bundleId: resolvedBundleId }, select: { trackId: true } })
+          : null;
+        let ascAppId = settings.ascAppId || appRecord?.trackId?.toString() || "";
+        if (!ascAppId && resolvedBundleId) {
+          const ascApp = await asc.getApp(resolvedBundleId);
+          ascAppId = ascApp?.id ?? "";
+        }
+        if (!ascAppId) {
+          return {
+            content: [{ type: "text", text: `Could not resolve ASC App ID for bundle ID: ${resolvedBundleId || "(none)"}` }],
+          };
+        }
+
+        let resolvedVersionId = versionId;
+        if (!resolvedVersionId) {
+          const editable = await asc.getEditableVersion(ascAppId);
+          if (!editable) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: "No editable version found. Use list_asc_versions to see available versions.",
+                },
+              ],
+            };
+          }
+          resolvedVersionId = editable.id;
+        }
+
+        const [appInfoLocs, versionLocs] = await Promise.all([
+          asc
+            .getAppInfoLocalizations(ascAppId)
+            .catch(() => [] as any[]),
+          asc
+            .getVersionLocalizations(resolvedVersionId, locale)
+            .catch(() => [] as any[]),
+        ]);
+
+        // Merge by locale
+        const localeMap: Record<string, any> = {};
+        for (const l of appInfoLocs) {
+          const loc = l.attributes?.locale ?? l.locale;
+          if (locale && loc !== locale) continue;
+          localeMap[loc] = {
+            locale: loc,
+            appInfoLocalizationId: l.id,
+            name: l.attributes?.name ?? null,
+            subtitle: l.attributes?.subtitle ?? null,
+            privacyPolicyUrl: l.attributes?.privacyPolicyUrl ?? null,
+          };
+        }
+        for (const l of versionLocs) {
+          const loc = l.attributes?.locale ?? l.locale;
+          if (locale && loc !== locale) continue;
+          localeMap[loc] = {
+            ...localeMap[loc],
+            locale: loc,
+            versionLocalizationId: l.id,
+            description: l.attributes?.description ?? null,
+            keywords: l.attributes?.keywords ?? null,
+            whatsNew: l.attributes?.whatsNew ?? null,
+            promotionalText: l.attributes?.promotionalText ?? null,
+            supportUrl: l.attributes?.supportUrl ?? null,
+          };
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  versionId: resolvedVersionId,
+                  localizations: Object.values(localeMap),
+                },
+                null,
+                2,
+              ),
+            },
+          ],
+        };
+      } catch (err: any) {
+        return {
+          content: [
+            { type: "text", text: `ASC error: ${err?.message ?? String(err)}` },
+          ],
+        };
+      }
+    },
+  );
+
+  // @ts-ignore
+  server.tool(
+    "update_version_metadata",
+    "Update a single App Store Connect metadata field for a specific locale. " +
+      "App info fields (name, subtitle): pass appInfoLocalizationId. " +
+      "Version fields (description, keywords, whatsNew, promotionalText, supportUrl): pass versionLocalizationId. " +
+      "Get these IDs from get_version_metadata.",
+    {
+      appInfoLocalizationId: z
+        .string()
+        .optional()
+        .describe(
+          "ID for app info localization (needed for name, subtitle, privacyPolicyUrl).",
+        ),
+      versionLocalizationId: z
+        .string()
+        .optional()
+        .describe(
+          "ID for version localization (needed for description, keywords, whatsNew, promotionalText, supportUrl).",
+        ),
+      field: z
+        .string()
+        .describe(
+          "Which field to update. App info fields: name, subtitle, privacyPolicyUrl. Version fields: description, keywords, whatsNew, promotionalText, supportUrl.",
+        ),
+      value: z.string().describe("New value for the field."),
+    },
+    async ({ appInfoLocalizationId, versionLocalizationId, field, value }) => {
+      const settings = await getEffectiveSettings(userId);
+      if (
+        !settings.ascIssuerId ||
+        !settings.ascKeyId ||
+        !settings.ascPrivateKey
+      ) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "App Store Connect credentials not configured.",
+            },
+          ],
+        };
+      }
+      try {
+        const { AppStoreConnectClient } =
+          await import("../services/appstore-connect");
+        const asc = new AppStoreConnectClient({
+          issuerId: settings.ascIssuerId,
+          keyId: settings.ascKeyId,
+          privateKey: settings.ascPrivateKey,
+        });
+
+        const appInfoFields = ["name", "subtitle", "privacyPolicyUrl"];
+        if (appInfoFields.includes(field)) {
+          if (!appInfoLocalizationId) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `Field '${field}' requires appInfoLocalizationId. Get it from get_version_metadata.`,
+                },
+              ],
+            };
+          }
+          await asc.updateAppInfoLocalization(appInfoLocalizationId, {
+            [field]: value,
+          });
+        } else {
+          if (!versionLocalizationId) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `Field '${field}' requires versionLocalizationId. Get it from get_version_metadata.`,
+                },
+              ],
+            };
+          }
+          await asc.updateVersionLocalization(versionLocalizationId, {
+            [field]: value,
+          });
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({ ok: true, field, value }, null, 2),
+            },
+          ],
+        };
+      } catch (err: any) {
+        return {
+          content: [
+            { type: "text", text: `ASC error: ${err?.message ?? String(err)}` },
+          ],
+        };
+      }
     },
   );
 
@@ -357,6 +747,7 @@ export function createMcpServer(userId: string): McpServer {
     },
   );
 
+  // @ts-ignore
   server.tool(
     "get_analytics",
     "Get downloads, updates, revenue, impressions, page views, and sessions summary for an app over a configurable date range. " +
