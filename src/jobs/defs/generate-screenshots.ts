@@ -115,7 +115,7 @@ async function runScreenshotGenerationViaWorker(
     let sublines: ScreenshotSublines = {};
     if (hasDescriptions) {
       log(
-        `[framing] Generating AI sublines for ${Object.keys(effectiveDescriptions).length} screen(s)...`,
+        `[framing] Generating AI sublines for ${Object.keys(effectiveDescriptions).length} screen${Object.keys(effectiveDescriptions).length === 1 ? "" : "s"}...`,
       );
       try {
         sublines = await generateScreenshotSublines(
@@ -124,10 +124,12 @@ async function runScreenshotGenerationViaWorker(
           detectedLocales.length > 0 ? detectedLocales : ["en-US"],
         );
         log(
-          `[framing] AI sublines generated for ${Object.keys(sublines).length} locale(s)`,
+          `[framing] AI sublines generated for ${Object.keys(sublines).length} locale${Object.keys(sublines).length === 1 ? "" : "s"}`,
         );
       } catch (sublineErr: any) {
-        log(`Subline generation failed (non-fatal): ${sublineErr.message}`);
+        log(
+          `[framing] Subline generation failed (non-fatal): ${sublineErr.message}`,
+        );
       }
     }
 
@@ -265,9 +267,9 @@ async function autoFrameScreenshots(
       data: { framedByLocale: framedByLocale } as any,
     });
     log(
-      `[framing] Auto-framing complete: ${Object.values(framedByLocale).flat().length} image(s)`,
+      `[framing] Framing complete: ${Object.values(framedByLocale).flat().length} image${Object.values(framedByLocale).flat().length === 1 ? "" : "s"}`,
     );
   } catch (frameErr: any) {
-    log(`[framing] Auto-framing failed (non-fatal): ${frameErr.message}`);
+    log(`[framing] Framing failed (non-fatal): ${frameErr.message}`);
   }
 }
