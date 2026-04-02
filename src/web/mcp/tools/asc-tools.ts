@@ -11,17 +11,20 @@ import {
 
 export function registerAscTools(server: McpServer, userId: string) {
   // @ts-ignore
-  server.tool(
+  server.registerTool(
     "list_asc_versions",
-    "List all App Store Connect versions for an app with their states (e.g. READY_FOR_SALE, PREPARE_FOR_SUBMISSION, IN_REVIEW). " +
-      "Use this to discover versionId values for get_version_metadata and update_version_metadata.",
     {
-      bundleId: z
-        .string()
-        .optional()
-        .describe(
-          "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted.",
-        ),
+      description:
+        "List all App Store Connect versions for an app with their states (e.g. READY_FOR_SALE, PREPARE_FOR_SUBMISSION, IN_REVIEW). " +
+        "Use this to discover versionId values for get_version_metadata and update_version_metadata.",
+      inputSchema: {
+        bundleId: z
+          .string()
+          .optional()
+          .describe(
+            "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted.",
+          ),
+      },
     },
     async ({ bundleId }) => {
       const { settings, resolvedBundleId } = await getSettingsWithBundleId(
@@ -81,30 +84,33 @@ export function registerAscTools(server: McpServer, userId: string) {
   );
 
   // @ts-ignore
-  server.tool(
+  server.registerTool(
     "get_version_metadata",
-    "Get full App Store Connect metadata for a version across all locales. " +
-      "Returns name, subtitle, keywords, description, whatsNew (release notes), and promotionalText per locale. " +
-      "Use list_asc_versions to get a versionId, or omit it to use the current editable version.",
     {
-      bundleId: z
-        .string()
-        .optional()
-        .describe(
-          "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted.",
-        ),
-      versionId: z
-        .string()
-        .optional()
-        .describe(
-          "ASC version ID from list_asc_versions. Uses the current editable version if omitted.",
-        ),
-      locale: z
-        .string()
-        .optional()
-        .describe(
-          "Return only this locale (e.g. 'en-US', 'de-DE'). Returns all locales if omitted.",
-        ),
+      description:
+        "Get full App Store Connect metadata for a version across all locales. " +
+        "Returns name, subtitle, keywords, description, whatsNew (release notes), and promotionalText per locale. " +
+        "Use list_asc_versions to get a versionId, or omit it to use the current editable version.",
+      inputSchema: {
+        bundleId: z
+          .string()
+          .optional()
+          .describe(
+            "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted.",
+          ),
+        versionId: z
+          .string()
+          .optional()
+          .describe(
+            "ASC version ID from list_asc_versions. Uses the current editable version if omitted.",
+          ),
+        locale: z
+          .string()
+          .optional()
+          .describe(
+            "Return only this locale (e.g. 'en-US', 'de-DE'). Returns all locales if omitted.",
+          ),
+      },
     },
     async ({ bundleId, versionId, locale }) => {
       const { settings, resolvedBundleId } = await getSettingsWithBundleId(
@@ -211,31 +217,34 @@ export function registerAscTools(server: McpServer, userId: string) {
   );
 
   // @ts-ignore
-  server.tool(
+  server.registerTool(
     "update_version_metadata",
-    "Update a single App Store Connect metadata field for a specific locale. " +
-      "App info fields (name, subtitle): pass appInfoLocalizationId. " +
-      "Version fields (description, keywords, whatsNew, promotionalText, supportUrl): pass versionLocalizationId. " +
-      "Get these IDs from get_version_metadata.",
     {
-      appInfoLocalizationId: z
-        .string()
-        .optional()
-        .describe(
-          "ID for app info localization (needed for name, subtitle, privacyPolicyUrl).",
-        ),
-      versionLocalizationId: z
-        .string()
-        .optional()
-        .describe(
-          "ID for version localization (needed for description, keywords, whatsNew, promotionalText, supportUrl).",
-        ),
-      field: z
-        .string()
-        .describe(
-          "Which field to update. App info fields: name, subtitle, privacyPolicyUrl. Version fields: description, keywords, whatsNew, promotionalText, supportUrl.",
-        ),
-      value: z.string().describe("New value for the field."),
+      description:
+        "Update a single App Store Connect metadata field for a specific locale. " +
+        "App info fields (name, subtitle): pass appInfoLocalizationId. " +
+        "Version fields (description, keywords, whatsNew, promotionalText, supportUrl): pass versionLocalizationId. " +
+        "Get these IDs from get_version_metadata.",
+      inputSchema: {
+        appInfoLocalizationId: z
+          .string()
+          .optional()
+          .describe(
+            "ID for app info localization (needed for name, subtitle, privacyPolicyUrl).",
+          ),
+        versionLocalizationId: z
+          .string()
+          .optional()
+          .describe(
+            "ID for version localization (needed for description, keywords, whatsNew, promotionalText, supportUrl).",
+          ),
+        field: z
+          .string()
+          .describe(
+            "Which field to update. App info fields: name, subtitle, privacyPolicyUrl. Version fields: description, keywords, whatsNew, promotionalText, supportUrl.",
+          ),
+        value: z.string().describe("New value for the field."),
+      },
     },
     async ({ appInfoLocalizationId, versionLocalizationId, field, value }) => {
       const { settings } = await getSettingsWithBundleId(userId);

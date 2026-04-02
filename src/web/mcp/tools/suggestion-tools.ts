@@ -4,31 +4,34 @@ import { prisma, getEffectiveSettings } from "../../../config";
 
 export function registerSuggestionTools(server: McpServer, userId: string) {
   // @ts-ignore
-  server.tool(
+  server.registerTool(
     "get_suggestions",
-    "Get AI-generated ASO suggestions (title, subtitle, keywords, description) for an app. " +
-      "Filter by status: PENDING (awaiting review), APPROVED (ready to apply), APPLIED, REJECTED, EXPIRED. " +
-      "Use update_suggestion to approve or reject individual suggestions.",
     {
-      bundleId: z
-        .string()
-        .optional()
-        .describe(
-          "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted.",
-        ),
-      status: z
-        .enum(["PENDING", "APPROVED", "APPLIED", "REJECTED", "EXPIRED"])
-        .optional()
-        .describe(
-          "Filter by suggestion status. Returns all statuses if omitted.",
-        ),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(100)
-        .default(20)
-        .describe("Max suggestions to return (default 20)"),
+      description:
+        "Get AI-generated ASO suggestions (title, subtitle, keywords, description) for an app. " +
+        "Filter by status: PENDING (awaiting review), APPROVED (ready to apply), APPLIED, REJECTED, EXPIRED. " +
+        "Use update_suggestion to approve or reject individual suggestions.",
+      inputSchema: {
+        bundleId: z
+          .string()
+          .optional()
+          .describe(
+            "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted.",
+          ),
+        status: z
+          .enum(["PENDING", "APPROVED", "APPLIED", "REJECTED", "EXPIRED"])
+          .optional()
+          .describe(
+            "Filter by suggestion status. Returns all statuses if omitted.",
+          ),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(100)
+          .default(20)
+          .describe("Max suggestions to return (default 20)"),
+      },
     },
     async ({ bundleId, status, limit }) => {
       const settings = await getEffectiveSettings(userId);
@@ -65,21 +68,26 @@ export function registerSuggestionTools(server: McpServer, userId: string) {
   );
 
   // @ts-ignore
-  server.tool(
+  server.registerTool(
     "update_suggestion",
-    "Update the status of an ASO suggestion. Use this to approve, reject, or mark suggestions as applied. " +
-      "Get suggestion IDs from get_suggestions.",
     {
-      id: z.string().describe("The suggestion ID returned by get_suggestions."),
-      status: z
-        .enum(["APPROVED", "REJECTED", "APPLIED", "PENDING", "EXPIRED"])
-        .describe("New status to set for the suggestion."),
-      resultNotes: z
-        .string()
-        .optional()
-        .describe(
-          "Optional notes to record (e.g. 'Applied to en-US locale', or reason for rejection).",
-        ),
+      description:
+        "Update the status of an ASO suggestion. Use this to approve, reject, or mark suggestions as applied. " +
+        "Get suggestion IDs from get_suggestions.",
+      inputSchema: {
+        id: z
+          .string()
+          .describe("The suggestion ID returned by get_suggestions."),
+        status: z
+          .enum(["APPROVED", "REJECTED", "APPLIED", "PENDING", "EXPIRED"])
+          .describe("New status to set for the suggestion."),
+        resultNotes: z
+          .string()
+          .optional()
+          .describe(
+            "Optional notes to record (e.g. 'Applied to en-US locale', or reason for rejection).",
+          ),
+      },
     },
     async ({ id, status, resultNotes }) => {
       const suggestion = await prisma.aSOSuggestion.findUnique({

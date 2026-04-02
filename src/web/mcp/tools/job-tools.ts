@@ -6,32 +6,35 @@ import { createAscClient, getSettingsWithBundleId } from "./shared";
 
 export function registerJobTools(server: McpServer, userId: string) {
   // @ts-ignore
-  server.tool(
+  server.registerTool(
     "trigger_job",
-    "Trigger a background job for an app. Available jobs: " +
-      "'scrape' (fetch latest App Store metadata for app + competitors), " +
-      "'analyze' (run AI analysis and generate new ASO suggestions), " +
-      "'sync' (pull current metadata from App Store Connect), " +
-      "'track-keywords' (update keyword rankings), " +
-      "'discover-keywords' (find new keyword opportunities). " +
-      "Use list_apps to find available bundle IDs.",
     {
-      job: z
-        .enum([
-          "scrape",
-          "analyze",
-          "sync",
-          "track-keywords",
-          "discover-keywords",
-        ])
-        .describe("Which job to trigger"),
-      bundleId: z
-        .string()
-        .optional()
-        .describe(
-          "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted. " +
-            "When managing multiple apps always pass bundleId explicitly.",
-        ),
+      description:
+        "Trigger a background job for an app. Available jobs: " +
+        "'scrape' (fetch latest App Store metadata for app + competitors), " +
+        "'analyze' (run AI analysis and generate new ASO suggestions), " +
+        "'sync' (pull current metadata from App Store Connect), " +
+        "'track-keywords' (update keyword rankings), " +
+        "'discover-keywords' (find new keyword opportunities). " +
+        "Use list_apps to find available bundle IDs.",
+      inputSchema: {
+        job: z
+          .enum([
+            "scrape",
+            "analyze",
+            "sync",
+            "track-keywords",
+            "discover-keywords",
+          ])
+          .describe("Which job to trigger"),
+        bundleId: z
+          .string()
+          .optional()
+          .describe(
+            "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted. " +
+              "When managing multiple apps always pass bundleId explicitly.",
+          ),
+      },
     },
     async ({ job, bundleId }) => {
       const { settings, resolvedBundleId } = await getSettingsWithBundleId(

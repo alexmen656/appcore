@@ -10,17 +10,20 @@ import {
 
 export function registerAppTools(server: McpServer, userId: string) {
   // @ts-ignore
-  server.tool(
+  server.registerTool(
     "list_apps",
-    "List all apps managed in Marteso. Returns bundle IDs, names, and key metrics. " +
-      "Always call this first to discover available bundle IDs before using other tools.",
     {
-      ownOnly: z
-        .boolean()
-        .default(true)
-        .describe(
-          "When true (default) returns only your own apps. Set false to include tracked competitor apps too.",
-        ),
+      description:
+        "List all apps managed in Marteso. Returns bundle IDs, names, and key metrics. " +
+        "Always call this first to discover available bundle IDs before using other tools.",
+      inputSchema: {
+        ownOnly: z
+          .boolean()
+          .default(true)
+          .describe(
+            "When true (default) returns only your own apps. Set false to include tracked competitor apps too.",
+          ),
+      },
     },
     async ({ ownOnly }) => {
       const apps = await prisma.app.findMany({
@@ -54,17 +57,20 @@ export function registerAppTools(server: McpServer, userId: string) {
   );
 
   // @ts-ignore
-  server.tool(
+  server.registerTool(
     "get_app_info",
-    "Get current ASO metadata (title, subtitle, keywords, description) for a specific app. " +
-      "Use list_apps first to find available bundle IDs.",
     {
-      bundleId: z
-        .string()
-        .optional()
-        .describe(
-          "App bundle ID (e.g. 'com.example.myapp'). Falls back to the user's default app if omitted.",
-        ),
+      description:
+        "Get current ASO metadata (title, subtitle, keywords, description) for a specific app. " +
+        "Use list_apps first to find available bundle IDs.",
+      inputSchema: {
+        bundleId: z
+          .string()
+          .optional()
+          .describe(
+            "App bundle ID (e.g. 'com.example.myapp'). Falls back to the user's default app if omitted.",
+          ),
+      },
     },
     async ({ bundleId }) => {
       const { resolvedBundleId } = await getSettingsWithBundleId(
@@ -127,25 +133,28 @@ export function registerAppTools(server: McpServer, userId: string) {
   );
 
   // @ts-ignore
-  server.tool(
+  server.registerTool(
     "get_versions",
-    "Get version history for an app from scraped App Store snapshots. " +
-      "Returns version number, release notes, and when each version was first detected. " +
-      "Use list_apps to find the bundleId first.",
     {
-      bundleId: z
-        .string()
-        .optional()
-        .describe(
-          "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted.",
-        ),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(50)
-        .default(10)
-        .describe("Max versions to return (default 10, max 50)"),
+      description:
+        "Get version history for an app from scraped App Store snapshots. " +
+        "Returns version number, release notes, and when each version was first detected. " +
+        "Use list_apps to find the bundleId first.",
+      inputSchema: {
+        bundleId: z
+          .string()
+          .optional()
+          .describe(
+            "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted.",
+          ),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(50)
+          .default(10)
+          .describe("Max versions to return (default 10, max 50)"),
+      },
     },
     async ({ bundleId, limit }) => {
       const { resolvedBundleId } = await getSettingsWithBundleId(
@@ -210,24 +219,27 @@ export function registerAppTools(server: McpServer, userId: string) {
   );
 
   // @ts-ignore
-  server.tool(
+  server.registerTool(
     "get_keywords",
-    "Get tracked keywords with current App Store rankings, popularity scores, and difficulty for an app. " +
-      "Use list_apps to find the bundleId first.",
     {
-      bundleId: z
-        .string()
-        .optional()
-        .describe(
-          "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted.",
-        ),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(200)
-        .default(50)
-        .describe("Max keywords to return (default 50, max 200)"),
+      description:
+        "Get tracked keywords with current App Store rankings, popularity scores, and difficulty for an app. " +
+        "Use list_apps to find the bundleId first.",
+      inputSchema: {
+        bundleId: z
+          .string()
+          .optional()
+          .describe(
+            "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted.",
+          ),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(200)
+          .default(50)
+          .describe("Max keywords to return (default 50, max 200)"),
+      },
     },
     async ({ bundleId, limit }) => {
       const { resolvedBundleId } = await getSettingsWithBundleId(
@@ -290,17 +302,20 @@ export function registerAppTools(server: McpServer, userId: string) {
   );
 
   // @ts-ignore
-  server.tool(
+  server.registerTool(
     "get_competitors",
-    "Get competitor apps tracked for an app, including ratings, relevance scores, and latest metadata. " +
-      "Use list_apps to find the bundleId first.",
     {
-      bundleId: z
-        .string()
-        .optional()
-        .describe(
-          "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted.",
-        ),
+      description:
+        "Get competitor apps tracked for an app, including ratings, relevance scores, and latest metadata. " +
+        "Use list_apps to find the bundleId first.",
+      inputSchema: {
+        bundleId: z
+          .string()
+          .optional()
+          .describe(
+            "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted.",
+          ),
+      },
     },
     async ({ bundleId }) => {
       const { resolvedBundleId } = await getSettingsWithBundleId(
@@ -353,24 +368,27 @@ export function registerAppTools(server: McpServer, userId: string) {
   );
 
   // @ts-ignore
-  server.tool(
+  server.registerTool(
     "get_analytics",
-    "Get downloads, updates, revenue, impressions, page views, and sessions summary for an app over a configurable date range. " +
-      "Use list_apps to find available bundle IDs.",
     {
-      bundleId: z
-        .string()
-        .optional()
-        .describe(
-          "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted.",
-        ),
-      days: z
-        .number()
-        .int()
-        .min(1)
-        .max(365)
-        .default(30)
-        .describe("Number of days to look back (default 30, max 365)"),
+      description:
+        "Get downloads, updates, revenue, impressions, page views, and sessions summary for an app over a configurable date range. " +
+        "Use list_apps to find available bundle IDs.",
+      inputSchema: {
+        bundleId: z
+          .string()
+          .optional()
+          .describe(
+            "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted.",
+          ),
+        days: z
+          .number()
+          .int()
+          .min(1)
+          .max(365)
+          .default(30)
+          .describe("Number of days to look back (default 30, max 365)"),
+      },
     },
     async ({ bundleId, days }) => {
       const { resolvedBundleId } = await getSettingsWithBundleId(
@@ -435,44 +453,47 @@ export function registerAppTools(server: McpServer, userId: string) {
   );
 
   // @ts-ignore
-  server.tool(
+  server.registerTool(
     "get_reviews",
-    "Get App Store reviews for an app. Returns rating, title, body, territory, and review date. " +
-      "Use list_apps to find the bundleId first.",
     {
-      bundleId: z
-        .string()
-        .optional()
-        .describe(
-          "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted.",
-        ),
-      minRating: z
-        .number()
-        .int()
-        .min(1)
-        .max(5)
-        .optional()
-        .describe("Only return reviews at or above this star rating (1-5)."),
-      maxRating: z
-        .number()
-        .int()
-        .min(1)
-        .max(5)
-        .optional()
-        .describe("Only return reviews at or below this star rating (1-5)."),
-      territory: z
-        .string()
-        .optional()
-        .describe(
-          "Filter by territory code, e.g. 'DEU', 'USA'. Returns all territories if omitted.",
-        ),
-      limit: z
-        .number()
-        .int()
-        .min(1)
-        .max(200)
-        .default(50)
-        .describe("Max reviews to return (default 50, max 200)"),
+      description:
+        "Get App Store reviews for an app. Returns rating, title, body, territory, and review date. " +
+        "Use list_apps to find the bundleId first.",
+      inputSchema: {
+        bundleId: z
+          .string()
+          .optional()
+          .describe(
+            "App bundle ID (e.g. 'com.example.myapp'). Uses the user's default app if omitted.",
+          ),
+        minRating: z
+          .number()
+          .int()
+          .min(1)
+          .max(5)
+          .optional()
+          .describe("Only return reviews at or above this star rating (1-5)."),
+        maxRating: z
+          .number()
+          .int()
+          .min(1)
+          .max(5)
+          .optional()
+          .describe("Only return reviews at or below this star rating (1-5)."),
+        territory: z
+          .string()
+          .optional()
+          .describe(
+            "Filter by territory code, e.g. 'DEU', 'USA'. Returns all territories if omitted.",
+          ),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(200)
+          .default(50)
+          .describe("Max reviews to return (default 50, max 200)"),
+      },
     },
     async ({ bundleId, minRating, maxRating, territory, limit }) => {
       const { resolvedBundleId } = await getSettingsWithBundleId(
