@@ -251,6 +251,32 @@ export async function unlinkRepoFromApp(
   logger.info(`Unlinked repo from app ${app.bundleId}`);
 }
 
+export async function postCommitStatus(
+  accessToken: string,
+  repoFullName: string,
+  sha: string,
+  state: "pending" | "success" | "failure" | "error",
+  context: string,
+  description: string,
+  targetUrl?: string,
+): Promise<void> {
+  try {
+    await axios.post(
+      `${GITHUB_API}/repos/${repoFullName}/statuses/${sha}`,
+      {
+        state,
+        context,
+        description,
+        ...(targetUrl && { target_url: targetUrl }),
+      },
+      { headers: { Authorization: `Bearer ${accessToken}` } },
+    );
+    logger.info(`Posted GitHub commit status [${state}] for ${sha.slice(0, 7)} (${context})`);
+  } catch (err: any) {
+    logger.warn(`Failed to post GitHub commit status: ${err.response?.data?.message ?? err.message}`);
+  }
+}
+
 export async function cloneRepo(
   accessToken: string,
   repoFullName: string,

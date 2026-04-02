@@ -1,5 +1,6 @@
 import { logger, prisma } from "../../config";
 import { workerClient } from "../../services/worker-client";
+import { postCommitStatus } from "../../services/github";
 
 export async function runBuildJob(
   appId: string,
@@ -36,6 +37,7 @@ export async function runBuildJob(
       signingProvisioningProfile: true,
       signingTeamId: true,
       githubIosDir: true,
+      githubRepoFullName: true,
     },
   });
 
@@ -58,6 +60,11 @@ export async function runBuildJob(
     where: { id: buildJob.id },
     data: { status: "RUNNING", startedAt: new Date() },
   });
+
+  const repoFullName = app?.githubRepoFullName ?? null;
+  if (params.commitSha && repoFullName) {
+    await postCommitStatus(params.accessToken, repoFullName, params.commitSha, "pending", "appcore/build", "Binary build in progress…");
+  }
 
   try {
     const result = await workerClient.build({
@@ -88,16 +95,28 @@ export async function runBuildJob(
       );
     }
 
+    const succeeded = result.ok && result.ipaBuilt;
     await prisma.buildJob.update({
       where: { id: buildJob.id },
       data: {
-        status: result.ok && result.ipaBuilt ? "COMPLETED" : "FAILED",
+        status: succeeded ? "COMPLETED" : "FAILED",
         logs: JSON.stringify(result.logs ?? []),
         errors: JSON.stringify(result.errors ?? []),
         ipaPath: result.ipaPath ?? null,
         completedAt: new Date(),
       },
     });
+
+    if (params.commitSha && repoFullName) {
+      await postCommitStatus(
+        params.accessToken,
+        repoFullName,
+        params.commitSha,
+        succeeded ? "success" : "failure",
+        "appcore/build",
+        succeeded ? "Binary build succeeded" : (result.errors?.[0] ?? "Binary build failed").slice(0, 140),
+      );
+    }
   } catch (err: any) {
     logger.error(`[build:${appId}] Binary build error: ${err.message}`);
     await prisma.buildJob.update({
@@ -108,5 +127,9 @@ export async function runBuildJob(
         completedAt: new Date(),
       },
     });
+
+    if (params.commitSha && repoFullName) {
+      await postCommitStatus(params.accessToken, repoFullName, params.commitSha, "failure", "appcore/build", err.message.slice(0, 140));
+    }
   }
 }

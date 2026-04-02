@@ -4,6 +4,7 @@ import { logger, prisma } from "../../config";
 import { decryptNullable } from "../../config/encryption";
 import { frameWithFastlane } from "../../services/frame-screenshots";
 import { workerClient } from "../../services/worker-client";
+import { postCommitStatus } from "../../services/github";
 import {
   generateScreenshotSublines,
   type ScreenshotSublines,
@@ -38,6 +39,9 @@ async function runScreenshotGenerationViaWorker(
   logs: string[],
   log: (msg: string) => void,
 ): Promise<void> {
+  let token: string | null = null;
+  let repoFullName: string | null = null;
+
   try {
     const userWithToken = await prisma.teamSettings.findFirst({
       where: { githubAccessToken: { not: null } },
@@ -49,12 +53,19 @@ async function runScreenshotGenerationViaWorker(
       throw new Error("No GitHub repo linked to this app");
     }
 
+    token = decryptNullable(userWithToken.githubAccessToken)!;
+    repoFullName = job.app.githubRepoFullName!;
+
+    if (job.commitSha) {
+      await postCommitStatus(token, repoFullName, job.commitSha, "pending", "appcore/screenshots", "Screenshot generation in progress…");
+    }
+
     log("Delegating screenshot generation to worker...");
 
-    const repoUrl = `https://github.com/${job.app.githubRepoFullName}.git`;
+    const repoUrl = `https://github.com/${repoFullName}.git`;
     const result = await workerClient.snapshot({
       repoUrl,
-      accessToken: decryptNullable(userWithToken.githubAccessToken)!,
+      accessToken: token,
       branch: job.branch ?? undefined,
       appName: job.app.name,
       bundleId: job.app.bundleId,
@@ -162,6 +173,10 @@ async function runScreenshotGenerationViaWorker(
         logs: JSON.stringify(logs),
       },
     });
+
+    if (job.commitSha) {
+      await postCommitStatus(token, repoFullName, job.commitSha, "success", "appcore/screenshots", "Screenshots generated successfully");
+    }
   } catch (err: any) {
     const msg = err instanceof Error ? err.message : String(err);
     logs.push(`ERROR: ${msg}`);
@@ -175,6 +190,10 @@ async function runScreenshotGenerationViaWorker(
         logs: JSON.stringify(logs),
       },
     });
+
+    if (job.commitSha && token && repoFullName) {
+      await postCommitStatus(token, repoFullName, job.commitSha, "failure", "appcore/screenshots", msg.slice(0, 140));
+    }
   }
 }
 
