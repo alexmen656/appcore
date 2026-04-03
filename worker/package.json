@@ -1,7 +1,7 @@
 {
-  "name": "appcore-worker",
-  "version": "0.1.0",
-  "description": "Fastlane worker for AppCore — runs on Mac Mini",
+  "name": "marteso-worker",
+  "version": "1.0.0",
+  "description": "Fastlane worker for Marteso (macOS only)",
   "main": "src/server.ts",
   "scripts": {
     "start": "tsx src/server.ts",
