@@ -24,7 +24,7 @@ Marteso provides tools for:
 - Parent company: Fringelo Group
 - Website: https://marteso.com
 - App: https://marteso.com/app/
-- Docs: https://docs.fringelo.com
+- Docs: https://marteso.com/docs
 - Contact: hello@fringelo.com
 
 ## Key facts
