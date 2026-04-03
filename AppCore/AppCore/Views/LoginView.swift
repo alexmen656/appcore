@@ -1,5 +1,16 @@
 import SwiftUI
 
+extension Color {
+    static let martesoOrange = Color(red: 1.0, green: 107 / 255, blue: 0)
+    static let martesoRed = Color(red: 204 / 255, green: 0, blue: 34 / 255)
+}
+
+private let martesoGradient = LinearGradient(
+    colors: [.martesoOrange, .martesoRed],
+    startPoint: .topLeading,
+    endPoint: .bottomTrailing
+)
+
 struct LoginView: View {
     @Bindable var auth = AuthManager.shared
 
@@ -12,11 +23,12 @@ struct LoginView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 32) {
-                    VStack(spacing: 12) {
-                        Image(systemName: "chart.line.uptrend.xyaxis.circle.fill")
-                            .font(.system(size: 72))
-                            .foregroundStyle(.tint)
-                            .symbolRenderingMode(.hierarchical)
+
+                    VStack(spacing: 14) {
+                        Image("MartesoLogo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 62)
 
                         Text("Marteso")
                             .font(.largeTitle)
@@ -27,9 +39,9 @@ struct LoginView: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
-                    .padding(.top, 40)
+                    .padding(.top, 48)
 
-                    VStack(spacing: 16) {
+                    VStack(spacing: 14) {
                         if isRegistering {
                             TextField("Name", text: $name)
                                 .textContentType(.name)
@@ -51,8 +63,6 @@ struct LoginView: View {
                             .textFieldStyle(.plain)
                             .padding()
                             .glassEffect(.regular, in: .rect(cornerRadius: 14))
-
-
                     }
                     .padding(.horizontal)
 
@@ -75,17 +85,18 @@ struct LoginView: View {
                         } label: {
                             Group {
                                 if auth.isLoading {
-                                    ProgressView()
-                                        .tint(.white)
+                                    ProgressView().tint(.white)
                                 } else {
                                     Text(isRegistering ? "Create Account" : "Sign In")
+                                        .fontWeight(.semibold)
                                 }
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
+                            .foregroundStyle(.white)
+                            .background(martesoGradient, in: RoundedRectangle(cornerRadius: 14))
                         }
-                        .buttonStyle(.borderedProminent)
-                        .buttonBorderShape(.roundedRectangle(radius: 14))
+                        .buttonStyle(.plain)
                         .disabled(email.isEmpty || password.isEmpty || auth.isLoading)
 
                         Button {
@@ -96,6 +107,7 @@ struct LoginView: View {
                         } label: {
                             Text(isRegistering ? "Already have an account? Sign In" : "Don't have an account? Register")
                                 .font(.subheadline)
+                                .foregroundStyle(martesoGradient)
                         }
                     }
                     .padding(.horizontal)
