@@ -6,6 +6,5 @@ keys/
 .DS_Store
 apple_*
 screenshots/*
-docs/*
 appcore-builds/*
 .claude/*

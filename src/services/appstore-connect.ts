@@ -141,7 +141,7 @@ export class AppStoreConnectClient {
   ): Promise<ASCAppInfoLocalization[]> {
     let resolvedAppInfoId = appInfoId;
     if (!resolvedAppInfoId) {
-      resolvedAppInfoId = await this.getAppInfoId(appId);
+      resolvedAppInfoId = await this.getAppInfoId(appId) ?? undefined;
     }
     if (!resolvedAppInfoId) return [];
 
