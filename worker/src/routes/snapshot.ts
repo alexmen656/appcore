@@ -130,11 +130,10 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
         descriptions = rest;
         logs.push(
           `[config] Loaded config.json from ${path.relative(workDir, configFile)}
-                    - scheme: ${scheme}
-                    - devices: ${effectiveDevices.join(", ")}
-                    - languages: ${effectiveLanguages.join(", ")}
-                    - ${Object.keys(descriptions).length}
-                    - description${Object.keys(descriptions).length === 1 ? "" : "s"}`,
+            - scheme: ${scheme}
+            - devices: ${effectiveDevices.join(", ")}
+            - languages: ${effectiveLanguages.join(", ")}
+            - ${Object.keys(descriptions).length} description${Object.keys(descriptions).length === 1 ? "" : "s"}`,
         );
       } catch {
         logs.push(
@@ -174,13 +173,13 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
         ? `-project "${projFile}"`
         : `-project "${scheme}.xcodeproj"`;
 
-    const fastlaneCacheDir = path.join(
+    const fastlaneCacheBase = path.join(
       os.homedir(),
       "Library",
       "Caches",
       "tools.fastlane",
-      "screenshots",
     );
+    const fastlaneCacheDir = path.join(fastlaneCacheBase, "screenshots");
     const screenshotsDir = path.join(workDir, "fastlane", "screenshots");
     const destinations = snapDevices
       .map((d) =>
@@ -197,12 +196,28 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
     for (const lang of effectiveLanguages) {
       fs.rmSync(fastlaneCacheDir, { recursive: true, force: true });
       fs.mkdirSync(fastlaneCacheDir, { recursive: true });
-      logs.push(
-        `[snapshot] Language: ${lang} — building and running UI tests ...`,
+
+      const [langCode, regionCode] = lang.split("-");
+      const localeId = regionCode ? `${langCode}_${regionCode}` : langCode;
+      fs.writeFileSync(
+        path.join(fastlaneCacheBase, "language.txt"),
+        lang,
+        "utf8",
       );
+      fs.writeFileSync(
+        path.join(fastlaneCacheBase, "locale.txt"),
+        localeId,
+        "utf8",
+      );
+      logs.push(
+        `[snapshot] Language: ${lang} (locale: ${localeId}) — building and running UI tests ...`,
+      );
+
       try {
+        const xcodebuildCmd = `xcodebuild ${projectArg} -scheme "${scheme}" ${destinations} FASTLANE_SNAPSHOT=YES FASTLANE_LANGUAGE=${lang} build test`;
+        logs.push(`[snapshot] Command: ${xcodebuildCmd}`);
         const { stdout } = await execAsync(
-          `set -o pipefail && xcodebuild ${projectArg} -scheme "${scheme}" ${destinations} FASTLANE_SNAPSHOT=YES FASTLANE_LANGUAGE=${lang} build test 2>&1 | tee /tmp/xcodebuild-snapshot.log | xcpretty --no-color; STATUS=\${PIPESTATUS[0]}; if [ $STATUS -ne 0 ]; then echo "[snapshot] xcodebuild exited with status $STATUS (some tests may have failed)"; grep -E "Test Case.*failed|error:" /tmp/xcodebuild-snapshot.log | head -20 || true; fi; exit 0`,
+          `set -o pipefail && ${xcodebuildCmd} 2>&1 | tee /tmp/xcodebuild-snapshot.log | xcpretty --no-color; STATUS=\${PIPESTATUS[0]}; if [ $STATUS -ne 0 ]; then echo "[snapshot] xcodebuild exited with status $STATUS"; tail -50 /tmp/xcodebuild-snapshot.log; fi; exit 0`,
           {
             cwd: workDir,
             timeout: 900_000,
@@ -238,7 +253,7 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
       }
     }
 
-    logs.push("[snapshot] fastlane snapshot completed");
+    logs.push("[snapshot] Snapshot completed");
 
     const screenshots: Record<
       string,
