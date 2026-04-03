@@ -238,6 +238,11 @@ export class FastlaneService {
         }
       }
 
+      const ipaBase64 = await this.loadLatestIpa();
+      if (ipaBase64) {
+        submission.logs.push("Latest build IPA loaded, will be uploaded alongside metadata.");
+      }
+
       const result = await workerClient.deliver({
         locales: localeData,
         apiKey: {
@@ -249,6 +254,7 @@ export class FastlaneService {
         bundleId: this.settings.ascBundleId,
         action,
         screenshots: screenshots ?? undefined,
+        ipa: ipaBase64 ?? undefined,
       });
 
       submission.logs.push(...result.logs);
@@ -348,6 +354,34 @@ export class FastlaneService {
       return Object.keys(screenshots).length > 0 ? screenshots : null;
     } catch (err) {
       logger.warn("[Fastlane] Could not load framed screenshots:", err);
+      return null;
+    }
+  }
+
+  private async loadLatestIpa(): Promise<string | null> {
+    try {
+      const app = await prisma.app.findFirst({
+        where: { bundleId: this.settings.ascBundleId },
+        select: { id: true },
+      });
+      if (!app) return null;
+
+      const buildJob = await prisma.buildJob.findFirst({
+        where: { appId: app.id, status: "COMPLETED", ipaPath: { not: null } },
+        orderBy: { completedAt: "desc" },
+        select: { ipaPath: true },
+      });
+      if (!buildJob?.ipaPath) return null;
+
+      const ipaPath = path.isAbsolute(buildJob.ipaPath)
+        ? buildJob.ipaPath
+        : path.join(process.cwd(), buildJob.ipaPath);
+
+      if (!fs.existsSync(ipaPath)) return null;
+
+      return fs.readFileSync(ipaPath).toString("base64");
+    } catch (err) {
+      logger.warn("[Fastlane] Could not load latest IPA:", err);
       return null;
     }
   }

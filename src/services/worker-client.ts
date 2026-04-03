@@ -25,6 +25,7 @@ export interface WorkerDeliverParams {
   action: "metadata" | "submit_for_review";
   copyright?: string;
   screenshots?: Record<string, Array<{ filename: string; data: string }>>;
+  ipa?: string;
 }
 
 export interface WorkerDeliverResult {

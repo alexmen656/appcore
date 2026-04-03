@@ -31,11 +31,12 @@ interface DeliverRequest {
   action: "metadata" | "submit_for_review";
   copyright?: string;
   screenshots?: Record<string, Array<{ filename: string; data: string }>>;
+  ipa?: string;
 }
 
 deliverRouter.post("/deliver", async (req: Request, res: Response) => {
   const body = req.body as DeliverRequest;
-  const { locales, apiKey, bundleId, action, copyright, screenshots } = body;
+  const { locales, apiKey, bundleId, action, copyright, screenshots, ipa } = body;
 
   if (!locales || !apiKey || !bundleId || !action) {
     res.status(400).json({ error: "Missing required fields" });
@@ -95,6 +96,13 @@ deliverRouter.post("/deliver", async (req: Request, res: Response) => {
     fs.writeFileSync(apiKeyPath, JSON.stringify(apiKey, null, 2));
     logs.push("API key file written");
 
+    let ipaPath: string | null = null;
+    if (ipa) {
+      ipaPath = path.join(tmpDir, `app.ipa`);
+      fs.writeFileSync(ipaPath, Buffer.from(ipa, "base64"));
+      logs.push("IPA written to temp directory.");
+    }
+
     const fastlanePath = await findFastlane();
     logs.push(`Using fastlane at: ${fastlanePath}`);
 
@@ -105,14 +113,20 @@ deliverRouter.post("/deliver", async (req: Request, res: Response) => {
       metadataRoot,
       "--app_identifier",
       bundleId,
-      "--skip_binary_upload",
       "--force",
       "--precheck_include_in_app_purchases",
       "false",
     ];
 
+    if (ipaPath) {
+      args.push("--ipa", ipaPath);
+    } else {
+      args.push("--skip_binary_upload");
+    }
+
     if (hasScreenshots) {
       args.push("--screenshots_path", screenshotsRoot);
+      args.push("--overwrite_screenshots");
     } else {
       args.push("--skip_screenshots");
     }
