@@ -108,7 +108,7 @@ export default function SigningSection({ appId, addToast }: Props) {
   return (
     <SectionCard
       title="iOS Code Signing"
-      desc="Upload your .p12 certificate and .mobileprovision profile so AppCore can build a signed IPA on each commit."
+      desc="Upload your .p12 certificate and .mobileprovision profile so Marteso can build a signed IPA on each commit."
     >
       {hasAll && !showForm ? (
         <div className="flex items-center justify-between">

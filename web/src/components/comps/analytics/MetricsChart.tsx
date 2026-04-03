@@ -177,7 +177,6 @@ export default function MetricsChart({ data, markers = [] }: Props) {
               iconType="circle"
               iconSize={7}
             />
-            {/* Activation marker */}
             {markers
               .filter((m) => m.type === "activation")
               .map((m) => (
@@ -189,7 +188,7 @@ export default function MetricsChart({ data, markers = [] }: Props) {
                   strokeWidth={1.5}
                   strokeDasharray="4 3"
                   label={{
-                    value: "AppCore",
+                    value: "Marteso Activation",
                     position: "insideTopLeft",
                     fontSize: 10,
                     fill: "#10b981",
@@ -197,7 +196,6 @@ export default function MetricsChart({ data, markers = [] }: Props) {
                   }}
                 />
               ))}
-            {/* Version update markers */}
             {markers
               .filter((m) => m.type === "version")
               .map((m) => (

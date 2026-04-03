@@ -247,7 +247,7 @@ export function RepoLinker({
         GitHub Repository
       </h2>
       <p className="text-xs text-[#9ca3af] dark:text-[#5c6478] mb-4">
-        Link a GitHub repo to this app. On every push, AppCore will
+        Link a GitHub repo to this app. On every push, Marteso will
         automatically generate screenshots and binary.
       </p>
 

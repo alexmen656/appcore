@@ -12,14 +12,13 @@ struct LoginView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 32) {
-                    // Logo
                     VStack(spacing: 12) {
                         Image(systemName: "chart.line.uptrend.xyaxis.circle.fill")
                             .font(.system(size: 72))
                             .foregroundStyle(.tint)
                             .symbolRenderingMode(.hierarchical)
 
-                        Text("AppCore")
+                        Text("Marteso")
                             .font(.largeTitle)
                             .fontWeight(.bold)
                             .fontDesign(.rounded)
@@ -30,7 +29,6 @@ struct LoginView: View {
                     }
                     .padding(.top, 40)
 
-                    // Form
                     VStack(spacing: 16) {
                         if isRegistering {
                             TextField("Name", text: $name)
@@ -65,7 +63,6 @@ struct LoginView: View {
                             .padding(.horizontal)
                     }
 
-                    // Buttons
                     VStack(spacing: 12) {
                         Button {
                             Task {

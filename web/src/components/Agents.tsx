@@ -97,11 +97,6 @@ export default function Agents({ addToast }: Props) {
     addToast("Copied to clipboard", "success");
   };
 
-  const appDir =
-    typeof window !== "undefined"
-      ? window.location.origin.replace(/:\d+$/, "")
-      : "/path/to/appcore";
-
   return (
     <div className="max-w-3xl">
       <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
@@ -113,7 +108,7 @@ export default function Agents({ addToast }: Props) {
 
       <SectionCard
         title="MCP Server"
-        desc="Expose AppCore as an MCP server so Claude Desktop and other MCP clients can read your ASO data and trigger jobs."
+        desc="Expose Marteso as an MCP server so Claude Desktop and other MCP clients can read your ASO data and trigger jobs."
       >
         <div className="flex items-center justify-between">
           <div>
@@ -170,7 +165,7 @@ export default function Agents({ addToast }: Props) {
               </strong>
             </li>
             <li>
-              Claude.ai opens an AppCore login page - sign in to authorize.
+              Claude.ai opens an Marteso login page - sign in to authorize.
             </li>
             <li>Done. The client appears in the table below.</li>
           </ol>
