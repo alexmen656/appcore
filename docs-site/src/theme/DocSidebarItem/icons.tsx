@@ -5,6 +5,7 @@ import {
   GitBranch,
   Smartphone,
   KeyRound,
+  Camera,
   type LucideProps,
 } from 'lucide-react';
 
@@ -14,6 +15,7 @@ const iconMap: Record<string, React.ComponentType<LucideProps>> = {
   'fastlane-worker': GitBranch,
   iOS: Smartphone,
   'code-signing': KeyRound,
+  'ui-testing': Camera,
 };
 
 export function SidebarIcon({ name, ...props }: { name: string } & LucideProps) {

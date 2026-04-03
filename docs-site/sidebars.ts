@@ -32,6 +32,12 @@ const sidebars: SidebarsConfig = {
           label: 'Code Signing',
           customProps: { icon: 'code-signing' },
         },
+        {
+          type: 'doc',
+          id: 'ios/ui-testing',
+          label: 'UI Testing & Screenshots',
+          customProps: { icon: 'ui-testing' },
+        },
       ],
     },
   ],
