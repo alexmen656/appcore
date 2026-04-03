@@ -599,7 +599,7 @@ function HelpMenu() {
             Documentation
           </a>
           <a
-            href="mailto:support@marteso.com"
+            href="/contact"
             onClick={() => setOpen(false)}
             className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors text-[13px] text-[#1a1a2e] dark:text-[#e8eaf0] font-medium"
           >
