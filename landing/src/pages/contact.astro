@@ -1,0 +1,330 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout
+  title="Contact — Marteso"
+  description="Get in touch with the Marteso team. We're happy to help with questions about your account, ASO strategy, or anything else."
+  canonicalPath="/contact"
+>
+  <div class="contact-wrap">
+    <div class="contact-hero">
+      <div class="section-label">Contact</div>
+      <h1>Get in touch</h1>
+      <p class="hero-lead">
+        Have a question, need help with your setup, or just want to talk ASO?
+        We're a small team and we actually respond.
+      </p>
+    </div>
+
+    <div class="contact-grid">
+      <div class="contact-card">
+        <div class="card-icon">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+            <path d="M2 7l10 7 10-7"></path>
+          </svg>
+        </div>
+        <div class="card-content">
+          <div class="card-label">Email</div>
+          <a href="mailto:hello@fringelo.com" class="card-value"
+            >hello@fringelo.com</a
+          >
+          <p class="card-note">We reply within one business day.</p>
+        </div>
+      </div>
+
+      <div class="contact-card">
+        <div class="card-icon">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.7A2 2 0 012.18 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 8.15a16 16 0 006.29 6.29l1.42-1.42a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"
+            ></path>
+          </svg>
+        </div>
+        <div class="card-content">
+          <div class="card-label">Phone</div>
+          <a href="tel:+4368181518065" class="card-value">+43 681 815 18 065</a>
+          <p class="card-note">Mon–Fri, 9:00–18:00 CET</p>
+        </div>
+      </div>
+
+      <div class="contact-card">
+        <div class="card-icon">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 8v4l3 3"></path>
+          </svg>
+        </div>
+        <div class="card-content">
+          <div class="card-label">Response time</div>
+          <div class="card-value-plain">Under 24 hours</div>
+          <p class="card-note">Usually much faster during business hours.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="topics-section">
+      <h2>What can we help with?</h2>
+      <div class="topics-grid">
+        <div class="topic-item">
+          <div class="topic-dot accent"></div>
+          <div>
+            <div class="topic-title">Account & billing</div>
+            <div class="topic-desc">
+              Plan upgrades, invoices, cancellation, or access issues.
+            </div>
+          </div>
+        </div>
+        <div class="topic-item">
+          <div class="topic-dot blue"></div>
+          <div>
+            <div class="topic-title">ASO strategy</div>
+            <div class="topic-desc">
+              Keyword selection, metadata structure, competitor gaps.
+            </div>
+          </div>
+        </div>
+        <div class="topic-item">
+          <div class="topic-dot green"></div>
+          <div>
+            <div class="topic-title">Technical support</div>
+            <div class="topic-desc">
+              Integration questions, data discrepancies, or bugs.
+            </div>
+          </div>
+        </div>
+        <div class="topic-item">
+          <div class="topic-dot yellow"></div>
+          <div>
+            <div class="topic-title">Partnership & press</div>
+            <div class="topic-desc">
+              Agency partnerships, media enquiries, or co-marketing.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .contact-wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 140px 32px 120px;
+  }
+
+  .contact-hero {
+    margin-bottom: 64px;
+    max-width: 620px;
+  }
+
+  .section-label {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-tertiary);
+    margin-bottom: 16px;
+    font-weight: 500;
+  }
+
+  h1 {
+    font-size: 52px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 24px;
+    color: var(--text-primary);
+  }
+
+  .hero-lead {
+    font-size: 18px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .contact-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 80px;
+  }
+
+  .contact-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    transition: border-color 0.2s;
+  }
+
+  .contact-card:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+
+  .card-content {
+    flex: 1;
+  }
+
+  .card-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+
+  .card-value {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-decoration: none;
+    letter-spacing: -0.01em;
+    display: block;
+    margin-bottom: 8px;
+    transition: color 0.2s;
+  }
+
+  .card-value:hover {
+    color: var(--accent);
+  }
+
+  .card-value-plain {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+    margin-bottom: 8px;
+  }
+
+  .card-note {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    line-height: 1.5;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin-bottom: 64px;
+  }
+
+  .topics-section h2 {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+    margin-bottom: 32px;
+  }
+
+  .topics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+
+  .topic-item {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .topic-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-top: 6px;
+    flex-shrink: 0;
+  }
+
+  .topic-dot.accent {
+    background: var(--accent);
+  }
+  .topic-dot.blue {
+    background: var(--accent-blue);
+  }
+  .topic-dot.green {
+    background: #4ade80;
+  }
+  .topic-dot.yellow {
+    background: #fbbf24;
+  }
+
+  .topic-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  .topic-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  @media (max-width: 768px) {
+    .contact-wrap {
+      padding: 120px 20px 80px;
+    }
+
+    h1 {
+      font-size: 36px;
+    }
+
+    .contact-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .topics-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
