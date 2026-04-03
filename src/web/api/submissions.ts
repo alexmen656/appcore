@@ -6,7 +6,7 @@ import { logger, getEffectiveSettings } from "../../config";
 import { requireAuth } from "../auth";
 import { pushService } from "../../services/push-notification.js";
 
-const BUILDS_BASE_DIR = path.join(os.homedir(), "appcore", "appcore-builds");
+const BUILDS_BASE_DIR = path.join(os.homedir(), "appcore", "builds");
 
 export const submissionsRouter = Router();
 submissionsRouter.use(requireAuth);

@@ -19,7 +19,7 @@ export function findConfigFile(dir: string): string | null {
 export const BUILDS_BASE_DIR = path.join(
   os.homedir(),
   "appcore",
-  "appcore-builds",
+  "builds",
 );
 
 export interface SigningCreds {
