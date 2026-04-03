@@ -4,6 +4,8 @@ import path from "path";
 import os from "os";
 import { execAsync, resolveRepoWorkDir, findConfigFile } from "./shared";
 
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
 async function getIosSimulatorInfo(): Promise<{
   version: string;
   devices: Array<{ name: string; udid: string }>;
@@ -36,18 +38,16 @@ function resolveSimulatorUdid(
   const find = (pred: (d: { name: string }) => boolean) =>
     available.find(pred)?.udid ?? null;
 
+  const stripped = requested
+    .replace(/\s*\([^)]*\)\s*$/, "")
+    .trim()
+    .toLowerCase();
   return (
     find((d) => d.name === requested) ??
     find((d) => d.name.toLowerCase() === lower) ??
-    (() => {
-      const stripped = requested
-        .replace(/\s*\([^)]*\)\s*$/, "")
-        .trim()
-        .toLowerCase();
-      return stripped && stripped !== lower
-        ? find((d) => d.name.toLowerCase().startsWith(stripped))
-        : null;
-    })() ??
+    (stripped && stripped !== lower
+      ? find((d) => d.name.toLowerCase().startsWith(stripped))
+      : null) ??
     find((d) =>
       lower
         .split(/\s+/)
@@ -120,20 +120,18 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
           effectiveDevices = cfg.devices;
         if (Array.isArray(cfg.languages) && cfg.languages.length)
           effectiveLanguages = cfg.languages;
-        if (cfg.bgColor1 || cfg.bgColor2 || cfg.textColor)
-          frameConfig = {
-            bgColor1: cfg.bgColor1,
-            bgColor2: cfg.bgColor2,
-            textColor: cfg.textColor,
-          };
+        const { bgColor1, bgColor2, textColor } = cfg;
+        if (bgColor1 || bgColor2 || textColor)
+          frameConfig = { bgColor1, bgColor2, textColor };
         const { _config: _, ...rest } = parsed;
         descriptions = rest;
+        const descCount = Object.keys(descriptions).length;
         logs.push(
           `[config] Loaded config.json from ${path.relative(workDir, configFile)}
             - scheme: ${scheme}
             - devices: ${effectiveDevices.join(", ")}
             - languages: ${effectiveLanguages.join(", ")}
-            - ${Object.keys(descriptions).length} description${Object.keys(descriptions).length === 1 ? "" : "s"}`,
+            - ${plural(descCount, "description")}`,
         );
       } catch {
         logs.push(
@@ -151,18 +149,25 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
       `[snapshot] Detected iOS simulator version: ${simInfo?.version ?? "unknown — will let fastlane pick"}`,
     );
 
-    const snapDevices = effectiveDevices.map((d) => {
-      if (!simInfo) return d;
+    const snapDevices: string[] = [];
+    for (const d of effectiveDevices) {
+      if (!simInfo) {
+        snapDevices.push(d);
+        continue;
+      }
       const udid = resolveSimulatorUdid(d, simInfo.devices);
-      if (!udid) return d;
+      if (!udid) {
+        snapDevices.push(d);
+        continue;
+      }
       const matched = simInfo.devices.find((s) => s.udid === udid)!;
       logs.push(
         matched.name !== d
           ? `[snapshot] Device "${d}" → "${matched.name}" (${udid})`
           : `[snapshot] Device "${d}" → ${udid}`,
       );
-      return udid;
-    });
+      snapDevices.push(udid);
+    }
 
     const entries = fs.readdirSync(workDir);
     const wsFile = entries.find((f) => f.endsWith(".xcworkspace"));
@@ -248,7 +253,7 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
             path.join(langDir, file),
           );
         logs.push(
-          `[snapshot] ${lang}: copied ${images.length} screenshot${images.length === 1 ? "" : "s"}`,
+          `[snapshot] ${lang}: copied ${plural(images.length, "screenshot")}`,
         );
       }
     }
@@ -278,7 +283,7 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
         0,
       );
       logs.push(
-        `[snapshot] Collected ${totalFiles} screenshot${totalFiles === 1 ? "" : "s"} across ${Object.keys(screenshots).length} locale${Object.keys(screenshots).length === 1 ? "" : "s"}`,
+        `[snapshot] Collected ${plural(totalFiles, "screenshot")} across ${plural(Object.keys(screenshots).length, "locale")}`,
       );
     } else {
       logs.push("No screenshots directory found after run");
