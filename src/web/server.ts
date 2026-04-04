@@ -84,7 +84,7 @@ const landingPublic = path.join(process.cwd(), "landing/public");
 const ASTRO_PORT = 4321;
 const DOCS_PORT = 3030;
 
-const docsDist = path.join(process.cwd(), "docs-site/build");
+const docsDist = path.join(process.cwd(), "docs/build");
 if (process.env.NODE_ENV === "production") {
   app.use("/docs", express.static(docsDist));
   app.get("/docs/*", (_req, res) =>
