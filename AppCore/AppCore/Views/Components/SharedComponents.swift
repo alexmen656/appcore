@@ -29,17 +29,21 @@ struct StatCard: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Image(systemName: icon)
-                    .font(.title3)
+                    .font(.title)
                     .foregroundStyle(color)
-                Spacer()
+                //Spacer()
+                VStack {
+
+ Text(value)
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .fontDesign(.rounded)
+                    .multilineTextAlignment(.leading)
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
             }
-            Text(value)
-                .font(.title2)
-                .fontWeight(.bold)
-                .fontDesign(.rounded)
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
