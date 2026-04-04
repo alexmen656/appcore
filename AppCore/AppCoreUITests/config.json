@@ -1,0 +1,20 @@
+{
+  "_config": {
+    "scheme": "AppCore",
+    "devices": [
+      "iPhone 16 Pro Max",
+      "iPhone 16",
+      "iPhone SE (3rd generation)",
+      "iPad Pro 13-inch (M4)"
+    ],
+    "languages": ["en-US"],
+    "bgColor1": "#ea0e2b",
+    "bgColor2": "#ff6b00",
+    "textColor": "#ffffff"
+  },
+  "01_Dashboard": "ASO dashboard with keyword rankings and download trends at a glance",
+  "02_Keywords": "Keyword tracker with popularity scores and rank history",
+  "03_Analytics": "App Store analytics with downloads and revenue over time",
+  "04_Versions": "Version history with metadata and review status",
+  "05_More": "Suggestions, actions, and account management"
+}

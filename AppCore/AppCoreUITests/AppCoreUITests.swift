@@ -2,40 +2,91 @@
 //  AppCoreUITests.swift
 //  AppCoreUITests
 //
-//  Created by Alex Polan on 3/6/26.
-//
 
 import XCTest
 
+@MainActor
 final class AppCoreUITests: XCTestCase {
 
+    var app: XCUIApplication!
+
     override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-
-        // In UI tests it is usually best to stop immediately when a failure occurs.
         continueAfterFailure = false
-
-        // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
+        app = XCUIApplication()
+        setupSnapshot(app)
     }
 
     override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+        app = nil
     }
 
-    @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
-        let app = XCUIApplication()
+    // MARK: - Helpers
+
+    private func login() {
+        let env = ProcessInfo.processInfo.environment
+        let email    = env["SNAPSHOT_EMAIL"]    ?? ""
+        let password = env["SNAPSHOT_PASSWORD"] ?? ""
+
+        let emailField = app.textFields["Email"]
+        XCTAssertTrue(emailField.waitForExistence(timeout: 10), "Email field not found")
+        emailField.tap()
+        emailField.typeText(email)
+
+        let passwordField = app.secureTextFields["Password"]
+        XCTAssertTrue(passwordField.waitForExistence(timeout: 5))
+        passwordField.tap()
+        passwordField.typeText(password)
+
+        app.buttons["Sign In"].tap()
+
+        // Wait until the tab bar appears (main app loaded)
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20), "Tab bar not found after login")
+    }
+
+    // MARK: - Screenshots
+
+    func testScreenshot01_Dashboard() throws {
         app.launch()
+        login()
 
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
+        // Dashboard is the first tab — already selected
+        XCTAssertTrue(app.navigationBars["Dashboard"].waitForExistence(timeout: 10))
+        snapshot("01_Dashboard")
     }
 
-    @MainActor
-    func testLaunchPerformance() throws {
-        // This measures how long it takes to launch your application.
-        measure(metrics: [XCTApplicationLaunchMetric()]) {
-            XCUIApplication().launch()
-        }
+    func testScreenshot02_Keywords() throws {
+        app.launch()
+        login()
+
+        app.tabBars.buttons["Keywords"].tap()
+        XCTAssertTrue(app.navigationBars["Keywords"].waitForExistence(timeout: 10))
+        snapshot("02_Keywords")
+    }
+
+    func testScreenshot03_Analytics() throws {
+        app.launch()
+        login()
+
+        app.tabBars.buttons["Analytics"].tap()
+        XCTAssertTrue(app.navigationBars["Analytics"].waitForExistence(timeout: 10))
+        snapshot("03_Analytics")
+    }
+
+    func testScreenshot04_Versions() throws {
+        app.launch()
+        login()
+
+        app.tabBars.buttons["Versions"].tap()
+        XCTAssertTrue(app.navigationBars["Versions"].waitForExistence(timeout: 10))
+        snapshot("04_Versions")
+    }
+
+    func testScreenshot05_More() throws {
+        app.launch()
+        login()
+
+        app.tabBars.buttons["More"].tap()
+        XCTAssertTrue(app.navigationBars["More"].waitForExistence(timeout: 10))
+        snapshot("05_More")
     }
 }
