@@ -20,12 +20,10 @@ final class AppCoreUITests: XCTestCase {
         app = nil
     }
 
-    // MARK: - Helpers
-
     private func login() {
         let env = ProcessInfo.processInfo.environment
-        let email    = env["SNAPSHOT_EMAIL"]    ?? ""
-        let password = env["SNAPSHOT_PASSWORD"] ?? ""
+        let email    = env["EMAIL"]    ?? ""
+        let password = env["PASSWORD"] ?? ""
 
         let emailField = app.textFields["Email"]
         XCTAssertTrue(emailField.waitForExistence(timeout: 10), "Email field not found")
@@ -39,7 +37,6 @@ final class AppCoreUITests: XCTestCase {
 
         app.buttons["Sign In"].tap()
 
-        // Wait until the tab bar appears (main app loaded)
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20), "Tab bar not found after login")
     }
 
@@ -49,7 +46,6 @@ final class AppCoreUITests: XCTestCase {
         app.launch()
         login()
 
-        // Dashboard is the first tab — already selected
         XCTAssertTrue(app.navigationBars["Dashboard"].waitForExistence(timeout: 10))
         snapshot("01_Dashboard")
     }
