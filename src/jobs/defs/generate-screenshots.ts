@@ -62,6 +62,18 @@ async function runScreenshotGenerationViaWorker(
 
     log("Delegating screenshot generation to worker...");
 
+    let envVars: Record<string, string> | undefined;
+    if (job.app.snapshotEnvVars) {
+      try {
+        const parsed: Array<{ key: string; value: string }> = JSON.parse(
+          decryptNullable(job.app.snapshotEnvVars)!,
+        );
+        envVars = Object.fromEntries(parsed.map(({ key, value }) => [key, value]));
+      } catch {
+        log("[config] Warning: could not parse snapshotEnvVars — skipping");
+      }
+    }
+
     const repoUrl = `https://github.com/${repoFullName}.git`;
     const result = await workerClient.snapshot({
       repoUrl,
@@ -70,6 +82,7 @@ async function runScreenshotGenerationViaWorker(
       appName: job.app.name,
       bundleId: job.app.bundleId,
       iosDir: job.app.githubIosDir ?? undefined,
+      envVars,
     });
 
     logs.push(...result.logs);

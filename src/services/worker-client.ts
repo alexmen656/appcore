@@ -43,6 +43,7 @@ export interface WorkerSnapshotParams {
   iosDir?: string;
   exportMethod?: string;
   buildBinary?: boolean;
+  envVars?: Record<string, string>;
 }
 
 export interface WorkerSnapshotResult {

@@ -18,14 +18,14 @@ model Team {
 }
 
 model TeamMember {
-  id        String   @id @default(cuid())
+  id        String                @id @default(cuid())
   teamId    String
-  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  team      Team                  @relation(fields: [teamId], references: [id], onDelete: Cascade)
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role      TeamRole @default(MEMBER)
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      TeamRole              @default(MEMBER)
   appAccess TeamMemberAppAccess[]
-  createdAt DateTime @default(now())
+  createdAt DateTime              @default(now())
 
   @@unique([teamId, userId])
   @@index([teamId])
@@ -69,31 +69,31 @@ enum TeamRole {
 }
 
 model User {
-  id           String        @id @default(cuid())
-  email        String        @unique
+  id           String              @id @default(cuid())
+  email        String              @unique
   name         String?
   passwordHash String?
-  role         UserRole      @default(USER)
+  role         UserRole            @default(USER)
   passkeys     PasskeyCredential[]
   teamMembers  TeamMember[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
 
   @@index([email])
 }
 
 model PasskeyCredential {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  credentialId String   @unique
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialId String    @unique
   publicKey    Bytes
-  counter      BigInt   @default(0)
-  deviceType   String   @default("singleDevice")
-  backedUp     Boolean  @default(false)
+  counter      BigInt    @default(0)
+  deviceType   String    @default("singleDevice")
+  backedUp     Boolean   @default(false)
   transports   String[]
   name         String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
   lastUsedAt   DateTime?
 
   @@index([userId])
@@ -105,64 +105,65 @@ enum UserRole {
 }
 
 model TeamSettings {
-  id     String @id @default(cuid())
-  teamId String @unique
-  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  ascIssuerId   String?
-  ascKeyId      String?
-  ascPrivateKey String?
-  ascAppId      String?
-  ascBundleId   String?
-  openaiApiKey    String?
-  anthropicApiKey String?
-  aiProvider      String? @default("openai")
-  ascVendorNumber          String?
-  mcpEnabled  Boolean @default(false)
-  githubAccessToken  String?
-  githubUsername     String?
-  githubAvatarUrl    String?
-  githubConnectedAt  DateTime?
-  updatedAt DateTime @updatedAt
+  id                String    @id @default(cuid())
+  teamId            String    @unique
+  team              Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  ascIssuerId       String?
+  ascKeyId          String?
+  ascPrivateKey     String?
+  ascAppId          String?
+  ascBundleId       String?
+  openaiApiKey      String?
+  anthropicApiKey   String?
+  aiProvider        String?   @default("openai")
+  ascVendorNumber   String?
+  mcpEnabled        Boolean   @default(false)
+  githubAccessToken String?
+  githubUsername    String?
+  githubAvatarUrl   String?
+  githubConnectedAt DateTime?
+  updatedAt         DateTime  @updatedAt
 }
 
 model App {
-  id            String   @id @default(cuid())
-  bundleId      String   @unique
-  name          String
-  teamId        String?
-  team          Team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  trackId       BigInt?  @unique
-  country       String   @default("de")
-  isOwnApp      Boolean  @default(false)
-  currentTitle       String?
-  currentSubtitle    String?
-  currentKeywords    String?
-  currentDescription String?
-  analyticsRequestId String?
+  id                         String                    @id @default(cuid())
+  bundleId                   String                    @unique
+  name                       String
+  teamId                     String?
+  team                       Team?                     @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  trackId                    BigInt?                   @unique
+  country                    String                    @default("de")
+  isOwnApp                   Boolean                   @default(false)
+  currentTitle               String?
+  currentSubtitle            String?
+  currentKeywords            String?
+  currentDescription         String?
+  analyticsRequestId         String?
   analyticsSnapshotRequestId String?
-  githubRepoOwner    String?
-  githubRepoName     String?
-  githubRepoFullName String?
-  githubWebhookId    BigInt?
-  githubWebhookSecret String?
-  githubIosDir       String?
-  signingCertP12        String?
-  signingCertPassword   String?
+  githubRepoOwner            String?
+  githubRepoName             String?
+  githubRepoFullName         String?
+  githubWebhookId            BigInt?
+  githubWebhookSecret        String?
+  githubIosDir               String?
+  signingCertP12             String?
+  signingCertPassword        String?
   signingProvisioningProfile String?
-  signingTeamId         String?
-  memberAccess  TeamMemberAppAccess[]
-  snapshots     AppSnapshot[]
-  rankings      KeywordRanking[]
-  competitors   CompetitorRelation[] @relation("app_competitors")
-  competitorOf  CompetitorRelation[] @relation("competitor_of")
-  screenshotJobs ScreenshotJob[]
-  buildJobs      BuildJob[]
-  asoExperiments AsoExperiment[]
-  competitorReviews   CompetitorReview[]
-  reviewSummaries     CompetitorReviewSummary[]
-  metadataChanges     AppMetadataChange[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  signingTeamId              String?
+  snapshotEnvVars            String?
+  memberAccess               TeamMemberAppAccess[]
+  snapshots                  AppSnapshot[]
+  rankings                   KeywordRanking[]
+  competitors                CompetitorRelation[]      @relation("app_competitors")
+  competitorOf               CompetitorRelation[]      @relation("competitor_of")
+  screenshotJobs             ScreenshotJob[]
+  buildJobs                  BuildJob[]
+  asoExperiments             AsoExperiment[]
+  competitorReviews          CompetitorReview[]
+  reviewSummaries            CompetitorReviewSummary[]
+  metadataChanges            AppMetadataChange[]
+  createdAt                  DateTime                  @default(now())
+  updatedAt                  DateTime                  @updatedAt
 
   @@index([bundleId])
   @@index([country])
@@ -170,44 +171,44 @@ model App {
 }
 
 model AppSnapshot {
-  id             String   @id @default(cuid())
-  appId          String
-  app            App      @relation(fields: [appId], references: [id], onDelete: Cascade)
-  title          String
-  subtitle       String?
-  description    String
-  keywords       String?
-  rating         Float?
-  ratingsCount   Int?
-  price           Float?
-  version        String?
-  releaseNotes   String?
-  screenshotUrls String[]
-  iconUrl        String?
-  developerName  String?
-  category       String?
-  categoryId     Int?
-  descriptionLength  Int?
-  wordCount          Int?
-  readabilityScore   Float?
-  scrapedAt      DateTime @default(now())
+  id                String   @id @default(cuid())
+  appId             String
+  app               App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+  title             String
+  subtitle          String?
+  description       String
+  keywords          String?
+  rating            Float?
+  ratingsCount      Int?
+  price             Float?
+  version           String?
+  releaseNotes      String?
+  screenshotUrls    String[]
+  iconUrl           String?
+  developerName     String?
+  category          String?
+  categoryId        Int?
+  descriptionLength Int?
+  wordCount         Int?
+  readabilityScore  Float?
+  scrapedAt         DateTime @default(now())
 
   @@index([appId, scrapedAt])
   @@index([scrapedAt])
 }
 
 model Keyword {
-  id          String   @id @default(cuid())
-  term        String
-  country     String   @default("de")
-  language    String   @default("de")
-  popularity     Float?
-  difficulty     Float?
-  searchVolume   Int?
-  rankings    KeywordRanking[]
-  suggestions ASOSuggestion[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String           @id @default(cuid())
+  term         String
+  country      String           @default("de")
+  language     String           @default("de")
+  popularity   Float?
+  difficulty   Float?
+  searchVolume Int?
+  rankings     KeywordRanking[]
+  suggestions  ASOSuggestion[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
   @@unique([term, country])
   @@index([term])
@@ -215,14 +216,14 @@ model Keyword {
 }
 
 model KeywordRanking {
-  id          String   @id @default(cuid())
-  keywordId   String
-  keyword     Keyword  @relation(fields: [keywordId], references: [id], onDelete: Cascade)
-  appId       String
-  app         App      @relation(fields: [appId], references: [id], onDelete: Cascade)
-  rank        Int?
-  country     String   @default("de")
-  trackedAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  keywordId String
+  keyword   Keyword  @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+  appId     String
+  app       App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+  rank      Int?
+  country   String   @default("de")
+  trackedAt DateTime @default(now())
 
   @@index([keywordId, trackedAt])
   @@index([appId, trackedAt])
@@ -230,11 +231,11 @@ model KeywordRanking {
 }
 
 model CompetitorRelation {
-  id            String   @id @default(cuid())
-  appId         String
-  app           App      @relation("app_competitors", fields: [appId], references: [id], onDelete: Cascade)
-  competitorId  String
-  competitor    App      @relation("competitor_of", fields: [competitorId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  appId          String
+  app            App      @relation("app_competitors", fields: [appId], references: [id], onDelete: Cascade)
+  competitorId   String
+  competitor     App      @relation("competitor_of", fields: [competitorId], references: [id], onDelete: Cascade)
   relevanceScore Float?
   addedAt        DateTime @default(now())
 
@@ -242,25 +243,25 @@ model CompetitorRelation {
 }
 
 model ASOSuggestion {
-  id              String   @id @default(cuid())
-  type            SuggestionType
-  locale          String   @default("en-US")
-  suggestedValue  String
-  reasoning       String
-  appBundleId     String?
-  currentValue    String?
-  keywordId       String?
-  keyword         Keyword?  @relation(fields: [keywordId], references: [id])
-  confidenceScore Float?
-  estimatedImpact Float?
-  status          SuggestionStatus @default(PENDING)
-  appliedAt       DateTime?
-  resultNotes     String?
-  aiProvider      String
-  aiModel         String
-  promptTokens    Int?
+  id               String           @id @default(cuid())
+  type             SuggestionType
+  locale           String           @default("en-US")
+  suggestedValue   String
+  reasoning        String
+  appBundleId      String?
+  currentValue     String?
+  keywordId        String?
+  keyword          Keyword?         @relation(fields: [keywordId], references: [id])
+  confidenceScore  Float?
+  estimatedImpact  Float?
+  status           SuggestionStatus @default(PENDING)
+  appliedAt        DateTime?
+  resultNotes      String?
+  aiProvider       String
+  aiModel          String
+  promptTokens     Int?
   completionTokens Int?
-  createdAt       DateTime @default(now())
+  createdAt        DateTime         @default(now())
 
   @@index([type, status])
   @@index([locale, status])
@@ -284,15 +285,15 @@ enum SuggestionStatus {
 }
 
 model ScrapeJob {
-  id          String      @id @default(cuid())
+  id          String     @id @default(cuid())
   type        ScrapeType
-  status      JobStatus   @default(PENDING)
+  status      JobStatus  @default(PENDING)
   result      String?
   error       String?
-  itemsCount  Int         @default(0)
+  itemsCount  Int        @default(0)
   startedAt   DateTime?
   completedAt DateTime?
-  createdAt   DateTime    @default(now())
+  createdAt   DateTime   @default(now())
 
   @@index([type, status])
   @@index([createdAt])
@@ -342,17 +343,17 @@ model AppReview {
 }
 
 model CompetitorReview {
-  id               String   @id @default(cuid())
-  appId            String
-  app              App      @relation(fields: [appId], references: [id], onDelete: Cascade)
-  externalId       String?
-  rating           Int
-  title            String?
-  body             String?
-  author           String?
-  territory        String?
-  reviewedAt       DateTime
-  createdAt        DateTime @default(now())
+  id         String   @id @default(cuid())
+  appId      String
+  app        App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+  externalId String?
+  rating     Int
+  title      String?
+  body       String?
+  author     String?
+  territory  String?
+  reviewedAt DateTime
+  createdAt  DateTime @default(now())
 
   @@unique([appId, externalId])
   @@index([appId, reviewedAt])
@@ -360,31 +361,31 @@ model CompetitorReview {
 }
 
 model CompetitorReviewSummary {
-  id              String   @id @default(cuid())
-  appId           String
-  app             App      @relation(fields: [appId], references: [id], onDelete: Cascade)
-  reviewCount     Int
-  averageRating   Float
-  summary         String
-  strengths       String[]
-  weaknesses      String[]
-  topThemes       String[]
-  sentiment       String?
-  aiProvider      String
-  aiModel         String
-  createdAt       DateTime @default(now())
+  id            String   @id @default(cuid())
+  appId         String
+  app           App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+  reviewCount   Int
+  averageRating Float
+  summary       String
+  strengths     String[]
+  weaknesses    String[]
+  topThemes     String[]
+  sentiment     String?
+  aiProvider    String
+  aiModel       String
+  createdAt     DateTime @default(now())
 
   @@index([appId, createdAt])
 }
 
 model AppMetadataChange {
-  id          String   @id @default(cuid())
-  appId       String
-  app         App      @relation(fields: [appId], references: [id], onDelete: Cascade)
-  field       String
-  oldValue    String?
-  newValue    String?
-  detectedAt  DateTime @default(now())
+  id         String   @id @default(cuid())
+  appId      String
+  app        App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+  field      String
+  oldValue   String?
+  newValue   String?
+  detectedAt DateTime @default(now())
 
   @@index([appId, detectedAt])
   @@index([appId, field])
@@ -433,14 +434,14 @@ model OAuthToken {
 }
 
 model DeviceToken {
-  id          String   @id @default(cuid())
-  token       String   @unique
-  userId      String?
-  bundleId    String?
-  platform    String   @default("ios")
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String?
+  bundleId  String?
+  platform  String   @default("ios")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([token])
@@ -461,23 +462,23 @@ model PushNotificationLog {
 }
 
 model ScreenshotJob {
-  id            String    @id @default(cuid())
-  appId         String
-  app           App       @relation(fields: [appId], references: [id], onDelete: Cascade)
-  commitSha     String
-  commitMessage String?
-  branch        String?
-  pusher        String?
-  status        JobStatus @default(PENDING)
-  logs          String?
-  error         String?
-  screenshotUrls String[]
-  framedByLocale Json?
+  id                     String    @id @default(cuid())
+  appId                  String
+  app                    App       @relation(fields: [appId], references: [id], onDelete: Cascade)
+  commitSha              String
+  commitMessage          String?
+  branch                 String?
+  pusher                 String?
+  status                 JobStatus @default(PENDING)
+  logs                   String?
+  error                  String?
+  screenshotUrls         String[]
+  framedByLocale         Json?
   screenshotDescriptions Json?
-  screenshotSublines Json?
-  startedAt     DateTime?
-  completedAt   DateTime?
-  createdAt     DateTime  @default(now())
+  screenshotSublines     Json?
+  startedAt              DateTime?
+  completedAt            DateTime?
+  createdAt              DateTime  @default(now())
 
   @@index([appId, createdAt])
   @@index([commitSha])
@@ -501,21 +502,21 @@ model BuildJob {
 }
 
 model AsoExperiment {
-  id              String               @id @default(cuid())
-  appId           String
-  app             App                  @relation(fields: [appId], references: [id], onDelete: Cascade)
-  type            AsoExperimentType
-  fromValue       String?
-  toValue         String?
-  reason          String?
-  confidence      Float
-  status          AsoExperimentStatus  @default(PENDING)
-  rankBefore      Int?
-  rankAfter       Int?
+  id               String              @id @default(cuid())
+  appId            String
+  app              App                 @relation(fields: [appId], references: [id], onDelete: Cascade)
+  type             AsoExperimentType
+  fromValue        String?
+  toValue          String?
+  reason           String?
+  confidence       Float
+  status           AsoExperimentStatus @default(PENDING)
+  rankBefore       Int?
+  rankAfter        Int?
   impressionsDelta Int?
-  deployedAt      DateTime?
-  evaluatedAt     DateTime?
-  createdAt       DateTime             @default(now())
+  deployedAt       DateTime?
+  evaluatedAt      DateTime?
+  createdAt        DateTime            @default(now())
 
   @@index([appId, status])
   @@index([status, deployedAt])

@@ -1,5 +1,6 @@
 import { useApi, getActiveBundleId } from "../hooks/useApi";
 import SigningSection from "./comps/settings/SigningSection";
+import SnapshotEnvSection from "./comps/settings/SnapshotEnvSection";
 import { RepoLinker } from "./Screenshots";
 import type { AppItem, GitHubStatus } from "../types";
 
@@ -34,6 +35,9 @@ export default function AppSettings({ addToast }: Props) {
       )}
 
       {activeApp && <SigningSection appId={activeApp.id} addToast={addToast} />}
+      {activeApp && (
+        <SnapshotEnvSection appId={activeApp.id} addToast={addToast} />
+      )}
     </div>
   );
 }

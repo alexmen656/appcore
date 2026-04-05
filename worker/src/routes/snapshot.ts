@@ -67,6 +67,7 @@ interface SnapshotRequest {
   bundleId: string;
   iosDir?: string;
   exportMethod?: string;
+  envVars?: Record<string, string>;
 }
 
 const DEFAULT_LANGUAGES = ["en-US"];
@@ -78,7 +79,7 @@ const DEFAULT_DEVICES = [
 ];
 
 snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
-  const { repoUrl, accessToken, branch, appName, iosDir } =
+  const { repoUrl, accessToken, branch, appName, iosDir, envVars } =
     req.body as SnapshotRequest;
 
   if (!repoUrl || !accessToken) {
@@ -226,7 +227,7 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
           {
             cwd: workDir,
             timeout: 900_000,
-            env: { ...process.env },
+            env: { ...process.env, ...(envVars ?? {}) },
             maxBuffer: 10 * 1024 * 1024,
           },
         );

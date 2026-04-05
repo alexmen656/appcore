@@ -474,7 +474,66 @@ The Xcode scheme used for screenshots must be marked as **Shared** so it is incl
 
 ---
 
-## 6. Connecting to Marteso
+## 6. Environment variables for login-only apps
+
+If your app shows a login screen before any other content, the simulator will land on the login screen and your screenshot tests will fail — there is no demo data to seed via launch arguments because the content sits behind authentication.
+
+Marteso solves this by letting you store environment variables that are injected into the `xcodebuild` process when the UI tests run. Your UI test code can read these values from `ProcessInfo.processInfo.environment` and use them to log in programmatically before taking screenshots.
+
+### Setting up env vars in Marteso
+
+1. Go to **App Settings** for your app
+2. Scroll to **UI Test Environment**
+3. Add one row per variable — key on the left, value on the right (stored encrypted)
+4. Click **Save**
+
+These values are encrypted at rest and decrypted only when a snapshot job starts.
+
+### Reading env vars in your UI tests
+
+```swift
+func testScreenshot01_Home() throws {
+    let env = ProcessInfo.processInfo.environment
+    let email    = env["SNAPSHOT_EMAIL"]    ?? ""
+    let password = env["SNAPSHOT_PASSWORD"] ?? ""
+
+    app.launch()
+
+    // Fill in the login form
+    let emailField = app.textFields["Email"]
+    XCTAssertTrue(emailField.waitForExistence(timeout: 6))
+    emailField.tap()
+    emailField.typeText(email)
+
+    let passwordField = app.secureTextFields["Password"]
+    passwordField.tap()
+    passwordField.typeText(password)
+
+    app.buttons["Sign In"].tap()
+
+    // Wait for the main screen and take the screenshot
+    XCTAssertTrue(app.staticTexts["Dashboard"].waitForExistence(timeout: 10))
+    snapshot("01_Home")
+}
+```
+
+### Recommended variable naming
+
+Use a consistent prefix like `SNAPSHOT_` to avoid accidental collisions with system environment variables.
+
+| Variable | Example value |
+|----------|---------------|
+| `SNAPSHOT_EMAIL` | `screenshots@example.com` |
+| `SNAPSHOT_PASSWORD` | `hunter2` |
+| `SNAPSHOT_USER_ID` | `demo-user-123` |
+
+:::tip Use a dedicated test account
+Create a separate account in your backend specifically for screenshot generation. This way the data stays consistent across runs and you never risk leaking real user data in screenshots.
+:::
+
+---
+
+## 7. Connecting to Marteso
 
 Once the project is set up:
 
@@ -497,3 +556,5 @@ You can also trigger a run manually with the **Run Now** button.
 | xcodebuild exits with status 64 | Scheme not found or not shared | Share the scheme and double-check the name in `config.json` |
 | `cannotFindSimulatorHomeDirectory` | `SIMULATOR_HOST_HOME` not set in test environment | This is set automatically by the simulator; make sure you are running on the Mac Mini worker |
 | `snapshot()` writes 0 bytes | `screenshotsDirectory` is nil — cache dir not found | Confirm `setupSnapshot(app)` was called in `setUpWithError` |
+| UI tests fail on login screen | No env vars set for credentials | Add `SNAPSHOT_EMAIL` / `SNAPSHOT_PASSWORD` in App Settings → UI Test Environment |
+| Env var is empty string in test | Variable not saved or key misspelled | Check App Settings → UI Test Environment and re-save |
