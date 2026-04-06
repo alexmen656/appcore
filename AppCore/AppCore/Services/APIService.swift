@@ -7,6 +7,7 @@ final class APIService {
     static let shared = APIService()
 
     let baseURL = "https://marteso.com"
+    private(set) var isAuthenticated: Bool = false
 
     private var token: String? {
         get { KeychainHelper.load(key: "auth_token") }
@@ -16,12 +17,13 @@ final class APIService {
             } else {
                 KeychainHelper.delete(key: "auth_token")
             }
+            isAuthenticated = newValue != nil
         }
     }
 
-    var isAuthenticated: Bool { token != nil }
-
-    private init() {}
+    private init() {
+        isAuthenticated = KeychainHelper.load(key: "auth_token") != nil
+    }
 
     // MARK: - Auth
 

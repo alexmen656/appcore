@@ -83,8 +83,8 @@ struct KeywordsView: View {
             }
             .refreshable { await loadKeywords() }
         }
-        .task { await loadKeywords() }
-    }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
+        .task(id: bundleId) { await loadKeywords() }
+    }
 
     @ViewBuilder
     private var keywordsList: some View {
@@ -179,6 +179,7 @@ struct KeywordsView: View {
     }
 
     private func loadKeywords() async {
+        guard bundleId != nil else { return }
         isLoading = true
         error = nil
         do {

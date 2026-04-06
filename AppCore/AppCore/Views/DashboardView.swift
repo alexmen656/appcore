@@ -23,7 +23,7 @@ struct DashboardView: View {
             .navigationTitle("Dashboard")
             .refreshable { await loadData() }
         }
-        .task { await loadData() }
+        .task(id: bundleId) { await loadData() }
     }
 
     @ViewBuilder
@@ -329,6 +329,7 @@ struct DashboardView: View {
     }
 
     private func loadData() async {
+        guard bundleId != nil else { return }
         isLoading = true
         error = nil
         do {

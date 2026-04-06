@@ -25,8 +25,6 @@ struct AppCoreApp: App {
     }
 }
 
-// MARK: - App Delegate for Push Notifications
-
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
 
     func application(
@@ -52,7 +50,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         PushNotificationManager.shared.handleRegistrationError(error)
     }
 
-    // Handle foreground notifications
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification
@@ -60,7 +57,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         return [.banner, .badge, .sound]
     }
 
-    // Handle notification taps
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse
@@ -68,7 +64,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         let categoryId = response.notification.request.content.categoryIdentifier
         let actionId = response.actionIdentifier
 
-        // Post notification for navigation
         NotificationCenter.default.post(
             name: .pushNotificationTapped,
             object: nil,

@@ -28,7 +28,7 @@ struct VersionsView: View {
             .navigationTitle("Versions")
             .refreshable { await loadVersions() }
         }
-        .task { await loadVersions() }
+        .task(id: bundleId) { await loadVersions() }
     }
 
     @ViewBuilder
@@ -81,6 +81,7 @@ struct VersionsView: View {
     }
 
     private func loadVersions() async {
+        guard bundleId != nil else { return }
         isLoading = true
         error = nil
         appIconURL = nil

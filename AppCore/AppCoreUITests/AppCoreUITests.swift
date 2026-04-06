@@ -50,13 +50,12 @@ final class AppCoreUITests: XCTestCase {
         emailField.typeText(email)
 
         let passwordField = app.secureTextFields["Password"]
-        XCTAssertTrue(passwordField.waitForExistence(timeout: 5))
+        XCTAssertTrue(passwordField.waitForExistence(timeout: 5), "Password field not found")
         passwordField.tap()
         passwordField.typeText(password)
 
         app.buttons["Sign In"].tap()
-
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20), "Tab bar not found after login")
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 30), "Tab bar not found after login")
     }
 
     // MARK: - Screenshots

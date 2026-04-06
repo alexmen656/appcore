@@ -58,7 +58,7 @@ struct AnalyticsView: View {
             }
             .refreshable { await loadData() }
         }
-        .task { await loadData() }
+        .task(id: bundleId) { await loadData() }
     }
 
     @ViewBuilder
@@ -310,6 +310,7 @@ struct AnalyticsView: View {
     }
 
     private func loadData() async {
+        guard bundleId != nil else { return }
         isLoading = true
         error = nil
         do {
