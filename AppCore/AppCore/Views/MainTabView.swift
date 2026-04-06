@@ -31,6 +31,7 @@ struct MainTabView: View {
                 )
             }
         }
+        .tabViewStyle(.tabBar)
         .task {
             await loadApps()
         }
