@@ -94,7 +94,7 @@ buildRouter.post("/build", async (req: Request, res: Response) => {
     }
 
     const fastlanePath = await findFastlane();
-    const ipaPath = await buildWithGym(
+    const ipaResult = await buildWithGym(
       workDir,
       appName,
       bundleId,
@@ -105,7 +105,15 @@ buildRouter.post("/build", async (req: Request, res: Response) => {
       signingCreds,
     );
 
-    res.json({ ok: true, logs, errors, ipaBuilt: true, ipaPath });
+    res.json({
+      ok: true,
+      logs,
+      errors,
+      ipaBuilt: true,
+      ipaBase64: ipaResult.ipaBase64,
+      originalFilename: ipaResult.originalFilename,
+      sizeBytes: ipaResult.sizeBytes,
+    });
   } catch (err: any) {
     errors.push(err.message);
     res.json({ ok: false, logs, errors, ipaBuilt: false });

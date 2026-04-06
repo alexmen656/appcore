@@ -1,6 +1,11 @@
+import fs from "fs";
+import path from "path";
+import os from "os";
 import { logger, prisma } from "../../config";
 import { workerClient } from "../../services/worker-client";
 import { postCommitStatus } from "../../services/github";
+
+const BUILDS_BASE_DIR = path.join(os.homedir(), "appcore", "builds");
 
 export async function runBuildJob(
   appId: string,
@@ -85,9 +90,37 @@ export async function runBuildJob(
       logger.error(`[build:${appId}] ERROR: ${err}`);
     }
 
-    if (result.ok && result.ipaBuilt) {
+    let ipaPath: string | null = null;
+
+    if (result.ok && result.ipaBuilt && result.ipaBase64) {
+      const buildsDir = path.join(BUILDS_BASE_DIR, params.bundleId);
+      const historyDir = path.join(buildsDir, "history");
+      fs.mkdirSync(historyDir, { recursive: true });
+
+      const destIpa = path.join(buildsDir, "latest.ipa");
+      const historyIpa = path.join(historyDir, `${Date.now()}.ipa`);
+      const ipaBuffer = Buffer.from(result.ipaBase64, "base64");
+
+      fs.writeFileSync(destIpa, ipaBuffer);
+      fs.writeFileSync(historyIpa, ipaBuffer);
+      fs.writeFileSync(
+        path.join(buildsDir, "latest.json"),
+        JSON.stringify(
+          {
+            builtAt: new Date().toISOString(),
+            originalFilename: result.originalFilename ?? "app.ipa",
+            bundleId: params.bundleId,
+            exportMethod: params.exportMethod ?? "app-store",
+            sizeBytes: result.sizeBytes ?? ipaBuffer.length,
+          },
+          null,
+          2,
+        ),
+      );
+
+      ipaPath = destIpa;
       logger.info(
-        `[build:${appId}] Binary build succeeded — IPA: ${result.ipaPath}`,
+        `[build:${appId}] Binary saved to ${destIpa} (${((result.sizeBytes ?? ipaBuffer.length) / 1024 / 1024).toFixed(1)} MB)`,
       );
     } else {
       logger.warn(
@@ -102,7 +135,7 @@ export async function runBuildJob(
         status: succeeded ? "COMPLETED" : "FAILED",
         logs: JSON.stringify(result.logs ?? []),
         errors: JSON.stringify(result.errors ?? []),
-        ipaPath: result.ipaPath ?? null,
+        ipaPath,
         completedAt: new Date(),
       },
     });

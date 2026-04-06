@@ -77,7 +77,9 @@ export interface WorkerBuildResult {
   logs: string[];
   errors: string[];
   ipaBuilt: boolean;
-  ipaPath?: string;
+  ipaBase64?: string;
+  originalFilename?: string;
+  sizeBytes?: number;
 }
 
 export interface WorkerFrameitParams {

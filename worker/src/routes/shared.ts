@@ -18,8 +18,6 @@ export function findConfigFile(dir: string): string | null {
   return null;
 }
 
-export const BUILDS_BASE_DIR = path.join(os.homedir(), "appcore", "builds");
-
 export interface SigningCreds {
   p12Base64: string;
   p12Password: string;
@@ -156,7 +154,7 @@ export async function buildWithGym(
   fastlanePath: string,
   logs: string[],
   signingCreds?: SigningCreds,
-): Promise<string | undefined> {
+): Promise<{ ipaBase64: string; originalFilename: string; sizeBytes: number }> {
   logs.push("[build] Starting build"); //— scheme: ${gymScheme ?? appName}, export: ${exportMethod}`,
 
   let signingCleanup: (() => Promise<void>) | undefined;
@@ -280,30 +278,11 @@ export async function buildWithGym(
     throw new Error("gym completed but no .ipa file was found");
   }
 
-  const buildsDir = path.join(BUILDS_BASE_DIR, bundleId);
-  const historyDir = path.join(buildsDir, "history");
-  fs.mkdirSync(historyDir, { recursive: true });
-  const destIpa = path.join(buildsDir, "latest.ipa");
-  const destIpa2 = path.join(historyDir, `${Date.now()}.ipa`);
-  fs.copyFileSync(ipa, destIpa);
-  fs.copyFileSync(ipa, destIpa2);
-  const ipaSize = fs.statSync(destIpa).size;
-  fs.writeFileSync(
-    path.join(buildsDir, "latest.json"),
-    JSON.stringify(
-      {
-        builtAt: new Date().toISOString(),
-        originalFilename: path.basename(ipa),
-        bundleId,
-        exportMethod,
-        sizeBytes: ipaSize,
-      },
-      null,
-      2,
-    ),
-  );
+  const ipaBuffer = fs.readFileSync(ipa);
+  const ipaBase64 = ipaBuffer.toString("base64");
+  const ipaSize = ipaBuffer.length;
 
-  logs.push(`[build] Binary saved (${(ipaSize / 1024 / 1024).toFixed(1)} MB)`);
+  logs.push(`[build] Binary ready (${(ipaSize / 1024 / 1024).toFixed(1)} MB)`);
   await signingCleanup?.();
-  return destIpa;
+  return { ipaBase64, originalFilename: path.basename(ipa), sizeBytes: ipaSize };
 }
