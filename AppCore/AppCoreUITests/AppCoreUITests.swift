@@ -13,6 +13,7 @@ final class AppCoreUITests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
         app = XCUIApplication()
+        app.launchArguments = ["-clearAuth"]
         setupSnapshot(app)
     }
 

@@ -478,7 +478,11 @@ The Xcode scheme used for screenshots must be marked as **Shared** so it is incl
 
 If your app shows a login screen before any other content, the simulator will land on the login screen and your screenshot tests will fail — there is no demo data to seed via launch arguments because the content sits behind authentication.
 
-Marteso solves this by letting you store environment variables that are injected into the `xcodebuild` process when the UI tests run. Your UI test code can read these values from `ProcessInfo.processInfo.environment` and use them to log in programmatically before taking screenshots.
+Marteso solves this by letting you store environment variables that are passed to the worker and written to a JSON file in the fastlane cache directory. Your UI test code reads this file via the `SIMULATOR_HOST_HOME` path (the same cache directory the SnapshotHelper already uses) and uses the values to log in programmatically before taking screenshots.
+
+:::info Why not ProcessInfo.processInfo.environment?
+Environment variables set on the `xcodebuild` process are **not** inherited by the iOS simulator. The simulator runs in its own sandbox. The fastlane cache directory (`~/Library/Caches/tools.fastlane/`) is the standard communication channel between the host and the simulator — the SnapshotHelper already uses it for `language.txt` and `locale.txt`.
+:::
 
 ### Setting up env vars in Marteso
 
@@ -487,31 +491,54 @@ Marteso solves this by letting you store environment variables that are injected
 3. Add one row per variable — key on the left, value on the right (stored encrypted)
 4. Click **Save**
 
-These values are encrypted at rest and decrypted only when a snapshot job starts.
+These values are encrypted at rest and decrypted only when a snapshot job starts. The worker writes them to `snapshot-env.json` in the fastlane cache directory before running xcodebuild.
 
 ### Reading env vars in your UI tests
 
+Add a static property that reads the JSON file once:
+
 ```swift
-func testScreenshot01_Home() throws {
-    let env = ProcessInfo.processInfo.environment
-    let email    = env["SNAPSHOT_EMAIL"]    ?? ""
-    let password = env["SNAPSHOT_PASSWORD"] ?? ""
+private static let snapshotEnv: [String: String] = {
+    let cachePath = "Library/Caches/tools.fastlane"
+    guard let home = ProcessInfo().environment["SIMULATOR_HOST_HOME"]
+                  ?? ProcessInfo().environment["HOME"] else {
+        return [:]
+    }
+    let url = URL(fileURLWithPath: home)
+        .appendingPathComponent(cachePath)
+        .appendingPathComponent("snapshot-env.json")
+    guard let data = try? Data(contentsOf: url),
+          let dict = try? JSONSerialization.jsonObject(with: data) as? [String: String] else {
+        return [:]
+    }
+    return dict
+}()
+```
 
-    app.launch()
+Then use it in a `login()` helper:
 
-    // Fill in the login form
+```swift
+private func login() {
+    let email    = Self.snapshotEnv["EMAIL"]    ?? ""
+    let password = Self.snapshotEnv["PASSWORD"] ?? ""
+
     let emailField = app.textFields["Email"]
-    XCTAssertTrue(emailField.waitForExistence(timeout: 6))
+    XCTAssertTrue(emailField.waitForExistence(timeout: 10))
     emailField.tap()
     emailField.typeText(email)
 
     let passwordField = app.secureTextFields["Password"]
+    XCTAssertTrue(passwordField.waitForExistence(timeout: 5))
     passwordField.tap()
     passwordField.typeText(password)
 
     app.buttons["Sign In"].tap()
+    XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20))
+}
 
-    // Wait for the main screen and take the screenshot
+func testScreenshot01_Home() throws {
+    app.launch()
+    login()
     XCTAssertTrue(app.staticTexts["Dashboard"].waitForExistence(timeout: 10))
     snapshot("01_Home")
 }
@@ -519,13 +546,11 @@ func testScreenshot01_Home() throws {
 
 ### Recommended variable naming
 
-Use a consistent prefix like `SNAPSHOT_` to avoid accidental collisions with system environment variables.
-
 | Variable | Example value |
 |----------|---------------|
-| `SNAPSHOT_EMAIL` | `screenshots@example.com` |
-| `SNAPSHOT_PASSWORD` | `hunter2` |
-| `SNAPSHOT_USER_ID` | `demo-user-123` |
+| `EMAIL` | `screenshots@example.com` |
+| `PASSWORD` | `hunter2` |
+| `USER_ID` | `demo-user-123` |
 
 :::tip Use a dedicated test account
 Create a separate account in your backend specifically for screenshot generation. This way the data stays consistent across runs and you never risk leaking real user data in screenshots.

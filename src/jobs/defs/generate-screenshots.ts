@@ -69,9 +69,12 @@ async function runScreenshotGenerationViaWorker(
           decryptNullable(job.app.snapshotEnvVars)!,
         );
         envVars = Object.fromEntries(parsed.map(({ key, value }) => [key, value]));
+        log(`[config] Loaded ${parsed.length} UI test environment variable(s)`);
       } catch {
         log("[config] Warning: could not parse snapshotEnvVars — skipping");
       }
+    } else {
+      log("[config] Warning: no UI test environment variables configured for this app — if your tests require login, add EMAIL/PASSWORD under App Settings → UI Test Environment");
     }
 
     const repoUrl = `https://github.com/${repoFullName}.git`;

@@ -12,6 +12,12 @@ import UserNotifications
 struct AppCoreApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
+    init() {
+        if CommandLine.arguments.contains("-clearAuth") {
+            APIService.shared.logout()
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()

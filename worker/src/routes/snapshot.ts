@@ -215,15 +215,26 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
         localeId,
         "utf8",
       );
+      if (envVars && Object.keys(envVars).length > 0) {
+        fs.writeFileSync(
+          path.join(fastlaneCacheBase, "snapshot-env.json"),
+          JSON.stringify(envVars),
+          "utf8",
+        );
+        logs.push(`[snapshot] Wrote snapshot-env.json with keys: ${Object.keys(envVars).join(", ")}`);
+      } else {
+        logs.push(`[snapshot] Warning: no envVars provided — snapshot-env.json not written; UI tests requiring login credentials will fail`);
+      }
       logs.push(
         `[snapshot] Language: ${lang} (locale: ${localeId}) — building and running UI tests ...`,
       );
 
       try {
-        const xcodebuildCmd = `xcodebuild ${projectArg} -scheme "${scheme}" ${destinations} FASTLANE_SNAPSHOT=YES FASTLANE_LANGUAGE=${lang} build test`;
+        const hostHome = os.homedir();
+        const xcodebuildCmd = `xcodebuild ${projectArg} -scheme "${scheme}" ${destinations} FASTLANE_SNAPSHOT=YES FASTLANE_LANGUAGE=${lang} TEST_RUNNER_SIMULATOR_HOST_HOME="${hostHome}" build test`;
         logs.push(`[snapshot] Command: ${xcodebuildCmd}`);
         const { stdout } = await execAsync(
-          `set -o pipefail && ${xcodebuildCmd} 2>&1 | tee /tmp/xcodebuild-snapshot.log | xcpretty --no-color; STATUS=\${PIPESTATUS[0]}; if [ $STATUS -ne 0 ]; then echo "[snapshot] xcodebuild exited with status $STATUS"; tail -50 /tmp/xcodebuild-snapshot.log; fi; exit 0`,
+          `${xcodebuildCmd} 2>&1 | tee /tmp/xcodebuild-snapshot.log; STATUS=\${PIPESTATUS[0]}; if [ $STATUS -ne 0 ]; then echo "[snapshot] xcodebuild exited with status $STATUS"; tail -80 /tmp/xcodebuild-snapshot.log; fi; exit 0`,
           {
             cwd: workDir,
             timeout: 900_000,
