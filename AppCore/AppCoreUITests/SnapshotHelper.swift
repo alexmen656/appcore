@@ -51,6 +51,21 @@ open class Snapshot: NSObject {
     static var deviceLanguage = ""
     static var currentLocale = ""
 
+    static let snapshotEnv: [String: String] = {
+        let cachePath = "Library/Caches/tools.fastlane"
+        guard let home = ProcessInfo().environment["SIMULATOR_HOST_HOME"] ?? ProcessInfo().environment["HOME"] else {
+            return [:]
+        }
+        let url = URL(fileURLWithPath: home)
+            .appendingPathComponent(cachePath)
+            .appendingPathComponent("snapshot-env.json")
+        guard let data = try? Data(contentsOf: url),
+              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: String] else {
+            return [:]
+        }
+        return dict
+    }()
+
     open class func setupSnapshot(_ app: XCUIApplication, waitForAnimations: Bool = true) {
         Snapshot.app = app
         Snapshot.waitForAnimations = waitForAnimations

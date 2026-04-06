@@ -21,42 +21,20 @@ final class AppCoreUITests: XCTestCase {
         app = nil
     }
 
-    private static let snapshotEnv: [String: String] = {
-        let cachePath = "Library/Caches/tools.fastlane"
-        guard let home = ProcessInfo().environment["SIMULATOR_HOST_HOME"] ?? ProcessInfo().environment["HOME"] else {
-            return [:]
-        }
-        let url = URL(fileURLWithPath: home)
-            .appendingPathComponent(cachePath)
-            .appendingPathComponent("snapshot-env.json")
-        guard let data = try? Data(contentsOf: url),
-              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: String] else {
-            return [:]
-        }
-        return dict
-    }()
-
-    // MARK: - Login
-
     private func login() {
-        let email    = Self.snapshotEnv["EMAIL"]    ?? ""
-        let password = Self.snapshotEnv["PASSWORD"] ?? ""
-
         let emailField = app.textFields["Email"]
         XCTAssertTrue(emailField.waitForExistence(timeout: 10), "Email field not found")
         emailField.tap()
-        emailField.typeText(email)
+        emailField.typeText(Snapshot.snapshotEnv["EMAIL"] ?? "")
 
         let passwordField = app.secureTextFields["Password"]
         XCTAssertTrue(passwordField.waitForExistence(timeout: 5), "Password field not found")
         passwordField.tap()
-        passwordField.typeText(password)
+        passwordField.typeText(Snapshot.snapshotEnv["PASSWORD"] ?? "")
 
         app.buttons["Sign In"].tap()
         XCTAssertTrue(app.navigationBars["Dashboard"].waitForExistence(timeout: 60), "Dashboard not found after login")
     }
-
-    // MARK: - Screenshots
 
     func testScreenshot01_Dashboard() throws {
         app.launch()
