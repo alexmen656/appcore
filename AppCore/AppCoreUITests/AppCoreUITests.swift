@@ -34,6 +34,14 @@ final class AppCoreUITests: XCTestCase {
 
         app.buttons["Sign In"].tap()
         XCTAssertTrue(app.navigationBars["Dashboard"].waitForExistence(timeout: 30), "Dashboard not found after login")
+
+        dismissSavePasswordPromptIfNeeded()
+    }
+
+    private func dismissSavePasswordPromptIfNeeded() {
+        if app.scrollViews.otherElements.buttons["Später"].waitForExistence(timeout: 2) {
+            app.scrollViews.otherElements.buttons["Später"].tap()
+        }
     }
 
     func testScreenshot01_Dashboard() throws {
