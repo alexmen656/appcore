@@ -53,7 +53,7 @@ final class AppCoreUITests: XCTestCase {
         passwordField.typeText(password)
 
         app.buttons["Sign In"].tap()
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 60), "Tab bar not found after login")
+        XCTAssertTrue(app.navigationBars["Dashboard"].waitForExistence(timeout: 60), "Dashboard not found after login")
     }
 
     // MARK: - Screenshots
@@ -70,7 +70,7 @@ final class AppCoreUITests: XCTestCase {
         app.launch()
         login()
 
-        let keywordsBtn = app.tabBars.buttons["Keywords"]
+        let keywordsBtn = app.buttons["Keywords"]
         XCTAssertTrue(keywordsBtn.waitForExistence(timeout: 10), "Keywords tab button not found")
         keywordsBtn.tap()
         XCTAssertTrue(app.navigationBars["Keywords"].waitForExistence(timeout: 30))
@@ -81,7 +81,7 @@ final class AppCoreUITests: XCTestCase {
         app.launch()
         login()
 
-        let analyticsBtn = app.tabBars.buttons["Analytics"]
+        let analyticsBtn = app.buttons["Analytics"]
         XCTAssertTrue(analyticsBtn.waitForExistence(timeout: 10), "Analytics tab button not found")
         analyticsBtn.tap()
         XCTAssertTrue(app.navigationBars["Analytics"].waitForExistence(timeout: 30))
@@ -92,7 +92,7 @@ final class AppCoreUITests: XCTestCase {
         app.launch()
         login()
 
-        let versionsBtn = app.tabBars.buttons["Versions"]
+        let versionsBtn = app.buttons["Versions"]
         XCTAssertTrue(versionsBtn.waitForExistence(timeout: 10), "Versions tab button not found")
         versionsBtn.tap()
         XCTAssertTrue(app.navigationBars["Versions"].waitForExistence(timeout: 30))
@@ -103,7 +103,7 @@ final class AppCoreUITests: XCTestCase {
         app.launch()
         login()
 
-        let moreBtn = app.tabBars.buttons["More"]
+        let moreBtn = app.buttons["More"]
         XCTAssertTrue(moreBtn.waitForExistence(timeout: 10), "More tab button not found")
         moreBtn.tap()
         XCTAssertTrue(app.navigationBars["More"].waitForExistence(timeout: 30))
