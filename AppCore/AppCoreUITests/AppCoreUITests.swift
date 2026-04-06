@@ -33,14 +33,14 @@ final class AppCoreUITests: XCTestCase {
         passwordField.typeText(Snapshot.snapshotEnv["PASSWORD"] ?? "")
 
         app.buttons["Sign In"].tap()
-        XCTAssertTrue(app.navigationBars["Dashboard"].waitForExistence(timeout: 60), "Dashboard not found after login")
+        XCTAssertTrue(app.navigationBars["Dashboard"].waitForExistence(timeout: 30), "Dashboard not found after login")
     }
 
     func testScreenshot01_Dashboard() throws {
         app.launch()
         login()
 
-        XCTAssertTrue(app.navigationBars["Dashboard"].waitForExistence(timeout: 30))
+        XCTAssertTrue(app.navigationBars["Dashboard"].waitForExistence(timeout: 15))
         snapshot("01_Dashboard")
     }
 
@@ -48,10 +48,10 @@ final class AppCoreUITests: XCTestCase {
         app.launch()
         login()
 
-        let keywordsBtn = app.buttons["Keywords"]
+        let keywordsBtn = app.tabBars.buttons["Keywords"]
         XCTAssertTrue(keywordsBtn.waitForExistence(timeout: 10), "Keywords tab button not found")
         keywordsBtn.tap()
-        XCTAssertTrue(app.navigationBars["Keywords"].waitForExistence(timeout: 30))
+        XCTAssertTrue(app.navigationBars["Keywords"].waitForExistence(timeout: 15))
         snapshot("02_Keywords")
     }
 
@@ -59,10 +59,10 @@ final class AppCoreUITests: XCTestCase {
         app.launch()
         login()
 
-        let analyticsBtn = app.buttons["Analytics"]
+        let analyticsBtn = app.tabBars.buttons["Analytics"]
         XCTAssertTrue(analyticsBtn.waitForExistence(timeout: 10), "Analytics tab button not found")
         analyticsBtn.tap()
-        XCTAssertTrue(app.navigationBars["Analytics"].waitForExistence(timeout: 30))
+        XCTAssertTrue(app.navigationBars["Analytics"].waitForExistence(timeout: 15))
         snapshot("03_Analytics")
     }
 
@@ -70,10 +70,10 @@ final class AppCoreUITests: XCTestCase {
         app.launch()
         login()
 
-        let versionsBtn = app.buttons["Versions"]
+        let versionsBtn = app.tabBars.buttons["Versions"]
         XCTAssertTrue(versionsBtn.waitForExistence(timeout: 10), "Versions tab button not found")
         versionsBtn.tap()
-        XCTAssertTrue(app.navigationBars["Versions"].waitForExistence(timeout: 30))
+        XCTAssertTrue(app.navigationBars["Versions"].waitForExistence(timeout: 15))
         snapshot("04_Versions")
     }
 
@@ -81,10 +81,10 @@ final class AppCoreUITests: XCTestCase {
         app.launch()
         login()
 
-        let moreBtn = app.buttons["More"]
+        let moreBtn = app.tabBars.buttons["More"]
         XCTAssertTrue(moreBtn.waitForExistence(timeout: 10), "More tab button not found")
         moreBtn.tap()
-        XCTAssertTrue(app.navigationBars["More"].waitForExistence(timeout: 30))
+        XCTAssertTrue(app.navigationBars["More"].waitForExistence(timeout: 15))
         snapshot("05_More")
     }
 }
