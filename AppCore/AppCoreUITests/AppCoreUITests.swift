@@ -39,6 +39,7 @@ final class AppCoreUITests: XCTestCase {
     }
 
     private func dismissSavePasswordPromptIfNeeded() {
+        sleep(3)
         if app.scrollViews.otherElements.buttons["Später"].waitForExistence(timeout: 2) {
             app.scrollViews.otherElements.buttons["Später"].tap()
         }

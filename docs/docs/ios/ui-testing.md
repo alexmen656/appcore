@@ -112,6 +112,21 @@ open class Snapshot: NSObject {
     static var deviceLanguage = ""
     static var currentLocale = ""
 
+    static let snapshotEnv: [String: String] = {
+        let cachePath = "Library/Caches/tools.fastlane"
+        guard let home = ProcessInfo().environment["SIMULATOR_HOST_HOME"] ?? ProcessInfo().environment["HOME"] else {
+            return [:]
+        }
+        let url = URL(fileURLWithPath: home)
+            .appendingPathComponent(cachePath)
+            .appendingPathComponent("snapshot-env.json")
+        guard let data = try? Data(contentsOf: url),
+              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: String] else {
+            return [:]
+        }
+        return dict
+    }()
+
     open class func setupSnapshot(_ app: XCUIApplication, waitForAnimations: Bool = true) {
         Snapshot.app = app
         Snapshot.waitForAnimations = waitForAnimations
@@ -287,6 +302,10 @@ private extension CGFloat {
     func isBetween(_ a: CGFloat, and b: CGFloat) -> Bool { a...b ~= self }
 }
 ```
+
+:::info snapshotEnv ist eingebaut
+`Snapshot.snapshotEnv` wird automatisch aus `snapshot-env.json` im fastlane-Cache-Verzeichnis geladen. Du kannst es direkt in deinen Tests verwenden — die JSON-Lese-Logik muss nicht dupliziert werden. Mehr dazu in [Abschnitt 6](#6-environment-variables-for-login-only-apps).
+:::
 
 ---
 
@@ -495,32 +514,18 @@ These values are encrypted at rest and decrypted only when a snapshot job starts
 
 ### Reading env vars in your UI tests
 
-Add a static property that reads the JSON file once:
+`Snapshot.snapshotEnv` is built directly into the SnapshotHelper (see [Section 2](#2-snapshothelperswift)). It lazily reads `snapshot-env.json` from the fastlane cache directory the first time it is accessed — no extra boilerplate needed in your test file.
 
-```swift
-private static let snapshotEnv: [String: String] = {
-    let cachePath = "Library/Caches/tools.fastlane"
-    guard let home = ProcessInfo().environment["SIMULATOR_HOST_HOME"]
-                  ?? ProcessInfo().environment["HOME"] else {
-        return [:]
-    }
-    let url = URL(fileURLWithPath: home)
-        .appendingPathComponent(cachePath)
-        .appendingPathComponent("snapshot-env.json")
-    guard let data = try? Data(contentsOf: url),
-          let dict = try? JSONSerialization.jsonObject(with: data) as? [String: String] else {
-        return [:]
-    }
-    return dict
-}()
-```
+:::info How it resolves the path
+`snapshotEnv` tries `SIMULATOR_HOST_HOME` first (set by the simulator on the Mac Mini worker), then falls back to `HOME`. This covers both the worker setup and local development runs on macOS.
+:::
 
-Then use it in a `login()` helper:
+Use it directly in a `login()` helper:
 
 ```swift
 private func login() {
-    let email    = Self.snapshotEnv["EMAIL"]    ?? ""
-    let password = Self.snapshotEnv["PASSWORD"] ?? ""
+    let email    = Snapshot.snapshotEnv["EMAIL"]    ?? ""
+    let password = Snapshot.snapshotEnv["PASSWORD"] ?? ""
 
     let emailField = app.textFields["Email"]
     XCTAssertTrue(emailField.waitForExistence(timeout: 10))
@@ -533,8 +538,7 @@ private func login() {
     passwordField.typeText(password)
 
     app.buttons["Sign In"].tap()
-    XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20))
-}
+    XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20))}
 
 func testScreenshot01_Home() throws {
     app.launch()
