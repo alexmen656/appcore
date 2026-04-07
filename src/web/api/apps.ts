@@ -307,7 +307,7 @@ appsRouter.get("/:id/competitor-detail", async (req, res) => {
 appsRouter.get("/:id/signing", requireAuth, async (req, res) => {
   try {
     const app = await prisma.app.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       select: {
         signingCertP12: true,
         signingProvisioningProfile: true,
@@ -338,7 +338,7 @@ appsRouter.put("/:id/signing", requireAuth, async (req, res) => {
       return;
     }
     await prisma.app.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: {
         signingCertP12: p12Base64,
         signingCertPassword: p12Password,
@@ -352,10 +352,37 @@ appsRouter.put("/:id/signing", requireAuth, async (req, res) => {
   }
 });
 
+appsRouter.delete("/:id", requireAuth, async (req, res) => {
+  try {
+    const id = req.params.id as string;
+    const isAdmin = req.user!.role === "ADMIN";
+    const teamId = req.user!.teamId;
+
+    const app = await prisma.app.findUnique({ where: { id } });
+    if (!app) {
+      res.status(404).json({ error: "App not found" });
+      return;
+    }
+    if (!isAdmin && app.teamId !== teamId) {
+      res.status(403).json({ error: "Not authorized" });
+      return;
+    }
+    if (!app.isOwnApp) {
+      res.status(400).json({ error: "Only own apps can be deleted" });
+      return;
+    }
+
+    await prisma.app.delete({ where: { id } });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 appsRouter.delete("/:id/signing", requireAuth, async (req, res) => {
   try {
     await prisma.app.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: {
         signingCertP12: null,
         signingCertPassword: null,
