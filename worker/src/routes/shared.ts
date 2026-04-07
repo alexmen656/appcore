@@ -211,6 +211,17 @@ export async function buildWithGym(
   const buildDir = path.join(repoDir, "build");
   fs.mkdirSync(buildDir, { recursive: true });
 
+  const buildNumber = Math.floor(Date.now() / 1000);
+  try {
+    await execAsync(`agvtool new-version -all ${buildNumber} 2>&1`, {
+      cwd: repoDir,
+      timeout: 30_000,
+    });
+    logs.push(`[build] Build number set to ${buildNumber}`);
+  } catch {
+    logs.push("[build] Warning: agvtool failed — build number unchanged");
+  }
+
   logs.push(`[build] Building ...`);
   const gymStart = Date.now();
   try {
@@ -284,5 +295,9 @@ export async function buildWithGym(
 
   logs.push(`[build] Binary ready (${(ipaSize / 1024 / 1024).toFixed(1)} MB)`);
   await signingCleanup?.();
-  return { ipaBase64, originalFilename: path.basename(ipa), sizeBytes: ipaSize };
+  return {
+    ipaBase64,
+    originalFilename: path.basename(ipa),
+    sizeBytes: ipaSize,
+  };
 }
