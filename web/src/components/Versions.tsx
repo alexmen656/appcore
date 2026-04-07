@@ -83,6 +83,12 @@ const FIELD_META: {
     type: "input",
     hint: "URL to your privacy policy",
   },
+  {
+    key: "marketingUrl",
+    label: "Marketing URL",
+    type: "input",
+    hint: "URL to your app's marketing page",
+  },
 ];
 
 const ALL_ASC_LOCALES = [

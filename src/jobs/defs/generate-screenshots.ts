@@ -57,7 +57,7 @@ async function runScreenshotGenerationViaWorker(
     repoFullName = job.app.githubRepoFullName!;
 
     if (job.commitSha) {
-      await postCommitStatus(token, repoFullName, job.commitSha, "pending", "appcore/screenshots", "Screenshot generation in progress…");
+      await postCommitStatus(token!, repoFullName!, job.commitSha, "pending", "appcore/screenshots", "Screenshot generation in progress…");
     }
 
     log("Delegating screenshot generation to worker...");
@@ -191,7 +191,7 @@ async function runScreenshotGenerationViaWorker(
     });
 
     if (job.commitSha) {
-      await postCommitStatus(token, repoFullName, job.commitSha, "success", "appcore/screenshots", "Screenshots generated successfully");
+      await postCommitStatus(token!, repoFullName!, job.commitSha, "success", "appcore/screenshots", "Screenshots generated successfully");
     }
   } catch (err: any) {
     const msg = err instanceof Error ? err.message : String(err);

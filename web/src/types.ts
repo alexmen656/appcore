@@ -326,6 +326,7 @@ export interface VersionLocalization {
   promotionalText: string;
   supportUrl?: string;
   privacyPolicyUrl?: string;
+  marketingUrl?: string;
 }
 
 export interface VersionsData {

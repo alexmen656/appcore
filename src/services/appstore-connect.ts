@@ -239,6 +239,7 @@ export class AppStoreConnectClient {
       whatsNew?: string;
       promotionalText?: string;
       supportUrl?: string;
+      marketingUrl?: string;
     },
   ): Promise<void> {
     try {

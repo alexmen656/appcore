@@ -323,6 +323,7 @@ ascRouter.patch("/versions/metadata", async (req, res) => {
       "whatsNew",
       "promotionalText",
       "supportUrl",
+      "marketingUrl",
     ];
     if (versionFields.includes(field)) {
       if (!versionLocalizationId) {
