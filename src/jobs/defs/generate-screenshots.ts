@@ -225,6 +225,7 @@ async function autoFrameScreenshots(
   try {
     const screenshotsBase = path.join(process.cwd(), "screenshots");
     const framedDir = path.join(outputDir, "framed");
+    const unframedBaseDir = path.join(outputDir, "unframed");
     const subDirs = fs.existsSync(outputDir)
       ? fs
           .readdirSync(outputDir, { withFileTypes: true })
@@ -240,6 +241,7 @@ async function autoFrameScreenshots(
       const rel = path.relative(outputDir, srcDir);
       const locale = rel === "." ? "default" : path.basename(srcDir);
       const outDir = path.join(framedDir, rel === "." ? "" : rel);
+      const unframedOutDir = path.join(unframedBaseDir, rel === "." ? "" : rel);
       const localeSublines = sublines[locale] ?? sublines["en-US"] ?? {};
       let outputPaths: string[];
 
@@ -253,7 +255,7 @@ async function autoFrameScreenshots(
         outputPaths = await frameWithFastlane(srcDir, outDir, {
           subtitle: job.app.name,
           ...bgOptions,
-        });
+        }, unframedOutDir);
       } else {
         outputPaths = [];
         const files = fs
@@ -272,6 +274,7 @@ async function autoFrameScreenshots(
 
           const singleDir = path.join(srcDir, ".frametmp_" + base);
           const singleOut = path.join(outDir, base);
+          const singleUnframedOut = path.join(unframedOutDir, base);
           fs.mkdirSync(singleDir, { recursive: true });
           fs.copyFileSync(
             path.join(srcDir, filename),
@@ -281,7 +284,7 @@ async function autoFrameScreenshots(
             const paths = await frameWithFastlane(singleDir, singleOut, {
               subtitle,
               ...bgOptions,
-            });
+            }, singleUnframedOut);
             outputPaths.push(...paths);
           } finally {
             fs.rmSync(singleDir, { recursive: true, force: true });

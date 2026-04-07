@@ -96,6 +96,7 @@ export interface WorkerFrameitParams {
 export interface WorkerFrameitResult {
   ok: boolean;
   framedImages: Array<{ filename: string; data: string }>;
+  unframedImages?: Array<{ filename: string; data: string }>;
   error?: string;
 }
 

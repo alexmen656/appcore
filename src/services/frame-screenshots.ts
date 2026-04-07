@@ -14,14 +14,16 @@ export async function frameWithFastlane(
   inputDir: string,
   outputDir: string,
   options: FrameOptions,
+  unframedOutputDir?: string,
 ): Promise<string[]> {
-  return frameWithWorker(inputDir, outputDir, options);
+  return frameWithWorker(inputDir, outputDir, options, unframedOutputDir);
 }
 
 async function frameWithWorker(
   inputDir: string,
   outputDir: string,
   options: FrameOptions,
+  unframedOutputDir?: string,
 ): Promise<string[]> {
   const srcFiles = fs
     .readdirSync(inputDir)
@@ -53,6 +55,14 @@ async function frameWithWorker(
     const dest = path.join(outputDir, img.filename);
     fs.writeFileSync(dest, Buffer.from(img.data, "base64"));
     outputPaths.push(dest);
+  }
+
+  if (unframedOutputDir && result.unframedImages && result.unframedImages.length > 0) {
+    fs.mkdirSync(unframedOutputDir, { recursive: true });
+    for (const img of result.unframedImages) {
+      const dest = path.join(unframedOutputDir, img.filename);
+      fs.writeFileSync(dest, Buffer.from(img.data, "base64"));
+    }
   }
 
   return outputPaths;

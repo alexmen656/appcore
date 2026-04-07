@@ -52,6 +52,7 @@ frameitRouter.post("/frameit", async (req: Request, res: Response) => {
 
   const tmpDir = path.join(os.tmpdir(), `worker-frameit-${Date.now()}`);
   fs.mkdirSync(tmpDir, { recursive: true });
+  let tmpDirNoBg = "";
 
   try {
     let firstW = 1290;
@@ -135,28 +136,93 @@ frameitRouter.post("/frameit", async (req: Request, res: Response) => {
       ),
     );
 
-    const fastlaneBin = await findFastlane();
-    let combinedOutput = "";
+    tmpDirNoBg = path.join(os.tmpdir(), `worker-frameit-nobg-${Date.now()}`);
+    fs.mkdirSync(tmpDirNoBg, { recursive: true });
 
-    try {
-      const result = await execAsync(`${fastlaneBin} frameit 2>&1`, {
-        cwd: tmpDir,
-        timeout: 300_000,
-        env: { ...process.env, FASTLANE_DISABLE_COLORS: "1" },
-        maxBuffer: 10 * 1024 * 1024,
-      });
-      combinedOutput = result.stdout ?? "";
-    } catch (execErr: any) {
-      combinedOutput = (execErr.stdout ?? "") + (execErr.stderr ?? "");
-      const hasOutput = fs
-        .readdirSync(tmpDir)
-        .some((f) => f.endsWith("_framed.png"));
-      if (!hasOutput) {
-        throw new Error(
-          `fastlane frameit failed (code ${execErr.code}).\n${combinedOutput}`,
-        );
+    for (const img of images) {
+      const basename = img.filename.replace(/\.[^.]+$/, "");
+      const src = path.join(tmpDir, basename + ".png");
+      if (fs.existsSync(src)) {
+        fs.copyFileSync(src, path.join(tmpDirNoBg, basename + ".png"));
       }
     }
+    fs.copyFileSync(
+      path.join(tmpDir, "ArialRoundedBold.ttf"),
+      path.join(tmpDirNoBg, "ArialRoundedBold.ttf"),
+    );
+
+    const defaultSectionNoBg: Record<string, any> = {
+      padding: 50,
+      show_complete_frame: false,
+      stack_title: false,
+      title_below_image: layoutMode === "bottom",
+    };
+    if (title) {
+      defaultSectionNoBg.title = {
+        text: title,
+        color: textColor,
+        font: "./ArialRoundedBold.ttf",
+        font_size: 150,
+      };
+    } else if (subtitle) {
+      defaultSectionNoBg.title = {
+        text: subtitle,
+        color: textColor,
+        font: "./ArialRoundedBold.ttf",
+        font_size: 150,
+      };
+    } else {
+      defaultSectionNoBg.title = {
+        text: " ",
+        color: textColor,
+        font: "./ArialRoundedBold.ttf",
+        font_size: 150,
+      };
+    }
+
+    fs.writeFileSync(
+      path.join(tmpDirNoBg, "Framefile.json"),
+      JSON.stringify(
+        {
+          device_frame_version: "latest",
+          default: defaultSectionNoBg,
+          data: [],
+        },
+        null,
+        2,
+      ),
+    );
+
+    const fastlaneBin = await findFastlane();
+
+    const runFrameit = async (dir: string) => {
+      let output = "";
+      try {
+        const result = await execAsync(`${fastlaneBin} frameit 2>&1`, {
+          cwd: dir,
+          timeout: 300_000,
+          env: { ...process.env, FASTLANE_DISABLE_COLORS: "1" },
+          maxBuffer: 10 * 1024 * 1024,
+        });
+        output = result.stdout ?? "";
+      } catch (execErr: any) {
+        output = (execErr.stdout ?? "") + (execErr.stderr ?? "");
+        const hasOutput = fs
+          .readdirSync(dir)
+          .some((f) => f.endsWith("_framed.png"));
+        if (!hasOutput) {
+          throw new Error(
+            `fastlane frameit failed (code ${execErr.code}).\n${output}`,
+          );
+        }
+      }
+      return output;
+    };
+
+    const [combinedOutput] = await Promise.all([
+      runFrameit(tmpDir),
+      runFrameit(tmpDirNoBg),
+    ]);
 
     const framedFiles = fs
       .readdirSync(tmpDir)
@@ -165,37 +231,50 @@ frameitRouter.post("/frameit", async (req: Request, res: Response) => {
       throw new Error(`frameit produced no output.\n${combinedOutput}`);
     }
 
-    const framedImages: Array<{ filename: string; data: string }> = [];
-    for (const f of framedFiles) {
-      const raw = fs.readFileSync(path.join(tmpDir, f));
-      const img = sharp(raw);
+    const gravity =
+      layoutMode === "top"
+        ? "north"
+        : layoutMode === "bottom"
+          ? "south"
+          : "centre";
 
-      const srcBase = f.replace(/_framed\.png$/, "");
-      const dims = outputDims.get(srcBase) ?? { w: firstW, h: firstH };
+    const processFramedFiles = async (
+      dir: string,
+      files: string[],
+    ): Promise<Array<{ filename: string; data: string }>> => {
+      const result: Array<{ filename: string; data: string }> = [];
+      for (const f of files) {
+        const raw = fs.readFileSync(path.join(dir, f));
+        const srcBase = f.replace(/_framed\.png$/, "");
+        const dims = outputDims.get(srcBase) ?? { w: firstW, h: firstH };
+        const finalBuf = await sharp(raw)
+          .resize(dims.w, dims.h, { fit: "cover", position: gravity })
+          .png()
+          .toBuffer();
+        result.push({ filename: f, data: finalBuf.toString("base64") });
+      }
+      return result;
+    };
 
-      const gravity =
-        layoutMode === "top"
-          ? "north"
-          : layoutMode === "bottom"
-            ? "south"
-            : "centre";
+    const noBgFiles = fs
+      .readdirSync(tmpDirNoBg)
+      .filter((f) => f.endsWith("_framed.png"));
 
-      const finalBuf = await img
-        .resize(dims.w, dims.h, { fit: "cover", position: gravity })
-        .png()
-        .toBuffer();
+    const [framedImages, unframedImages] = await Promise.all([
+      processFramedFiles(tmpDir, framedFiles),
+      processFramedFiles(tmpDirNoBg, noBgFiles),
+    ]);
 
-      framedImages.push({ filename: f, data: finalBuf.toString("base64") });
-    }
-
-    res.json({ ok: true, framedImages });
+    res.json({ ok: true, framedImages, unframedImages });
   } catch (err: any) {
     res.status(500).json({ ok: false, error: err.message });
   } finally {
-    try {
-      fs.rmSync(tmpDir, { recursive: true, force: true });
-    } catch {
-      // ignore
+    for (const dir of [tmpDir, tmpDirNoBg].filter(Boolean)) {
+      try {
+        fs.rmSync(dir, { recursive: true, force: true });
+      } catch {
+        /* ignore */
+      }
     }
   }
 });
