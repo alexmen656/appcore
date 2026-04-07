@@ -92,7 +92,9 @@ function StatCard({
   return (
     <div
       className={`bg-white dark:bg-[#1c2028] border rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] ${
-        highlight ? "border-[#fde8eb] dark:border-[#3a1f23]" : "border-[#eef0f3] dark:border-[#2a2f3d]"
+        highlight
+          ? "border-[#fde8eb] dark:border-[#3a1f23]"
+          : "border-[#eef0f3] dark:border-[#2a2f3d]"
       }`}
     >
       <div className="text-[11px] font-medium uppercase tracking-wide text-[#9ca3af] dark:text-[#5c6478] mb-2">
@@ -100,12 +102,18 @@ function StatCard({
       </div>
       <div
         className={`text-[26px] font-semibold leading-none ${
-          dim ? "text-[#9ca3af] dark:text-[#5c6478]" : "text-[#111827] dark:text-[#e8eaf0]"
+          dim
+            ? "text-[#9ca3af] dark:text-[#5c6478]"
+            : "text-[#111827] dark:text-[#e8eaf0]"
         }`}
       >
         {value}
       </div>
-      {sub && <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mt-1.5">{sub}</div>}
+      {sub && (
+        <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mt-1.5">
+          {sub}
+        </div>
+      )}
       {note && (
         <div className="text-[11px] text-[#c4c9d4] dark:text-[#3a4050] mt-1 leading-tight">
           {note}
@@ -131,7 +139,9 @@ function FunnelRow({
   const pct = total > 0 ? (value / total) * 100 : 0;
   return (
     <div className="flex items-center gap-3">
-      <div className="w-28 text-[12px] text-[#6b7280] dark:text-[#8b93a5] shrink-0">{label}</div>
+      <div className="w-28 text-[12px] text-[#6b7280] dark:text-[#8b93a5] shrink-0">
+        {label}
+      </div>
       <div className="flex-1 h-2 bg-[#f3f4f6] dark:bg-[#252b38] rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-300"
@@ -294,11 +304,10 @@ export default function Analytics({ addToast }: Props) {
         </button>
       </div>
 
-      {/* ── No data banner ─────────────────────────────────────────────────── */}
       {!loading && !summary?.totalDownloads && (reviews ?? []).length === 0 && (
         <div className="mb-5 px-4 py-3.5 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/40 text-[13px] text-amber-800 dark:text-amber-400">
           <strong>No analytics data yet.</strong> Make sure your{" "}
-          <a href="/settings" className="underline font-medium">
+          <a href="/app/settings" className="underline font-medium">
             Vendor Number
           </a>{" "}
           is configured in Settings, then click <strong>Sync Now</strong>.
@@ -329,7 +338,9 @@ export default function Analytics({ addToast }: Props) {
               onChange={(e) => setCustomStart(e.target.value)}
               className="h-8 px-2.5 text-[12px] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl text-[#111827] dark:text-[#e8eaf0] bg-white dark:bg-[#1c2028] focus:outline-none focus:border-[#c4c9d4] dark:focus:border-[#ea0e2b]"
             />
-            <span className="text-[#9ca3af] dark:text-[#5c6478] text-[12px]">–</span>
+            <span className="text-[#9ca3af] dark:text-[#5c6478] text-[12px]">
+              –
+            </span>
             <input
               type="date"
               value={customEnd}
@@ -540,7 +551,10 @@ export default function Analytics({ addToast }: Props) {
                               src={`/app/country-flags/${r.country.toLowerCase()}.svg`}
                               alt={r.country}
                               className="w-5 h-4 rounded-xs object-cover shrink-0"
-                              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display =
+                                  "none";
+                              }}
                             />
                             <span className="font-medium text-[#111827] dark:text-[#e8eaf0]">
                               {countryName(r.country)}
@@ -550,7 +564,9 @@ export default function Analytics({ addToast }: Props) {
                             </span>
                           </div>
                         </td>
-                        <td className={`${TD} text-right tabular-nums text-[#111827] dark:text-[#e8eaf0]`}>
+                        <td
+                          className={`${TD} text-right tabular-nums text-[#111827] dark:text-[#e8eaf0]`}
+                        >
                           {fmtNumber(val)}
                         </td>
                         <td className={`${TD} text-right pr-5`}>
@@ -667,7 +683,10 @@ export default function Analytics({ addToast }: Props) {
                             src={`/app/country-flags/${r.country.toLowerCase()}.svg`}
                             alt={r.country}
                             className="w-5 h-4 rounded-xs object-cover shrink-0"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display =
+                                "none";
+                            }}
                           />
                           <span className="font-medium text-[#111827] dark:text-[#e8eaf0]">
                             {countryName(r.country)}
@@ -677,7 +696,9 @@ export default function Analytics({ addToast }: Props) {
                           </span>
                         </div>
                       </td>
-                      <td className={`${TD} text-right tabular-nums text-[#111827] dark:text-[#e8eaf0]`}>
+                      <td
+                        className={`${TD} text-right tabular-nums text-[#111827] dark:text-[#e8eaf0]`}
+                      >
                         {fmtNumber(r.downloads)}
                       </td>
                       {hasEngagementData && (
