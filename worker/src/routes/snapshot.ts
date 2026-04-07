@@ -110,6 +110,7 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
     let scheme = appName;
     let effectiveDevices = DEFAULT_DEVICES;
     let effectiveLanguages = DEFAULT_LANGUAGES;
+    let appearance: "light" | "dark" = "light";
 
     const configFile = findConfigFile(workDir);
     if (configFile) {
@@ -121,6 +122,8 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
           effectiveDevices = cfg.devices;
         if (Array.isArray(cfg.languages) && cfg.languages.length)
           effectiveLanguages = cfg.languages;
+        if (cfg.appearance === "dark" || cfg.appearance === "light")
+          appearance = cfg.appearance;
         const { bgColor1, bgColor2, textColor } = cfg;
         if (bgColor1 || bgColor2 || textColor)
           frameConfig = { bgColor1, bgColor2, textColor };
@@ -132,6 +135,7 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
             - scheme: ${scheme}
             - devices: ${effectiveDevices.join(", ")}
             - languages: ${effectiveLanguages.join(", ")}
+            - appearance: ${appearance}
             - ${plural(descCount, "description")}`,
         );
       } catch {
@@ -199,6 +203,19 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
       `[snapshot] Running xcodebuild with destinations:\n           - ${snapDevices.join("\n           - ")}`,
     );
 
+    for (const udid of snapDevices.filter((d) => d.includes("-"))) {
+      try {
+        await execAsync(`xcrun simctl boot "${udid}" 2>/dev/null || true`);
+        await execAsync(`xcrun simctl ui "${udid}" appearance ${appearance}`);
+        await execAsync(`xcrun simctl shutdown "${udid}" 2>/dev/null || true`);
+      } catch {
+        logs.push(`[snapshot] Warning: could not set appearance on ${udid}`);
+      }
+    }
+    if (snapDevices.some((d) => d.includes("-"))) {
+      logs.push(`[snapshot] Simulator appearance set to ${appearance}`);
+    }
+
     for (const lang of effectiveLanguages) {
       fs.rmSync(fastlaneCacheDir, { recursive: true, force: true });
       fs.mkdirSync(fastlaneCacheDir, { recursive: true });
@@ -221,9 +238,13 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
           JSON.stringify(envVars),
           "utf8",
         );
-        logs.push(`[snapshot] Wrote snapshot-env.json with keys: ${Object.keys(envVars).join(", ")}`);
+        logs.push(
+          `[snapshot] Wrote snapshot-env.json with keys: ${Object.keys(envVars).join(", ")}`,
+        );
       } else {
-        logs.push(`[snapshot] Warning: no envVars provided — snapshot-env.json not written; UI tests requiring login credentials will fail`);
+        logs.push(
+          `[snapshot] Warning: no envVars provided — snapshot-env.json not written; UI tests requiring login credentials will fail`,
+        );
       }
       logs.push(
         `[snapshot] Language: ${lang} (locale: ${localeId}) — building and running UI tests ...`,
