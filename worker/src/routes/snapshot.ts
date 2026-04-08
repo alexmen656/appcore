@@ -75,7 +75,7 @@ const DEFAULT_DEVICES = [
   "iPhone 16 Pro Max",
   "iPhone 16",
   "iPhone SE (3rd generation)",
-  "iPad Pro 13-inch (M4)",
+  "iPad Pro (12.9-inch) (4th generation)",
 ];
 
 snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {

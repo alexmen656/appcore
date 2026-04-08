@@ -321,7 +321,7 @@ Place this file next to your UI test file. It controls which devices and languag
       "iPhone 16 Pro Max",
       "iPhone 16 Pro",
       "iPhone SE (3rd generation)",
-      "iPad Pro 13-inch (M4)"
+      "iPad Pro (12.9-inch) (4th generation)"
     ],
     "languages": ["en-US", "de-DE"],
     "bgColor1": "#000000",
@@ -361,8 +361,8 @@ iPhone 16 Pro
 iPhone 16
 iPhone 15 Pro Max
 iPhone SE (3rd generation)
-iPad Pro 13-inch (M4)
-iPad Pro 11-inch (M4)
+iPad Pro (12.9-inch) (4th generation)
+iPad Pro (11-inch) (4th generation)
 ```
 
 ### Supported languages
