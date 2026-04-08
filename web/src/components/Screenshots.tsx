@@ -505,35 +505,7 @@ function JobRow({
   statusBadge: (s: string) => string;
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }) {
-  const [showFrameForm, setShowFrameForm] = useState(false);
-  const [subtitle, setSubtitle] = useState("Your App");
-  const [preset, setPreset] = useState(0);
-  const [framing, setFraming] = useState(false);
-  const [framedUrls, setFramedUrls] = useState<string[]>([]);
-
-  const handleFrame = async () => {
-    setFraming(true);
-    try {
-      const res = await fetch(`/api/github/screenshots/frame/${job.id}`, {
-        method: "POST",
-        headers: { ...authHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subtitle,
-          bgColor1: PRESETS[preset].bg1,
-          bgColor2: PRESETS[preset].bg2,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Framing failed");
-      setFramedUrls(data.framedUrls);
-      addToast(`${data.count} screenshots framed`, "success");
-      setShowFrameForm(false);
-    } catch (err: any) {
-      addToast(err.message, "error");
-    } finally {
-      setFraming(false);
-    }
-  };
+  const [framedUrls] = useState<string[]>([]);
 
   return (
     <div className="border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl overflow-hidden">
@@ -600,72 +572,6 @@ function JobRow({
                   {job.screenshotUrls.length} screenshot(s) generated
                 </div>
               )}
-              <button
-                className={btnPrimSm}
-                onClick={() => setShowFrameForm((v) => !v)}
-              >
-                <svg
-                  className="w-3.5 h-3.5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <rect x="3" y="3" width="18" height="18" rx="3" />
-                  <rect x="7" y="7" width="10" height="10" rx="1" />
-                </svg>
-                Frame Screenshots
-              </button>
-            </div>
-          )}
-
-          {showFrameForm && (
-            <div className="mb-4 p-4 rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028]">
-              <div className="text-[12px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-3">
-                App Store Framing
-              </div>
-              <div className="mb-3">
-                <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] mb-1 block">
-                  Subtitle
-                </label>
-                <input
-                  className={inputCls}
-                  value={subtitle}
-                  onChange={(e) => setSubtitle(e.target.value)}
-                  placeholder="e.g. Track anything, anywhere"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] mb-1.5 block">
-                  Background
-                </label>
-                <div className="flex gap-2 flex-wrap">
-                  {PRESETS.map((p, i) => (
-                    <button
-                      key={p.label}
-                      onClick={() => setPreset(i)}
-                      className={`w-8 h-8 rounded-lg border-2 transition-all ${preset === i ? "border-[#111827] dark:border-[#e8eaf0] scale-110" : "border-transparent"}`}
-                      style={{
-                        background: `linear-gradient(135deg, ${p.bg1}, ${p.bg2})`,
-                      }}
-                      title={p.label}
-                    />
-                  ))}
-                </div>
-              </div>
-              <button
-                className={btnPrimary}
-                onClick={handleFrame}
-                disabled={framing}
-              >
-                {framing ? (
-                  <>
-                    <div className="spinner !w-3.5 !h-3.5" /> Framing…
-                  </>
-                ) : (
-                  "Apply Frame"
-                )}
-              </button>
             </div>
           )}
 
