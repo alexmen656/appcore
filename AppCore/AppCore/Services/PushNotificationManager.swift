@@ -12,6 +12,16 @@ final class PushNotificationManager: NSObject {
 
     override private init() {
         super.init()
+        Task { await restoreState() }
+    }
+
+    private func restoreState() async {
+        await checkPermissionStatus()
+        if permissionStatus == .authorized {
+            await MainActor.run {
+                UIApplication.shared.registerForRemoteNotifications()
+            }
+        }
     }
 
     func requestPermission() async {

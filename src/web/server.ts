@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import http from "http";
-import { logger, prisma } from "../config";
+import { env, logger, prisma } from "../config";
 import { appsRouter } from "./api/apps";
 import { suggestionsRouter } from "./api/suggestions";
 import { keywordsRouter } from "./api/keywords";
@@ -163,21 +163,13 @@ app.listen(PORT, () => {
   initASOScheduler();
   logger.info("Autonomous ASO scheduler started");
 
-  const apnsKeyId = process.env.APNS_KEY_ID;
-  const apnsTeamId = process.env.APNS_TEAM_ID;
-  const apnsBundleId = process.env.APNS_BUNDLE_ID || "com.fringelo.AppCore";
-  const apnsKeyPath = process.env.APNS_KEY_PATH || "./keys/AuthKey.p8";
-  const apnsHost = process.env.APNS_PRODUCTION === "true"
-    ? "api.push.apple.com"
-    : "api.sandbox.push.apple.com";
-
-  if (apnsKeyId && apnsTeamId && fs.existsSync(apnsKeyPath)) {
+  if (env.APNS_KEY_ID && env.APNS_TEAM_ID && fs.existsSync(env.APNS_KEY_PATH)) {
     notificationService.configure({
-      keyId: apnsKeyId,
-      teamId: apnsTeamId,
-      bundleId: apnsBundleId,
-      keyPath: apnsKeyPath,
-      apnsHost,
+      keyId: env.APNS_KEY_ID,
+      teamId: env.APNS_TEAM_ID,
+      bundleId: env.APNS_BUNDLE_ID,
+      keyPath: env.APNS_KEY_PATH,
+      apnsHost: env.APNS_HOST,
     });
     logger.info("APNs push notifications configured");
   } else {

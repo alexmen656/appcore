@@ -25,6 +25,15 @@ const envSchema = z.object({
   APPLE_ADS_TEAM_ID: z.string().optional(),
   APPLE_ADS_ORG_ID: z.string().optional(),
 
+  // APNs
+  APNS_KEY_ID: z.string().optional(),
+  APNS_TEAM_ID: z.string().optional(),
+  APNS_BUNDLE_ID: z.string().default("com.fringelo.marteso.Marteso"),
+  APNS_KEY_PATH: z.string().default("./keys/AuthKey.p8"),
+  APNS_HOST: z
+    .string()
+    .default("api.sandbox.push.apple.com"),
+
   // GitHub OAuth
   GITHUB_CLIENT_ID: z.string().optional(),
   GITHUB_CLIENT_SECRET: z.string().optional(),

@@ -179,9 +179,15 @@ struct NotificationSettingsView: View {
                     }
                 }
 
-                if !pushManager.isRegistered {
+                if pushManager.permissionStatus == .notDetermined {
                     Button("Enable Push Notifications") {
                         Task { await pushManager.requestPermission() }
+                    }
+                } else if pushManager.permissionStatus == .denied {
+                    Button("Open Settings") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
                     }
                 }
             } header: {
