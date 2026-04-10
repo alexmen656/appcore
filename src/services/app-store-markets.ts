@@ -223,6 +223,28 @@ export function langForCountry(country: string): string {
   return COUNTRY_LANG[country.toLowerCase()] ?? "en";
 }
 
+export function localeToCountry(locale: string): string | null {
+  const lower = locale.toLowerCase();
+  const scriptMap: Record<string, string> = {
+    "zh-hans": "cn",
+    "zh-hant": "tw",
+  };
+  if (scriptMap[lower]) return scriptMap[lower];
+
+  const parts = lower.split("-");
+  if (parts.length >= 2) {
+    const region = parts[parts.length - 1];
+    if (region.length === 2) return region;
+  }
+
+  const langMap: Record<string, string> = {
+    ko: "kr",
+    ja: "jp",
+    zh: "cn",
+  };
+  return langMap[parts[0] ?? ""] ?? null;
+}
+
 export function normalizeLanguage(
   language: string | null | undefined,
   country: string,
