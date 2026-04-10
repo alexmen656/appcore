@@ -167,7 +167,9 @@ app.listen(PORT, () => {
   const apnsTeamId = process.env.APNS_TEAM_ID;
   const apnsBundleId = process.env.APNS_BUNDLE_ID || "com.fringelo.AppCore";
   const apnsKeyPath = process.env.APNS_KEY_PATH || "./keys/AuthKey.p8";
-  const apnsProduction = process.env.APNS_PRODUCTION === "true";
+  const apnsHost = process.env.APNS_PRODUCTION === "true"
+    ? "api.push.apple.com"
+    : "api.sandbox.push.apple.com";
 
   if (apnsKeyId && apnsTeamId && fs.existsSync(apnsKeyPath)) {
     notificationService.configure({
@@ -175,7 +177,7 @@ app.listen(PORT, () => {
       teamId: apnsTeamId,
       bundleId: apnsBundleId,
       keyPath: apnsKeyPath,
-      production: apnsProduction,
+      apnsHost,
     });
     logger.info("APNs push notifications configured");
   } else {

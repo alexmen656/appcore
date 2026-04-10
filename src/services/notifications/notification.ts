@@ -11,7 +11,7 @@ export interface APNsConfig {
   teamId: string;
   bundleId: string;
   keyPath: string;
-  production: boolean;
+  apnsHost: string;
 }
 
 export interface PushPayload {
@@ -57,7 +57,7 @@ class NotificationService {
     this.apnsConfig = config;
     this.jwtToken = null;
     logger.info(
-      `[PUSH] Configured APNs for ${config.bundleId} (${config.production ? "production" : "sandbox"})`,
+      `[PUSH] Configured APNs for ${config.bundleId} (${config.apnsHost})`,
     );
   }
 
@@ -82,11 +82,12 @@ class NotificationService {
       expiresIn: "1h",
       header: { alg: "ES256", kid: keyId },
     } as any);
+    
     this.jwtIssuedAt = now;
     return this.jwtToken!;
   }
 
-  async sendToDevice(
+  async pushToDevice(
     deviceToken: string,
     payload: PushPayload,
   ): Promise<boolean> {
@@ -94,10 +95,6 @@ class NotificationService {
       logger.warn("[PUSH] APNs not configured, skipping push");
       return false;
     }
-
-    const apnsHost = this.apnsConfig.production
-      ? "api.push.apple.com"
-      : "api.sandbox.push.apple.com";
 
     const apnsPayload = {
       aps: {
@@ -111,7 +108,7 @@ class NotificationService {
     };
 
     return new Promise((resolve) => {
-      const client = http2.connect(`https://${apnsHost}`);
+      const client = http2.connect(`https://${this.apnsConfig!.apnsHost}`);
       client.on("error", (err) => {
         logger.error(`[PUSH] HTTP/2 connection error: ${err.message}`);
         resolve(false);
@@ -133,9 +130,11 @@ class NotificationService {
       req.on("response", (headers) => {
         statusCode = headers[":status"] as number;
       });
+
       req.on("data", (chunk) => {
         responseData += chunk;
       });
+
       req.on("end", async () => {
         client.close();
         const success = statusCode === 200;
@@ -179,33 +178,38 @@ class NotificationService {
     });
   }
 
-  async sendToAll(
+  async pushToAll(
     payload: PushPayload,
   ): Promise<{ sent: number; failed: number }> {
     const tokens = await prisma.deviceToken.findMany({
       where: { isActive: true, platform: "ios" },
     });
+
     const results = await Promise.all(
-      tokens.map((t) => this.sendToDevice(t.token, payload)),
+      tokens.map((t) => this.pushToDevice(t.token, payload)),
     );
+
     const sent = results.filter(Boolean).length;
     const failed = results.length - sent;
+
     logger.info(
       `[PUSH] Broadcast: ${sent} sent, ${failed} failed (of ${tokens.length} devices)`,
     );
     return { sent, failed };
   }
 
-  async sendToUser(
+  async pushToUser(
     userId: string,
     payload: PushPayload,
   ): Promise<{ sent: number; failed: number }> {
     const tokens = await prisma.deviceToken.findMany({
       where: { userId, isActive: true, platform: "ios" },
     });
+
     const results = await Promise.all(
-      tokens.map((t) => this.sendToDevice(t.token, payload)),
+      tokens.map((t) => this.pushToDevice(t.token, payload)),
     );
+
     const sent = results.filter(Boolean).length;
     return { sent, failed: results.length - sent };
   }
@@ -221,23 +225,24 @@ class NotificationService {
     }
     try {
       const { to, subject, ...content } = emailOpts;
-      const ctaBlock = content.cta
-        ? `<a href="${content.cta.url}" style="display:inline-block;background:#ea0e2b;color:white;text-decoration:none;font-weight:600;font-size:15px;padding:12px 28px;border-radius:12px;margin-top:8px;">${content.cta.label}</a>`
-        : "";
-      const footer =
-        content.footer ??
-        "Falls du diese E-Mail nicht erwartet hast, kannst du sie ignorieren.";
 
       const html = `<!DOCTYPE html>
-    <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-    <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8f9fb;margin:0;padding:40px 20px;">
-    <div style="max-width:480px;margin:0 auto;background:white;border-radius:16px;padding:40px;border:1px solid #e5e7eb;">
-    <div style="font-size:24px;font-weight:800;color:#ea0e2b;margin-bottom:24px;letter-spacing:-0.3px;">marteso</div>
-    <h1 style="font-size:20px;font-weight:700;color:#1a1a2e;margin:0 0 12px;">${content.title}</h1>
-    <div style="color:#6b7280;font-size:15px;line-height:1.6;margin:0 0 24px;">${content.body}</div>
-    ${ctaBlock}
-    <p style="color:#9ca3af;font-size:12px;margin-top:24px;line-height:1.5;">${footer}</p>
-    </div></body></html>`;
+      <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+      <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8f9fb;margin:0;padding:40px 20px;">
+      <div style="max-width:480px;margin:0 auto;background:white;border-radius:16px;padding:40px;border:1px solid #e5e7eb;">
+      <div style="font-size:24px;font-weight:800;color:#ea0e2b;margin-bottom:24px;letter-spacing:-0.3px;">marteso</div>
+      <h1 style="font-size:20px;font-weight:700;color:#1a1a2e;margin:0 0 12px;">${content.title}</h1>
+      <div style="color:#6b7280;font-size:15px;line-height:1.6;margin:0 0 24px;">${content.body}</div>
+      ${
+        content.cta
+          ? `<a href="${content.cta.url}" style="display:inline-block;background:#ea0e2b;color:white;text-decoration:none;font-weight:600;font-size:15px;padding:12px 28px;border-radius:12px;margin-top:8px;">${content.cta.label}</a>`
+          : ""
+      }
+      <p style="color:#9ca3af;font-size:12px;margin-top:24px;line-height:1.5;">${
+        content.footer ??
+        "Falls du diese E-Mail nicht erwartet hast, kannst du sie ignorieren."
+      }</p>
+      </div></body></html>`;
 
       await new Resend(env.RESEND_API_KEY).emails.send({
         from: env.EMAIL_FROM,
@@ -252,14 +257,11 @@ class NotificationService {
     }
   }
 
-  async notifyUser(
-    userId: string,
-    options: NotifyOptions,
-  ): Promise<NotifyResult> {
+  async notify(userId: string, options: NotifyOptions): Promise<NotifyResult> {
     const result: NotifyResult = {};
     await Promise.all([
       options.push
-        ? this.sendToUser(userId, options.push)
+        ? this.pushToUser(userId, options.push)
             .then((r) => (result.push = r))
             .catch((err) => {
               logger.error("[notify] Push to user failed", err);
@@ -273,11 +275,11 @@ class NotificationService {
     return result;
   }
 
-  async notifyAll(options: NotifyOptions): Promise<NotifyResult> {
+  async broadcast(options: NotifyOptions): Promise<NotifyResult> {
     const result: NotifyResult = {};
     await Promise.all([
       options.push
-        ? this.sendToAll(options.push)
+        ? this.pushToAll(options.push)
             .then((r) => (result.push = r))
             .catch((err) => {
               logger.error("[notify] Broadcast push failed", err);
@@ -298,7 +300,7 @@ class NotificationService {
     const result: NotifyResult = {};
     await Promise.all([
       options.push
-        ? this.sendToDevice(deviceToken, options.push)
+        ? this.pushToDevice(deviceToken, options.push)
             .then((r) => (result.push = r))
             .catch((err) => {
               logger.error("[notify] Push to device failed", err);

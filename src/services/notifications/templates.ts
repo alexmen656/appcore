@@ -1,4 +1,4 @@
-import { notificationService, sendEmail } from "./notification.js";
+import { notificationService } from "./notification.js";
 import { env } from "../../config/env.js";
 
 export async function teamInvite({
@@ -22,7 +22,7 @@ export async function teamInvite({
     VIEWER: "Viewer",
   };
 
-  await sendEmail({
+  await notificationService.sendEmail({
     to,
     subject: `Du wurdest zu ${teamName} auf marteso eingeladen`,
     title: "Du wurdest eingeladen",
@@ -47,7 +47,7 @@ export function keywordRankChange(
         : `↓ ${newRank - oldRank}`
       : "";
 
-  return notificationService.notifyAll({
+  return notificationService.broadcast({
     push: {
       title: "🔑 Keyword Rank Update",
       body: `"${keywordTerm}" (${country.toUpperCase()}): ${rankText} ${changeText}`.trim(),
@@ -76,7 +76,7 @@ export function submissionUpdate(
           ? "❌"
           : "📦";
 
-  return notificationService.notifyAll({
+  return notificationService.broadcast({
     push: {
       title: `${emoji} App Store Update`,
       body: `${appName} v${versionString}: ${status.replace(/_/g, " ").toLowerCase()}`,
@@ -94,7 +94,7 @@ export function jobComplete(
   const emoji = status === "COMPLETED" ? "✅" : "❌";
   const itemsText = itemsCount ? ` (${itemsCount} items)` : "";
 
-  return notificationService.notifyAll({
+  return notificationService.broadcast({
     push: {
       title: `${emoji} Job ${status.toLowerCase()}`,
       body: `${jobType.replace(/-/g, " ")}${itemsText}`,

@@ -69,7 +69,7 @@ router.post("/send", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "title and body are required" });
     }
 
-    const result = await notificationService.sendToAll({ title, body, category, data });
+    const result = await notificationService.pushToAll({ title, body, category, data });
     res.json(result);
   } catch (error: any) {
     logger.error(`[PUSH] Send error: ${error.message}`);
@@ -84,7 +84,7 @@ router.post("/test", async (req: Request, res: Response) => {
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    const result = await notificationService.sendToUser(userId, {
+    const result = await notificationService.pushToUser(userId, {
       title: "🧪 Test Notification",
       body: "Push notifications are working!",
       category: "JOB_COMPLETE",
