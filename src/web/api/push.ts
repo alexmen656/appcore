@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../../config/database.js";
-import { notificationService } from "../../services/notifications/index.js";
+import { notificationService } from "../../services/notifications/notification.js";
 import { logger } from "../../config/logger.js";
 
 const router = Router();

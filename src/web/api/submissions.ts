@@ -4,7 +4,7 @@ import path from "path";
 import os from "os";
 import { logger, getEffectiveSettings } from "../../config";
 import { requireAuth } from "../auth";
-import { submissionUpdate } from "../../services/notifications/index";
+import { submissionUpdate } from "../../services/notifications/templates.js";
 
 const BUILDS_BASE_DIR = path.join(os.homedir(), "appcore", "builds");
 

@@ -1,9 +1,7 @@
 import { logger } from "../../config";
 import { JobDefinition, buildServices } from "../types";
-import {
-  notificationService,
-  keywordRankChange,
-} from "../../services/notifications/index";
+import { notificationService } from "../../services/notifications/notification.js";
+import { keywordRankChange } from "../../services/notifications/templates.js";
 import { prisma } from "../../config/database.js";
 
 const trackKeywordsJob: JobDefinition = {
