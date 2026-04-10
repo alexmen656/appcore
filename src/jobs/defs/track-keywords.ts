@@ -1,6 +1,9 @@
 import { logger } from "../../config";
 import { JobDefinition, buildServices } from "../types";
-import { pushService } from "../../services/push-notification.js";
+import {
+  notificationService,
+  keywordRankChange,
+} from "../../services/notifications/index";
 import { prisma } from "../../config/database.js";
 
 const trackKeywordsJob: JobDefinition = {
@@ -37,17 +40,12 @@ const trackKeywordsJob: JobDefinition = {
     const rankings = await keywordTracker.trackAllKeywords();
     logger.info(`[CRON] Tracked ${rankings.size} keywords for user ${userId}`);
 
-    if (pushService.isConfigured()) {
+    if (notificationService.isConfigured()) {
       for (const [key, newRank] of rankings) {
         const oldRank = previousRankings.get(key) ?? null;
         if (oldRank !== newRank && (oldRank !== null || newRank !== null)) {
           const [term, country] = key.split("@");
-          await pushService.notifyKeywordRankChange(
-            term,
-            oldRank,
-            newRank,
-            country,
-          );
+          await keywordRankChange(term, oldRank, newRank, country);
         }
       }
     }

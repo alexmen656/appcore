@@ -1,11 +1,10 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../../config/database.js";
-import { pushService } from "../../services/push-notification.js";
+import { notificationService } from "../../services/notifications/index.js";
 import { logger } from "../../config/logger.js";
 
 const router = Router();
 
-// POST /api/push/register - Register a device token
 router.post("/register", async (req: Request, res: Response) => {
   try {
     const { deviceToken, bundleId } = req.body;
@@ -42,7 +41,6 @@ router.post("/register", async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/push/unregister - Unregister a device token
 router.post("/unregister", async (req: Request, res: Response) => {
   try {
     const { deviceToken } = req.body;
@@ -63,7 +61,6 @@ router.post("/unregister", async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/push/send - Send a push notification (admin only)
 router.post("/send", async (req: Request, res: Response) => {
   try {
     const { title, body, category, data } = req.body;
@@ -72,7 +69,7 @@ router.post("/send", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "title and body are required" });
     }
 
-    const result = await pushService.sendToAll({ title, body, category, data });
+    const result = await notificationService.sendToAll({ title, body, category, data });
     res.json(result);
   } catch (error: any) {
     logger.error(`[PUSH] Send error: ${error.message}`);
@@ -80,7 +77,6 @@ router.post("/send", async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/push/test - Send a test notification to the requesting user's devices
 router.post("/test", async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
@@ -88,7 +84,7 @@ router.post("/test", async (req: Request, res: Response) => {
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    const result = await pushService.sendToUser(userId, {
+    const result = await notificationService.sendToUser(userId, {
       title: "🧪 Test Notification",
       body: "Push notifications are working!",
       category: "JOB_COMPLETE",
@@ -101,7 +97,6 @@ router.post("/test", async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/push/devices - List registered devices (admin)
 router.get("/devices", async (_req: Request, res: Response) => {
   try {
     const db = prisma;
@@ -115,7 +110,6 @@ router.get("/devices", async (_req: Request, res: Response) => {
   }
 });
 
-// GET /api/push/logs - Get push notification logs
 router.get("/logs", async (req: Request, res: Response) => {
   try {
     const db = prisma;

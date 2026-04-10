@@ -1,12 +1,11 @@
 import { Router } from "express";
 import { prisma } from "../../config";
 import { requireAuth } from "../auth";
-import { sendTeamInviteEmail } from "../../services/email";
+import { teamInvite } from "../../services/notifications/templates.js";
 import crypto from "crypto";
 
 export const teamRouter = Router();
 
-// Public route — must be before requireAuth
 teamRouter.get("/invite/:token", async (req, res) => {
   try {
     const invite = await prisma.teamInvite.findUnique({
@@ -166,7 +165,7 @@ teamRouter.post("/invite", async (req, res) => {
       },
     });
 
-    await sendTeamInviteEmail({
+    await teamInvite({
       to: email,
       inviterName: inviter?.name ?? inviter?.email ?? "Someone",
       teamName: team.name,

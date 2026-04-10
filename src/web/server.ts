@@ -23,7 +23,7 @@ import pushRouter from "./api/push";
 import { autonomousRouter } from "./api/autonomous";
 import { teamRouter } from "./api/team";
 import { searchRouter } from "./api/search";
-import { pushService } from "../services/push-notification.js";
+import { notificationService } from "../services/notifications/notification.js";
 import { initScheduler as initASOScheduler } from "../autonomous";
 import fs from "fs";
 
@@ -170,7 +170,7 @@ app.listen(PORT, () => {
   const apnsProduction = process.env.APNS_PRODUCTION === "true";
 
   if (apnsKeyId && apnsTeamId && fs.existsSync(apnsKeyPath)) {
-    pushService.configure({
+    notificationService.configure({
       keyId: apnsKeyId,
       teamId: apnsTeamId,
       bundleId: apnsBundleId,

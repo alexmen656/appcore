@@ -4,7 +4,7 @@ import path from "path";
 import os from "os";
 import { logger, getEffectiveSettings } from "../../config";
 import { requireAuth } from "../auth";
-import { pushService } from "../../services/push-notification.js";
+import { submissionUpdate } from "../../services/notifications/index";
 
 const BUILDS_BASE_DIR = path.join(os.homedir(), "appcore", "builds");
 
@@ -52,21 +52,13 @@ submissionsRouter.post("/metadata", async (req, res) => {
           logger.info(
             `Fastlane metadata submit completed (job ${result.jobId})`,
           );
-          await pushService.notifySubmissionUpdate(
-            bundleId || "App",
-            "",
-            "METADATA_SUBMITTED",
-          );
+          await submissionUpdate(bundleId || "App", "", "METADATA_SUBMITTED");
         } else {
           logger.error(
             `Fastlane metadata submit failed (job ${result.jobId})`,
             result.errors,
           );
-          await pushService.notifySubmissionUpdate(
-            bundleId || "App",
-            "",
-            "METADATA_FAILED",
-          );
+          await submissionUpdate(bundleId || "App", "", "METADATA_FAILED");
         }
       })
       .catch((err) => logger.error("Fastlane metadata submit error", err));
@@ -97,21 +89,13 @@ submissionsRouter.post("/review", async (req, res) => {
           logger.info(
             `Fastlane submit-for-review completed (job ${result.jobId})`,
           );
-          await pushService.notifySubmissionUpdate(
-            bundleId || "App",
-            "",
-            "SUBMITTED_FOR_REVIEW",
-          );
+          await submissionUpdate(bundleId || "App", "", "SUBMITTED_FOR_REVIEW");
         } else {
           logger.error(
             `Fastlane submit-for-review failed (job ${result.jobId})`,
             result.errors,
           );
-          await pushService.notifySubmissionUpdate(
-            bundleId || "App",
-            "",
-            "SUBMISSION_FAILED",
-          );
+          await submissionUpdate(bundleId || "App", "", "SUBMISSION_FAILED");
         }
       })
       .catch((err) => logger.error("Fastlane submit-for-review error", err));

@@ -7,3 +7,4 @@ export { KeywordDiscoveryAgent } from "./keyword-discovery-agent";
 export { CompetitorIntelService } from "./competitor-intel";
 export { FastlaneService } from "./fastlane";
 export * from "./github";
+export * from "./notifications";
