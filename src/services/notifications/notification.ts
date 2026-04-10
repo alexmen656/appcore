@@ -40,51 +40,6 @@ export interface NotifyResult {
   email?: "sent" | "skipped" | "failed";
 }
 
-export function buildBrandedHtml(content: EmailContent): string {
-  const ctaBlock = content.cta
-    ? `<a href="${content.cta.url}" style="display:inline-block;background:#ea0e2b;color:white;text-decoration:none;font-weight:600;font-size:15px;padding:12px 28px;border-radius:12px;margin-top:8px;">${content.cta.label}</a>`
-    : "";
-  const footer =
-    content.footer ??
-    "Falls du diese E-Mail nicht erwartet hast, kannst du sie ignorieren.";
-
-  return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8f9fb;margin:0;padding:40px 20px;">
-  <div style="max-width:480px;margin:0 auto;background:white;border-radius:16px;padding:40px;border:1px solid #e5e7eb;">
-    <div style="font-size:24px;font-weight:800;color:#ea0e2b;margin-bottom:24px;letter-spacing:-0.3px;">marteso</div>
-    <h1 style="font-size:20px;font-weight:700;color:#1a1a2e;margin:0 0 12px;">${content.title}</h1>
-    <div style="color:#6b7280;font-size:15px;line-height:1.6;margin:0 0 24px;">${content.body}</div>
-    ${ctaBlock}
-    <p style="color:#9ca3af;font-size:12px;margin-top:24px;line-height:1.5;">${footer}</p>
-  </div>
-</body></html>`;
-}
-
-export async function sendEmail({
-  to,
-  subject,
-  ...content
-}: { to: string; subject: string } & EmailContent): Promise<void> {
-  if (!env.RESEND_API_KEY) {
-    logger.warn(
-      `[email] RESEND_API_KEY not set — skipping "${subject}" to ${to}`,
-    );
-    return;
-  }
-  try {
-    await new Resend(env.RESEND_API_KEY).emails.send({
-      from: env.EMAIL_FROM,
-      to,
-      subject,
-      html: buildBrandedHtml(content),
-    });
-  } catch (err) {
-    logger.error("[email] Failed to send email", err);
-    throw err;
-  }
-}
-
 class NotificationService {
   private static instance: NotificationService;
   private apnsConfig: APNsConfig | null = null;
@@ -255,11 +210,42 @@ class NotificationService {
     return { sent, failed: results.length - sent };
   }
 
-  private async _sendEmail(
+  async sendEmail(
     emailOpts: NonNullable<NotifyOptions["email"]>,
   ): Promise<NotifyResult["email"]> {
+    if (!env.RESEND_API_KEY) {
+      logger.warn(
+        `[email] RESEND_API_KEY not set — skipping "${emailOpts.subject}" to ${emailOpts.to}`,
+      );
+      return "skipped";
+    }
     try {
-      await sendEmail(emailOpts);
+      const { to, subject, ...content } = emailOpts;
+      const ctaBlock = content.cta
+        ? `<a href="${content.cta.url}" style="display:inline-block;background:#ea0e2b;color:white;text-decoration:none;font-weight:600;font-size:15px;padding:12px 28px;border-radius:12px;margin-top:8px;">${content.cta.label}</a>`
+        : "";
+      const footer =
+        content.footer ??
+        "Falls du diese E-Mail nicht erwartet hast, kannst du sie ignorieren.";
+
+      const html = `<!DOCTYPE html>
+    <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+    <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8f9fb;margin:0;padding:40px 20px;">
+    <div style="max-width:480px;margin:0 auto;background:white;border-radius:16px;padding:40px;border:1px solid #e5e7eb;">
+    <div style="font-size:24px;font-weight:800;color:#ea0e2b;margin-bottom:24px;letter-spacing:-0.3px;">marteso</div>
+    <h1 style="font-size:20px;font-weight:700;color:#1a1a2e;margin:0 0 12px;">${content.title}</h1>
+    <div style="color:#6b7280;font-size:15px;line-height:1.6;margin:0 0 24px;">${content.body}</div>
+    ${ctaBlock}
+    <p style="color:#9ca3af;font-size:12px;margin-top:24px;line-height:1.5;">${footer}</p>
+    </div></body></html>`;
+
+      await new Resend(env.RESEND_API_KEY).emails.send({
+        from: env.EMAIL_FROM,
+        to,
+        subject,
+        html,
+      });
+
       return "sent";
     } catch {
       return "failed";
@@ -281,7 +267,7 @@ class NotificationService {
             })
         : Promise.resolve(),
       options.email
-        ? this._sendEmail(options.email).then((r) => (result.email = r))
+        ? this.sendEmail(options.email).then((r) => (result.email = r))
         : Promise.resolve(),
     ]);
     return result;
@@ -299,7 +285,7 @@ class NotificationService {
             })
         : Promise.resolve(),
       options.email
-        ? this._sendEmail(options.email).then((r) => (result.email = r))
+        ? this.sendEmail(options.email).then((r) => (result.email = r))
         : Promise.resolve(),
     ]);
     return result;
@@ -320,7 +306,7 @@ class NotificationService {
             })
         : Promise.resolve(),
       options.email
-        ? this._sendEmail(options.email).then((r) => (result.email = r))
+        ? this.sendEmail(options.email).then((r) => (result.email = r))
         : Promise.resolve(),
     ]);
     return result;
