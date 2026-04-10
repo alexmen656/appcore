@@ -1,7 +1,6 @@
-import jwt from "jsonwebtoken";
-import fs from "fs";
 import axios, { AxiosInstance } from "axios";
 import { logger, env } from "../config";
+import { generateASCToken } from "./asc-token";
 
 interface ASCAppInfo {
   id: string;
@@ -93,20 +92,10 @@ export class AppStoreConnectClient {
       return this.token;
     }
 
-    const payload = {
-      iss: this.issuerId,
-      iat: now,
-      exp: now + 20 * 60,
-      aud: "appstoreconnect-v1",
-    };
-
-    this.token = jwt.sign(payload, this.privateKey, {
-      algorithm: "ES256",
-      header: {
-        alg: "ES256",
-        kid: this.keyId,
-        typ: "JWT",
-      },
+    this.token = generateASCToken({
+      issuerId: this.issuerId,
+      keyId: this.keyId,
+      privateKey: this.privateKey,
     });
     this.tokenExpiry = now + 20 * 60;
 

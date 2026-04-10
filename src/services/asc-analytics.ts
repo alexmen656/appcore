@@ -1,28 +1,17 @@
 import zlib from "zlib";
 import axios from "axios";
-import jwt from "jsonwebtoken";
 import { prisma, logger } from "../config";
 import type { EffectiveSettings } from "../config/userSettings";
-
-function makeToken(settings: EffectiveSettings): string {
-  const now = Math.floor(Date.now() / 1000);
-  return jwt.sign(
-    {
-      iss: settings.ascIssuerId,
-      iat: now,
-      exp: now + 20 * 60,
-      aud: "appstoreconnect-v1",
-    },
-    settings.ascPrivateKey,
-    {
-      algorithm: "ES256",
-      header: { alg: "ES256", kid: settings.ascKeyId, typ: "JWT" },
-    },
-  );
-}
+import { generateASCToken } from "./asc-token";
 
 function authHeaders(settings: EffectiveSettings) {
-  return { Authorization: `Bearer ${makeToken(settings)}` };
+  return {
+    Authorization: `Bearer ${generateASCToken({
+      issuerId: settings.ascIssuerId,
+      keyId: settings.ascKeyId,
+      privateKey: settings.ascPrivateKey,
+    })}`,
+  };
 }
 
 function parseTsv(raw: string): Record<string, string>[] {
@@ -221,7 +210,6 @@ async function processAnalyticsRequest(
 
   for (const reportItem of reportItems) {
     const reportId = reportItem.id;
-    // --- 2. List daily instances within the time window ---
     let instances: any[] = [];
     try {
       const instResp = await axios.get(
@@ -379,8 +367,6 @@ export async function fetchEngagementReport(
   const BASE = "https://api.appstoreconnect.apple.com/v1";
 
   if (!requestId) {
-    // Create ONGOING request (generates data daily going forward).
-    // On 409 the request already exists in ASC – look it up instead.
     try {
       const createResp = await axios.post(
         `${BASE}/analyticsReportRequests`,
@@ -436,8 +422,6 @@ export async function fetchEngagementReport(
       }
     }
 
-    // Also create a ONE_TIME_SNAPSHOT to immediately backfill historical data
-    // (available back to Jan 1 2024 per Apple docs; limit: 1 per month)
     let snapshotRows = 0;
     let resolvedSnapshotId: string | null = null;
     try {
@@ -517,7 +501,6 @@ export async function fetchEngagementReport(
     };
   }
 
-  // --- Subsequent runs: poll ONGOING + still-pending ONE_TIME_SNAPSHOT ---
   let storedRows = await processAnalyticsRequest(
     settings,
     bundleId,
@@ -525,7 +508,6 @@ export async function fetchEngagementReport(
     daysBack,
   );
 
-  // Continue polling the snapshot request until all historical data is fetched
   if (snapshotRequestId) {
     const snapRows = await processAnalyticsRequest(
       settings,

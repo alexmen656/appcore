@@ -161,6 +161,10 @@ submissionsRouter.get("/build-info", async (req, res) => {
       res.json({ build: null });
       return;
     }
+    if (!/^[a-zA-Z0-9\-\.]+$/.test(bundleId)) {
+      res.status(400).json({ error: "Invalid bundleId" });
+      return;
+    }
     const jsonPath = path.join(BUILDS_BASE_DIR, bundleId, "latest.json");
     if (!fs.existsSync(jsonPath)) {
       res.json({ build: null });

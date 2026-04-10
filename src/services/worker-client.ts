@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from "axios";
 import { logger } from "../config";
+import { env } from "../config/env";
 
 export interface WorkerDeliverParams {
   locales: Record<
@@ -112,8 +113,8 @@ class FastlaneWorkerClient {
 
   private getClient(): AxiosInstance {
     if (!this.client) {
-      const baseURL = process.env.FASTLANE_WORKER_URL;
-      const secret = process.env.FASTLANE_WORKER_SECRET;
+      const baseURL = env.FASTLANE_WORKER_URL;
+      const secret = env.FASTLANE_WORKER_SECRET;
 
       if (!baseURL) {
         throw new Error(

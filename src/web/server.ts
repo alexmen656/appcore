@@ -190,6 +190,5 @@ function shutdown() {
   scheduler.stop();
   prisma.$disconnect().then(() => process.exit(0));
 }
-console.log(require("os").tmpdir());
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
