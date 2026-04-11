@@ -78,6 +78,7 @@ authRouter.post("/register", async (req, res) => {
 
     if (invite && (invite.acceptedAt || invite.expiresAt < new Date())) {
       invite = null;
+    }
 
     if (invite && invite.email.toLowerCase() !== email.toLowerCase()) {
       res
