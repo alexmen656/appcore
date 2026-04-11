@@ -4,6 +4,7 @@ import { logger, prisma } from "../config";
 import type { EffectiveSettings } from "../config";
 import { AppStoreConnectClient } from "./appstore-connect";
 import { workerClient } from "./worker-client";
+import { FASTLANE_LOCALE } from "./utils/country_lang";
 
 export interface SubmissionPreview {
   appId: string;
@@ -33,51 +34,6 @@ export interface SubmissionResult {
 }
 
 type SubmitAction = "metadata" | "submit_for_review";
-
-const ASC_TO_FASTLANE_LOCALE: Record<string, string> = {
-  "en-US": "en-US",
-  "en-GB": "en-GB",
-  "en-AU": "en-AU",
-  "en-CA": "en-CA",
-  "de-DE": "de-DE",
-  "fr-FR": "fr-FR",
-  "es-ES": "es-ES",
-  "es-MX": "es-MX",
-  it: "it",
-  "pt-BR": "pt-BR",
-  "pt-PT": "pt-PT",
-  ja: "ja",
-  ko: "ko",
-  "zh-Hans": "zh-Hans",
-  "zh-Hant": "zh-Hant",
-  "nl-NL": "nl-NL",
-  ru: "ru",
-  tr: "tr",
-  "ar-SA": "ar-SA",
-  th: "th",
-  vi: "vi",
-  id: "id",
-  ms: "ms",
-  sv: "sv",
-  da: "da",
-  fi: "fi",
-  nb: "nb",
-  pl: "pl",
-  cs: "cs",
-  sk: "sk",
-  uk: "uk",
-  el: "el",
-  ro: "ro",
-  hu: "hu",
-  hr: "hr",
-  ca: "ca",
-  he: "he",
-  hi: "hi",
-};
-
-function fastlaneLocale(ascLocale: string): string {
-  return ASC_TO_FASTLANE_LOCALE[ascLocale] ?? ascLocale;
-}
 
 interface ActiveSubmission {
   jobId: string;
@@ -240,7 +196,9 @@ export class FastlaneService {
 
       const ipaBase64 = await this.loadLatestIpa();
       if (ipaBase64) {
-        submission.logs.push("Latest build IPA loaded, will be uploaded alongside metadata.");
+        submission.logs.push(
+          "Latest build IPA loaded, will be uploaded alongside metadata.",
+        );
       }
 
       const result = await workerClient.deliver({
@@ -338,7 +296,7 @@ export class FastlaneService {
       const cwd = process.cwd();
 
       for (const [locale, urls] of Object.entries(framedByLocale)) {
-        if (locale === "default") continue; // deliver needs named locales
+        if (locale === "default") continue;
         const images: Array<{ filename: string; data: string }> = [];
         for (const url of urls) {
           const filePath = path.join(cwd, url);
@@ -505,7 +463,7 @@ export class FastlaneService {
       typeof localeData extends Map<string, infer V> ? V : never
     > = {};
     for (const [locale, data] of localeData) {
-      result[fastlaneLocale(locale)] = data;
+      result[FASTLANE_LOCALE[locale] ?? locale] = data;
     }
     return result;
   }

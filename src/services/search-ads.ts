@@ -245,8 +245,6 @@ export class AppleSearchAdsClient {
     }
   }
 
-  // ─── Campaign insights ────────────────────────────────────────────
-
   async getCampaigns(): Promise<any[]> {
     try {
       const { data } = await this.client.get("/campaigns", {

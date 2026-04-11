@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from "axios";
 import { logger, env } from "../config";
-import { generateASCToken } from "./asc-token";
+import { generateASCToken } from "./utils/asc-token";
 
 interface ASCAppInfo {
   id: string;
