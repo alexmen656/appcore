@@ -48,12 +48,26 @@ searchRouter.get("/", async (req, res) => {
       });
     }
 
+    const isAdmin = req.user!.role === "ADMIN";
+    const teamId = req.user!.teamId;
     const apps = await prisma.app.findMany({
       where: {
         OR: [
           { name: { contains: q, mode: "insensitive" } },
           { bundleId: { contains: q, mode: "insensitive" } },
         ],
+        ...(isAdmin
+          ? {}
+          : {
+              AND: [
+                {
+                  OR: [
+                    { isOwnApp: false },
+                    ...(teamId ? [{ teamId }] : []),
+                  ],
+                },
+              ],
+            }),
       },
       take: 5,
     });

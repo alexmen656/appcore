@@ -78,6 +78,28 @@ export async function verifyAppOwnershipByBundleId(
   return app;
 }
 
+export async function requireTeamAdmin(
+  req: Request,
+  res: Response,
+): Promise<boolean> {
+  if (req.user!.role === "ADMIN") return true;
+  if (!req.user!.teamId) {
+    res.status(403).json({ error: "No team" });
+    return false;
+  }
+  const member = await prisma.teamMember.findUnique({
+    where: {
+      teamId_userId: { teamId: req.user!.teamId, userId: req.user!.userId },
+    },
+    select: { role: true },
+  });
+  if (!member || (member.role !== "OWNER" && member.role !== "ADMIN")) {
+    res.status(403).json({ error: "Team admin role required" });
+    return false;
+  }
+  return true;
+}
+
 export async function verifyTeamMemberBelongsToTeam(
   req: Request,
   res: Response,

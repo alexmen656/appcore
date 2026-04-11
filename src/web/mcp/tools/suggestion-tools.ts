@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { prisma, getEffectiveSettings } from "../../../config";
+import { getMcpUserTeamId, verifyMcpAppAccess } from "./shared";
 
 export function registerSuggestionTools(server: McpServer, userId: string) {
   // @ts-ignore
@@ -37,8 +38,32 @@ export function registerSuggestionTools(server: McpServer, userId: string) {
       const settings = await getEffectiveSettings(userId);
       const resolvedBundleId = bundleId || settings.ascBundleId;
 
-      const where: Record<string, any> = {};
-      if (resolvedBundleId) where.appBundleId = resolvedBundleId;
+      const teamId = await getMcpUserTeamId(userId);
+      if (!teamId) {
+        return { content: [{ type: "text", text: "[]" }] };
+      }
+
+      let allowedBundleIds: string[];
+      if (resolvedBundleId) {
+        const app = await verifyMcpAppAccess(userId, resolvedBundleId);
+        if (!app) {
+          return { content: [{ type: "text", text: "[]" }] };
+        }
+        allowedBundleIds = [resolvedBundleId];
+      } else {
+        const teamApps = await prisma.app.findMany({
+          where: { teamId },
+          select: { bundleId: true },
+        });
+        allowedBundleIds = teamApps.map((a) => a.bundleId);
+        if (allowedBundleIds.length === 0) {
+          return { content: [{ type: "text", text: "[]" }] };
+        }
+      }
+
+      const where: Record<string, any> = {
+        appBundleId: { in: allowedBundleIds },
+      };
       if (status) where.status = status;
 
       const suggestions = await prisma.aSOSuggestion.findMany({
@@ -95,6 +120,15 @@ export function registerSuggestionTools(server: McpServer, userId: string) {
       });
 
       if (!suggestion) {
+        return {
+          content: [{ type: "text", text: `Suggestion not found: ${id}` }],
+        };
+      }
+
+      if (
+        !suggestion.appBundleId ||
+        !(await verifyMcpAppAccess(userId, suggestion.appBundleId))
+      ) {
         return {
           content: [{ type: "text", text: `Suggestion not found: ${id}` }],
         };

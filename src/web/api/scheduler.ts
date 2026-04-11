@@ -3,11 +3,21 @@ import { logger } from "../../config";
 import { Scheduler } from "../../jobs/scheduler";
 import { requireAuth } from "../auth";
 
-// Singleton scheduler instance shared with the web server
 export const scheduler = new Scheduler();
 
 export const schedulerRouter = Router();
 schedulerRouter.use(requireAuth);
+
+function requireSystemAdmin(
+  req: import("express").Request,
+  res: import("express").Response,
+): boolean {
+  if (req.user!.role !== "ADMIN") {
+    res.status(403).json({ error: "System admin required" });
+    return false;
+  }
+  return true;
+}
 
 // ─── GET /api/scheduler/status ───────────────────────────────────────────────
 schedulerRouter.get("/status", (_req, res) => {
@@ -18,7 +28,8 @@ schedulerRouter.get("/status", (_req, res) => {
 });
 
 // ─── POST /api/scheduler/start ──────────────────────────────────────────────
-schedulerRouter.post("/start", (_req, res) => {
+schedulerRouter.post("/start", (req, res) => {
+  if (!requireSystemAdmin(req, res)) return;
   if (scheduler.running) {
     res.json({ ok: true, message: "Scheduler already running" });
     return;
@@ -29,7 +40,8 @@ schedulerRouter.post("/start", (_req, res) => {
 });
 
 // ─── POST /api/scheduler/stop ───────────────────────────────────────────────
-schedulerRouter.post("/stop", (_req, res) => {
+schedulerRouter.post("/stop", (req, res) => {
+  if (!requireSystemAdmin(req, res)) return;
   if (!scheduler.running) {
     res.json({ ok: true, message: "Scheduler already stopped" });
     return;
@@ -41,6 +53,7 @@ schedulerRouter.post("/stop", (_req, res) => {
 
 // ─── POST /api/scheduler/run-all ────────────────────────────────────────────
 schedulerRouter.post("/run-all", async (req, res) => {
+  if (!requireSystemAdmin(req, res)) return;
   const userId = req.user!.userId;
 
   res.json({ ok: true, message: "Running all jobs now..." });

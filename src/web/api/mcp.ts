@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { randomBytes } from "crypto";
 import { prisma } from "../../config";
-import { requireAuth } from "../auth";
+import { requireAuth, requireTeamAdmin } from "../auth";
 
 export const mcpRouter = Router();
 mcpRouter.use(requireAuth);
@@ -20,6 +20,7 @@ mcpRouter.get("/config", async (req, res) => {
 
 mcpRouter.put("/config", async (req, res) => {
   try {
+    if (!(await requireTeamAdmin(req, res))) return;
     const { mcpEnabled } = req.body as { mcpEnabled?: boolean };
     const teamId = req.user!.teamId;
     if (!teamId) {

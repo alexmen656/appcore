@@ -28,6 +28,24 @@ export function couldNotResolveAscAppId(bundleId?: string) {
   return `Could not resolve ASC App ID for bundle ID: ${bundleId || "(none)"}`;
 }
 
+export async function getMcpUserTeamId(userId: string): Promise<string | null> {
+  const membership = await prisma.teamMember.findFirst({
+    where: { userId },
+    orderBy: { createdAt: "asc" },
+    select: { teamId: true },
+  });
+  return membership?.teamId ?? null;
+}
+
+export async function verifyMcpAppAccess(userId: string, bundleId: string) {
+  const app = await prisma.app.findUnique({ where: { bundleId } });
+  if (!app) return null;
+  const teamId = await getMcpUserTeamId(userId);
+  if (!teamId) return null;
+  if (!app.teamId || app.teamId !== teamId) return null;
+  return app;
+}
+
 export async function getSettingsWithBundleId(
   userId: string,
   bundleId?: string,

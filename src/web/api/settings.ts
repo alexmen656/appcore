@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../../config";
-import { requireAuth } from "../auth";
+import { requireAuth, requireTeamAdmin } from "../auth";
 import { encrypt } from "../../config/encryption";
 
 export const settingsRouter = Router();
@@ -51,6 +51,7 @@ settingsRouter.get("/", async (req, res) => {
 
 settingsRouter.put("/", async (req, res) => {
   try {
+    if (!(await requireTeamAdmin(req, res))) return;
     const teamId = req.user!.teamId;
     if (!teamId) {
       res.status(403).json({ error: "No team" });

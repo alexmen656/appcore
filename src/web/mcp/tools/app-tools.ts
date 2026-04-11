@@ -4,8 +4,10 @@ import { prisma } from "../../../config";
 import {
   appNotFound,
   appNotFoundWithListApps,
+  getMcpUserTeamId,
   getSettingsWithBundleId,
   mcpToolMessages,
+  verifyMcpAppAccess,
 } from "./shared";
 
 export function registerAppTools(server: McpServer, userId: string) {
@@ -26,8 +28,17 @@ export function registerAppTools(server: McpServer, userId: string) {
       },
     },
     async ({ ownOnly }) => {
+      const teamId = await getMcpUserTeamId(userId);
+      if (!teamId) {
+        return {
+          content: [{ type: "text", text: "[]" }],
+        };
+      }
       const apps = await prisma.app.findMany({
-        where: ownOnly ? { isOwnApp: true } : undefined,
+        where: {
+          teamId,
+          ...(ownOnly ? { isOwnApp: true } : {}),
+        },
         include: {
           snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 },
           _count: { select: { rankings: true, competitors: true } },
@@ -88,6 +99,17 @@ export function registerAppTools(server: McpServer, userId: string) {
         };
       }
 
+      const accessCheck = await verifyMcpAppAccess(userId, resolvedBundleId);
+      if (!accessCheck) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: appNotFoundWithListApps(resolvedBundleId),
+            },
+          ],
+        };
+      }
       const app = await prisma.app.findUnique({
         where: { bundleId: resolvedBundleId },
         include: { snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 } },
@@ -172,9 +194,7 @@ export function registerAppTools(server: McpServer, userId: string) {
         };
       }
 
-      const app = await prisma.app.findUnique({
-        where: { bundleId: resolvedBundleId },
-      });
+      const app = await verifyMcpAppAccess(userId, resolvedBundleId);
 
       if (!app) {
         return {
@@ -257,9 +277,7 @@ export function registerAppTools(server: McpServer, userId: string) {
         };
       }
 
-      const app = await prisma.app.findUnique({
-        where: { bundleId: resolvedBundleId },
-      });
+      const app = await verifyMcpAppAccess(userId, resolvedBundleId);
 
       if (!app) {
         return {
@@ -331,9 +349,7 @@ export function registerAppTools(server: McpServer, userId: string) {
         };
       }
 
-      const app = await prisma.app.findUnique({
-        where: { bundleId: resolvedBundleId },
-      });
+      const app = await verifyMcpAppAccess(userId, resolvedBundleId);
 
       if (!app) {
         return {
@@ -400,6 +416,11 @@ export function registerAppTools(server: McpServer, userId: string) {
           content: [
             { type: "text", text: mcpToolMessages.noBundleIdConfigured },
           ],
+        };
+      }
+      if (!(await verifyMcpAppAccess(userId, resolvedBundleId))) {
+        return {
+          content: [{ type: "text", text: appNotFound(resolvedBundleId) }],
         };
       }
 
@@ -508,6 +529,11 @@ export function registerAppTools(server: McpServer, userId: string) {
               text: mcpToolMessages.noBundleIdProvided,
             },
           ],
+        };
+      }
+      if (!(await verifyMcpAppAccess(userId, resolvedBundleId))) {
+        return {
+          content: [{ type: "text", text: appNotFound(resolvedBundleId) }],
         };
       }
 

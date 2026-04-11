@@ -72,13 +72,18 @@ authRouter.post("/register", async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 12);
     const displayName = name ?? email.split("@")[0];
 
-    // Check for invite token
     let invite = inviteToken
       ? await prisma.teamInvite.findUnique({ where: { token: inviteToken } })
       : null;
 
     if (invite && (invite.acceptedAt || invite.expiresAt < new Date())) {
-      invite = null; // expired or already used — ignore, register without team
+      invite = null;
+
+    if (invite && invite.email.toLowerCase() !== email.toLowerCase()) {
+      res
+        .status(403)
+        .json({ error: "This invite is for a different email address" });
+      return;
     }
 
     const user = await prisma.user.create({

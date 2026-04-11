@@ -13,10 +13,20 @@ router.post("/register", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "deviceToken is required" });
     }
 
-    const db = prisma;
-    const userId = (req as any).userId || null;
+    const userId = req.user?.userId ?? null;
+    if (!userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
 
-    await db.deviceToken.upsert({
+    const existing = await prisma.deviceToken.findUnique({
+      where: { token: deviceToken },
+      select: { userId: true },
+    });
+    if (existing && existing.userId && existing.userId !== userId) {
+      return res.status(409).json({ error: "Token already registered" });
+    }
+
+    await prisma.deviceToken.upsert({
       where: { token: deviceToken },
       create: {
         token: deviceToken,
@@ -48,9 +58,13 @@ router.post("/unregister", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "deviceToken is required" });
     }
 
-    const db = prisma;
-    await db.deviceToken.updateMany({
-      where: { token: deviceToken },
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    await prisma.deviceToken.updateMany({
+      where: { token: deviceToken, userId },
       data: { isActive: false },
     });
 
@@ -63,13 +77,22 @@ router.post("/unregister", async (req: Request, res: Response) => {
 
 router.post("/send", async (req: Request, res: Response) => {
   try {
+    if (req.user?.role !== "ADMIN") {
+      return res.status(403).json({ error: "System admin required" });
+    }
+
     const { title, body, category, data } = req.body;
 
     if (!title || !body) {
       return res.status(400).json({ error: "title and body are required" });
     }
 
-    const result = await notificationService.pushToAll({ title, body, category, data });
+    const result = await notificationService.pushToAll({
+      title,
+      body,
+      category,
+      data,
+    });
     res.json(result);
   } catch (error: any) {
     logger.error(`[PUSH] Send error: ${error.message}`);
@@ -79,7 +102,7 @@ router.post("/send", async (req: Request, res: Response) => {
 
 router.post("/test", async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).userId;
+    const userId = req.user?.userId;
     if (!userId) {
       return res.status(401).json({ error: "Authentication required" });
     }
@@ -97,11 +120,19 @@ router.post("/test", async (req: Request, res: Response) => {
   }
 });
 
-router.get("/devices", async (_req: Request, res: Response) => {
+router.get("/devices", async (req: Request, res: Response) => {
   try {
-    const db = prisma;
-    const devices = await db.deviceToken.findMany({
-      where: { isActive: true },
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    const where =
+      req.user?.role === "ADMIN"
+        ? { isActive: true }
+        : { isActive: true, userId };
+    const devices = await prisma.deviceToken.findMany({
+      where,
       orderBy: { createdAt: "desc" },
     });
     res.json(devices);
@@ -112,9 +143,16 @@ router.get("/devices", async (_req: Request, res: Response) => {
 
 router.get("/logs", async (req: Request, res: Response) => {
   try {
-    const db = prisma;
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
     const limit = parseInt(req.query.limit as string) || 50;
-    const logs = await db.pushNotificationLog.findMany({
+
+    if (req.user?.role !== "ADMIN") {
+      return res.status(403).json({ error: "System admin required" });
+    }
+    const logs = await prisma.pushNotificationLog.findMany({
       orderBy: { sentAt: "desc" },
       take: limit,
     });

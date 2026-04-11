@@ -2,7 +2,11 @@ import { randomUUID } from "crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { prisma, logger } from "../../../config";
-import { createAscClient, getSettingsWithBundleId } from "./shared";
+import {
+  createAscClient,
+  getSettingsWithBundleId,
+  verifyMcpAppAccess,
+} from "./shared";
 
 export function registerJobTools(server: McpServer, userId: string) {
   // @ts-ignore
@@ -41,6 +45,21 @@ export function registerJobTools(server: McpServer, userId: string) {
         userId,
         bundleId,
       );
+
+      if (resolvedBundleId) {
+        const app = await verifyMcpAppAccess(userId, resolvedBundleId);
+        if (!app) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `App not found: ${resolvedBundleId}. Call list_apps to see valid bundle IDs.`,
+              },
+            ],
+          };
+        }
+      }
+
       const effectiveSettings = { ...settings, ascBundleId: resolvedBundleId };
 
       const jobId = randomUUID();
