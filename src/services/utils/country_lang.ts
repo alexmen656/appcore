@@ -99,47 +99,6 @@ export const COUNTRY_LANG: Record<string, string> = {
   za: "en",
 };
 
-export const FASTLANE_LOCALE: Record<string, string> = {
-  "en-US": "en-US",
-  "en-GB": "en-GB",
-  "en-AU": "en-AU",
-  "en-CA": "en-CA",
-  "de-DE": "de-DE",
-  "fr-FR": "fr-FR",
-  "es-ES": "es-ES",
-  "es-MX": "es-MX",
-  it: "it",
-  "pt-BR": "pt-BR",
-  "pt-PT": "pt-PT",
-  ja: "ja",
-  ko: "ko",
-  "zh-Hans": "zh-Hans",
-  "zh-Hant": "zh-Hant",
-  "nl-NL": "nl-NL",
-  ru: "ru",
-  tr: "tr",
-  "ar-SA": "ar-SA",
-  th: "th",
-  vi: "vi",
-  id: "id",
-  ms: "ms",
-  sv: "sv",
-  da: "da",
-  fi: "fi",
-  nb: "nb",
-  pl: "pl",
-  cs: "cs",
-  sk: "sk",
-  uk: "uk",
-  el: "el",
-  ro: "ro",
-  hu: "hu",
-  hr: "hr",
-  ca: "ca",
-  he: "he",
-  hi: "hi",
-};
-
 export interface LocaleConfig {
   locale: string;
   language: string;

@@ -4,7 +4,6 @@ import { logger, prisma } from "../config";
 import type { EffectiveSettings } from "../config";
 import { AppStoreConnectClient } from "./appstore-connect";
 import { workerClient } from "./worker-client";
-import { FASTLANE_LOCALE } from "./utils/country_lang";
 
 export interface SubmissionPreview {
   appId: string;
@@ -463,7 +462,7 @@ export class FastlaneService {
       typeof localeData extends Map<string, infer V> ? V : never
     > = {};
     for (const [locale, data] of localeData) {
-      result[FASTLANE_LOCALE[locale] ?? locale] = data;
+      result[locale] = data;
     }
     return result;
   }
