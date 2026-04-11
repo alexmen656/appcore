@@ -1,14 +1,35 @@
 import { Router } from "express";
+import type { Request, Response } from "express";
 import { prisma, logger, getEffectiveSettings } from "../../config";
-import { requireAuth } from "../auth";
+import { requireAuth, verifyAppOwnershipByBundleId } from "../auth";
 
 export const actionsRouter = Router();
 actionsRouter.use(requireAuth);
 
+async function resolveActionBundleId(
+  req: Request,
+  res: Response,
+  fallbackBundleId: string | null | undefined,
+): Promise<string | null> {
+  const bundleId = (req.body.bundleId as string) || fallbackBundleId;
+  if (!bundleId) {
+    res.status(400).json({ error: "bundleId required" });
+    return null;
+  }
+  const app = await verifyAppOwnershipByBundleId(req, res, bundleId);
+  if (!app) return null;
+  return bundleId;
+}
+
 actionsRouter.post("/scrape", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
-    const bundleId = req.body.bundleId || settings.ascBundleId;
+    const bundleId = await resolveActionBundleId(
+      req,
+      res,
+      settings.ascBundleId,
+    );
+    if (!bundleId) return;
     const effectiveSettings = { ...settings, ascBundleId: bundleId };
     const { AppStoreScraper } = await import("../../services/appstore-scraper");
     const scraper = new AppStoreScraper(effectiveSettings);
@@ -27,7 +48,12 @@ actionsRouter.post("/scrape", async (req, res) => {
 actionsRouter.post("/analyze", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
-    const bundleId = req.body.bundleId || settings.ascBundleId;
+    const bundleId = await resolveActionBundleId(
+      req,
+      res,
+      settings.ascBundleId,
+    );
+    if (!bundleId) return;
     const effectiveSettings = { ...settings, ascBundleId: bundleId };
     const { AIAnalyzer } = await import("../../services/ai-analyzer");
     const analyzer = new AIAnalyzer(effectiveSettings);
@@ -56,11 +82,9 @@ actionsRouter.post("/sync", async (req, res) => {
       !settings.ascKeyId ||
       !settings.ascPrivateKey
     ) {
-      res
-        .status(400)
-        .json({
-          error: "App Store Connect credentials not configured in Settings.",
-        });
+      res.status(400).json({
+        error: "App Store Connect credentials not configured in Settings.",
+      });
       return;
     }
 
@@ -120,7 +144,12 @@ actionsRouter.post("/sync", async (req, res) => {
 actionsRouter.post("/track-keywords", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
-    const bundleId = req.body.bundleId || settings.ascBundleId;
+    const bundleId = await resolveActionBundleId(
+      req,
+      res,
+      settings.ascBundleId,
+    );
+    if (!bundleId) return;
     const effectiveSettings = { ...settings, ascBundleId: bundleId };
     const { KeywordTracker } = await import("../../services/keyword-tracker");
     const tracker = new KeywordTracker(effectiveSettings);
@@ -141,7 +170,12 @@ actionsRouter.post("/track-keywords", async (req, res) => {
 actionsRouter.post("/discover-keywords", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
-    const bundleId = req.body.bundleId || settings.ascBundleId;
+    const bundleId = await resolveActionBundleId(
+      req,
+      res,
+      settings.ascBundleId,
+    );
+    if (!bundleId) return;
     const effectiveSettings = { ...settings, ascBundleId: bundleId };
     const { KeywordDiscoveryAgent } =
       await import("../../services/keyword-discovery-agent");
@@ -165,7 +199,12 @@ actionsRouter.post("/discover-keywords", async (req, res) => {
 actionsRouter.post("/discover-competitors", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
-    const bundleId = req.body.bundleId || settings.ascBundleId;
+    const bundleId = await resolveActionBundleId(
+      req,
+      res,
+      settings.ascBundleId,
+    );
+    if (!bundleId) return;
     const effectiveSettings = { ...settings, ascBundleId: bundleId };
     const { AppStoreScraper } = await import("../../services/appstore-scraper");
     const scraper = new AppStoreScraper(effectiveSettings);
@@ -215,7 +254,12 @@ actionsRouter.get("/jobs", async (_req, res) => {
 actionsRouter.post("/competitor-intel", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
-    const bundleId = req.body.bundleId || settings.ascBundleId;
+    const bundleId = await resolveActionBundleId(
+      req,
+      res,
+      settings.ascBundleId,
+    );
+    if (!bundleId) return;
     const { CompetitorIntelService } =
       await import("../../services/competitor-intel");
     const intel = new CompetitorIntelService(settings);

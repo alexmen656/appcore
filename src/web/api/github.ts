@@ -376,8 +376,12 @@ async function getAppAndToken(appId: string, res: Response) {
     res.status(400).json({ error: "No GitHub repo linked" });
     return null;
   }
-  const settings = await prisma.teamSettings.findFirst({
-    where: { githubAccessToken: { not: null } },
+  if (!app.teamId) {
+    res.status(400).json({ error: "App has no team" });
+    return null;
+  }
+  const settings = await prisma.teamSettings.findUnique({
+    where: { teamId: app.teamId },
   });
   if (!settings?.githubAccessToken) {
     res.status(400).json({ error: "No GitHub access token configured" });
@@ -523,9 +527,11 @@ githubRouter.post("/webhook", async (req: Request, res: Response) => {
       },
     });
 
-    const settings = await prisma.teamSettings.findFirst({
-      where: { githubAccessToken: { not: null } },
-    });
+    const settings = app.teamId
+      ? await prisma.teamSettings.findUnique({
+          where: { teamId: app.teamId },
+        })
+      : null;
 
     runScreenshotGeneration(job.id).catch((err) =>
       logger.error(

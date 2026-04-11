@@ -1,9 +1,24 @@
 import { Router } from "express";
+import type { Request, Response } from "express";
 import { prisma, logger, getEffectiveSettings } from "../../config";
-import { requireAuth } from "../auth";
+import { requireAuth, verifyAppOwnershipByBundleId } from "../auth";
 
 export const analyticsRouter = Router();
 analyticsRouter.use(requireAuth);
+
+async function requireBundleIdOwnership(
+  req: Request,
+  res: Response,
+): Promise<string | null> {
+  const bundleId = (req.query.bundleId as string) || "";
+  if (!bundleId) {
+    res.status(400).json({ error: "bundleId required" });
+    return null;
+  }
+  const app = await verifyAppOwnershipByBundleId(req, res, bundleId);
+  if (!app) return null;
+  return bundleId;
+}
 
 function resolveSince(query: Record<string, any>): Date | null {
   if (query.period === "all") return null;
@@ -37,11 +52,8 @@ function resolveUntil(query: Record<string, any>): Date | null {
 // ─── GET /api/analytics/summary ──────────────────────────────────────────────
 analyticsRouter.get("/summary", async (req, res) => {
   try {
-    const bundleId = (req.query.bundleId as string) || "";
-    if (!bundleId) {
-      res.status(400).json({ error: "bundleId required" });
-      return;
-    }
+    const bundleId = await requireBundleIdOwnership(req, res);
+    if (!bundleId) return;
 
     const since = resolveSince(req.query);
     const until = resolveUntil(req.query);
@@ -98,11 +110,8 @@ analyticsRouter.get("/summary", async (req, res) => {
 // ─── GET /api/analytics/downloads ────────────────────────────────────────────
 analyticsRouter.get("/downloads", async (req, res) => {
   try {
-    const bundleId = (req.query.bundleId as string) || "";
-    if (!bundleId) {
-      res.status(400).json({ error: "bundleId required" });
-      return;
-    }
+    const bundleId = await requireBundleIdOwnership(req, res);
+    if (!bundleId) return;
 
     const since = resolveSince(req.query);
     const until = resolveUntil(req.query);
@@ -182,12 +191,9 @@ analyticsRouter.get("/downloads", async (req, res) => {
 // ─── GET /api/analytics/reviews ──────────────────────────────────────────────
 analyticsRouter.get("/reviews", async (req, res) => {
   try {
-    const bundleId = (req.query.bundleId as string) || "";
+    const bundleId = await requireBundleIdOwnership(req, res);
+    if (!bundleId) return;
     const limit = Math.min(parseInt(req.query.limit as string, 10) || 50, 200);
-    if (!bundleId) {
-      res.status(400).json({ error: "bundleId required" });
-      return;
-    }
 
     const reviews = await prisma.appReview.findMany({
       where: { bundleId },
@@ -214,11 +220,8 @@ analyticsRouter.get("/reviews", async (req, res) => {
 // Returns version-update dates + app activation date for chart reference lines
 analyticsRouter.get("/markers", async (req, res) => {
   try {
-    const bundleId = (req.query.bundleId as string) || "";
-    if (!bundleId) {
-      res.status(400).json({ error: "bundleId required" });
-      return;
-    }
+    const bundleId = await requireBundleIdOwnership(req, res);
+    if (!bundleId) return;
 
     const app = await prisma.app.findUnique({
       where: { bundleId },
@@ -236,7 +239,6 @@ analyticsRouter.get("/markers", async (req, res) => {
       select: { newValue: true, detectedAt: true },
     });
 
-    // Lazy-init: if no version history yet, scrape it from the App Store
     if (versionChanges.length === 0 && app.isOwnApp && app.trackId) {
       const { AppStoreScraper } = await import("../../services/appstore-scraper");
       const scraper = new AppStoreScraper();
@@ -297,9 +299,12 @@ analyticsRouter.post("/sync", async (req, res) => {
     }
 
     const requestedBundleId = (req.body.bundleId as string) || null;
+    const teamFilter =
+      req.user!.role === "ADMIN" ? {} : { teamId: req.user!.teamId };
     const ownApps = await prisma.app.findMany({
       where: {
         isOwnApp: true,
+        ...teamFilter,
         ...(requestedBundleId ? { bundleId: requestedBundleId } : {}),
       },
       select: { bundleId: true, trackId: true, name: true },

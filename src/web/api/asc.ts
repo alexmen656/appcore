@@ -1,7 +1,7 @@
 import { Router } from "express";
 import axios from "axios";
 import { prisma, logger, getEffectiveSettings } from "../../config";
-import { requireAuth } from "../auth";
+import { requireAuth, verifyAppOwnershipByBundleId } from "../auth";
 import { AppStoreConnectClient } from "../../services/appstore-connect";
 import { AIAnalyzer } from "../../services/ai-analyzer";
 
@@ -86,6 +86,17 @@ ascRouter.post("/import", async (req, res) => {
 
     const teamId = req.user!.teamId ?? undefined;
 
+    const existing = await prisma.app.findUnique({ where: { bundleId } });
+    if (
+      existing &&
+      existing.teamId &&
+      existing.teamId !== teamId &&
+      req.user!.role !== "ADMIN"
+    ) {
+      res.status(403).json({ error: "App is owned by another team" });
+      return;
+    }
+
     const app = await prisma.app.upsert({
       where: { bundleId },
       create: {
@@ -136,6 +147,10 @@ ascRouter.post("/import", async (req, res) => {
 ascRouter.get("/versions/list", async (req, res) => {
   try {
     const bundleId = (req.query.bundleId as string) || undefined;
+    if (bundleId) {
+      const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+      if (!owned) return;
+    }
     const asc = await ascClientForUser(req.user!.userId);
     const app = await asc.getApp(bundleId);
     if (!app) {
@@ -172,6 +187,10 @@ ascRouter.get("/versions", async (req, res) => {
   try {
     const bundleId = (req.query.bundleId as string) || undefined;
     const versionId = (req.query.versionId as string) || undefined;
+    if (bundleId) {
+      const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+      if (!owned) return;
+    }
     const asc = await ascClientForUser(req.user!.userId);
     const app = await asc.getApp(bundleId);
     if (!app) {
@@ -251,10 +270,14 @@ ascRouter.get("/versions", async (req, res) => {
       const appInfo = appInfoById.get(loc) as any | undefined;
       localeMap.set(loc, {
         locale: loc,
-        appInfoLocalizationId: existing?.appInfoLocalizationId ?? appInfo?.id ?? null,
+        appInfoLocalizationId:
+          existing?.appInfoLocalizationId ?? appInfo?.id ?? null,
         name: existing?.name ?? appInfo?.attributes.name ?? "",
         subtitle: existing?.subtitle ?? appInfo?.attributes.subtitle ?? "",
-        privacyPolicyUrl: existing?.privacyPolicyUrl ?? appInfo?.attributes.privacyPolicyUrl ?? "",
+        privacyPolicyUrl:
+          existing?.privacyPolicyUrl ??
+          appInfo?.attributes.privacyPolicyUrl ??
+          "",
         versionLocalizationId: vl.id,
         description: vl.attributes.description ?? "",
         keywords: vl.attributes.keywords ?? "",
@@ -283,18 +306,30 @@ ascRouter.get("/versions", async (req, res) => {
 
 ascRouter.patch("/versions/metadata", async (req, res) => {
   try {
-    const { appInfoLocalizationId, versionLocalizationId, field, value } =
-      req.body as {
-        appInfoLocalizationId?: string;
-        versionLocalizationId?: string;
-        field: string;
-        value: string;
-      };
+    const {
+      bundleId,
+      appInfoLocalizationId,
+      versionLocalizationId,
+      field,
+      value,
+    } = req.body as {
+      bundleId?: string;
+      appInfoLocalizationId?: string;
+      versionLocalizationId?: string;
+      field: string;
+      value: string;
+    };
 
     if (!field || value === undefined) {
       res.status(400).json({ error: "field and value are required" });
       return;
     }
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId required" });
+      return;
+    }
+    const ownedApp = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!ownedApp) return;
 
     const asc = await ascClientForUser(req.user!.userId);
 
@@ -361,6 +396,12 @@ ascRouter.post("/versions/localizations", async (req, res) => {
         .json({ error: "versionId, locale and name are required" });
       return;
     }
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId required" });
+      return;
+    }
+    const ownedApp = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!ownedApp) return;
 
     const asc = await ascClientForUser(req.user!.userId);
     const app = await asc.getApp(bundleId);
@@ -430,10 +471,12 @@ ascRouter.post("/versions/localizations", async (req, res) => {
 
 ascRouter.delete("/versions/localizations", async (req, res) => {
   try {
-    const { appInfoLocalizationId, versionLocalizationId } = req.body as {
-      appInfoLocalizationId?: string;
-      versionLocalizationId?: string;
-    };
+    const { bundleId, appInfoLocalizationId, versionLocalizationId } =
+      req.body as {
+        bundleId?: string;
+        appInfoLocalizationId?: string;
+        versionLocalizationId?: string;
+      };
 
     if (!appInfoLocalizationId && !versionLocalizationId) {
       res
@@ -441,6 +484,12 @@ ascRouter.delete("/versions/localizations", async (req, res) => {
         .json({ error: "At least one localization ID is required" });
       return;
     }
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId required" });
+      return;
+    }
+    const ownedApp = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!ownedApp) return;
 
     const asc = await ascClientForUser(req.user!.userId);
     await Promise.all([
@@ -508,6 +557,12 @@ ascRouter.post("/versions", async (req, res) => {
       res.status(400).json({ error: "versionString is required" });
       return;
     }
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId required" });
+      return;
+    }
+    const ownedApp = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!ownedApp) return;
 
     const asc = await ascClientForUser(req.user!.userId);
     const app = await asc.getApp(bundleId);

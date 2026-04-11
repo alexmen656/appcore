@@ -16,6 +16,15 @@ dashboardRouter.get("/", async (req, res) => {
       include: { snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 } },
     });
 
+    if (
+      ownApp &&
+      req.user!.role !== "ADMIN" &&
+      (!ownApp.teamId || ownApp.teamId !== req.user!.teamId)
+    ) {
+      res.status(403).json({ error: "Not authorized" });
+      return;
+    }
+
     const appId = ownApp?.id;
 
     const [

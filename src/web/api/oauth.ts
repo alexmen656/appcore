@@ -344,6 +344,11 @@ oauthRouter.post(
         return;
       }
 
+      if (redirect_uri && !client.redirectUris.includes(redirect_uri)) {
+        redirectToForm("Invalid redirect_uri");
+        return;
+      }
+
       const user = await prisma.user.findUnique({
         where: { email },
         include: {
