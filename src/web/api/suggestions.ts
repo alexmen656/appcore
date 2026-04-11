@@ -1,9 +1,25 @@
 import { Router } from "express";
 import { prisma, getEffectiveSettings } from "../../config";
-import { requireAuth } from "../auth";
+import { requireAuth, verifyAppOwnershipByBundleId } from "../auth";
+import type { Request, Response } from "express";
 
 export const suggestionsRouter = Router();
 suggestionsRouter.use(requireAuth);
+
+async function verifySuggestionAccess(req: Request, res: Response, suggestionId: string) {
+  const suggestion = await prisma.aSOSuggestion.findUnique({
+    where: { id: suggestionId },
+  });
+  if (!suggestion) {
+    res.status(404).json({ error: "Not found" });
+    return null;
+  }
+  if (suggestion.appBundleId) {
+    const app = await verifyAppOwnershipByBundleId(req, res, suggestion.appBundleId);
+    if (!app) return null;
+  }
+  return suggestion;
+}
 
 suggestionsRouter.get("/", async (req, res) => {
   try {
@@ -51,6 +67,9 @@ suggestionsRouter.get("/", async (req, res) => {
 
 suggestionsRouter.post("/:id/approve", async (req, res) => {
   try {
+    const existing = await verifySuggestionAccess(req, res, req.params.id);
+    if (!existing) return;
+
     const suggestion = await prisma.aSOSuggestion.update({
       where: { id: req.params.id },
       data: { status: "APPROVED" },
@@ -63,6 +82,9 @@ suggestionsRouter.post("/:id/approve", async (req, res) => {
 
 suggestionsRouter.post("/:id/reject", async (req, res) => {
   try {
+    const existing = await verifySuggestionAccess(req, res, req.params.id);
+    if (!existing) return;
+
     const suggestion = await prisma.aSOSuggestion.update({
       where: { id: req.params.id },
       data: { status: "REJECTED" },
@@ -75,10 +97,8 @@ suggestionsRouter.post("/:id/reject", async (req, res) => {
 
 suggestionsRouter.post("/:id/apply", async (req, res) => {
   try {
-    const suggestion = await prisma.aSOSuggestion.findUnique({
-      where: { id: req.params.id },
-    });
-    if (!suggestion) return res.status(404).json({ error: "Not found" });
+    const suggestion = await verifySuggestionAccess(req, res, req.params.id);
+    if (!suggestion) return;
 
     const settings = await getEffectiveSettings(req.user!.userId);
     if (!settings.ascIssuerId || !settings.ascKeyId || !settings.ascPrivateKey) {

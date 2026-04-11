@@ -648,7 +648,6 @@ export async function syncAllAnalytics(
         );
         engagementRows = result.rows;
 
-        // Persist any new/recovered IDs
         const updates: Record<string, string> = {};
         if (result.requestId && result.requestId !== currentRequestId) {
           updates.analyticsRequestId = result.requestId;

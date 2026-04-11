@@ -16,6 +16,7 @@ import {
   verifyWebhookSignature,
   type GitHubWebhookPayload,
 } from "../../services/github";
+import { verifyAppOwnership } from "../auth";
 import { runScreenshotGeneration } from "../../jobs/defs/generate-screenshots";
 import { runBuildJob } from "../../jobs/defs/build-binary";
 import { frameWithFastlane } from "../../services/frame-screenshots";
@@ -200,6 +201,9 @@ githubRouter.post("/link", requireAuth, async (req: Request, res: Response) => {
       res.status(400).json({ error: "appId and repoFullName required" });
       return;
     }
+    const app = await verifyAppOwnership(req, res, appId);
+    if (!app) return;
+
     await linkRepoToApp(req.user!.userId, appId, repoFullName, iosDir ?? null);
     res.json({ ok: true });
   } catch (err: any) {
@@ -217,6 +221,9 @@ githubRouter.post(
         res.status(400).json({ error: "appId required" });
         return;
       }
+      const app = await verifyAppOwnership(req, res, appId);
+      if (!app) return;
+
       await unlinkRepoFromApp(req.user!.userId, appId);
       res.json({ ok: true });
     } catch (err: any) {
@@ -230,6 +237,9 @@ githubRouter.get(
   requireAuth,
   async (req: Request, res: Response) => {
     try {
+      const owned = await verifyAppOwnership(req, res, req.params.appId);
+      if (!owned) return;
+
       const app = await prisma.app.findUnique({
         where: { id: req.params.appId as string },
         select: {
@@ -257,6 +267,9 @@ githubRouter.get(
   requireAuth,
   async (req: Request, res: Response) => {
     try {
+      const owned = await verifyAppOwnership(req, res, req.params.appId);
+      if (!owned) return;
+
       const app = await prisma.app.findUnique({
         where: { id: req.params.appId as string },
         select: { snapshotEnvVars: true },
@@ -280,6 +293,9 @@ githubRouter.put(
   requireAuth,
   async (req: Request, res: Response) => {
     try {
+      const owned = await verifyAppOwnership(req, res, req.params.appId);
+      if (!owned) return;
+
       const { envVars } = req.body as {
         envVars: Array<{ key: string; value: string }>;
       };
@@ -304,6 +320,9 @@ githubRouter.get(
   requireAuth,
   async (req: Request, res: Response) => {
     try {
+      const owned = await verifyAppOwnership(req, res, req.params.appId);
+      if (!owned) return;
+
       const jobs = await prisma.buildJob.findMany({
         where: { appId: req.params.appId as string },
         orderBy: { createdAt: "desc" },
@@ -327,6 +346,9 @@ githubRouter.get(
   requireAuth,
   async (req: Request, res: Response) => {
     try {
+      const owned = await verifyAppOwnership(req, res, req.params.appId);
+      if (!owned) return;
+
       const jobs = await prisma.screenshotJob.findMany({
         where: { appId: req.params.appId as string },
         orderBy: { createdAt: "desc" },
@@ -387,6 +409,9 @@ githubRouter.post(
   requireAuth,
   async (req: Request, res: Response) => {
     try {
+      const owned = await verifyAppOwnership(req, res, req.params.appId);
+      if (!owned) return;
+
       const ctx = await getAppAndToken(req.params.appId as string, res);
       if (!ctx) return;
       const { commitSha, branch } = await fetchLatestCommit(
@@ -418,6 +443,9 @@ githubRouter.post(
   requireAuth,
   async (req: Request, res: Response) => {
     try {
+      const owned = await verifyAppOwnership(req, res, req.params.appId);
+      if (!owned) return;
+
       const ctx = await getAppAndToken(req.params.appId as string, res);
       if (!ctx) return;
       const { commitSha, branch } = await fetchLatestCommit(

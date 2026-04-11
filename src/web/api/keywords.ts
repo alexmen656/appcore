@@ -164,6 +164,25 @@ keywordsRouter.post("/", async (req, res) => {
 
 keywordsRouter.delete("/:id", async (req, res) => {
   try {
+    if (req.user!.role !== "ADMIN") {
+      const teamId = req.user!.teamId;
+      if (!teamId) {
+        res.status(403).json({ error: "No team" });
+        return;
+      }
+
+      const ranking = await prisma.keywordRanking.findFirst({
+        where: {
+          keywordId: req.params.id,
+          app: { teamId },
+        },
+      });
+      if (!ranking) {
+        res.status(403).json({ error: "Not authorized" });
+        return;
+      }
+    }
+
     await prisma.keyword.delete({ where: { id: req.params.id } });
     res.json({ ok: true });
   } catch (err) {

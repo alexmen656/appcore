@@ -1,7 +1,11 @@
 import { Router } from "express";
 import { prisma } from "../../config";
 import { getEffectiveSettings } from "../../config";
-import { requireAuth } from "../auth";
+import {
+  requireAuth,
+  verifyAppOwnership,
+  verifyAppOwnershipByBundleId,
+} from "../auth";
 
 export const appsRouter = Router();
 
@@ -91,6 +95,9 @@ appsRouter.get("/", async (req, res) => {
 appsRouter.delete("/:ownAppId/competitors/:competitorId", async (req, res) => {
   try {
     const { ownAppId, competitorId } = req.params;
+    const app = await verifyAppOwnership(req, res, ownAppId);
+    if (!app) return;
+
     await prisma.competitorRelation.deleteMany({
       where: {
         OR: [
@@ -107,6 +114,9 @@ appsRouter.delete("/:ownAppId/competitors/:competitorId", async (req, res) => {
 
 appsRouter.get("/:id", async (req, res) => {
   try {
+    const owned = await verifyAppOwnership(req, res, req.params.id);
+    if (!owned) return;
+
     const app = await prisma.app.findUnique({
       where: { id: req.params.id },
       include: {
@@ -187,6 +197,12 @@ appsRouter.get("/:id", async (req, res) => {
 appsRouter.get("/:id/competitor-detail", async (req, res) => {
   try {
     const bundleId = req.query.bundleId as string | undefined;
+
+    if (bundleId) {
+      const ownApp = await verifyAppOwnershipByBundleId(req, res, bundleId);
+      if (!ownApp) return;
+    }
+
     const app = await prisma.app.findUnique({
       where: { id: req.params.id },
       include: {
@@ -306,6 +322,9 @@ appsRouter.get("/:id/competitor-detail", async (req, res) => {
 
 appsRouter.get("/:id/signing", requireAuth, async (req, res) => {
   try {
+    const owned = await verifyAppOwnership(req, res, req.params.id);
+    if (!owned) return;
+
     const app = await prisma.app.findUnique({
       where: { id: req.params.id as string },
       select: {
@@ -330,6 +349,9 @@ appsRouter.get("/:id/signing", requireAuth, async (req, res) => {
 
 appsRouter.put("/:id/signing", requireAuth, async (req, res) => {
   try {
+    const owned = await verifyAppOwnership(req, res, req.params.id);
+    if (!owned) return;
+
     const { p12Base64, p12Password, profileBase64, teamId } = req.body;
     if (!p12Base64 || !p12Password || !profileBase64) {
       res.status(400).json({
@@ -381,6 +403,9 @@ appsRouter.delete("/:id", requireAuth, async (req, res) => {
 
 appsRouter.delete("/:id/signing", requireAuth, async (req, res) => {
   try {
+    const owned = await verifyAppOwnership(req, res, req.params.id);
+    if (!owned) return;
+
     await prisma.app.update({
       where: { id: req.params.id as string },
       data: {

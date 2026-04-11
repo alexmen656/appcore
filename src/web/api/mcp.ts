@@ -43,7 +43,9 @@ mcpRouter.put("/config", async (req, res) => {
 
 mcpRouter.get("/oauth-clients", async (req, res) => {
   try {
+    const where = req.user!.role === "ADMIN" ? {} : { userId: req.user!.userId };
     const clients = await prisma.oAuthClient.findMany({
+      where,
       orderBy: { createdAt: "desc" },
       select: { id: true, clientId: true, name: true, redirectUris: true, userId: true, createdAt: true },
     });
@@ -92,6 +94,11 @@ mcpRouter.delete("/oauth-clients/:id", async (req, res) => {
     });
     if (!client) {
       res.status(404).json({ error: "Not found" });
+      return;
+    }
+
+    if (client.userId !== req.user!.userId && req.user!.role !== "ADMIN") {
+      res.status(403).json({ error: "Not authorized" });
       return;
     }
     await prisma.oAuthClient.delete({ where: { id: req.params.id } });

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { env } from "../config";
+import { env, prisma } from "../config";
 
 const JWT_SECRET = env.JWT_SECRET;
 export const JWT_EXPIRES_IN = "30d";
@@ -40,4 +40,59 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   } catch {
     res.status(401).json({ error: "Invalid or expired token" });
   }
+}
+
+export async function verifyAppOwnership(
+  req: Request,
+  res: Response,
+  appId: string,
+) {
+  const app = await prisma.app.findUnique({ where: { id: appId } });
+  if (!app) {
+    res.status(404).json({ error: "App not found" });
+    return null;
+  }
+  if (req.user!.role === "ADMIN") return app;
+  if (!app.teamId || app.teamId !== req.user!.teamId) {
+    res.status(403).json({ error: "Not authorized" });
+    return null;
+  }
+  return app;
+}
+
+export async function verifyAppOwnershipByBundleId(
+  req: Request,
+  res: Response,
+  bundleId: string,
+) {
+  const app = await prisma.app.findUnique({ where: { bundleId } });
+  if (!app) {
+    res.status(404).json({ error: "App not found" });
+    return null;
+  }
+  if (req.user!.role === "ADMIN") return app;
+  if (!app.teamId || app.teamId !== req.user!.teamId) {
+    res.status(403).json({ error: "Not authorized" });
+    return null;
+  }
+  return app;
+}
+
+export async function verifyTeamMemberBelongsToTeam(
+  req: Request,
+  res: Response,
+  memberId: string,
+) {
+  const member = await prisma.teamMember.findUnique({
+    where: { id: memberId },
+  });
+  if (!member) {
+    res.status(404).json({ error: "Member not found" });
+    return null;
+  }
+  if (req.user!.role !== "ADMIN" && member.teamId !== req.user!.teamId) {
+    res.status(403).json({ error: "Not authorized" });
+    return null;
+  }
+  return member;
 }

@@ -5,6 +5,7 @@ import { ASOExecutor } from "../../autonomous/executor";
 import { ASOMemory } from "../../autonomous/memory";
 import { AsoExperimentStatus } from "@prisma/client";
 import { generateWeeklyReport } from "../../autonomous/scheduler";
+import { verifyAppOwnership } from "../auth";
 export const autonomousRouter = Router();
 
 autonomousRouter.get("/:appId/analyze", async (req, res) => {
@@ -12,11 +13,8 @@ autonomousRouter.get("/:appId/analyze", async (req, res) => {
     const { appId } = req.params;
     const userId = req.user!.userId;
 
-    const app = await prisma.app.findUnique({ where: { id: appId } });
-    if (!app) {
-      res.status(404).json({ error: "App not found" });
-      return;
-    }
+    const app = await verifyAppOwnership(req, res, appId);
+    if (!app) return;
 
     logger.info(
       `[API] Autonomous analysis requested for app "${app.name}" by user ${userId}`,
@@ -49,6 +47,9 @@ autonomousRouter.get("/:appId/analyze", async (req, res) => {
 autonomousRouter.get("/:appId/experiments", async (req, res) => {
   try {
     const { appId } = req.params;
+    const owned = await verifyAppOwnership(req, res, appId);
+    if (!owned) return;
+
     const status = req.query.status as string | undefined;
 
     const where: any = { appId };
@@ -75,6 +76,9 @@ autonomousRouter.post(
   async (req, res) => {
     try {
       const { appId, expId } = req.params;
+      const owned = await verifyAppOwnership(req, res, appId);
+      if (!owned) return;
+
       const experiment = await prisma.asoExperiment.findFirst({
         where: { id: expId, appId },
       });
@@ -121,6 +125,9 @@ autonomousRouter.post(
   async (req, res) => {
     try {
       const { appId, expId } = req.params;
+      const owned = await verifyAppOwnership(req, res, appId);
+      if (!owned) return;
+
       const experiment = await prisma.asoExperiment.findFirst({
         where: { id: expId, appId },
       });
@@ -160,11 +167,8 @@ autonomousRouter.get("/:appId/report", async (req, res) => {
   try {
     const { appId } = req.params;
 
-    const app = await prisma.app.findUnique({ where: { id: appId } });
-    if (!app) {
-      res.status(404).json({ error: "App not found" });
-      return;
-    }
+    const app = await verifyAppOwnership(req, res, appId);
+    if (!app) return;
 
     const report = await generateWeeklyReport(appId);
 

@@ -198,6 +198,14 @@ teamRouter.delete("/invites/:id", async (req, res) => {
       return;
     }
 
+    const invite = await prisma.teamInvite.findUnique({
+      where: { id: req.params.id },
+    });
+    if (!invite || invite.teamId !== teamId) {
+      res.status(404).json({ error: "Invite not found" });
+      return;
+    }
+
     await prisma.teamInvite.delete({ where: { id: req.params.id } });
     res.json({ ok: true });
   } catch (err) {
@@ -225,6 +233,14 @@ teamRouter.put("/members/:id", async (req, res) => {
       return;
     }
 
+    const target = await prisma.teamMember.findUnique({
+      where: { id: req.params.id },
+    });
+    if (!target || target.teamId !== teamId) {
+      res.status(404).json({ error: "Member not found" });
+      return;
+    }
+
     await prisma.teamMember.update({
       where: { id: req.params.id },
       data: { role: role as any },
@@ -246,9 +262,16 @@ teamRouter.delete("/members/:id", async (req, res) => {
     }
 
     const teamId = req.user!.teamId;
+    const isAdmin = req.user!.role === "ADMIN";
+
+    // Verify the target member belongs to the user's team
+    if (!isAdmin && existing.teamId !== teamId) {
+      res.status(403).json({ error: "Not authorized" });
+      return;
+    }
+
     const isSelf = existing.userId === req.user!.userId;
     const me = await getMyMembership(req.user!.userId, teamId ?? "");
-    const isAdmin = req.user!.role === "ADMIN";
 
     if (!isSelf && !isAdmin && !canManageTeam(me?.role)) {
       res.status(403).json({ error: "Forbidden" });

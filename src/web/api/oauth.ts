@@ -397,77 +397,97 @@ oauthRouter.post(
   },
 );
 
-oauthRouter.post("/token", express.urlencoded({ extended: false }), async (req: Request, res: Response) => {
-  res.setHeader("Cache-Control", "no-store");
+oauthRouter.post(
+  "/token",
+  express.urlencoded({ extended: false }),
+  async (req: Request, res: Response) => {
+    res.setHeader("Cache-Control", "no-store");
 
-  const {
-    grant_type,
-    code,
-    redirect_uri,
-    client_id,
-    client_secret,
-    code_verifier,
-  } = req.body as Record<string, string>;
+    const {
+      grant_type,
+      code,
+      redirect_uri,
+      client_id,
+      client_secret,
+      code_verifier,
+    } = req.body as Record<string, string>;
 
-  if (grant_type !== "authorization_code") {
-    res.status(400).json({ error: "unsupported_grant_type" });
-    return;
-  }
-
-  const client = await prisma.oAuthClient.findUnique({
-    where: { clientId: client_id },
-  });
-  if (!client || client.clientSecret !== client_secret) {
-    res.status(401).json({ error: "invalid_client" });
-    return;
-  }
-
-  const authCode = await prisma.oAuthCode.findUnique({ where: { code } });
-  if (
-    !authCode ||
-    authCode.used ||
-    authCode.expiresAt < new Date() ||
-    authCode.clientId !== client_id
-  ) {
-    res.status(400).json({ error: "invalid_grant" });
-    return;
-  }
-
-  if (
-    authCode.redirectUri &&
-    redirect_uri &&
-    authCode.redirectUri !== redirect_uri
-  ) {
-    res.status(400).json({ error: "invalid_grant" });
-    return;
-  }
-
-  if (authCode.codeChallenge) {
-    if (!code_verifier) {
-      res.status(400).json({
-        error: "invalid_grant",
-        error_description: "code_verifier required",
-      });
+    if (grant_type !== "authorization_code") {
+      res.status(400).json({ error: "unsupported_grant_type" });
       return;
     }
-    const expected = createHash("sha256")
-      .update(code_verifier)
-      .digest("base64url");
-    if (expected !== authCode.codeChallenge) {
-      res.status(400).json({
-        error: "invalid_grant",
-        error_description: "PKCE verification failed",
-      });
+
+    const client = await prisma.oAuthClient.findUnique({
+      where: { clientId: client_id },
+    });
+    if (!client || client.clientSecret !== client_secret) {
+      res.status(401).json({ error: "invalid_client" });
       return;
     }
-  }
 
-  await prisma.oAuthCode.update({ where: { code }, data: { used: true } });
+    try {
+      const accessToken = await prisma.$transaction(async (tx) => {
+        const authCode = await tx.oAuthCode.findUnique({ where: { code } });
+        if (
+          !authCode ||
+          authCode.used ||
+          authCode.expiresAt < new Date() ||
+          authCode.clientId !== client_id
+        ) {
+          throw new Error("invalid_grant");
+        }
 
-  const accessToken = randomBytes(32).toString("hex");
-  await prisma.oAuthToken.create({
-    data: { accessToken, clientId: client_id, userId: authCode.userId },
-  });
+        if (
+          authCode.redirectUri &&
+          redirect_uri &&
+          authCode.redirectUri !== redirect_uri
+        ) {
+          throw new Error("invalid_grant");
+        }
 
-  res.json({ access_token: accessToken, token_type: "Bearer" });
-});
+        if (authCode.codeChallenge) {
+          if (!code_verifier) {
+            throw new Error("code_verifier_required");
+          }
+          const expected = createHash("sha256")
+            .update(code_verifier)
+            .digest("base64url");
+          if (expected !== authCode.codeChallenge) {
+            throw new Error("pkce_failed");
+          }
+        }
+
+        await tx.oAuthCode.update({ where: { code }, data: { used: true } });
+
+        const token = randomBytes(32).toString("hex");
+        await tx.oAuthToken.create({
+          data: {
+            accessToken: token,
+            clientId: client_id,
+            userId: authCode.userId,
+          },
+        });
+
+        return token;
+      });
+
+      res.json({ access_token: accessToken, token_type: "Bearer" });
+    } catch (err: any) {
+      if (err.message === "code_verifier_required") {
+        res.status(400).json({
+          error: "invalid_grant",
+          error_description: "code_verifier required",
+        });
+      } else if (err.message === "pkce_failed") {
+        res.status(400).json({
+          error: "invalid_grant",
+          error_description: "PKCE verification failed",
+        });
+      } else if (err.message === "invalid_grant") {
+        res.status(400).json({ error: "invalid_grant" });
+      } else {
+        res.status(500).json({ error: "server_error" });
+      }
+    }
+  },
+);
