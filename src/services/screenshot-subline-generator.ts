@@ -1,6 +1,5 @@
-import Anthropic from "@anthropic-ai/sdk";
-import OpenAI from "openai";
 import { prisma, logger } from "../config";
+import { AIClient } from "./ai-client";
 
 export type ScreenshotSublines = Record<string, Record<string, string>>;
 
@@ -33,12 +32,13 @@ export async function generateScreenshotSublines(
     .slice(0, 20);
 
   const settings = await prisma.teamSettings.findFirst();
-  const anthropicKey = settings?.anthropicApiKey;
-  const openaiKey = settings?.openaiApiKey;
-  const useAnthropic =
-    (settings?.aiProvider === "anthropic" || !openaiKey) && !!anthropicKey;
+  const ai = new AIClient({
+    openaiApiKey: settings?.openaiApiKey ?? undefined,
+    anthropicApiKey: settings?.anthropicApiKey ?? undefined,
+    aiProvider: (settings?.aiProvider as "openai" | "anthropic" | undefined) ?? undefined,
+  });
 
-  if (!anthropicKey && !openaiKey) {
+  if (!ai.hasProvider) {
     logger.warn(
       "[SublineGen] No AI provider configured — skipping subline generation",
     );
@@ -96,28 +96,13 @@ Every subline must be ≤ 30 characters. Include every screenshot key for every 
 
   let raw = "";
   try {
-    if (useAnthropic) {
-      const client = new Anthropic({ apiKey: anthropicKey! });
-      const resp = await client.messages.create({
-        model: "claude-sonnet-4-6",
-        max_tokens: 2048,
-        system: systemPrompt,
-        messages: [{ role: "user", content: userPrompt }],
-      });
-      raw = resp.content.find((c) => c.type === "text")?.text ?? "";
-    } else {
-      const client = new OpenAI({ apiKey: openaiKey! });
-      const resp = await client.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        response_format: { type: "json_object" },
-        max_completion_tokens: 2048,
-      });
-      raw = resp.choices[0]?.message?.content ?? "";
-    }
+    const response = await ai.query(systemPrompt, userPrompt, {
+      maxTokens: 2048,
+      jsonMode: true,
+      openaiModel: "gpt-4o",
+      anthropicModel: "claude-sonnet-4-6",
+    });
+    raw = response.content;
 
     const jsonStr = raw
       .replace(/^```(?:json)?\n?/, "")

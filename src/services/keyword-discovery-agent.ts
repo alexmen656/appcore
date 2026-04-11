@@ -1,7 +1,6 @@
-import OpenAI from "openai";
-import Anthropic from "@anthropic-ai/sdk";
 import { prisma, logger } from "../config";
 import type { EffectiveSettings } from "../config";
+import { AIClient } from "./ai-client";
 import { ScrapeType, JobStatus } from "@prisma/client";
 import { AppStoreScraper } from "./appstore-scraper";
 import { AppStoreConnectClient } from "./appstore-connect";
@@ -9,8 +8,7 @@ import { langForCountry, localeToCountry } from "./app-store-markets";
 
 export class KeywordDiscoveryAgent {
   private readonly bundleId: string;
-  private openai?: OpenAI;
-  private anthropic?: Anthropic;
+  private readonly ai: AIClient;
   private readonly settings?: EffectiveSettings;
   private readonly MIN_POPULARITY = 15;
   private readonly MIN_RESULTS = 3;
@@ -19,6 +17,7 @@ export class KeywordDiscoveryAgent {
 
   constructor(settings?: EffectiveSettings) {
     this.settings = settings;
+    this.ai = new AIClient(settings);
     if (settings?.ascBundleId) {
       this.bundleId = settings.ascBundleId;
     } else {
@@ -27,11 +26,6 @@ export class KeywordDiscoveryAgent {
       );
       this.bundleId = "";
     }
-
-    const openaiKey = settings?.openaiApiKey;
-    const anthropicKey = settings?.anthropicApiKey;
-    if (openaiKey) this.openai = new OpenAI({ apiKey: openaiKey });
-    if (anthropicKey) this.anthropic = new Anthropic({ apiKey: anthropicKey });
   }
 
   private async getActiveCountries(): Promise<string[]> {
@@ -451,37 +445,12 @@ Return JSON only.`;
     systemPrompt: string,
     userPrompt: string,
   ): Promise<string> {
-    const selectedProvider = this.settings?.aiProvider as
-      | "openai"
-      | "anthropic"
-      | undefined;
-
-    if (selectedProvider === "anthropic" && this.anthropic) {
-      const response = await this.anthropic.messages.create({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: [{ role: "user", content: userPrompt }],
-      });
-      const textBlock = response.content.find((c) => c.type === "text");
-      return textBlock?.text ?? "";
-    }
-
-    if (this.openai) {
-      const response = await this.openai.chat.completions.create({
-        model: "gpt-5.2",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.6,
-        max_completion_tokens: 1000,
-        response_format: { type: "json_object" },
-      });
-      return response.choices[0]?.message?.content ?? "";
-    }
-
-    throw new Error("No AI provider configured");
+    const response = await this.ai.query(systemPrompt, userPrompt, {
+      temperature: 0.6,
+      maxTokens: 1000,
+      jsonMode: true,
+    });
+    return response.content;
   }
 
   private parseKeywordArray(raw: string, source: string): string[] {

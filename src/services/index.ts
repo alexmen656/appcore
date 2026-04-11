@@ -2,6 +2,8 @@ export { AppStoreScraper } from "./appstore-scraper";
 export { AppStoreConnectClient } from "./appstore-connect";
 export { AppleSearchAdsClient } from "./search-ads";
 export { AIAnalyzer } from "./ai-analyzer";
+export { AIClient } from "./ai-client";
+export type { AIQueryOptions, AIResponse } from "./ai-client";
 export { KeywordTracker } from "./keyword-tracker";
 export { KeywordDiscoveryAgent } from "./keyword-discovery-agent";
 export { CompetitorIntelService } from "./competitor-intel";

@@ -1,8 +1,7 @@
 import axios from "axios";
-import OpenAI from "openai";
-import Anthropic from "@anthropic-ai/sdk";
 import { prisma, logger } from "../config";
 import type { EffectiveSettings } from "../config";
+import { AIClient } from "./ai-client";
 
 interface ScrapedReview {
   externalId: string;
@@ -13,27 +12,15 @@ interface ScrapedReview {
   reviewedAt: Date;
 }
 
-interface AIResponse {
-  content: string;
-  provider: string;
-  model: string;
-}
-
 export class CompetitorIntelService {
-  private openai?: OpenAI;
-  private anthropic?: Anthropic;
+  private readonly ai: AIClient;
   private readonly settings?: EffectiveSettings;
   private readonly country: string;
 
   constructor(settings?: EffectiveSettings) {
     this.settings = settings;
     this.country = settings?.scrapeCountry ?? "de";
-
-    const openaiKey = settings?.openaiApiKey;
-    const anthropicKey = settings?.anthropicApiKey;
-
-    if (openaiKey) this.openai = new OpenAI({ apiKey: openaiKey });
-    if (anthropicKey) this.anthropic = new Anthropic({ apiKey: anthropicKey });
+    this.ai = new AIClient(settings);
   }
 
   async scrapeReviews(
@@ -182,7 +169,11 @@ Be concise but thorough. Extract actionable insights.`;
 
     const userPrompt = `Here are ${reviews.length} recent reviews (avg rating: ${avgRating.toFixed(1)}/5):\n\n${reviewTexts}`;
 
-    const ai = await this.queryAI(systemPrompt, userPrompt);
+    const ai = await this.ai.query(systemPrompt, userPrompt, {
+      temperature: 0.5,
+      maxTokens: 4000,
+      jsonMode: true,
+    });
 
     try {
       const parsed = JSON.parse(ai.content);
@@ -414,69 +405,6 @@ Be concise but thorough. Extract actionable insights.`;
     );
 
     return { reviewsScraped, appsSummarized, metadataChanges };
-  }
-
-  private async queryAI(
-    systemPrompt: string,
-    userPrompt: string,
-  ): Promise<AIResponse> {
-    const provider = this.settings?.aiProvider as
-      | "openai"
-      | "anthropic"
-      | undefined;
-
-    if (provider === "anthropic" && this.anthropic) {
-      return this.queryAnthropic(systemPrompt, userPrompt);
-    }
-    if (this.openai) {
-      return this.queryOpenAI(systemPrompt, userPrompt);
-    }
-    throw new Error("No AI provider available for review summarization");
-  }
-
-  private async queryOpenAI(
-    systemPrompt: string,
-    userPrompt: string,
-  ): Promise<AIResponse> {
-    const response = await this.openai!.chat.completions.create({
-      model: "gpt-5.2",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      temperature: 0.5,
-      max_completion_tokens: 4000,
-      response_format: { type: "json_object" },
-    });
-
-    return {
-      content: response.choices[0]?.message?.content ?? "",
-      provider: "openai",
-      model: "gpt-5.2",
-    };
-  }
-
-  private async queryAnthropic(
-    systemPrompt: string,
-    userPrompt: string,
-  ): Promise<AIResponse> {
-    const response = await this.anthropic!.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 4000,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userPrompt }],
-    });
-
-    const text = response.content
-      .filter((b): b is Anthropic.TextBlock => b.type === "text")
-      .map((b) => b.text)
-      .join("");
-
-    return {
-      content: text,
-      provider: "anthropic",
-      model: "claude-sonnet-4-20250514",
-    };
   }
 
   private sleep(ms: number): Promise<void> {

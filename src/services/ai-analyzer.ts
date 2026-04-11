@@ -1,7 +1,7 @@
-import OpenAI from "openai";
-import Anthropic from "@anthropic-ai/sdk";
 import { prisma, logger } from "../config";
 import type { EffectiveSettings } from "../config";
+import { AIClient } from "./ai-client";
+import type { AIResponse } from "./ai-client";
 import { SuggestionType, SuggestionStatus } from "@prisma/client";
 import { LOCALE_MAP, LocaleConfig } from "./utils/country_lang";
 
@@ -14,14 +14,6 @@ function getLocaleConfig(locale: string): LocaleConfig {
       market: locale,
     }
   );
-}
-
-interface AIResponse {
-  content: string;
-  provider: string;
-  model: string;
-  promptTokens?: number;
-  completionTokens?: number;
 }
 
 interface ASOAnalysis {
@@ -50,92 +42,17 @@ interface ASOAnalysis {
 }
 
 export class AIAnalyzer {
-  private openai?: OpenAI;
-  private anthropic?: Anthropic;
+  private readonly ai: AIClient;
   private readonly settings?: EffectiveSettings;
 
   constructor(settings?: EffectiveSettings) {
     this.settings = settings;
-
-    const openaiKey = settings?.openaiApiKey;
-    const anthropicKey = settings?.anthropicApiKey;
-
-    if (openaiKey) {
-      this.openai = new OpenAI({ apiKey: openaiKey });
-    }
-    if (anthropicKey) {
-      this.anthropic = new Anthropic({ apiKey: anthropicKey });
-    }
-
-    if (!this.openai && !this.anthropic) {
+    this.ai = new AIClient(settings);
+    if (!this.ai.hasProvider) {
       logger.warn(
         "No AI provider configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY in settings.",
       );
     }
-  }
-
-  private async query(
-    systemPrompt: string,
-    userPrompt: string,
-    provider?: "openai" | "anthropic",
-  ): Promise<AIResponse> {
-    const selectedProvider =
-      provider ??
-      (this.settings?.aiProvider as "openai" | "anthropic" | undefined);
-
-    if (selectedProvider === "anthropic" && this.anthropic) {
-      return this.queryAnthropic(systemPrompt, userPrompt);
-    }
-    if (this.openai) {
-      return this.queryOpenAI(systemPrompt, userPrompt);
-    }
-    throw new Error("No AI provider available");
-  }
-
-  private async queryOpenAI(
-    systemPrompt: string,
-    userPrompt: string,
-  ): Promise<AIResponse> {
-    const response = await this.openai!.chat.completions.create({
-      model: "gpt-5.2",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      temperature: 0.7,
-      max_completion_tokens: 10000,
-      response_format: { type: "json_object" },
-    });
-
-    return {
-      content: response.choices[0]?.message?.content ?? "",
-      provider: "openai",
-      model: "gpt-5.2",
-      promptTokens: response.usage?.prompt_tokens,
-      completionTokens: response.usage?.completion_tokens,
-    };
-  }
-
-  private async queryAnthropic(
-    systemPrompt: string,
-    userPrompt: string,
-  ): Promise<AIResponse> {
-    const response = await this.anthropic!.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 4000,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userPrompt }],
-    });
-
-    const textBlock = response.content.find((c) => c.type === "text");
-
-    return {
-      content: textBlock?.text ?? "",
-      provider: "anthropic",
-      model: "claude-sonnet-4-20250514",
-      promptTokens: response.usage?.input_tokens,
-      completionTokens: response.usage?.output_tokens,
-    };
   }
 
   async translateLocalization(
@@ -172,18 +89,19 @@ ${keywordsInstruction}
 
 ${fieldsToTranslate.map(([k, v]) => `${k}: ${v}`).join("\n\n")}`;
 
-    const aiResponse = await this.query(
+    const response = await this.ai.query(
       `You are an expert App Store localization specialist. Translate app metadata accurately and naturally for the target locale, adapting tone and phrasing for the local market. Return only a JSON object with the translated values.`,
       userPrompt,
+      { jsonMode: true },
     );
 
     try {
-      const raw = aiResponse.content.trim();
+      const raw = response.content.trim();
       const jsonMatch = raw.match(/\{[\s\S]*\}/);
       if (jsonMatch) return JSON.parse(jsonMatch[0]);
     } catch {
       logger.warn("Failed to parse AI translation response", {
-        content: aiResponse.content,
+        content: response.content,
       });
     }
     return {};
@@ -354,7 +272,11 @@ Rating: ${c.rating ?? "?"} (${c.ratingsCount ?? "?"} ratings)`,
 
 Generate detailed ASO optimization suggestions in ${lc.promptLang} for the ${lc.market} market.`;
 
-    const response = await this.query(systemPrompt, userPrompt);
+    const response = await this.ai.query(systemPrompt, userPrompt, {
+      temperature: 0.7,
+      maxTokens: 10000,
+      jsonMode: true,
+    });
 
     let analysis: ASOAnalysis;
     try {
@@ -478,7 +400,9 @@ Beschreibung: ${d.description}`,
 
 Extrahiere die 30 wichtigsten Keywords/Suchbegriffe die Nutzer verwenden würden.`;
 
-    const response = await this.query(systemPrompt, userPrompt);
+    const response = await this.ai.query(systemPrompt, userPrompt, {
+      jsonMode: true,
+    });
 
     try {
       let jsonStr = response.content;
