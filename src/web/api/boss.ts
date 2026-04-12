@@ -15,6 +15,8 @@ const VALID_QUEUES = [
   "discover-keywords",
   "discover-competitors",
   "analyze",
+  "sync-metadata",
+  "competitor-intel",
 ];
 
 function isMissingSchema(err: unknown): boolean {

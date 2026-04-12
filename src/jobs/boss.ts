@@ -37,6 +37,14 @@ import {
   handler as analyzeHandler,
 } from "./workers/analyze.worker";
 import type { AnalyzeData } from "./workers/analyze.worker";
+import {
+  QUEUE_NAME as SYNC_METADATA_QUEUE,
+  handler as syncMetadataHandler,
+} from "./workers/sync-metadata.worker";
+import {
+  QUEUE_NAME as COMPETITOR_INTEL_QUEUE,
+  handler as competitorIntelHandler,
+} from "./workers/competitor-intel.worker";
 
 async function loadTeamApps() {
   return prisma.team.findMany({
@@ -81,6 +89,8 @@ export class BossScheduler {
       `${DISCOVER_COMPETITORS_QUEUE}/dispatch`,
       ANALYZE_QUEUE,
       `${ANALYZE_QUEUE}/dispatch`,
+      SYNC_METADATA_QUEUE,
+      COMPETITOR_INTEL_QUEUE,
     ];
     for (const q of allQueues) {
       await this.boss.createQueue(q);
@@ -259,8 +269,14 @@ export class BossScheduler {
       { tz: "Europe/Berlin" },
     );
 
+    // ── sync-metadata (manual only) ─────────────────────────────────────────
+    await this.boss.work(SYNC_METADATA_QUEUE, syncMetadataHandler);
+
+    // ── competitor-intel (manual only) ───────────────────────────────────────
+    await this.boss.work(COMPETITOR_INTEL_QUEUE, competitorIntelHandler);
+
     logger.info(
-      `[BOSS] Scheduler started — queues: ${TRACK_KEYWORDS_QUEUE}, ${SCRAPE_QUEUE}, ${SYNC_ANALYTICS_QUEUE}, ${EXTRACT_KEYWORDS_QUEUE}, ${DISCOVER_KEYWORDS_QUEUE}, ${DISCOVER_COMPETITORS_QUEUE}, ${ANALYZE_QUEUE}`,
+      `[BOSS] Scheduler started — queues: ${TRACK_KEYWORDS_QUEUE}, ${SCRAPE_QUEUE}, ${SYNC_ANALYTICS_QUEUE}, ${EXTRACT_KEYWORDS_QUEUE}, ${DISCOVER_KEYWORDS_QUEUE}, ${DISCOVER_COMPETITORS_QUEUE}, ${ANALYZE_QUEUE}, ${SYNC_METADATA_QUEUE}, ${COMPETITOR_INTEL_QUEUE}`,
     );
     this._running = true;
   }
@@ -271,9 +287,14 @@ export class BossScheduler {
     logger.info("[BOSS] Scheduler stopped");
   }
 
-  /* Manuell trigger */
+  /* Manuell trigger — dispatch fan-out */
   async triggerDispatch(queue: string): Promise<void> {
     await this.boss.send(`${queue}/dispatch`, {});
+  }
+
+  /* Direkt einen Job in eine Worker-Queue senden */
+  async sendJob<T extends object>(queue: string, data: T): Promise<void> {
+    await this.boss.send(queue, data);
   }
 
   async cancelAllJobs(queue?: string): Promise<void> {
