@@ -32,8 +32,9 @@ async function ascClientForUser(
 
 ascRouter.get("/apps", async (req, res) => {
   try {
-    const asc = await ascClientForUser(req.user!.userId);
-    const apps = await asc.listApps();
+    const apps = await ascClientForUser(req.user!.userId).then((c) =>
+      c.listApps(),
+    );
     const iconMap = new Map<string, string>();
 
     if (apps.length > 0) {
@@ -85,8 +86,8 @@ ascRouter.post("/import", async (req, res) => {
     }
 
     const teamId = req.user!.teamId ?? undefined;
-
     const existing = await prisma.app.findUnique({ where: { bundleId } });
+
     if (
       existing &&
       existing.teamId &&
@@ -126,17 +127,14 @@ ascRouter.post("/import", async (req, res) => {
       },
     });
 
-    getEffectiveSettings(req.user!.userId)
-      .then(async (settings) => {
-        const { AppStoreScraper } =
-          await import("../../services/appstore-scraper");
-        const scraper = new AppStoreScraper(app.country, undefined, bundleId);
-        await scraper.runFullScrapeJob();
-        logger.info(`Post-import scrape completed for ${bundleId}`);
-      })
-      .catch((err) =>
-        logger.error(`Post-import scrape failed for ${bundleId}`, err),
-      );
+    const { AppStoreScraper } = await import("../../services/appstore-scraper");
+    await new AppStoreScraper(
+      app.country,
+      undefined,
+      bundleId,
+    ).runFullScrapeJob();
+
+    logger.info(`Post-import scrape completed for ${bundleId}`);
   } catch (err: any) {
     logger.error("ASC import failed", err);
     res.status(500).json({ error: err.message ?? String(err) });
@@ -237,10 +235,6 @@ ascRouter.get("/versions", async (req, res) => {
 
     const localeMap = new Map<string, any>();
 
-    // For editable (current) versions, show all locales from appInfoLocalizations
-    // so newly added languages appear and can be filled in.
-    // For historical (non-editable) versions, only show locales that were
-    // actually published — i.e. those present in versionLocalizations.
     if (isEditable) {
       for (const info of appInfoLocalizations) {
         const loc = info.attributes.locale;
