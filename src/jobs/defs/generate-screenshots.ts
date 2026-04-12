@@ -191,7 +191,7 @@ async function runScreenshotGenerationViaWorker(
     });
 
     if (job.commitSha) {
-      await postCommitStatus(token!, repoFullName!, job.commitSha, "success", "appcore/screenshots", "Screenshots generated successfully");
+      await postCommitStatus(token!, repoFullName!, job.commitSha, "success", "marteso/screenshots", "Screenshots generated successfully");
     }
   } catch (err: any) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -208,7 +208,7 @@ async function runScreenshotGenerationViaWorker(
     });
 
     if (job.commitSha && token && repoFullName) {
-      await postCommitStatus(token, repoFullName, job.commitSha, "failure", "appcore/screenshots", msg.slice(0, 140));
+      await postCommitStatus(token, repoFullName, job.commitSha, "failure", "marteso/screenshots", msg.slice(0, 140));
     }
   }
 }

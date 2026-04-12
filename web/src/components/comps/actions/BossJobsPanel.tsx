@@ -21,7 +21,15 @@ interface BossSchedule {
   updated_on: string;
 }
 
-const QUEUES = ["scrape", "track-keywords", "sync-analytics"] as const;
+const QUEUES = [
+  "scrape",
+  "track-keywords",
+  "sync-analytics",
+  "extract-keywords",
+  "discover-keywords",
+  "discover-competitors",
+  "analyze",
+] as const;
 
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;

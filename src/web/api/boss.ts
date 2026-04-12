@@ -7,7 +7,15 @@ import { bossScheduler } from "../../jobs/boss";
 export const bossRouter = Router();
 bossRouter.use(requireAuth);
 
-const VALID_QUEUES = ["scrape", "track-keywords", "sync-analytics"];
+const VALID_QUEUES = [
+  "scrape",
+  "track-keywords",
+  "sync-analytics",
+  "extract-keywords",
+  "discover-keywords",
+  "discover-competitors",
+  "analyze",
+];
 
 function isMissingSchema(err: unknown): boolean {
   const code = (err as any)?.meta?.driverAdapterError?.cause?.originalCode;
