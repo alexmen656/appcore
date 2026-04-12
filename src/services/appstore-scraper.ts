@@ -37,11 +37,7 @@ export class AppStoreScraper {
   private readonly language: string;
   private readonly bundleId: string;
 
-  constructor(
-    country: string = "",
-    language?: string,
-    bundleId: string = "",
-  ) {
+  constructor(country: string = "", language?: string, bundleId: string = "") {
     this.country = country;
     this.bundleId = bundleId;
     this.language = normalizeLanguage(language, this.country);
@@ -565,14 +561,6 @@ export class AppStoreScraper {
   }
 
   async runFullScrapeJob(): Promise<void> {
-    const job = await prisma.scrapeJob.create({
-      data: {
-        type: ScrapeType.COMPETITOR_METADATA,
-        status: JobStatus.RUNNING,
-        startedAt: new Date(),
-      },
-    });
-
     try {
       await this.scrapeAndSaveApp(this.bundleId, true);
 
@@ -590,26 +578,8 @@ export class AppStoreScraper {
         }
       }
 
-      await prisma.scrapeJob.update({
-        where: { id: job.id },
-        data: {
-          status: JobStatus.COMPLETED,
-          completedAt: new Date(),
-          itemsCount: count,
-          result: JSON.stringify({ appsScraped: count }),
-        },
-      });
-
       logger.info(`Full scrape job completed: ${count} apps scraped`);
     } catch (error) {
-      await prisma.scrapeJob.update({
-        where: { id: job.id },
-        data: {
-          status: JobStatus.FAILED,
-          completedAt: new Date(),
-          error: error instanceof Error ? error.message : String(error),
-        },
-      });
       throw error;
     }
   }

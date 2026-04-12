@@ -282,31 +282,6 @@ enum SuggestionStatus {
   EXPIRED
 }
 
-model ScrapeJob {
-  id          String     @id @default(cuid())
-  type        ScrapeType
-  status      JobStatus  @default(PENDING)
-  result      String?
-  error       String?
-  itemsCount  Int        @default(0)
-  startedAt   DateTime?
-  completedAt DateTime?
-  createdAt   DateTime   @default(now())
-
-  @@index([type, status])
-  @@index([createdAt])
-}
-
-enum ScrapeType {
-  COMPETITOR_METADATA
-  KEYWORD_RANKING
-  SEARCH_ADS_DATA
-  OWN_APP_SYNC
-  KEYWORD_DISCOVERY
-  ASC_ANALYTICS
-  FASTLANE_SUBMIT
-}
-
 model AppStoreAnalytics {
   id          String   @id @default(cuid())
   bundleId    String

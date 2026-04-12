@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { randomUUID } from "crypto";
 import { logger, prisma } from "../config";
 import type { EffectiveSettings } from "../config";
 import { AppStoreConnectClient } from "./appstore-connect";
@@ -143,22 +144,16 @@ export class FastlaneService {
       }
     >,
   ): Promise<SubmissionResult> {
-    const job = await prisma.scrapeJob.create({
-      data: {
-        type: "FASTLANE_SUBMIT",
-        status: "RUNNING",
-        startedAt: new Date(),
-      },
-    });
+    const jobId = randomUUID();
 
     const submission: ActiveSubmission = {
-      jobId: job.id,
+      jobId,
       logs: [],
       errors: [],
       status: "preparing",
       startedAt: new Date(),
     };
-    activeSubmissions.set(job.id, submission);
+    activeSubmissions.set(jobId, submission);
 
     try {
       submission.logs.push("Preparing metadata...");
@@ -219,24 +214,11 @@ export class FastlaneService {
       submission.logs.push(...result.logs);
       submission.errors.push(...result.errors);
 
-      await prisma.scrapeJob.update({
-        where: { id: job.id },
-        data: {
-          status: submission.errors.length > 0 ? "FAILED" : "COMPLETED",
-          completedAt: new Date(),
-          result: JSON.stringify({
-            action,
-            logsCount: submission.logs.length,
-            errorsCount: submission.errors.length,
-          }),
-        },
-      });
-
       submission.status = submission.errors.length > 0 ? "failed" : "completed";
 
       return {
         ok: submission.errors.length === 0,
-        jobId: job.id,
+        jobId,
         action,
         versionString: null,
         logs: submission.logs,
@@ -247,18 +229,9 @@ export class FastlaneService {
       submission.errors.push(msg);
       submission.status = "failed";
 
-      await prisma.scrapeJob.update({
-        where: { id: job.id },
-        data: {
-          status: "FAILED",
-          error: msg,
-          completedAt: new Date(),
-        },
-      });
-
       return {
         ok: false,
-        jobId: job.id,
+        jobId,
         action,
         versionString: null,
         logs: submission.logs,

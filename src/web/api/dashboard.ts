@@ -33,7 +33,6 @@ dashboardRouter.get("/", async (req, res) => {
       rankingCount,
       pendingSuggestions,
       appliedSuggestions,
-      jobCount,
     ] = await Promise.all([
       appId
         ? prisma.competitorRelation.count({
@@ -60,13 +59,8 @@ dashboardRouter.get("/", async (req, res) => {
         ? prisma.aSOSuggestion.count({
             where: { status: "APPLIED", appBundleId: activeBundleId },
           })
-        : Promise.resolve(0),
-      prisma.scrapeJob.count(),
+        : Promise.resolve(0)
     ]);
-
-    const lastJob = await prisma.scrapeJob.findFirst({
-      orderBy: { createdAt: "desc" },
-    });
 
     const recentSuggestions = await prisma.aSOSuggestion.findMany({
       where: activeBundleId ? { appBundleId: activeBundleId } : {},
@@ -94,7 +88,6 @@ dashboardRouter.get("/", async (req, res) => {
         rankings: rankingCount,
         pendingSuggestions,
         appliedSuggestions,
-        jobs: jobCount,
       },
       config: {
         aiProvider: settings.aiProvider,
@@ -107,14 +100,6 @@ dashboardRouter.get("/", async (req, res) => {
         ),
         hasSearchAds: !!env.APPLE_ADS_CLIENT_ID,
       },
-      lastJob: lastJob
-        ? {
-            type: lastJob.type,
-            status: lastJob.status,
-            createdAt: lastJob.createdAt,
-            itemsCount: lastJob.itemsCount,
-          }
-        : null,
       recentSuggestions: recentSuggestions.map((s) => ({
         id: s.id,
         type: s.type,

@@ -40,7 +40,9 @@ export class KeywordDiscoveryAgent {
           keyId: s.ascKeyId,
           privateKey: s.ascPrivateKey,
         });
-        const liveVersion = ascAppId ? await asc.getLiveVersion(ascAppId) : null;
+        const liveVersion = ascAppId
+          ? await asc.getLiveVersion(ascAppId)
+          : null;
         if (liveVersion) {
           const localizations = await asc.getVersionLocalizations(
             liveVersion.id,
@@ -83,14 +85,6 @@ export class KeywordDiscoveryAgent {
   }
 
   async run(): Promise<{ discovered: number; scored: number; added: number }> {
-    const job = await prisma.scrapeJob.create({
-      data: {
-        type: ScrapeType.KEYWORD_DISCOVERY,
-        status: JobStatus.RUNNING,
-        startedAt: new Date(),
-      },
-    });
-
     try {
       if (!this.bundleId) {
         throw new Error("No bundle ID configured, cannot run discovery");
@@ -117,28 +111,12 @@ export class KeywordDiscoveryAgent {
         scored: totalScored,
         added: totalAdded,
       };
-      await prisma.scrapeJob.update({
-        where: { id: job.id },
-        data: {
-          status: JobStatus.COMPLETED,
-          completedAt: new Date(),
-          itemsCount: result.added,
-          result: JSON.stringify(result),
-        },
-      });
+
       logger.info(
         `[Discovery] Run complete: ${result.discovered} found, ${result.scored} qualified, ${result.added} added`,
       );
       return result;
     } catch (error) {
-      await prisma.scrapeJob.update({
-        where: { id: job.id },
-        data: {
-          status: JobStatus.FAILED,
-          completedAt: new Date(),
-          error: error instanceof Error ? error.message : String(error),
-        },
-      });
       throw error;
     }
   }

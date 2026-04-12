@@ -44,13 +44,12 @@ export class KeywordTracker {
       });
       const ascAppId = ownApp?.trackId?.toString() ?? "";
       if (!ascAppId) {
-        logger.debug("No trackId for app, skipping Search Ads popularity fetch");
+        logger.debug(
+          "No trackId for app, skipping Search Ads popularity fetch",
+        );
         return this.searchAdsPopularity;
       }
-      const keywords = await this.searchAds.getTargetingKeywords(
-        ascAppId,
-        200,
-      );
+      const keywords = await this.searchAds.getTargetingKeywords(ascAppId, 200);
 
       for (const kw of keywords) {
         this.searchAdsPopularity.set(kw.keyword.toLowerCase(), kw.popularity);
@@ -188,14 +187,6 @@ export class KeywordTracker {
   }
 
   async trackAllKeywords(): Promise<Map<string, number | null>> {
-    const job = await prisma.scrapeJob.create({
-      data: {
-        type: ScrapeType.KEYWORD_RANKING,
-        status: JobStatus.RUNNING,
-        startedAt: new Date(),
-      },
-    });
-
     const rankings = new Map<string, number | null>();
 
     try {
@@ -217,26 +208,8 @@ export class KeywordTracker {
         await new Promise((r) => setTimeout(r, 1500));
       }
 
-      await prisma.scrapeJob.update({
-        where: { id: job.id },
-        data: {
-          status: JobStatus.COMPLETED,
-          completedAt: new Date(),
-          itemsCount: keywords.length,
-          result: JSON.stringify(Object.fromEntries(rankings)),
-        },
-      });
-
       logger.info(`Tracked ${keywords.length} keywords`);
     } catch (error) {
-      await prisma.scrapeJob.update({
-        where: { id: job.id },
-        data: {
-          status: JobStatus.FAILED,
-          completedAt: new Date(),
-          error: error instanceof Error ? error.message : String(error),
-        },
-      });
       throw error;
     }
 

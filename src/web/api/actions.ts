@@ -125,18 +125,6 @@ actionsRouter.post("/discover-competitors", async (req, res) => {
   }
 });
 
-actionsRouter.get("/jobs", async (_req, res) => {
-  try {
-    const jobs = await prisma.scrapeJob.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 50,
-    });
-    res.json(jobs);
-  } catch (err) {
-    res.status(500).json({ error: String(err) });
-  }
-});
-
 actionsRouter.post("/competitor-intel", async (req, res) => {
   try {
     const app = await resolveActionApp(req, res);

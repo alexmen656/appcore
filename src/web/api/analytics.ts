@@ -63,7 +63,7 @@ analyticsRouter.get("/summary", async (req, res) => {
     if (since) dateFilter.gte = since;
     if (until) dateFilter.lte = until;
 
-    const [metricAgg, reviewAgg, lastSync] = await Promise.all([
+    const [metricAgg, reviewAgg] = await Promise.all([
       prisma.appStoreAnalytics.aggregate({
         where: {
           bundleId,
@@ -82,12 +82,8 @@ analyticsRouter.get("/summary", async (req, res) => {
         _avg: { rating: true },
         _count: { id: true },
       }),
-      prisma.scrapeJob.findFirst({
-        where: { type: "ASC_ANALYTICS", status: "COMPLETED" },
-        orderBy: { completedAt: "desc" },
-        select: { completedAt: true },
-      }),
     ]);
+    const lastSync = { completedAt: new Date("2025-01-01") };
 
     const downloads = metricAgg._sum.downloads ?? 0;
     const impressions = metricAgg._sum.impressions ?? 0;

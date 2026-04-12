@@ -608,10 +608,6 @@ export async function syncAllAnalytics(
   ascAppId: string,
   _userId?: string,
 ): Promise<AnalyticsSyncResult> {
-  const job = await prisma.scrapeJob.create({
-    data: { type: "ASC_ANALYTICS", status: "RUNNING", startedAt: new Date() },
-  });
-
   try {
     const downloadDays = await fetchSalesReports(
       settings,
@@ -671,30 +667,12 @@ export async function syncAllAnalytics(
       }
     }
 
-    await prisma.scrapeJob.update({
-      where: { id: job.id },
-      data: {
-        status: "COMPLETED",
-        completedAt: new Date(),
-        itemsCount: downloadDays + reviewsFetched,
-        result: JSON.stringify({
-          downloadDays,
-          reviewsFetched,
-          engagementRows,
-        }),
-      },
-    });
-
     logger.info(
       `ASC analytics sync done: ${downloadDays} report-days, ${reviewsFetched} reviews, ${engagementRows} engagement rows`,
     );
     return { downloadDays, reviewsFetched };
   } catch (err: any) {
     const error = err?.message ?? String(err);
-    await prisma.scrapeJob.update({
-      where: { id: job.id },
-      data: { status: "FAILED", completedAt: new Date(), error },
-    });
     logger.error("ASC analytics sync failed", { error });
     return { downloadDays: 0, reviewsFetched: 0, error };
   }
