@@ -152,6 +152,10 @@ export class BossScheduler {
   async triggerDispatch(queue: string): Promise<void> {
     await this.boss.send(`${queue}/dispatch`, {});
   }
+
+  async cancelAllJobs(queue?: string): Promise<void> {
+    await this.boss.deleteAllJobs(queue);
+  }
 }
 
 export const bossScheduler = new BossScheduler();

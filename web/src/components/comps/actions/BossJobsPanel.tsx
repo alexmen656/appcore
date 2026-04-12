@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useApi, apiPost } from "../../../hooks/useApi";
+import { useApi, apiPost, apiDelete } from "../../../hooks/useApi";
 import { TH, TD, cardCls, btnSecSm, btnPrimSm, badge } from "../../../styles";
 
 interface BossJob {
@@ -58,6 +58,20 @@ export default function BossJobsPanel({ addToast }: Props) {
       const res = await apiPost("/boss/send", { queue });
       addToast(res.message ?? `${queue} dispatched`, "success");
       setTimeout(refetchJobs, 1500);
+    } catch (e: any) {
+      addToast(e.message, "error");
+    } finally {
+      setSending(null);
+    }
+  };
+
+  const clearJobs = async () => {
+    const suffix = selectedQueue ? `?queue=${selectedQueue}` : "";
+    setSending("clear");
+    try {
+      await apiDelete(`/boss/jobs${suffix}`);
+      addToast("Jobs deleted", "success");
+      setTimeout(refetchJobs, 500);
     } catch (e: any) {
       addToast(e.message, "error");
     } finally {
@@ -160,6 +174,13 @@ export default function BossJobsPanel({ addToast }: Props) {
           </select>
           <button className={btnSecSm} onClick={refetchJobs}>
             Refresh
+          </button>
+          <button
+            className={btnSecSm + " text-red-500 border-red-200 dark:border-red-900/40 hover:bg-red-50 dark:hover:bg-red-900/10"}
+            disabled={!!sending}
+            onClick={clearJobs}
+          >
+            {sending === "clear" ? "Clearing…" : "Clear jobs"}
           </button>
         </div>
         <div className={cardCls + " overflow-hidden p-0"}>
