@@ -1,7 +1,6 @@
 import { prisma, logger } from "../config";
 import type { EffectiveSettings } from "../config";
 import { AIClient } from "./ai-client";
-import { ScrapeType, JobStatus } from "@prisma/client";
 import { AppStoreScraper } from "./appstore-scraper";
 import { AppStoreConnectClient } from "./appstore-connect";
 import { langForCountry, localeToCountry } from "./app-store-markets";

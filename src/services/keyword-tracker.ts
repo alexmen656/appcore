@@ -2,7 +2,6 @@ import { prisma, logger, env } from "../config";
 import type { EffectiveSettings } from "../config";
 import { AppStoreScraper } from "./appstore-scraper";
 import { AppleSearchAdsClient } from "./search-ads";
-import { ScrapeType, JobStatus } from "@prisma/client";
 import { normalizeLanguage } from "./app-store-markets";
 
 export class KeywordTracker {

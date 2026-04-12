@@ -1,8 +1,7 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
 import { parseStringPromise } from "xml2js";
-import { prisma, logger, env } from "../config";
-import { ScrapeType, JobStatus } from "@prisma/client";
+import { prisma, logger } from "../config";
 import {
   normalizeLanguage,
   storefrontHeaderForCountry,
