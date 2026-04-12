@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { apiPost, useApi, getActiveBundleId } from "../hooks/useApi";
 import ActionCard, { ActionCardDef } from "./comps/actions/ActionCard";
-import JobHistoryTable, { Job } from "./comps/actions/JobHistoryTable";
 import BossJobsPanel from "./comps/actions/BossJobsPanel";
 import { ScreenshotJobsTable, BuildJobsTable } from "./Screenshots";
 import type { AppItem } from "../types";
@@ -45,9 +44,7 @@ interface Props {
 }
 
 export default function Actions({ addToast }: Props) {
-  const { data: jobs, refetch } = useApi<Job[]>("/actions/jobs");
   const [running, setRunning] = useState<string | null>(null);
-
   const { data: apps } = useApi<AppItem[]>("/apps", [], true);
   const bundleId = getActiveBundleId();
   const activeApp = apps?.find((a) => a.bundleId === bundleId && a.isOwnApp);
@@ -59,7 +56,6 @@ export default function Actions({ addToast }: Props) {
         bundleId: getActiveBundleId(),
       });
       addToast(res.message || `${label} started`, "success");
-      setTimeout(refetch, 2000);
     } catch (e: any) {
       addToast(e.message, "error");
     } finally {
@@ -86,8 +82,6 @@ export default function Actions({ addToast }: Props) {
           />
         ))}
       </div>
-
-      <JobHistoryTable jobs={jobs ?? null} onRefresh={refetch} />
 
       <BossJobsPanel addToast={addToast} />
 
