@@ -37,11 +37,29 @@ export class BossScheduler {
     );
   }
 
+  private _running = false;
+
+  get isRunning(): boolean {
+    return this._running;
+  }
+
   async start(): Promise<void> {
     await this.boss.start();
 
+    const allQueues = [
+      TRACK_KEYWORDS_QUEUE,
+      `${TRACK_KEYWORDS_QUEUE}/dispatch`,
+      SCRAPE_QUEUE,
+      `${SCRAPE_QUEUE}/dispatch`,
+      SYNC_ANALYTICS_QUEUE,
+      `${SYNC_ANALYTICS_QUEUE}/dispatch`,
+    ];
+    for (const q of allQueues) {
+      await this.boss.createQueue(q);
+    }
+
     // ── track-keywords ──────────────────────────────────────────────────────
-    await this.boss.work(`${TRACK_KEYWORDS_QUEUE}:dispatch`, async () => {
+    await this.boss.work(`${TRACK_KEYWORDS_QUEUE}/dispatch`, async () => {
       const teams = await loadTeamApps();
       for (const team of teams) {
         const userId = team.members[0]?.userId;
@@ -62,14 +80,14 @@ export class BossScheduler {
     });
     await this.boss.work(TRACK_KEYWORDS_QUEUE, trackKeywordsHandler);
     await this.boss.schedule(
-      `${TRACK_KEYWORDS_QUEUE}:dispatch`,
+      `${TRACK_KEYWORDS_QUEUE}/dispatch`,
       "0 */2 * * *",
       {},
       { tz: "Europe/Berlin" },
     );
 
     // ── scrape ──────────────────────────────────────────────────────────────
-    await this.boss.work(`${SCRAPE_QUEUE}:dispatch`, async () => {
+    await this.boss.work(`${SCRAPE_QUEUE}/dispatch`, async () => {
       const teams = await loadTeamApps();
       for (const team of teams) {
         for (const app of team.apps) {
@@ -84,14 +102,14 @@ export class BossScheduler {
     });
     await this.boss.work(SCRAPE_QUEUE, scrapeHandler);
     await this.boss.schedule(
-      `${SCRAPE_QUEUE}:dispatch`,
+      `${SCRAPE_QUEUE}/dispatch`,
       "0 0 * * *",
       {},
       { tz: "Europe/Berlin" },
     );
 
     // ── sync-analytics ──────────────────────────────────────────────────────
-    await this.boss.work(`${SYNC_ANALYTICS_QUEUE}:dispatch`, async () => {
+    await this.boss.work(`${SYNC_ANALYTICS_QUEUE}/dispatch`, async () => {
       const teams = await loadTeamApps();
       for (const team of teams) {
         const userId = team.members[0]?.userId;
@@ -112,7 +130,7 @@ export class BossScheduler {
     });
     await this.boss.work(SYNC_ANALYTICS_QUEUE, syncAnalyticsHandler);
     await this.boss.schedule(
-      `${SYNC_ANALYTICS_QUEUE}:dispatch`,
+      `${SYNC_ANALYTICS_QUEUE}/dispatch`,
       "0 2,6,10,14,18,22 * * *",
       {},
       { tz: "Europe/Berlin" },
@@ -121,10 +139,19 @@ export class BossScheduler {
     logger.info(
       `[BOSS] Scheduler started — queues: ${TRACK_KEYWORDS_QUEUE}, ${SCRAPE_QUEUE}, ${SYNC_ANALYTICS_QUEUE}`,
     );
+    this._running = true;
   }
 
   async stop(): Promise<void> {
     await this.boss.stop();
+    this._running = false;
     logger.info("[BOSS] Scheduler stopped");
   }
+
+  /* Manuell trigger */
+  async triggerDispatch(queue: string): Promise<void> {
+    await this.boss.send(`${queue}/dispatch`, {});
+  }
 }
+
+export const bossScheduler = new BossScheduler();

@@ -12,7 +12,9 @@ import { authRouter } from "./api/auth";
 import { settingsRouter } from "./api/settings";
 import { ascRouter } from "./api/asc";
 import { analyticsRouter } from "./api/analytics";
+import { bossRouter } from "./api/boss";
 import { schedulerRouter, scheduler } from "./api/scheduler";
+import { bossScheduler } from "../jobs/boss";
 import { mcpRouter } from "./api/mcp";
 import { oauthRouter } from "./api/oauth";
 import { submissionsRouter } from "./api/submissions";
@@ -44,6 +46,7 @@ app.use("/api/settings", requireAuth, settingsRouter);
 app.use("/api/asc", requireAuth, ascRouter);
 app.use("/api/analytics", requireAuth, analyticsRouter);
 app.use("/api/scheduler", requireAuth, schedulerRouter);
+app.use("/api/boss", requireAuth, bossRouter);
 app.use("/api/submissions", requireAuth, submissionsRouter);
 app.use("/api/github", githubRouter);
 app.use("/api/mcp", mcpRouter);
@@ -155,10 +158,13 @@ app.get("/app/*", (_req, res) => {
   res.sendFile(path.join(webDist, "index.html"));
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   logger.info(`Marteso Web UI running at http://localhost:${PORT}`);
   scheduler.start();
   logger.info("Background scheduler started automatically");
+
+  await bossScheduler.start();
+  logger.info("pg-boss scheduler started");
 
   initASOScheduler();
   logger.info("Autonomous ASO scheduler started");
@@ -182,7 +188,9 @@ app.listen(PORT, () => {
 function shutdown() {
   logger.info("Shutting down...");
   scheduler.stop();
-  prisma.$disconnect().then(() => process.exit(0));
+  bossScheduler.stop().finally(() => {
+    prisma.$disconnect().then(() => process.exit(0));
+  });
 }
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);

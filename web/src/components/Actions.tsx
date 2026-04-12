@@ -2,6 +2,7 @@ import { useState } from "react";
 import { apiPost, useApi, getActiveBundleId } from "../hooks/useApi";
 import ActionCard, { ActionCardDef } from "./comps/actions/ActionCard";
 import JobHistoryTable, { Job } from "./comps/actions/JobHistoryTable";
+import BossJobsPanel from "./comps/actions/BossJobsPanel";
 import { ScreenshotJobsTable, BuildJobsTable } from "./Screenshots";
 import type { AppItem } from "../types";
 
@@ -174,6 +175,8 @@ export default function Actions({ addToast }: Props) {
       </div>
 
       <JobHistoryTable jobs={jobs ?? null} onRefresh={refetch} />
+
+      <BossJobsPanel addToast={addToast} />
 
       {activeApp && (
         <>
