@@ -2,6 +2,8 @@ import { Router } from "express";
 import type { Request, Response } from "express";
 import { prisma, logger, getEffectiveSettings } from "../../config";
 import { requireAuth, verifyAppOwnershipByBundleId } from "../auth";
+import { bossScheduler } from "../../jobs/boss";
+import { QUEUE_NAME as SYNC_ANALYTICS_QUEUE } from "../../jobs/workers/sync-analytics.worker";
 
 export const analyticsRouter = Router();
 analyticsRouter.use(requireAuth);
@@ -217,7 +219,6 @@ analyticsRouter.get("/reviews", async (req, res) => {
 });
 
 // ─── GET /api/analytics/markers ──────────────────────────────────────────────
-// Returns version-update dates + app activation date for chart reference lines
 analyticsRouter.get("/markers", async (req, res) => {
   try {
     const bundleId = await requireBundleIdOwnership(req, res);
@@ -240,7 +241,8 @@ analyticsRouter.get("/markers", async (req, res) => {
     });
 
     if (versionChanges.length === 0 && app.isOwnApp && app.trackId) {
-      const { AppStoreScraper } = await import("../../services/appstore-scraper");
+      const { AppStoreScraper } =
+        await import("../../services/appstore-scraper");
       const scraper = new AppStoreScraper();
       const history = await scraper.scrapeVersionHistory(Number(app.trackId));
       for (const { version, date } of history) {
@@ -299,13 +301,17 @@ analyticsRouter.post("/sync", async (req, res) => {
     }
 
     const requestedBundleId = (req.body.bundleId as string) || null;
+    if (!requestedBundleId) {
+      res.status(400).json({ error: "bundleId required" });
+      return;
+    }
     const teamFilter =
       req.user!.role === "ADMIN" ? {} : { teamId: req.user!.teamId };
     const ownApps = await prisma.app.findMany({
       where: {
         isOwnApp: true,
+        bundleId: requestedBundleId,
         ...teamFilter,
-        ...(requestedBundleId ? { bundleId: requestedBundleId } : {}),
       },
       select: { bundleId: true, trackId: true, name: true },
     });
@@ -318,29 +324,22 @@ analyticsRouter.post("/sync", async (req, res) => {
       return;
     }
 
+    for (const app of ownApps) {
+      if (!app.trackId) continue;
+      await bossScheduler.sendJob(SYNC_ANALYTICS_QUEUE, {
+        userId,
+        bundleId: app.bundleId,
+        ascAppId: app.trackId.toString(),
+      });
+      logger.info(
+        `[BOSS] Enqueued ${SYNC_ANALYTICS_QUEUE} for ${app.bundleId}`,
+      );
+    }
+
     res.json({
       ok: true,
-      message: `Analytics sync started for ${ownApps.map((a) => a.name).join(", ")}`,
+      message: `Analytics sync enqueued for ${ownApps.map((a) => a.name).join(", ")}`,
     });
-
-    const { syncAllAnalytics } = await import("../../services/asc-analytics");
-
-    (async () => {
-      for (const app of ownApps) {
-        const ascAppId = app.trackId?.toString() ?? "";
-        try {
-          const r = await syncAllAnalytics(
-            settings,
-            app.bundleId,
-            ascAppId,
-            userId,
-          );
-          logger.info(`Analytics sync completed for ${app.bundleId}`, r);
-        } catch (err: any) {
-          logger.error(`Analytics sync failed for ${app.bundleId}`, err);
-        }
-      }
-    })();
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }

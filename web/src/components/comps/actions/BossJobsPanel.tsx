@@ -29,6 +29,8 @@ const QUEUES = [
   "discover-keywords",
   "discover-competitors",
   "analyze",
+  "sync-metadata",
+  "competitor-intel",
 ] as const;
 
 interface Props {

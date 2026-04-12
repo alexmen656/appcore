@@ -153,12 +153,12 @@ export default function Keywords({ addToast }: Props) {
         <div ref={menuRef} className="relative flex items-stretch">
           <button
             onClick={() =>
-              triggerAction("keyword-discovery", "Discover Keywords")
+              triggerAction("discover-keywords", "Discover Keywords")
             }
             disabled={!!running}
             className="inline-flex items-center gap-1.5 pl-3.5 pr-3 py-2 rounded-l-xl text-sm font-semibold bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {running === "keyword-discovery" ? (
+            {running === "discover-keywords" ? (
               <>
                 <div className="spinner !w-3.5 !h-3.5" /> Discovering…
               </>
