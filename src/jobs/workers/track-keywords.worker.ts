@@ -14,11 +14,8 @@ export interface TrackKeywordsData {
   country: string;
 }
 
-export async function handler(jobs: Job<TrackKeywordsData>[]): Promise<void> {
-  const {
-    data: { userId, appId, bundleId, country },
-    id,
-  } = jobs[0];
+export async function handler([job]: Job<TrackKeywordsData>[]): Promise<void> {
+  const { data: { userId, appId, bundleId, country }, id } = job;
   logger.info(`[BOSS] Starting "${QUEUE_NAME}" job ${id} for app ${bundleId}…`);
 
   const settings = await getEffectiveSettings(userId);
