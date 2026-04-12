@@ -237,7 +237,11 @@ githubRouter.get(
   requireAuth,
   async (req: Request, res: Response) => {
     try {
-      const owned = await verifyAppOwnership(req, res, req.params.appId);
+      const owned = await verifyAppOwnership(
+        req,
+        res,
+        req.params.appId as string,
+      );
       if (!owned) return;
 
       const app = await prisma.app.findUnique({
@@ -267,7 +271,11 @@ githubRouter.get(
   requireAuth,
   async (req: Request, res: Response) => {
     try {
-      const owned = await verifyAppOwnership(req, res, req.params.appId);
+      const owned = await verifyAppOwnership(
+        req,
+        res,
+        req.params.appId as string,
+      );
       if (!owned) return;
 
       const app = await prisma.app.findUnique({
@@ -293,7 +301,11 @@ githubRouter.put(
   requireAuth,
   async (req: Request, res: Response) => {
     try {
-      const owned = await verifyAppOwnership(req, res, req.params.appId);
+      const owned = await verifyAppOwnership(
+        req,
+        res,
+        req.params.appId as string,
+      );
       if (!owned) return;
 
       const { envVars } = req.body as {
@@ -320,7 +332,11 @@ githubRouter.get(
   requireAuth,
   async (req: Request, res: Response) => {
     try {
-      const owned = await verifyAppOwnership(req, res, req.params.appId);
+      const owned = await verifyAppOwnership(
+        req,
+        res,
+        req.params.appId as string,
+      );
       if (!owned) return;
 
       const jobs = await prisma.buildJob.findMany({
@@ -346,7 +362,11 @@ githubRouter.get(
   requireAuth,
   async (req: Request, res: Response) => {
     try {
-      const owned = await verifyAppOwnership(req, res, req.params.appId);
+      const owned = await verifyAppOwnership(
+        req,
+        res,
+        req.params.appId as string,
+      );
       if (!owned) return;
 
       const jobs = await prisma.screenshotJob.findMany({
@@ -413,7 +433,11 @@ githubRouter.post(
   requireAuth,
   async (req: Request, res: Response) => {
     try {
-      const owned = await verifyAppOwnership(req, res, req.params.appId);
+      const owned = await verifyAppOwnership(
+        req,
+        res,
+        req.params.appId as string,
+      );
       if (!owned) return;
 
       const ctx = await getAppAndToken(req.params.appId as string, res);
@@ -447,7 +471,11 @@ githubRouter.post(
   requireAuth,
   async (req: Request, res: Response) => {
     try {
-      const owned = await verifyAppOwnership(req, res, req.params.appId);
+      const owned = await verifyAppOwnership(
+        req,
+        res,
+        req.params.appId as string,
+      );
       if (!owned) return;
 
       const ctx = await getAppAndToken(req.params.appId as string, res);
