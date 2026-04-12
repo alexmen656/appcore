@@ -13,7 +13,6 @@ import { settingsRouter } from "./api/settings";
 import { ascRouter } from "./api/asc";
 import { analyticsRouter } from "./api/analytics";
 import { bossRouter } from "./api/boss";
-import { schedulerRouter, scheduler } from "./api/scheduler";
 import { bossScheduler } from "../jobs/boss";
 import { mcpRouter } from "./api/mcp";
 import { oauthRouter } from "./api/oauth";
@@ -45,7 +44,6 @@ app.use("/api/actions", requireAuth, actionsRouter);
 app.use("/api/settings", requireAuth, settingsRouter);
 app.use("/api/asc", requireAuth, ascRouter);
 app.use("/api/analytics", requireAuth, analyticsRouter);
-app.use("/api/scheduler", requireAuth, schedulerRouter);
 app.use("/api/boss", requireAuth, bossRouter);
 app.use("/api/submissions", requireAuth, submissionsRouter);
 app.use("/api/github", githubRouter);
@@ -160,8 +158,6 @@ app.get("/app/*", (_req, res) => {
 
 app.listen(PORT, async () => {
   logger.info(`Marteso Web UI running at http://localhost:${PORT}`);
-  scheduler.start();
-  logger.info("Background scheduler started automatically");
 
   await bossScheduler.start();
   logger.info("pg-boss scheduler started");
@@ -187,7 +183,6 @@ app.listen(PORT, async () => {
 
 function shutdown() {
   logger.info("Shutting down...");
-  scheduler.stop();
   bossScheduler.stop().finally(() => {
     prisma.$disconnect().then(() => process.exit(0));
   });
