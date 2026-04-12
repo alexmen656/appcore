@@ -10,14 +10,13 @@ import { submissionUpdate } from "../../services/notifications/templates.js";
 async function resolveSubmissionBundleId(
   req: Request,
   res: Response,
-  fallbackBundleId: string | null | undefined,
   source: "query" | "body",
 ): Promise<string | null> {
   const raw =
     source === "query"
       ? (req.query.bundleId as string | undefined)
       : (req.body.bundleId as string | undefined);
-  const bundleId = raw || fallbackBundleId;
+  const bundleId = raw;
   if (!bundleId) {
     res.status(400).json({ error: "bundleId required" });
     return null;
@@ -35,17 +34,11 @@ submissionsRouter.use(requireAuth);
 submissionsRouter.get("/preview", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
-    const bundleId = await resolveSubmissionBundleId(
-      req,
-      res,
-      settings.ascBundleId,
-      "query",
-    );
+    const bundleId = await resolveSubmissionBundleId(req, res, "query");
     if (!bundleId) return;
-    const effectiveSettings = { ...settings, ascBundleId: bundleId };
 
     const { FastlaneService } = await import("../../services/fastlane");
-    const fl = new FastlaneService(effectiveSettings);
+    const fl = new FastlaneService(bundleId, settings);
     const preview = await fl.preview();
 
     res.json(preview);
@@ -60,18 +53,12 @@ submissionsRouter.get("/preview", async (req, res) => {
 submissionsRouter.post("/metadata", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
-    const bundleId = await resolveSubmissionBundleId(
-      req,
-      res,
-      settings.ascBundleId,
-      "body",
-    );
+    const bundleId = await resolveSubmissionBundleId(req, res, "body");
     if (!bundleId) return;
-    const effectiveSettings = { ...settings, ascBundleId: bundleId };
     const overrides = req.body.overrides ?? undefined;
 
     const { FastlaneService } = await import("../../services/fastlane");
-    const fl = new FastlaneService(effectiveSettings);
+    const fl = new FastlaneService(bundleId, settings);
 
     res.json({
       ok: true,
@@ -105,17 +92,11 @@ submissionsRouter.post("/metadata", async (req, res) => {
 submissionsRouter.post("/review", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
-    const bundleId = await resolveSubmissionBundleId(
-      req,
-      res,
-      settings.ascBundleId,
-      "body",
-    );
+    const bundleId = await resolveSubmissionBundleId(req, res, "body");
     if (!bundleId) return;
-    const effectiveSettings = { ...settings, ascBundleId: bundleId };
 
     const { FastlaneService } = await import("../../services/fastlane");
-    const fl = new FastlaneService(effectiveSettings);
+    const fl = new FastlaneService(bundleId, settings);
 
     res.json({
       ok: true,
@@ -178,11 +159,9 @@ submissionsRouter.get("/status", async (_req, res) => {
 
 submissionsRouter.get("/build-info", async (req, res) => {
   try {
-    const settings = await getEffectiveSettings(req.user!.userId);
     const bundleId = await resolveSubmissionBundleId(
       req,
       res,
-      settings.ascBundleId,
       "query",
     );
     if (!bundleId) return;

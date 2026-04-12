@@ -59,10 +59,12 @@ export function getLatestSubmission(): ActiveSubmission | undefined {
 }
 
 export class FastlaneService {
+  private readonly bundleId: string;
   private settings: EffectiveSettings;
   private asc: AppStoreConnectClient;
 
-  constructor(settings: EffectiveSettings) {
+  constructor(bundleId: string, settings: EffectiveSettings) {
+    this.bundleId = bundleId;
     this.settings = settings;
 
     if (
@@ -83,7 +85,7 @@ export class FastlaneService {
   }
 
   async preview(): Promise<SubmissionPreview> {
-    const app = await this.asc.getApp(this.settings.ascBundleId);
+    const app = await this.asc.getApp(this.bundleId);
     if (!app) throw new Error("App not found in App Store Connect");
 
     const editable = await this.asc.getEditableVersion(app.id);
@@ -208,7 +210,7 @@ export class FastlaneService {
           key: this.settings.ascPrivateKey!,
           in_house: false,
         },
-        bundleId: this.settings.ascBundleId,
+        bundleId: this.bundleId,
         action,
         screenshots: screenshots ?? undefined,
         ipa: ipaBase64 ?? undefined,
@@ -271,7 +273,7 @@ export class FastlaneService {
   > | null> {
     try {
       const app = await prisma.app.findFirst({
-        where: { bundleId: this.settings.ascBundleId },
+        where: { bundleId: this.bundleId },
         select: { id: true },
       });
       if (!app) return null;
@@ -318,7 +320,7 @@ export class FastlaneService {
   private async loadLatestIpa(): Promise<string | null> {
     try {
       const app = await prisma.app.findFirst({
-        where: { bundleId: this.settings.ascBundleId },
+        where: { bundleId: this.bundleId },
         select: { id: true },
       });
       if (!app) return null;
@@ -371,7 +373,7 @@ export class FastlaneService {
       }
     >
   > {
-    const app = await this.asc.getApp(this.settings.ascBundleId);
+    const app = await this.asc.getApp(this.bundleId);
     if (!app) throw new Error("App not found in App Store Connect");
 
     const editable = await this.asc.getEditableVersion(app.id);

@@ -19,7 +19,7 @@ const syncAnalyticsJob: JobDefinition = {
     });
 
     for (const app of ownApps) {
-      const ascAppId = app.trackId?.toString() ?? settings.ascAppId;
+      const ascAppId = app.trackId?.toString() ?? "";
       if (!ascAppId) continue;
       await syncAllAnalytics(settings, app.bundleId, ascAppId, userId);
     }

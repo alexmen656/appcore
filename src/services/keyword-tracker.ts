@@ -10,20 +10,15 @@ export class KeywordTracker {
   private searchAdsPopularity: Map<string, number> | null = null;
   private readonly bundleId: string;
   private readonly country: string;
-  private readonly ascAppId: string;
 
-  constructor(settings?: EffectiveSettings) {
-    if (settings?.scrapeCountry && settings?.ascBundleId) {
-      this.bundleId = settings.ascBundleId;
-      this.country = settings.scrapeCountry;
-      this.ascAppId = settings.ascAppId ?? "";
-    } else {
+  constructor(bundleId: string, country: string, settings?: EffectiveSettings) {
+    this.bundleId = bundleId;
+    this.country = country;
+
+    if (!bundleId || !country) {
       logger.warn(
-        "[KeywordTracker] No country or bundle ID in settings, keyword tracking will be disabled",
+        "[KeywordTracker] No bundleId or country provided, keyword tracking will be limited",
       );
-      this.bundleId = "";
-      this.country = "";
-      this.ascAppId = "";
     }
 
     if (env.APPLE_ADS_CLIENT_ID) {
@@ -43,8 +38,17 @@ export class KeywordTracker {
 
     try {
       logger.info("Fetching keyword popularity from Apple Search Ads API...");
+      const ownApp = await prisma.app.findUnique({
+        where: { bundleId: this.bundleId },
+        select: { trackId: true },
+      });
+      const ascAppId = ownApp?.trackId?.toString() ?? "";
+      if (!ascAppId) {
+        logger.debug("No trackId for app, skipping Search Ads popularity fetch");
+        return this.searchAdsPopularity;
+      }
       const keywords = await this.searchAds.getTargetingKeywords(
-        this.ascAppId,
+        ascAppId,
         200,
       );
 

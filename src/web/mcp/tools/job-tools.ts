@@ -60,7 +60,14 @@ export function registerJobTools(server: McpServer, userId: string) {
         }
       }
 
-      const effectiveSettings = { ...settings, ascBundleId: resolvedBundleId };
+      const effectiveBundleId = resolvedBundleId ?? "";
+      const appRecord = effectiveBundleId
+        ? await prisma.app.findUnique({
+            where: { bundleId: effectiveBundleId },
+            select: { country: true },
+          })
+        : null;
+      const appCountry = appRecord?.country ?? "de";
 
       const jobId = randomUUID();
       (async () => {
@@ -68,18 +75,19 @@ export function registerJobTools(server: McpServer, userId: string) {
           if (job === "scrape") {
             const { AppStoreScraper } =
               await import("../../../services/appstore-scraper");
-            await new AppStoreScraper(effectiveSettings).runFullScrapeJob();
+            await new AppStoreScraper(appCountry, undefined, effectiveBundleId).runFullScrapeJob();
           } else if (job === "analyze") {
             const { AIAnalyzer } =
               await import("../../../services/ai-analyzer");
-            await new AIAnalyzer(effectiveSettings).analyzeAndSuggest();
+            await new AIAnalyzer(effectiveBundleId, settings).analyzeAndSuggest();
           } else if (job === "sync") {
             const asc = await createAscClient(settings);
 
-            const ascLocalizations = settings.ascAppId
-              ? await asc
-                  .getAppInfoLocalizations(settings.ascAppId)
-                  .catch(() => [])
+            const ascApp = effectiveBundleId
+              ? await asc.getApp(effectiveBundleId).catch(() => null)
+              : null;
+            const ascLocalizations = ascApp
+              ? await asc.getAppInfoLocalizations(ascApp.id).catch(() => [])
               : [];
 
             const syncLocales =
@@ -96,14 +104,6 @@ export function registerJobTools(server: McpServer, userId: string) {
             }
 
             const primaryState = results[syncLocales[0]];
-            let effectiveBundleId = resolvedBundleId;
-            if (!effectiveBundleId && primaryState?.appId) {
-              const appByTrackId = await prisma.app.findFirst({
-                where: { trackId: BigInt(primaryState.appId) },
-                select: { bundleId: true },
-              });
-              effectiveBundleId = appByTrackId?.bundleId ?? "";
-            }
 
             if (primaryState && effectiveBundleId) {
               await prisma.app.update({
@@ -119,11 +119,11 @@ export function registerJobTools(server: McpServer, userId: string) {
           } else if (job === "track-keywords") {
             const { KeywordTracker } =
               await import("../../../services/keyword-tracker");
-            await new KeywordTracker(effectiveSettings).trackAllKeywords();
+            await new KeywordTracker(effectiveBundleId, appCountry, settings).trackAllKeywords();
           } else if (job === "discover-keywords") {
             const { KeywordDiscoveryAgent } =
               await import("../../../services/keyword-discovery-agent");
-            await new KeywordDiscoveryAgent(effectiveSettings).run();
+            await new KeywordDiscoveryAgent(effectiveBundleId, settings).run();
           }
 
           logger.info(`MCP-triggered job "${job}" [${jobId}] completed`);

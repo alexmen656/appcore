@@ -43,9 +43,11 @@ interface ASOAnalysis {
 
 export class AIAnalyzer {
   private readonly ai: AIClient;
+  private readonly bundleId: string;
   private readonly settings?: EffectiveSettings;
 
-  constructor(settings?: EffectiveSettings) {
+  constructor(bundleId: string, settings?: EffectiveSettings) {
+    this.bundleId = bundleId;
     this.settings = settings;
     this.ai = new AIClient(settings);
     if (!this.ai.hasProvider) {
@@ -140,7 +142,7 @@ ${fieldsToTranslate.map(([k, v]) => `${k}: ${v}`).join("\n\n")}`;
 
   private async gatherAppData() {
     const ownApp = await prisma.app.findUnique({
-      where: { bundleId: this.settings?.ascBundleId },
+      where: { bundleId: this.bundleId },
       include: {
         snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 },
         competitors: {
@@ -329,7 +331,7 @@ Generate detailed ASO optimization suggestions in ${lc.promptLang} for the ${lc.
       })),
     ];
 
-    const appBundleId = this.settings?.ascBundleId;
+    const appBundleId = this.bundleId;
     await Promise.all(
       suggestions.map((suggestion) =>
         prisma.aSOSuggestion.create({

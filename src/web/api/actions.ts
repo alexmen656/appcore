@@ -6,35 +6,27 @@ import { requireAuth, verifyAppOwnershipByBundleId } from "../auth";
 export const actionsRouter = Router();
 actionsRouter.use(requireAuth);
 
-async function resolveActionBundleId(
+async function resolveActionApp(
   req: Request,
   res: Response,
-  fallbackBundleId: string | null | undefined,
-): Promise<string | null> {
-  const bundleId = (req.body.bundleId as string) || fallbackBundleId;
+) {
+  const bundleId = req.body.bundleId as string;
   if (!bundleId) {
     res.status(400).json({ error: "bundleId required" });
     return null;
   }
-  const app = await verifyAppOwnershipByBundleId(req, res, bundleId);
-  if (!app) return null;
-  return bundleId;
+  return verifyAppOwnershipByBundleId(req, res, bundleId);
 }
 
 actionsRouter.post("/scrape", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
-    const bundleId = await resolveActionBundleId(
-      req,
-      res,
-      settings.ascBundleId,
-    );
-    if (!bundleId) return;
-    const effectiveSettings = { ...settings, ascBundleId: bundleId };
+    const app = await resolveActionApp(req, res);
+    if (!app) return;
     const { AppStoreScraper } = await import("../../services/appstore-scraper");
-    const scraper = new AppStoreScraper(effectiveSettings);
+    const scraper = new AppStoreScraper(app.country, undefined, app.bundleId);
 
-    res.json({ ok: true, message: `Scrape job started for ${bundleId}` });
+    res.json({ ok: true, message: `Scrape job started for ${app.bundleId}` });
 
     scraper
       .runFullScrapeJob()
@@ -48,20 +40,15 @@ actionsRouter.post("/scrape", async (req, res) => {
 actionsRouter.post("/analyze", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
-    const bundleId = await resolveActionBundleId(
-      req,
-      res,
-      settings.ascBundleId,
-    );
-    if (!bundleId) return;
-    const effectiveSettings = { ...settings, ascBundleId: bundleId };
+    const app = await resolveActionApp(req, res);
+    if (!app) return;
     const { AIAnalyzer } = await import("../../services/ai-analyzer");
-    const analyzer = new AIAnalyzer(effectiveSettings);
+    const analyzer = new AIAnalyzer(app.bundleId, settings);
     const locales: string[] = req.body.locales || ["en-US"];
 
     res.json({
       ok: true,
-      message: `Analysis started for ${bundleId}, locales: ${locales.join(", ")}`,
+      message: `Analysis started for ${app.bundleId}, locales: ${locales.join(", ")}`,
     });
 
     analyzer
@@ -88,6 +75,9 @@ actionsRouter.post("/sync", async (req, res) => {
       return;
     }
 
+    const app = await resolveActionApp(req, res);
+    if (!app) return;
+
     const { AppStoreConnectClient } =
       await import("../../services/appstore-connect");
     const asc = new AppStoreConnectClient({
@@ -96,8 +86,9 @@ actionsRouter.post("/sync", async (req, res) => {
       privateKey: settings.ascPrivateKey,
     });
 
-    const availableLocalizations = settings.ascAppId
-      ? await asc.getAppInfoLocalizations(settings.ascAppId).catch(() => [])
+    const ascApp = await asc.getApp(app.bundleId).catch(() => null);
+    const availableLocalizations = ascApp
+      ? await asc.getAppInfoLocalizations(ascApp.id).catch(() => [])
       : [];
     const locales =
       availableLocalizations.length > 0
@@ -114,18 +105,9 @@ actionsRouter.post("/sync", async (req, res) => {
 
     const primaryState = results[locales[0]];
 
-    let effectiveBundleId = settings.ascBundleId;
-    if (!effectiveBundleId && primaryState?.appId) {
-      const appByTrackId = await prisma.app.findFirst({
-        where: { trackId: BigInt(primaryState.appId) },
-        select: { bundleId: true },
-      });
-      effectiveBundleId = appByTrackId?.bundleId ?? "";
-    }
-
-    if (primaryState && effectiveBundleId) {
+    if (primaryState) {
       await prisma.app.update({
-        where: { bundleId: effectiveBundleId },
+        where: { bundleId: app.bundleId },
         data: {
           currentTitle: primaryState.title,
           currentSubtitle: primaryState.subtitle,
@@ -144,15 +126,10 @@ actionsRouter.post("/sync", async (req, res) => {
 actionsRouter.post("/track-keywords", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
-    const bundleId = await resolveActionBundleId(
-      req,
-      res,
-      settings.ascBundleId,
-    );
-    if (!bundleId) return;
-    const effectiveSettings = { ...settings, ascBundleId: bundleId };
+    const app = await resolveActionApp(req, res);
+    if (!app) return;
     const { KeywordTracker } = await import("../../services/keyword-tracker");
-    const tracker = new KeywordTracker(effectiveSettings);
+    const tracker = new KeywordTracker(app.bundleId, app.country, settings);
 
     res.json({ ok: true, message: "Keyword tracking started" });
 
@@ -170,16 +147,11 @@ actionsRouter.post("/track-keywords", async (req, res) => {
 actionsRouter.post("/discover-keywords", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
-    const bundleId = await resolveActionBundleId(
-      req,
-      res,
-      settings.ascBundleId,
-    );
-    if (!bundleId) return;
-    const effectiveSettings = { ...settings, ascBundleId: bundleId };
+    const app = await resolveActionApp(req, res);
+    if (!app) return;
     const { KeywordDiscoveryAgent } =
       await import("../../services/keyword-discovery-agent");
-    const agent = new KeywordDiscoveryAgent(effectiveSettings);
+    const agent = new KeywordDiscoveryAgent(app.bundleId, settings);
 
     res.json({ ok: true, message: "Keyword discovery started" });
 
@@ -199,19 +171,13 @@ actionsRouter.post("/discover-keywords", async (req, res) => {
 actionsRouter.post("/discover-competitors", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
-    const bundleId = await resolveActionBundleId(
-      req,
-      res,
-      settings.ascBundleId,
-    );
-    if (!bundleId) return;
-    const effectiveSettings = { ...settings, ascBundleId: bundleId };
+    const app = await resolveActionApp(req, res);
+    if (!app) return;
     const { AppStoreScraper } = await import("../../services/appstore-scraper");
-    const scraper = new AppStoreScraper(effectiveSettings);
+    const scraper = new AppStoreScraper(app.country);
 
-    const app = await prisma.app.findUnique({ where: { bundleId } });
     const keywords = await prisma.keyword.findMany({
-      where: app ? { rankings: { some: { appId: app.id } } } : undefined,
+      where: { rankings: { some: { appId: app.id } } },
       orderBy: { popularity: "desc" },
       take: 10,
     });
@@ -227,7 +193,7 @@ actionsRouter.post("/discover-competitors", async (req, res) => {
     res.json({ ok: true, message: "Competitor discovery started" });
 
     scraper
-      .discoverCompetitors(searchTerms, bundleId, 100)
+      .discoverCompetitors(searchTerms, app.bundleId, 100)
       .then((ids) =>
         logger.info(`Web-triggered competitor discovery: ${ids.length} found`),
       )
@@ -254,12 +220,8 @@ actionsRouter.get("/jobs", async (_req, res) => {
 actionsRouter.post("/competitor-intel", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
-    const bundleId = await resolveActionBundleId(
-      req,
-      res,
-      settings.ascBundleId,
-    );
-    if (!bundleId) return;
+    const app = await resolveActionApp(req, res);
+    if (!app) return;
     const { CompetitorIntelService } =
       await import("../../services/competitor-intel");
     const intel = new CompetitorIntelService(settings);
@@ -270,7 +232,7 @@ actionsRouter.post("/competitor-intel", async (req, res) => {
     });
 
     intel
-      .runFullIntelJob(bundleId)
+      .runFullIntelJob(app.bundleId)
       .then((result) => logger.info("Competitor intel completed", result))
       .catch((err) => logger.error("Competitor intel failed", err));
   } catch (err) {

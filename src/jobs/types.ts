@@ -14,11 +14,19 @@ export interface JobDefinition {
 }
 
 export async function buildServices(settings: EffectiveSettings) {
+  const ownApp = await prisma.app.findFirst({
+    where: { isOwnApp: true },
+    select: { bundleId: true, country: true },
+  });
+  const bundleId = ownApp?.bundleId ?? "";
+  const country = ownApp?.country ?? "de";
+
   return {
-    scraper: new AppStoreScraper(settings),
-    keywordTracker: new KeywordTracker(settings),
-    aiAnalyzer: new AIAnalyzer(settings),
-    discoveryAgent: new KeywordDiscoveryAgent(settings),
+    bundleId,
+    scraper: new AppStoreScraper(country, undefined, bundleId),
+    keywordTracker: new KeywordTracker(bundleId, country, settings),
+    aiAnalyzer: new AIAnalyzer(bundleId, settings),
+    discoveryAgent: new KeywordDiscoveryAgent(bundleId, settings),
   };
 }
 

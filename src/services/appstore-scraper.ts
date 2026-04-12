@@ -2,7 +2,6 @@ import axios from "axios";
 import * as cheerio from "cheerio";
 import { parseStringPromise } from "xml2js";
 import { prisma, logger, env } from "../config";
-import type { EffectiveSettings } from "../config";
 import { ScrapeType, JobStatus } from "@prisma/client";
 import {
   normalizeLanguage,
@@ -39,20 +38,12 @@ export class AppStoreScraper {
   private readonly bundleId: string;
 
   constructor(
-    countryOrSettings?: string | EffectiveSettings,
+    country: string = "",
     language?: string,
+    bundleId: string = "",
   ) {
-    if (countryOrSettings && typeof countryOrSettings === "object") {
-      this.country = countryOrSettings.scrapeCountry;
-      this.bundleId = countryOrSettings.ascBundleId;
-    } else if (typeof countryOrSettings === "string") {
-      this.country = countryOrSettings;
-      this.bundleId = "";
-    } else {
-      this.country = "";
-      this.bundleId = "";
-    }
-
+    this.country = country;
+    this.bundleId = bundleId;
     this.language = normalizeLanguage(language, this.country);
   }
 

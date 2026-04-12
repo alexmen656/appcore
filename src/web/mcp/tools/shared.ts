@@ -51,7 +51,7 @@ export async function getSettingsWithBundleId(
   bundleId?: string,
 ) {
   const settings = await getEffectiveSettings(userId);
-  const resolvedBundleId = bundleId || settings.ascBundleId;
+  const resolvedBundleId = bundleId;
   return { settings, resolvedBundleId };
 }
 
@@ -83,7 +83,7 @@ export async function resolveAscAppId(
       })
     : null;
 
-  let ascAppId = settings.ascAppId || appRecord?.trackId?.toString() || "";
+  let ascAppId = appRecord?.trackId?.toString() || "";
   if (!ascAppId && resolvedBundleId) {
     const ascApp = await asc.getApp(resolvedBundleId);
     ascAppId = ascApp?.id ?? "";

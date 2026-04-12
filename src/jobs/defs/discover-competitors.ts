@@ -8,7 +8,7 @@ const discoverCompetitorsJob: JobDefinition = {
   timezone: "Europe/Berlin",
 
   async execute(_userId, settings) {
-    const { scraper } = await buildServices(settings);
+    const { scraper, bundleId } = await buildServices(settings);
     logger.info("[CRON] Starting competitor discovery...");
 
     const keywords = await prisma.keyword.findMany({
@@ -24,7 +24,7 @@ const discoverCompetitorsJob: JobDefinition = {
     const searchTerms = keywords.map((k) => k.term);
     const ids = await scraper.discoverCompetitors(
       searchTerms,
-      settings.ascBundleId,
+      bundleId,
       4,
     );
     logger.info(

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { prisma, getEffectiveSettings } from "../../config";
+import { prisma } from "../../config";
 import { requireAuth } from "../auth";
 import { normalizeLanguage } from "../../services/app-store-markets";
 
@@ -8,9 +8,7 @@ keywordsRouter.use(requireAuth);
 
 keywordsRouter.get("/", async (req, res) => {
   try {
-    const settings = await getEffectiveSettings(req.user!.userId);
-    const activeBundleId =
-      (req.query.bundleId as string | undefined) || settings.ascBundleId;
+    const activeBundleId = req.query.bundleId as string | undefined;
 
     const ownApp = await prisma.app.findUnique({
       where: { bundleId: activeBundleId },
@@ -128,8 +126,7 @@ keywordsRouter.post("/", async (req, res) => {
     const normalizedCountry = (country || "de").toLowerCase();
     const normalizedLanguage = normalizeLanguage(language, normalizedCountry);
 
-    const settings = await getEffectiveSettings(req.user!.userId);
-    const activeBundleId = bundleId || settings.ascBundleId;
+    const activeBundleId = bundleId;
 
     const keyword = await prisma.keyword.upsert({
       where: { term_country: { term, country: normalizedCountry } },

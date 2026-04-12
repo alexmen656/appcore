@@ -15,29 +15,32 @@ export class KeywordDiscoveryAgent {
   private readonly MAX_SCORE_PER_RUN = 25;
   private readonly MAX_AUTOCOMPLETE_SEEDS = 20;
 
-  constructor(settings?: EffectiveSettings) {
+  constructor(bundleId: string, settings?: EffectiveSettings) {
     this.settings = settings;
     this.ai = new AIClient(settings);
-    if (settings?.ascBundleId) {
-      this.bundleId = settings.ascBundleId;
-    } else {
+    this.bundleId = bundleId;
+    if (!bundleId) {
       logger.warn(
-        "[Discovery] No bundle ID in settings, discovery will be disabled",
+        "[Discovery] No bundle ID provided, discovery will be disabled",
       );
-      this.bundleId = "";
     }
   }
 
   private async getActiveCountries(): Promise<string[]> {
     const s = this.settings;
-    if (s?.ascIssuerId && s?.ascKeyId && s?.ascPrivateKey && s?.ascAppId) {
+    if (s?.ascIssuerId && s?.ascKeyId && s?.ascPrivateKey && this.bundleId) {
       try {
+        const appRow = await prisma.app.findUnique({
+          where: { bundleId: this.bundleId },
+          select: { trackId: true },
+        });
+        const ascAppId = appRow?.trackId?.toString();
         const asc = new AppStoreConnectClient({
           issuerId: s.ascIssuerId,
           keyId: s.ascKeyId,
           privateKey: s.ascPrivateKey,
         });
-        const liveVersion = await asc.getLiveVersion(s.ascAppId);
+        const liveVersion = ascAppId ? await asc.getLiveVersion(ascAppId) : null;
         if (liveVersion) {
           const localizations = await asc.getVersionLocalizations(
             liveVersion.id,

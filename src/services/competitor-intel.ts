@@ -19,7 +19,7 @@ export class CompetitorIntelService {
 
   constructor(settings?: EffectiveSettings) {
     this.settings = settings;
-    this.country = settings?.scrapeCountry ?? "de";
+    this.country = "de";
     this.ai = new AIClient(settings);
   }
 
@@ -114,6 +114,7 @@ export class CompetitorIntelService {
 
     if (!ownApp) throw new Error(`App not found: ${bundleId}`);
 
+    const country = ownApp.country;
     let total = 0;
     let apps = 0;
 
@@ -121,7 +122,7 @@ export class CompetitorIntelService {
       const comp = rel.competitor;
       if (!comp.trackId) continue;
 
-      const count = await this.scrapeReviews(comp.trackId, comp.id);
+      const count = await this.scrapeReviews(comp.trackId, comp.id, country);
       total += count;
       apps++;
 

@@ -327,7 +327,7 @@ analyticsRouter.post("/sync", async (req, res) => {
 
     (async () => {
       for (const app of ownApps) {
-        const ascAppId = app.trackId?.toString() ?? settings.ascAppId ?? "";
+        const ascAppId = app.trackId?.toString() ?? "";
         try {
           const r = await syncAllAnalytics(
             settings,

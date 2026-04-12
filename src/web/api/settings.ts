@@ -20,8 +20,6 @@ settingsRouter.get("/", async (req, res) => {
             ascKeyId: settings.ascKeyId ?? "",
             ascPrivateKey: settings.ascPrivateKey ? "••••••••" : "",
             ascPrivateKeySet: !!settings.ascPrivateKey,
-            ascAppId: settings.ascAppId ?? "",
-            ascBundleId: settings.ascBundleId ?? "",
             ascVendorNumber: settings.ascVendorNumber ?? "",
             openaiApiKey: settings.openaiApiKey ? "••••••••" : "",
             openaiApiKeySet: !!settings.openaiApiKey,
@@ -34,8 +32,6 @@ settingsRouter.get("/", async (req, res) => {
             ascKeyId: "",
             ascPrivateKey: "",
             ascPrivateKeySet: false,
-            ascAppId: "",
-            ascBundleId: "",
             ascVendorNumber: "",
             openaiApiKey: "",
             openaiApiKeySet: false,
@@ -62,8 +58,6 @@ settingsRouter.put("/", async (req, res) => {
       ascIssuerId,
       ascKeyId,
       ascPrivateKey,
-      ascAppId,
-      ascBundleId,
       ascVendorNumber,
       openaiApiKey,
       anthropicApiKey,
@@ -75,8 +69,6 @@ settingsRouter.put("/", async (req, res) => {
     if (ascKeyId !== undefined) data.ascKeyId = ascKeyId || null;
     if (ascPrivateKey !== undefined && ascPrivateKey !== "••••••••")
       data.ascPrivateKey = ascPrivateKey ? encrypt(ascPrivateKey) : null;
-    if (ascAppId !== undefined) data.ascAppId = ascAppId || null;
-    if (ascBundleId !== undefined) data.ascBundleId = ascBundleId || null;
     if (ascVendorNumber !== undefined)
       data.ascVendorNumber = ascVendorNumber || null;
     if (openaiApiKey !== undefined && openaiApiKey !== "••••••••")

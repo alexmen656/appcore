@@ -128,10 +128,9 @@ ascRouter.post("/import", async (req, res) => {
 
     getEffectiveSettings(req.user!.userId)
       .then(async (settings) => {
-        const effectiveSettings = { ...settings, ascBundleId: bundleId };
         const { AppStoreScraper } =
           await import("../../services/appstore-scraper");
-        const scraper = new AppStoreScraper(effectiveSettings);
+        const scraper = new AppStoreScraper(app.country, undefined, bundleId);
         await scraper.runFullScrapeJob();
         logger.info(`Post-import scrape completed for ${bundleId}`);
       })
@@ -531,7 +530,7 @@ ascRouter.post("/versions/localizations/translate", async (req, res) => {
     }
 
     const settings = await getEffectiveSettings(req.user!.userId);
-    const analyzer = new AIAnalyzer(settings);
+    const analyzer = new AIAnalyzer("", settings);
 
     const fields = await analyzer.translateLocalization(
       sourceLocale,

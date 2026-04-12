@@ -8,8 +8,7 @@ dashboardRouter.use(requireAuth);
 dashboardRouter.get("/", async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
-    const activeBundleId =
-      (req.query.bundleId as string | undefined) || settings.ascBundleId;
+    const activeBundleId = req.query.bundleId as string | undefined;
 
     const ownApp = await prisma.app.findUnique({
       where: { bundleId: activeBundleId },
@@ -98,8 +97,6 @@ dashboardRouter.get("/", async (req, res) => {
         jobs: jobCount,
       },
       config: {
-        bundleId: settings.ascBundleId,
-        country: settings.scrapeCountry,
         aiProvider: settings.aiProvider,
         hasOpenAI: !!settings.openaiApiKey,
         hasAnthropic: !!settings.anthropicApiKey,

@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { prisma, getEffectiveSettings } from "../../../config";
+import { prisma } from "../../../config";
 import { getMcpUserTeamId, verifyMcpAppAccess } from "./shared";
 
 export function registerSuggestionTools(server: McpServer, userId: string) {
@@ -35,10 +35,8 @@ export function registerSuggestionTools(server: McpServer, userId: string) {
       },
     },
     async ({ bundleId, status, limit }) => {
-      const settings = await getEffectiveSettings(userId);
-      const resolvedBundleId = bundleId || settings.ascBundleId;
-
       const teamId = await getMcpUserTeamId(userId);
+      const resolvedBundleId = bundleId;
       if (!teamId) {
         return { content: [{ type: "text", text: "[]" }] };
       }

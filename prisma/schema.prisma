@@ -111,8 +111,6 @@ model TeamSettings {
   ascIssuerId       String?
   ascKeyId          String?
   ascPrivateKey     String?
-  ascAppId          String?
-  ascBundleId       String?
   openaiApiKey      String?
   anthropicApiKey   String?
   aiProvider        String?   @default("openai")
