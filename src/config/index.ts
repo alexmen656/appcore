@@ -1,5 +1,5 @@
 export { env } from "./env";
 export { prisma } from "./database";
 export { logger } from "./logger";
-export { getEffectiveSettings } from "./userSettings";
+export { getEffectiveSettings, getEffectiveSettingsForTeam, getTeamSettings } from "./userSettings";
 export type { EffectiveSettings } from "./userSettings";

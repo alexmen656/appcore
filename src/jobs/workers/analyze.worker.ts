@@ -1,19 +1,19 @@
 import type { Job } from "pg-boss";
-import { logger, getEffectiveSettings } from "../../config";
+import { logger, getEffectiveSettingsForTeam } from "../../config";
 import { AIAnalyzer } from "../../services/ai-analyzer";
 
 export const QUEUE_NAME = "analyze";
 
 export interface AnalyzeData {
-  userId: string;
+  teamId: string;
   bundleId: string;
 }
 
 export async function handler([job]: Job<AnalyzeData>[]): Promise<void> {
-  const { data: { userId, bundleId }, id } = job;
+  const { data: { teamId, bundleId }, id } = job;
   logger.info(`[BOSS] Starting "${QUEUE_NAME}" job ${id} for ${bundleId}…`);
 
-  const settings = await getEffectiveSettings(userId);
+  const settings = await getEffectiveSettingsForTeam(teamId);
   const results = await new AIAnalyzer(bundleId, settings).analyzeAndSuggest();
   let totalSuggestions = 0;
 

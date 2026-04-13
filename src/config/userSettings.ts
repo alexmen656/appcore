@@ -23,11 +23,10 @@ export async function getTeamSettings(teamId: string) {
   return prisma.teamSettings.findUnique({ where: { teamId } });
 }
 
-export async function getEffectiveSettings(
-  userId: string,
+export async function getEffectiveSettingsForTeam(
+  teamId: string,
 ): Promise<EffectiveSettings> {
-  const teamId = await getTeamIdForUser(userId);
-  const s = teamId ? await getTeamSettings(teamId) : null;
+  const s = await getTeamSettings(teamId);
 
   return {
     ascIssuerId: s?.ascIssuerId ?? "",
@@ -38,4 +37,12 @@ export async function getEffectiveSettings(
     anthropicApiKey: decryptNullable(s?.anthropicApiKey) ?? "",
     aiProvider: s?.aiProvider === "anthropic" ? "anthropic" : "openai",
   };
+}
+
+export async function getEffectiveSettings(
+  userId: string,
+): Promise<EffectiveSettings> {
+  const teamId = await getTeamIdForUser(userId);
+  if (!teamId) return getEffectiveSettingsForTeam("");
+  return getEffectiveSettingsForTeam(teamId);
 }

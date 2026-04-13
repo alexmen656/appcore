@@ -1,22 +1,22 @@
 import type { Job } from "pg-boss";
-import { logger, getEffectiveSettings } from "../../config";
+import { logger, getEffectiveSettingsForTeam } from "../../config";
 import { prisma } from "../../config/database";
 import { AppStoreConnectClient } from "../../services/appstore-connect";
 
 export const QUEUE_NAME = "sync-metadata";
 
 export interface SyncMetadataData {
-  userId: string;
+  teamId: string;
   bundleId: string;
 }
 
 export async function handler([job]: Job<SyncMetadataData>[]): Promise<void> {
-  const { data: { userId, bundleId }, id } = job;
+  const { data: { teamId, bundleId }, id } = job;
   logger.info(`[BOSS] Starting "${QUEUE_NAME}" job ${id} for ${bundleId}…`);
 
-  const settings = await getEffectiveSettings(userId);
+  const settings = await getEffectiveSettingsForTeam(teamId);
   if (!settings.ascIssuerId || !settings.ascKeyId || !settings.ascPrivateKey) {
-    logger.warn(`[BOSS] ASC credentials not configured for user ${userId}, skipping`);
+    logger.warn(`[BOSS] ASC credentials not configured for team ${teamId}, skipping`);
     return;
   }
 

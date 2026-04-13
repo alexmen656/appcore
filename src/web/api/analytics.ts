@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
-import { prisma, logger, getEffectiveSettings } from "../../config";
+import { prisma, logger, getEffectiveSettingsForTeam } from "../../config";
 import { requireAuth, verifyAppOwnershipByBundleId } from "../auth";
 import { bossScheduler } from "../../jobs/boss";
 import { QUEUE_NAME as SYNC_ANALYTICS_QUEUE } from "../../jobs/workers/sync-analytics.worker";
@@ -276,8 +276,12 @@ analyticsRouter.get("/markers", async (req, res) => {
 // ─── POST /api/analytics/sync ─────────────────────────────────────────────────
 analyticsRouter.post("/sync", async (req, res) => {
   try {
-    const userId = req.user!.userId;
-    const settings = await getEffectiveSettings(userId);
+    const teamId = req.user!.teamId;
+    if (!teamId) {
+      res.status(400).json({ error: "No team associated with user" });
+      return;
+    }
+    const settings = await getEffectiveSettingsForTeam(teamId);
 
     if (
       !settings.ascIssuerId ||
@@ -323,7 +327,7 @@ analyticsRouter.post("/sync", async (req, res) => {
     for (const app of ownApps) {
       if (!app.trackId) continue;
       await bossScheduler.sendJob(SYNC_ANALYTICS_QUEUE, {
-        userId,
+        teamId,
         bundleId: app.bundleId,
         ascAppId: app.trackId.toString(),
       });

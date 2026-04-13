@@ -50,7 +50,6 @@ async function loadTeamApps() {
   return prisma.team.findMany({
     include: {
       apps: { where: { isOwnApp: true } },
-      members: { take: 1, select: { userId: true } },
     },
   });
 }
@@ -100,11 +99,9 @@ export class BossScheduler {
     await this.boss.work(`${TRACK_KEYWORDS_QUEUE}/dispatch`, async () => {
       const teams = await loadTeamApps();
       for (const team of teams) {
-        const userId = team.members[0]?.userId;
-        if (!userId) continue;
         for (const app of team.apps) {
           const data: TrackKeywordsData = {
-            userId,
+            teamId: team.id,
             appId: app.id,
             bundleId: app.bundleId,
             country: app.country,
@@ -150,12 +147,10 @@ export class BossScheduler {
     await this.boss.work(`${SYNC_ANALYTICS_QUEUE}/dispatch`, async () => {
       const teams = await loadTeamApps();
       for (const team of teams) {
-        const userId = team.members[0]?.userId;
-        if (!userId) continue;
         for (const app of team.apps) {
           if (!app.trackId) continue;
           const data: SyncAnalyticsData = {
-            userId,
+            teamId: team.id,
             bundleId: app.bundleId,
             ascAppId: app.trackId.toString(),
           };
@@ -178,11 +173,9 @@ export class BossScheduler {
     await this.boss.work(`${EXTRACT_KEYWORDS_QUEUE}/dispatch`, async () => {
       const teams = await loadTeamApps();
       for (const team of teams) {
-        const userId = team.members[0]?.userId;
-        if (!userId) continue;
         for (const app of team.apps) {
           const data: ExtractKeywordsData = {
-            userId,
+            teamId: team.id,
             bundleId: app.bundleId,
             country: app.country,
           };
@@ -203,11 +196,9 @@ export class BossScheduler {
     await this.boss.work(`${DISCOVER_KEYWORDS_QUEUE}/dispatch`, async () => {
       const teams = await loadTeamApps();
       for (const team of teams) {
-        const userId = team.members[0]?.userId;
-        if (!userId) continue;
         for (const app of team.apps) {
           const data: DiscoverKeywordsData = {
-            userId,
+            teamId: team.id,
             bundleId: app.bundleId,
           };
           await this.boss.send(DISCOVER_KEYWORDS_QUEUE, data);
@@ -249,11 +240,9 @@ export class BossScheduler {
     await this.boss.work(`${ANALYZE_QUEUE}/dispatch`, async () => {
       const teams = await loadTeamApps();
       for (const team of teams) {
-        const userId = team.members[0]?.userId;
-        if (!userId) continue;
         for (const app of team.apps) {
           const data: AnalyzeData = {
-            userId,
+            teamId: team.id,
             bundleId: app.bundleId,
           };
           await this.boss.send(ANALYZE_QUEUE, data);
@@ -287,12 +276,11 @@ export class BossScheduler {
     logger.info("[BOSS] Scheduler stopped");
   }
 
-  /* Manuell trigger — dispatch fan-out */
+
   async triggerDispatch(queue: string): Promise<void> {
     await this.boss.send(`${queue}/dispatch`, {});
   }
 
-  /* Direkt einen Job in eine Worker-Queue senden */
   async sendJob<T extends object>(queue: string, data: T): Promise<void> {
     await this.boss.send(queue, data);
   }

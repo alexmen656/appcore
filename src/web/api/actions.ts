@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
-import { prisma, getEffectiveSettings } from "../../config";
+import { prisma, getEffectiveSettingsForTeam } from "../../config";
 import { requireAuth, verifyAppOwnershipByBundleId } from "../auth";
 import { bossScheduler } from "../../jobs/boss";
 import { QUEUE_NAME as SCRAPE_QUEUE } from "../../jobs/workers/scrape.worker";
@@ -13,6 +13,15 @@ import { QUEUE_NAME as COMPETITOR_INTEL_QUEUE } from "../../jobs/workers/competi
 
 export const actionsRouter = Router();
 actionsRouter.use(requireAuth);
+
+function resolveTeamId(req: Request, res: Response): string | null {
+  const teamId = req.user!.teamId;
+  if (!teamId) {
+    res.status(400).json({ error: "No team associated with user" });
+    return null;
+  }
+  return teamId;
+}
 
 async function resolveActionApp(req: Request, res: Response) {
   const bundleId = req.body.bundleId as string;
@@ -39,10 +48,12 @@ actionsRouter.post("/scrape", async (req, res) => {
 
 actionsRouter.post("/analyze", async (req, res) => {
   try {
+    const teamId = resolveTeamId(req, res);
+    if (!teamId) return;
     const app = await resolveActionApp(req, res);
     if (!app) return;
     await bossScheduler.sendJob(ANALYZE_QUEUE, {
-      userId: req.user!.userId,
+      teamId,
       bundleId: app.bundleId,
     });
     res.json({ ok: true, message: `Analysis job enqueued for ${app.bundleId}` });
@@ -53,7 +64,9 @@ actionsRouter.post("/analyze", async (req, res) => {
 
 actionsRouter.post("/sync", async (req, res) => {
   try {
-    const settings = await getEffectiveSettings(req.user!.userId);
+    const teamId = resolveTeamId(req, res);
+    if (!teamId) return;
+    const settings = await getEffectiveSettingsForTeam(teamId);
     if (!settings.ascIssuerId || !settings.ascKeyId || !settings.ascPrivateKey) {
       res.status(400).json({
         error: "App Store Connect credentials not configured in Settings.",
@@ -63,7 +76,7 @@ actionsRouter.post("/sync", async (req, res) => {
     const app = await resolveActionApp(req, res);
     if (!app) return;
     await bossScheduler.sendJob(SYNC_METADATA_QUEUE, {
-      userId: req.user!.userId,
+      teamId,
       bundleId: app.bundleId,
     });
     res.json({ ok: true, message: `Metadata sync job enqueued for ${app.bundleId}` });
@@ -74,10 +87,12 @@ actionsRouter.post("/sync", async (req, res) => {
 
 actionsRouter.post("/track-keywords", async (req, res) => {
   try {
+    const teamId = resolveTeamId(req, res);
+    if (!teamId) return;
     const app = await resolveActionApp(req, res);
     if (!app) return;
     await bossScheduler.sendJob(TRACK_KEYWORDS_QUEUE, {
-      userId: req.user!.userId,
+      teamId,
       appId: app.id,
       bundleId: app.bundleId,
       country: app.country,
@@ -90,10 +105,12 @@ actionsRouter.post("/track-keywords", async (req, res) => {
 
 actionsRouter.post("/discover-keywords", async (req, res) => {
   try {
+    const teamId = resolveTeamId(req, res);
+    if (!teamId) return;
     const app = await resolveActionApp(req, res);
     if (!app) return;
     await bossScheduler.sendJob(DISCOVER_KEYWORDS_QUEUE, {
-      userId: req.user!.userId,
+      teamId,
       bundleId: app.bundleId,
     });
     res.json({ ok: true, message: `Keyword discovery job enqueued for ${app.bundleId}` });
@@ -127,10 +144,12 @@ actionsRouter.post("/discover-competitors", async (req, res) => {
 
 actionsRouter.post("/competitor-intel", async (req, res) => {
   try {
+    const teamId = resolveTeamId(req, res);
+    if (!teamId) return;
     const app = await resolveActionApp(req, res);
     if (!app) return;
     await bossScheduler.sendJob(COMPETITOR_INTEL_QUEUE, {
-      userId: req.user!.userId,
+      teamId,
       bundleId: app.bundleId,
     });
     res.json({ ok: true, message: `Competitor intel job enqueued for ${app.bundleId}` });
