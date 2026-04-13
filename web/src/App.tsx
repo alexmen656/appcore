@@ -655,7 +655,7 @@ function HeaderProfileMenu({
         <div className="w-6 h-6 rounded-full bg-[#C4001E] flex items-center justify-center text-white text-[10px] font-bold shrink-0">
           {initials}
         </div>
-        Account
+        <span className="max-w-[120px] truncate">{displayName}</span>
       </button>
       {open && (
         <div className="absolute right-0 top-[calc(100%+6px)] w-52 bg-white dark:bg-[#1c2028] border border-[#e5e7eb] dark:border-[#2a2f3d] rounded-xl shadow-lg z-50 overflow-hidden">
@@ -906,7 +906,7 @@ function VersionsSidebarSection({
           onClick={handleToggle}
           className={`flex-1 flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-sm font-medium transition-all [&_svg]:w-[18px] [&_svg]:h-[18px] ${
             isAnyVersionActive
-              ? "bg-white dark:bg-[#1c2028] text-[#1a1a2e] dark:text-[#e8eaf0] shadow-sm [&>svg:first-child]:opacity-100 [&>svg:first-child]:text-[#C4001E]"
+              ? "bg-[#fff1f2] text-[#C4001E] dark:bg-[#C4001E]/[0.12] dark:text-[#ff8080] [&>svg:first-child]:opacity-100"
               : "text-[#6b7280] dark:text-[#8b93a5] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] [&>svg:first-child]:opacity-60"
           }`}
         >
@@ -1018,7 +1018,7 @@ function VersionsSidebarSection({
                 to={`/versions/${v.versionId}`}
                 className={`flex items-center justify-between gap-2 px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-all ${
                   isActive
-                    ? "bg-white dark:bg-[#1c2028] text-[#1a1a2e] dark:text-[#e8eaf0] shadow-sm"
+                    ? "bg-[#fff1f2] text-[#C4001E] dark:bg-[#C4001E]/[0.12] dark:text-[#ff8080]"
                     : "text-[#6b7280] dark:text-[#8b93a5] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0]"
                 }`}
               >
@@ -1129,7 +1129,7 @@ export default function App() {
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-sm font-medium mb-0.5 transition-all [&_svg]:w-[18px] [&_svg]:h-[18px] ${
       isActive
-        ? "bg-white dark:bg-[#1c2028] text-[#1a1a2e] dark:text-[#e8eaf0] shadow-sm [&_svg]:opacity-100 [&_svg]:text-[#C4001E]"
+        ? "bg-[#fff1f2] text-[#C4001E] dark:bg-[#C4001E]/[0.12] dark:text-[#ff8080] [&_svg]:opacity-100"
         : "text-[#6b7280] dark:text-[#8b93a5] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] [&_svg]:opacity-60"
     }`;
 
@@ -1139,7 +1139,7 @@ export default function App() {
       <ToastContainer toasts={toasts} />
       <header className="h-[52px] bg-[#f8f9fb] dark:bg-[#0a0a0a] flex items-center px-4 shrink-0 z-20">
         <a href="/app/" className="flex items-center gap-2.5">
-          <img src="/app/logo.svg" alt="Marteso" className="h-[22px] w-auto" />
+          <img src="/app/logo.svg" alt="Marteso" className="h-[23px] w-auto" />
           <span className="text-[24px] font-bold tracking-[-0.3px] bg-gradient-to-br from-[#D94412] to-[#C4001E] bg-clip-text text-transparent">
             marteso
           </span>
@@ -1177,10 +1177,7 @@ export default function App() {
       <div className="flex flex-1 overflow-hidden">
         <aside className="w-[250px] min-w-[250px] bg-[#f8f9fb] dark:bg-[#0a0a0a] flex flex-col overflow-y-auto">
           <AppSwitcher current={dash?.app ?? null} addToast={addToast} />
-          <div className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-[0.8px] text-[#9ca3af] dark:text-[#5c6478]">
-            Navigation
-          </div>
-          <nav className="px-2 flex-1 flex flex-col">
+          <nav className="px-2 pt-1 flex-1 flex flex-col">
             {sidebarLinks.map((link) => (
               <NavLink key={link.to} to={link.to} className={navLinkClass}>
                 {link.icon && <link.icon />}
@@ -1189,6 +1186,7 @@ export default function App() {
             ))}
             <VersionsSidebarSection navLinkClass={navLinkClass} />
             <div className="mt-auto pb-3">
+              <div className="h-px bg-[#eef0f3] dark:bg-[#2a2f3d] mx-1 mb-2 mt-1" />
               {sidebarOperations.map((link) => (
                 <NavLink key={link.to} to={link.to} className={navLinkClass}>
                   {link.icon && <link.icon />}

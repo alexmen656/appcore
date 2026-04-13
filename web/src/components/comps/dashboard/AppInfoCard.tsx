@@ -1,4 +1,3 @@
-import { cardCls } from "../../../styles";
 import type { AppInfo } from "../../../types";
 export type { AppInfo };
 
@@ -8,28 +7,25 @@ interface Props {
 
 export default function AppInfoCard({ app }: Props) {
   return (
-    <div className={`${cardCls} mb-5`}>
-      <div className="flex gap-5 items-start">
-        {app.iconUrl && (
-          <img
-            src={app.iconUrl}
-            alt=""
-            className="w-16 h-16 rounded-2xl shrink-0"
-          />
-        )}
-        <div>
-          <div className="font-semibold text-base text-[#111827] dark:text-[#e8eaf0] mb-1">
-            {app.title || app.name}
-          </div>
+    <div className="flex items-center gap-4 mb-6 pb-5 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
+      {app.iconUrl && (
+        <img src={app.iconUrl} alt="" className="w-11 h-11 rounded-xl shrink-0" />
+      )}
+      <div className="min-w-0">
+        <div className="text-[17px] font-semibold text-[#111827] dark:text-[#e8eaf0] leading-snug truncate">
+          {app.title || app.name}
+        </div>
+        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
           {app.subtitle && (
-            <div className="text-sm text-[#6b7280] dark:text-[#8b93a5] mb-1">{app.subtitle}</div>
+            <span className="text-[13px] text-[#6b7280] dark:text-[#8b93a5]">{app.subtitle}</span>
           )}
-          <div className="text-xs text-[#9ca3af] dark:text-[#5c6478] mb-2">{app.bundleId}</div>
+          <span className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] font-mono">{app.bundleId}</span>
           {app.rating != null && (
-            <div className="text-sm text-[#111827] dark:text-[#e8eaf0] flex items-center gap-1">
-              <span className="text-amber-400">&#9733;</span> {app.rating.toFixed(1)} ({app.ratingsCount?.toLocaleString()}{" "}
-              ratings)
-            </div>
+            <span className="text-[12px] text-[#6b7280] dark:text-[#8b93a5] flex items-center gap-1">
+              <span className="text-amber-400">★</span>
+              {app.rating.toFixed(1)}
+              <span className="text-[#9ca3af] dark:text-[#5c6478]">· {app.ratingsCount?.toLocaleString()} ratings</span>
+            </span>
           )}
         </div>
       </div>

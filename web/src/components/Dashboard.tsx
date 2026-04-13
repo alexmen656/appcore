@@ -2,7 +2,6 @@ import { useApi } from "../hooks/useApi";
 import StatsGrid from "./comps/dashboard/StatsGrid";
 import AppInfoCard from "./comps/dashboard/AppInfoCard";
 import RecentSuggestionsTable from "./comps/dashboard/RecentSuggestionsTable";
-import LastJobStatus from "./comps/dashboard/LastJobStatus";
 import DownloadsChart from "./comps/analytics/DownloadsChart";
 import type { DashboardData, DownloadsData } from "../types";
 
@@ -29,10 +28,6 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-5">
-        Dashboard
-      </h1>
-
       {app && <AppInfoCard app={app} />}
 
       <StatsGrid stats={stats} />
@@ -44,10 +39,8 @@ export default function Dashboard() {
       )}
 
       <div className="mb-5">
-        <RecentSuggestionsTable suggestions={recentSuggestions} />
+        <RecentSuggestionsTable suggestions={recentSuggestions} lastJob={lastJob ?? undefined} />
       </div>
-
-      {lastJob && <LastJobStatus lastJob={lastJob} />}
     </div>
   );
 }
