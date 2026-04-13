@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { FileText, Tag, UserRound, Clock, Search } from "lucide-react";
 
 interface SearchItem {
   id: string;
@@ -76,76 +77,16 @@ const STATIC_ITEMS: SearchItem[] = [
   },
 ];
 
-const IconPage = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="w-4 h-4"
-  >
-    <rect x="3" y="3" width="18" height="18" rx="2" />
-    <path d="M9 9h6M9 13h4" />
-  </svg>
-);
-
-const IconKeywordItem = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="w-4 h-4"
-  >
-    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-    <line x1="7" y1="7" x2="7.01" y2="7" />
-  </svg>
-);
-
-const IconCompetitorItem = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="w-4 h-4"
-  >
-    <circle cx="12" cy="8" r="4" />
-    <path d="M6 20v-2a6 6 0 0 1 12 0v2" />
-  </svg>
-);
-
-const IconSuggestionItem = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="w-4 h-4"
-  >
-    <path d="M12 2a10 10 0 1 0 10 10" />
-    <path d="M12 8v4l3 3" />
-  </svg>
-);
-
 function ItemIcon({ type }: { type: SearchItem["icon"] }) {
   switch (type) {
     case "keyword":
-      return <IconKeywordItem />;
+      return <Tag className="w-4 h-4" />;
     case "competitor":
-      return <IconCompetitorItem />;
+      return <UserRound className="w-4 h-4" />;
     case "suggestion":
-      return <IconSuggestionItem />;
+      return <Clock className="w-4 h-4" />;
     default:
-      return <IconPage />;
+      return <FileText className="w-4 h-4" />;
   }
 }
 
@@ -267,18 +208,7 @@ export default function SearchModal({ open, onClose }: Props) {
       <div className="absolute inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm" />
       <div className="relative w-full max-w-[560px] mx-4 bg-white dark:bg-[#1c2028] rounded-xl shadow-2xl border border-[#eef0f3] dark:border-[#2a2f3d] overflow-hidden">
         <div className="flex items-center gap-3 px-4 py-3 border-b border-[#eef0f3] dark:border-[#2a2f3d]">
-          <svg
-            className="w-4 h-4 text-[#9ca3af] dark:text-[#5c6478] shrink-0"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.35-4.35" />
-          </svg>
+          <Search className="w-4 h-4 text-[#9ca3af] dark:text-[#5c6478] shrink-0" />
           <input
             ref={inputRef}
             value={query}

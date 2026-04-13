@@ -1,5 +1,6 @@
 import AppIcon from "./AppIcon";
 import { AppItem } from "./OwnAppCard";
+import { X } from "lucide-react";
 
 interface Props {
   competitor: AppItem;
@@ -37,9 +38,7 @@ export default function CompetitorCard({ competitor: c, ownAppId, onRemove, onCl
           title="Remove competitor"
           className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 dark:text-[#5c6478] hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-            <path d="M18 6L6 18M6 6l12 12" />
-          </svg>
+          <X className="w-4 h-4" />
         </button>
       )}
     </div>

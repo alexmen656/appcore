@@ -1,5 +1,6 @@
 import { TH, TD, btnSecSm } from "../../../styles";
 import type { Keyword } from "../../../types";
+import { TrendingUp, TrendingDown, ChevronUp, ChevronDown } from "lucide-react";
 
 export type { Keyword };
 export type SortKey =
@@ -27,17 +28,13 @@ const trendDisplay = (trend: number | null) => {
   if (trend > 0)
     return (
       <span className="inline-flex items-center gap-0.5 text-emerald-600 font-medium text-xs">
-        <svg viewBox="0 0 8 8" className="w-2 h-2" fill="currentColor">
-          <path d="M4 0L8 8H0z" />
-        </svg>
+        <TrendingUp className="w-3 h-3" />
         +{trend}
       </span>
     );
   return (
     <span className="inline-flex items-center gap-0.5 text-red-500 font-medium text-xs">
-      <svg viewBox="0 0 8 8" className="w-2 h-2" fill="currentColor">
-        <path d="M4 8L0 0h8z" />
-      </svg>
+      <TrendingDown className="w-3 h-3" />
       {trend}
     </span>
   );
@@ -67,20 +64,12 @@ function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
     <span
       className={`inline-flex flex-col ml-1 leading-none ${active ? "opacity-100" : "opacity-25"}`}
     >
-      <svg
-        viewBox="0 0 8 5"
-        className={`w-2 h-1.5 ${active && dir === "asc" ? "text-[#ea0e2b]" : "text-current"}`}
-        fill="currentColor"
-      >
-        <path d="M4 0L8 5H0z" />
-      </svg>
-      <svg
-        viewBox="0 0 8 5"
-        className={`w-2 h-1.5 ${active && dir === "desc" ? "text-[#ea0e2b]" : "text-current"}`}
-        fill="currentColor"
-      >
-        <path d="M4 5L0 0h8z" />
-      </svg>
+      <ChevronUp
+        className={`w-3 h-3 -mb-1 ${active && dir === "asc" ? "text-[#ea0e2b]" : "text-current"}`}
+      />
+      <ChevronDown
+        className={`w-3 h-3 -mt-1 ${active && dir === "desc" ? "text-[#ea0e2b]" : "text-current"}`}
+      />
     </span>
   );
 }

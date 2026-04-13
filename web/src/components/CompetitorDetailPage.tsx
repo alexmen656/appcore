@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ArrowLeft } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authHeaders, getActiveBundleId } from "../hooks/useApi";
 import type { CompetitorDetail } from "../types";
@@ -57,9 +58,7 @@ export default function CompetitorDetailPage({ addToast }: Props) {
           onClick={() => navigate("/competitors")}
           className="flex items-center gap-1.5 text-sm text-[#9ca3af] dark:text-[#5c6478] hover:text-[#111827] dark:hover:text-[#e8eaf0] transition-colors"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-            <path d="M19 12H5M12 19l-7-7 7-7" />
-          </svg>
+          <ArrowLeft className="w-4 h-4" />
           Competitors
         </button>
       </div>

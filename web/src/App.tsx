@@ -43,194 +43,40 @@ import type {
   AscApp,
   VersionSummary,
 } from "./types";
-
-const IconDashboard = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <rect x="3" y="3" width="7" height="7" rx="1" />
-    <rect x="14" y="3" width="7" height="7" rx="1" />
-    <rect x="3" y="14" width="7" height="7" rx="1" />
-    <rect x="14" y="14" width="7" height="7" rx="1" />
-  </svg>
-);
-const IconSuggestions = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M12 2L2 7l10 5 10-5-10-5z" />
-    <path d="M2 17l10 5 10-5" />
-    <path d="M2 12l10 5 10-5" />
-  </svg>
-);
-const IconKeywords = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="11" cy="11" r="8" />
-    <path d="m21 21-4.35-4.35" />
-  </svg>
-);
-const IconCompetitors = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-    <circle cx="9" cy="7" r="4" />
-    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-  </svg>
-);
-const IconActions = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-  </svg>
-);
-const IconAnalytics = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <line x1="18" y1="20" x2="18" y2="10" />
-    <line x1="12" y1="20" x2="12" y2="4" />
-    <line x1="6" y1="20" x2="6" y2="14" />
-  </svg>
-);
-const IconSettings = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="12" cy="12" r="3" />
-    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-  </svg>
-);
-const IconVersions = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-    <polyline points="14 2 14 8 20 8" />
-    <line x1="16" y1="13" x2="8" y2="13" />
-    <line x1="16" y1="17" x2="8" y2="17" />
-    <polyline points="10 9 9 9 8 9" />
-  </svg>
-);
-const IconAgents = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <rect x="2" y="3" width="20" height="14" rx="2" />
-    <path d="M8 21h8M12 17v4" />
-    <circle cx="12" cy="10" r="3" />
-    <path d="M7 10h2M15 10h2" />
-  </svg>
-);
-const IconTeam = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-    <circle cx="9" cy="7" r="4" />
-    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-  </svg>
-);
-const IconMoon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-  </svg>
-);
-const IconSun = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="12" cy="12" r="5" />
-    <line x1="12" y1="1" x2="12" y2="3" />
-    <line x1="12" y1="21" x2="12" y2="23" />
-    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-    <line x1="1" y1="12" x2="3" y2="12" />
-    <line x1="21" y1="12" x2="23" y2="12" />
-    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-  </svg>
-);
+import {
+  LayoutDashboard,
+  Layers,
+  Search,
+  Users,
+  Zap,
+  BarChart2,
+  Settings as SettingsIcon,
+  FileText,
+  Bot,
+  Moon,
+  Sun,
+  ChevronDown,
+  Check,
+  Plus,
+  X,
+  HelpCircle,
+  BookOpen,
+  MessageSquare,
+  LogOut,
+} from "lucide-react";
 
 const sidebarLinks = [
-  { to: "/dashboard", label: "Dashboard", icon: IconDashboard },
-  { to: "/analytics", label: "Analytics", icon: IconAnalytics },
-  { to: "/keywords", label: "Keywords", icon: IconKeywords },
-  { to: "/competitors", label: "Competitors", icon: IconCompetitors },
-  { to: "/suggestions", label: "Suggestions", icon: IconSuggestions },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/analytics", label: "Analytics", icon: BarChart2 },
+  { to: "/keywords", label: "Keywords", icon: Search },
+  { to: "/competitors", label: "Competitors", icon: Users },
+  { to: "/suggestions", label: "Suggestions", icon: Layers },
 ];
 
 const sidebarOperations = [
-  { to: "/agents", label: "Agents", icon: IconAgents },
-  { to: "/actions", label: "Logs", icon: IconActions },
-  { to: "/app-settings", label: "Settings", icon: IconSettings },
+  { to: "/agents", label: "Agents", icon: Bot },
+  { to: "/actions", label: "Logs", icon: Zap },
+  { to: "/app-settings", label: "Settings", icon: SettingsIcon },
 ];
 
 function AppAvatar({
@@ -374,17 +220,7 @@ function AppSwitcher({
               {activeApp?.bundleId ?? current?.bundleId ?? "—"}
             </div>
           </div>
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={`w-4 h-4 shrink-0 text-gray-400 dark:text-[#5c6478] transition-transform ${open ? "rotate-180" : ""}`}
-          >
-            <path d="M6 9l6 6 6-6" />
-          </svg>
+          <ChevronDown className={`w-4 h-4 shrink-0 text-gray-400 dark:text-[#5c6478] transition-transform ${open ? "rotate-180" : ""}`} />
         </button>
 
         {open && (
@@ -413,17 +249,7 @@ function AppSwitcher({
                   </div>
                 </div>
                 {a.bundleId === activeBundleResolved && (
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="w-3.5 h-3.5 shrink-0 text-[#C4001E] ml-auto"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
+                  <Check className="w-3.5 h-3.5 shrink-0 text-[#C4001E] ml-auto" />
                 )}
               </button>
             ))}
@@ -433,17 +259,7 @@ function AppSwitcher({
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors text-left"
               >
                 <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-[#252b38] flex items-center justify-center shrink-0">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="w-4 h-4 text-gray-400 dark:text-[#5c6478]"
-                  >
-                    <path d="M12 5v14M5 12h14" />
-                  </svg>
+                  <Plus className="w-4 h-4 text-gray-400 dark:text-[#5c6478]" />
                 </div>
                 <span className="text-[13px] font-medium text-gray-500 dark:text-[#8b93a5]">
                   Add project
@@ -476,17 +292,7 @@ function AppSwitcher({
                 onClick={closeImport}
                 className="w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-[#252b38] flex items-center justify-center text-gray-400 dark:text-[#5c6478] transition-colors"
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="w-4 h-4"
-                >
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
+                <X className="w-4 h-4" />
               </button>
             </div>
             <div className="px-6 py-5 flex-1 overflow-y-auto">
@@ -560,19 +366,7 @@ function HelpMenu() {
         onClick={() => setOpen(!open)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-black/[0.06] dark:hover:bg-white/10 transition-colors text-[#374151] dark:text-white/80 text-sm font-medium"
       >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="w-4 h-4 shrink-0"
-        >
-          <circle cx="12" cy="12" r="10" />
-          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-          <line x1="12" y1="17" x2="12.01" y2="17" />
-        </svg>
+        <HelpCircle className="w-4 h-4 shrink-0" />
         Help
       </button>
       {open && (
@@ -584,18 +378,7 @@ function HelpMenu() {
             onClick={() => setOpen(false)}
             className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors text-[13px] text-[#1a1a2e] dark:text-[#e8eaf0] font-medium"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-4 h-4 text-gray-400 dark:text-[#5c6478] shrink-0"
-            >
-              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-            </svg>
+            <BookOpen className="w-4 h-4 text-gray-400 dark:text-[#5c6478] shrink-0" />
             Documentation
           </a>
           <a
@@ -603,17 +386,7 @@ function HelpMenu() {
             onClick={() => setOpen(false)}
             className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors text-[13px] text-[#1a1a2e] dark:text-[#e8eaf0] font-medium"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-4 h-4 text-gray-400 dark:text-[#5c6478] shrink-0"
-            >
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
+            <MessageSquare className="w-4 h-4 text-gray-400 dark:text-[#5c6478] shrink-0" />
             Contact Support
           </a>
         </div>
@@ -680,18 +453,7 @@ function HeaderProfileMenu({
             onClick={() => setOpen(false)}
             className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors text-[13px] text-[#1a1a2e] dark:text-[#e8eaf0] font-medium"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-4 h-4 text-gray-400 dark:text-[#5c6478] shrink-0"
-            >
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
+            <SettingsIcon className="w-4 h-4 text-gray-400 dark:text-[#5c6478] shrink-0" />
             Account Settings
           </NavLink>
           <NavLink
@@ -699,9 +461,7 @@ function HeaderProfileMenu({
             onClick={() => setOpen(false)}
             className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors text-[13px] text-[#1a1a2e] dark:text-[#e8eaf0] font-medium"
           >
-            <span className="w-4 h-4 text-gray-400 dark:text-[#5c6478] shrink-0 flex items-center">
-              <IconTeam />
-            </span>
+            <Users className="w-4 h-4 text-gray-400 dark:text-[#5c6478] shrink-0" />
             Team
           </NavLink>
           <button
@@ -711,9 +471,11 @@ function HeaderProfileMenu({
             }}
             className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors text-[13px] text-[#1a1a2e] dark:text-[#e8eaf0] font-medium"
           >
-            <span className="w-4 h-4 shrink-0 text-gray-400 dark:text-[#5c6478] flex items-center">
-              {dark ? <IconSun /> : <IconMoon />}
-            </span>
+            {dark ? (
+              <Sun className="w-4 h-4 shrink-0 text-gray-400 dark:text-[#5c6478]" />
+            ) : (
+              <Moon className="w-4 h-4 shrink-0 text-gray-400 dark:text-[#5c6478]" />
+            )}
             {dark ? "Light mode" : "Dark mode"}
           </button>
           <div className="h-px bg-[#e5e7eb] dark:bg-[#2a2f3d] mx-3 my-1" />
@@ -724,19 +486,7 @@ function HeaderProfileMenu({
             }}
             className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-red-50 dark:hover:bg-[#2a1f23] transition-colors text-[13px] text-red-500 font-medium"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-4 h-4 shrink-0"
-            >
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
+            <LogOut className="w-4 h-4 shrink-0" />
             Sign out
           </button>
           <div className="h-1" />
@@ -910,37 +660,16 @@ function VersionsSidebarSection({
               : "text-[#6b7280] dark:text-[#8b93a5] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] [&>svg:first-child]:opacity-60"
           }`}
         >
-          <IconVersions />
+          <FileText />
           <span className="flex-1 text-left">Versions</span>
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={`!w-3.5 !h-3.5 shrink-0 text-gray-400 dark:text-[#5c6478] transition-transform ${expanded ? "rotate-180" : ""}`}
-          >
-            <path d="M6 9l6 6 6-6" />
-          </svg>
+          <ChevronDown className={`!w-3.5 !h-3.5 shrink-0 text-gray-400 dark:text-[#5c6478] transition-transform ${expanded ? "rotate-180" : ""}`} />
         </button>
         <button
           onClick={openNewForm}
           title="New version"
           className="p-[7px] rounded-lg text-[#9ca3af] dark:text-[#5c6478] hover:text-[#C4001E] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all"
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="w-3.5 h-3.5"
-          >
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
+          <Plus className="w-3.5 h-3.5" />
         </button>
       </div>
       {showNewForm && (
@@ -1149,18 +878,7 @@ export default function App() {
           onClick={() => setSearchOpen(true)}
           className="flex items-center gap-2 bg-black/[0.06] dark:bg-white/10 rounded-md px-3 py-1.5 text-sm text-[#6b7280] dark:text-white/50 w-44 mr-3 cursor-pointer select-none hover:bg-black/[0.09] dark:hover:bg-white/[0.15] transition-colors"
         >
-          <svg
-            className="w-3.5 h-3.5 shrink-0"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.35-4.35" />
-          </svg>
+          <Search className="w-3.5 h-3.5 shrink-0" />
           <span>Search…</span>
           <span className="ml-auto text-[10px] bg-black/[0.08] dark:bg-white/20 rounded px-1 py-0.5 font-mono">
             ⌘K

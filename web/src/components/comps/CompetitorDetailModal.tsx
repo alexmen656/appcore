@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { authHeaders, getActiveBundleId } from "../../hooks/useApi";
+import { Maximize2, X, ArrowRight, MessageSquare, RefreshCw, BarChart2 } from "lucide-react";
 import type {
   CompetitorDetail,
   CompetitorReview,
@@ -93,26 +94,14 @@ export default function CompetitorDetailModal({
               onClick={() => { onClose(); navigate(`/competitors/${appId}`); }}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#9ca3af] hover:text-[#111827] dark:hover:text-[#e8eaf0] hover:bg-gray-100 dark:hover:bg-[#252b38] transition-colors"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
-                <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
-              </svg>
+              <Maximize2 className="w-3.5 h-3.5" />
               Full page
             </button>
             <button
               onClick={onClose}
               className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9ca3af] hover:text-[#111827] dark:hover:text-[#e8eaf0] hover:bg-gray-100 dark:hover:bg-[#252b38] transition-colors"
             >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-5 h-5"
-              >
-                <path d="M18 6L6 18M6 6l12 12" />
-              </svg>
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -407,19 +396,7 @@ export function ChangesTab({ changes }: { changes: MetadataChange[] }) {
               <span className="text-red-400 dark:text-red-400 line-through max-w-[45%] truncate">
                 {change.oldValue || "(empty)"}
               </span>
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="w-3.5 h-3.5 text-[#9ca3af] shrink-0"
-              >
-                <path
-                  d="M5 12h14M12 5l7 7-7 7"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <ArrowRight className="w-3.5 h-3.5 text-[#9ca3af] shrink-0" />
               <span className="text-emerald-600 dark:text-emerald-400 font-medium max-w-[45%] truncate">
                 {change.newValue || "(empty)"}
               </span>
@@ -666,35 +643,9 @@ function EmptyState({
   return (
     <div className="py-16 text-center">
       <div className="flex justify-center mb-3 opacity-20">
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.5}
-          className="w-12 h-12 text-[#9ca3af]"
-        >
-          {icon === "reviews" && (
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"
-            />
-          )}
-          {icon === "changes" && (
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 0 0-3.7-3.7 48.678 48.678 0 0 0-7.324 0 4.006 4.006 0 0 0-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 0 0 3.7 3.7 48.656 48.656 0 0 0 7.324 0 4.006 4.006 0 0 0 3.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3-3 3"
-            />
-          )}
-          {icon === "keywords" && (
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0 .5 1.5m-.5-1.5h-9.5m0 0-.5 1.5m.75-9 3-3 2.148 2.148A12.061 12.061 0 0 1 16.5 7.605"
-            />
-          )}
-        </svg>
+        {icon === "reviews" && <MessageSquare className="w-12 h-12 text-[#9ca3af]" />}
+        {icon === "changes" && <RefreshCw className="w-12 h-12 text-[#9ca3af]" />}
+        {icon === "keywords" && <BarChart2 className="w-12 h-12 text-[#9ca3af]" />}
       </div>
       <div className="text-sm font-medium text-[#6b7280] dark:text-[#8b93a5] mb-1">
         {title}

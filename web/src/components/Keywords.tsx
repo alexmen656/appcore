@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import { ChevronDown, Search } from "lucide-react";
 import {
   useApi,
   apiPost,
@@ -173,17 +174,7 @@ export default function Keywords({ addToast }: Props) {
             className="px-2.5 rounded-r-xl bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="More actions"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className={`w-3.5 h-3.5 transition-transform ${menuOpen ? "rotate-180" : ""}`}
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
           </button>
           {menuOpen && (
             <div className="absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl shadow-lg py-1 min-w-[170px]">
@@ -219,18 +210,7 @@ export default function Keywords({ addToast }: Props) {
       {sorted.length === 0 ? (
         <div className="py-20 text-center">
           <div className="flex justify-center mb-3 opacity-20">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-12 h-12 text-[#9ca3af]"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.35-4.35" />
-            </svg>
+            <Search className="w-12 h-12 text-[#9ca3af]" />
           </div>
           <div className="text-sm font-medium text-[#6b7280] dark:text-[#8b93a5] mb-1">
             No keywords tracked yet

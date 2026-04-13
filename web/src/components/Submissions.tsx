@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { AlertCircle, RefreshCw, Upload, Send } from "lucide-react";
 import {
   useApi,
   apiPost,
@@ -227,19 +228,7 @@ export default function Submissions({ addToast }: Props) {
       {previewError && (
         <div className={`${cardCls} mb-6 border-red-200 bg-red-50`}>
           <div className="flex items-start gap-3">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-5 h-5 text-red-500 shrink-0 mt-0.5"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
+            <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-red-700">
                 Failed to load submission preview
@@ -296,18 +285,7 @@ export default function Submissions({ addToast }: Props) {
                   className={btnSecSm}
                   disabled={previewLoading}
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="w-3.5 h-3.5"
-                  >
-                    <path d="M23 4v6h-6" />
-                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-                  </svg>
+                  <RefreshCw className="w-3.5 h-3.5" />
                   Refresh
                 </button>
                 <button
@@ -321,19 +299,7 @@ export default function Submissions({ addToast }: Props) {
                     </>
                   ) : (
                     <>
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="w-4 h-4"
-                      >
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="17 8 12 3 7 8" />
-                        <line x1="12" y1="3" x2="12" y2="15" />
-                      </svg>
+                      <Upload className="w-4 h-4" />
                       Push Metadata
                     </>
                   )}
@@ -353,18 +319,7 @@ export default function Submissions({ addToast }: Props) {
                           </>
                         ) : (
                           <>
-                            <svg
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className="w-4 h-4"
-                            >
-                              <path d="M22 2L11 13" />
-                              <path d="M22 2L15 22 11 13 2 9l20-7z" />
-                            </svg>
+                            <Send className="w-4 h-4" />
                             Submit for Review
                           </>
                         )}

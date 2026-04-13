@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { authHeaders } from "../../../hooks/useApi";
 import SectionCard from "./SectionCard";
 import { btnPrimary, btnSecondary, inputCls } from "../../../styles";
+import { X } from "lucide-react";
 
 interface EnvVar {
   key: string;
@@ -110,9 +111,7 @@ export default function SnapshotEnvSection({ appId, addToast }: Props) {
               className="p-1.5 rounded-lg text-[#9ca3af] hover:text-[#ef4444] hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex-shrink-0"
               title="Remove"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X className="w-4 h-4" />
             </button>
           </div>
         ))}

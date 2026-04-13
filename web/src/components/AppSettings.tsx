@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Trash2 } from "lucide-react";
 import {
   useApi,
   getActiveBundleId,
@@ -89,21 +90,7 @@ function DangerZone({
           onClick={() => setConfirming(true)}
           className="inline-flex items-center gap-2 px-4 py-[9px] rounded-xl text-[13px] font-semibold border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 bg-white dark:bg-[#1c2028] hover:bg-red-50 dark:hover:bg-red-950/40 transition-all"
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="w-4 h-4"
-          >
-            <polyline points="3 6 5 6 21 6" />
-            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-            <path d="M10 11v6" />
-            <path d="M14 11v6" />
-            <path d="M9 6V4h6v2" />
-          </svg>
+          <Trash2 className="w-4 h-4" />
           Remove app
         </button>
       ) : (

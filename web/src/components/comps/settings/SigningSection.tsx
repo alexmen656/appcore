@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { authHeaders } from "../../../hooks/useApi";
 import SectionCard from "./SectionCard";
 import { btnPrimary, btnSecondary, inputCls } from "../../../styles";
+import { CheckCircle, Paperclip, FileText } from "lucide-react";
 
 interface SigningStatus {
   hasCert: boolean;
@@ -114,9 +115,7 @@ export default function SigningSection({ appId, addToast }: Props) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
-              <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
               <div className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0]">
@@ -158,9 +157,7 @@ export default function SigningSection({ appId, addToast }: Props) {
                   className="flex items-center gap-3 px-3.5 py-[9px] rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] cursor-pointer hover:border-[#ea0e2b] transition-colors"
                   onClick={() => p12Ref.current?.click()}
                 >
-                  <svg className="w-4 h-4 text-[#9ca3af] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.112 2.13" />
-                  </svg>
+                  <Paperclip className="w-4 h-4 text-[#9ca3af] flex-shrink-0" />
                   <span className="text-[13px] text-[#9ca3af] dark:text-[#5c6478]">
                     {p12File ? p12File.name : "Choose .p12 file…"}
                   </span>
@@ -197,9 +194,7 @@ export default function SigningSection({ appId, addToast }: Props) {
                   className="flex items-center gap-3 px-3.5 py-[9px] rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] cursor-pointer hover:border-[#ea0e2b] transition-colors"
                   onClick={() => profileRef.current?.click()}
                 >
-                  <svg className="w-4 h-4 text-[#9ca3af] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                  </svg>
+                  <FileText className="w-4 h-4 text-[#9ca3af] flex-shrink-0" />
                   <span className="text-[13px] text-[#9ca3af] dark:text-[#5c6478]">
                     {profileFile ? profileFile.name : "Choose .mobileprovision file…"}
                   </span>

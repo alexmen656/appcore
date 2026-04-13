@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Check } from "lucide-react";
 import { authHeaders, setActiveBundleId } from "../hooks/useApi";
 import { inputCls, textareaCls, btnPrimary } from "../styles";
 import type { AscApp } from "../types";
@@ -26,17 +27,7 @@ function StepIndicator({ step }: { step: 1 | 2 }) {
           }`}
         >
           {step > 1 ? (
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-3 h-3"
-            >
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
+            <Check className="w-3 h-3" />
           ) : (
             "1"
           )}

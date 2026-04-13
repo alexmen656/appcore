@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { KeyRound } from "lucide-react";
 import { setToken } from "../hooks/useApi";
 import AuthHeader from "./comps/login/AuthHeader";
 import type { AuthUser } from "../types";
@@ -274,11 +275,5 @@ export default function Login({ onAuth }: Props) {
 }
 
 function PasskeyIcon({ className = "text-current", size = 18 }: { className?: string; size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <circle cx="8" cy="8" r="4" />
-      <path d="M14 8h6M17 5v6" />
-      <path d="M2 20c0-3 2.7-5 6-5s6 2 6 5" />
-    </svg>
-  );
+  return <KeyRound width={size} height={size} className={className} />;
 }

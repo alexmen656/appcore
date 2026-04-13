@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { RefreshCw } from "lucide-react";
 import { useApi, apiPost, getActiveBundleId } from "../hooks/useApi";
 import MetricsChart from "./comps/analytics/MetricsChart";
 import type { ChartMarker } from "./comps/analytics/MetricsChart";
@@ -286,18 +287,7 @@ export default function Analytics({ addToast }: Props) {
             </>
           ) : (
             <>
-              <svg
-                className="w-3.5 h-3.5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="23 4 23 10 17 10" />
-                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-              </svg>
+              <RefreshCw className="w-3.5 h-3.5" />
               Sync Now
             </>
           )}

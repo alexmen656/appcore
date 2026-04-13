@@ -8,6 +8,20 @@ import {
 } from "../hooks/useApi";
 import { cardCls, inputCls, textareaCls } from "../styles";
 import type { VersionsData, VersionLocalization } from "../types";
+import {
+  Send,
+  ChevronDown,
+  Upload,
+  RefreshCw,
+  RefreshCcw,
+  Check,
+  Store,
+  FileText,
+  Calendar,
+  AlertCircle,
+  Plus,
+  X,
+} from "lucide-react";
 
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
@@ -240,18 +254,7 @@ function ActionButton({
             </>
           ) : (
             <>
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-4 h-4"
-              >
-                <path d="M22 2L11 13" />
-                <path d="M22 2L15 22 11 13 2 9l20-7z" />
-              </svg>
+              <Send className="w-4 h-4" />
               Submit for Review
             </>
           )}
@@ -263,17 +266,7 @@ function ActionButton({
           className="px-2.5 rounded-r-xl bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="More actions"
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`}
-          >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
+          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
         </button>
         {open && (
           <div className="absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl shadow-lg py-1 min-w-[180px]">
@@ -284,19 +277,7 @@ function ActionButton({
               }}
               className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
             >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-4 h-4 text-[#6b7280] dark:text-[#8b93a5]"
-              >
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                <polyline points="17 8 12 3 7 8" />
-                <line x1="12" y1="3" x2="12" y2="15" />
-              </svg>
+              <Upload className="w-4 h-4 text-[#6b7280] dark:text-[#8b93a5]" />
               Push Metadata
             </button>
             <button
@@ -306,18 +287,7 @@ function ActionButton({
               }}
               className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
             >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-4 h-4 text-[#6b7280] dark:text-[#8b93a5]"
-              >
-                <polyline points="23 4 23 10 17 10" />
-                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-              </svg>
+              <RefreshCw className="w-4 h-4 text-[#6b7280] dark:text-[#8b93a5]" />
               Reload
             </button>
             <button
@@ -327,20 +297,7 @@ function ActionButton({
               }}
               className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
             >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-4 h-4 text-[#6b7280] dark:text-[#8b93a5]"
-              >
-                <polyline points="1 4 1 10 7 10" />
-                <polyline points="23 20 23 14 17 14" />
-                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10" />
-                <path d="M3.51 15a9 9 0 0 0 14.85 3.36L23 14" />
-              </svg>
+              <RefreshCcw className="w-4 h-4 text-[#6b7280] dark:text-[#8b93a5]" />
               Sync from App Store
             </button>
           </div>
@@ -362,19 +319,7 @@ function ActionButton({
           </>
         ) : (
           <>
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-4 h-4"
-            >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="17 8 12 3 7 8" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
+            <Upload className="w-4 h-4" />
             Push Metadata
           </>
         )}
@@ -386,17 +331,7 @@ function ActionButton({
         className="px-2.5 rounded-r-xl border border-l-0 border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-[#6b7280] dark:text-[#8b93a5] hover:border-[#ea0e2b] hover:text-[#ea0e2b] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         aria-label="More actions"
       >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`}
-        >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
+          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
         <div className="absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl shadow-lg py-1 min-w-[160px]">
@@ -407,18 +342,7 @@ function ActionButton({
             }}
             className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-4 h-4 text-[#6b7280] dark:text-[#8b93a5]"
-            >
-              <polyline points="23 4 23 10 17 10" />
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
-            </svg>
+            <RefreshCw className="w-4 h-4 text-[#6b7280] dark:text-[#8b93a5]" />
             Reload
           </button>
           <button
@@ -428,20 +352,7 @@ function ActionButton({
             }}
             className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="w-4 h-4 text-[#6b7280] dark:text-[#8b93a5]"
-            >
-              <polyline points="1 4 1 10 7 10" />
-              <polyline points="23 20 23 14 17 14" />
-              <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10" />
-              <path d="M3.51 15a9 9 0 0 0 14.85 3.36L23 14" />
-            </svg>
+            <RefreshCcw className="w-4 h-4 text-[#6b7280] dark:text-[#8b93a5]" />
             Sync from App Store
           </button>
         </div>
@@ -591,17 +502,7 @@ function EditableField({
                 </>
               ) : (
                 <>
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="w-3 h-3"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>{" "}
+                  <Check className="w-3 h-3" />{" "}
                   Save
                 </>
               )}
@@ -805,17 +706,7 @@ function LatestBuildCard({
             />
           ) : (
             <div className="w-14 h-14 rounded-[14px] bg-[#f3f4f6] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] flex items-center justify-center">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                className="w-6 h-6 text-[#9ca3af]"
-              >
-                <rect x="3" y="3" width="18" height="18" rx="4" />
-                <path d="M8 17l4-8 4 8" />
-                <path d="M9.5 14h5" />
-              </svg>
+              <Store className="w-6 h-6 text-[#9ca3af]" />
             </div>
           )}
         </div>
@@ -837,35 +728,11 @@ function LatestBuildCard({
 
           <div className="flex items-center gap-3 mt-2.5 flex-wrap">
             <span className="flex items-center gap-1 text-[12px] text-[#6b7280] dark:text-[#8b93a5]">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-3.5 h-3.5 shrink-0"
-              >
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-              </svg>
+              <FileText className="w-3.5 h-3.5 shrink-0" />
               {sizeMb} MB
             </span>
             <span className="flex items-center gap-1 text-[12px] text-[#6b7280] dark:text-[#8b93a5]">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-3.5 h-3.5"
-              >
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                <line x1="16" y1="2" x2="16" y2="6" />
-                <line x1="8" y1="2" x2="8" y2="6" />
-                <line x1="3" y1="10" x2="21" y2="10" />
-              </svg>
+              <Calendar className="w-3.5 h-3.5" />
               {builtDate}
             </span>
           </div>
@@ -1291,16 +1158,7 @@ export default function Versions({ addToast }: Props) {
   if (!versionId) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3 text-gray-400 dark:text-[#5c6478]">
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          className="w-10 h-10 text-gray-300 dark:text-[#2a2f3d]"
-        >
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-          <polyline points="14 2 14 8 20 8" />
-        </svg>
+        <FileText className="w-10 h-10 text-gray-300 dark:text-[#2a2f3d]" />
         <p className="text-sm">Select a version from the sidebar</p>
       </div>
     );
@@ -1317,17 +1175,7 @@ export default function Versions({ addToast }: Props) {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3 text-gray-400 dark:text-[#5c6478]">
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          className="w-8 h-8 text-red-300"
-        >
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="8" x2="12" y2="12" />
-          <line x1="12" y1="16" x2="12.01" y2="16" />
-        </svg>
+        <AlertCircle className="w-8 h-8 text-red-300" />
         <p className="text-sm">{error}</p>
         <button
           onClick={refetch}
@@ -1497,14 +1345,7 @@ export default function Versions({ addToast }: Props) {
                     {removingLocale === loc.locale ? (
                       <div className="spinner !w-2.5 !h-2.5" />
                     ) : (
-                      <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                        <path
-                          d="M1 1l6 6M7 1L1 7"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                        />
-                      </svg>
+                      <X className="w-2 h-2" />
                     )}
                   </button>
                 )}
@@ -1521,18 +1362,7 @@ export default function Versions({ addToast }: Props) {
                 {addingLocale ? (
                   <div className="spinner !w-3.5 !h-3.5" />
                 ) : (
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="w-3.5 h-3.5"
-                  >
-                    <line x1="12" y1="5" x2="12" y2="19" />
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                  </svg>
+                  <Plus className="w-3.5 h-3.5" />
                 )}
                 Add Language
               </button>
@@ -1658,18 +1488,7 @@ export default function Versions({ addToast }: Props) {
         <div
           className={`${cardCls} flex flex-col items-center justify-center py-12 text-center`}
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            className="w-10 h-10 text-gray-300 mb-3"
-          >
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-            <line x1="16" y1="13" x2="8" y2="13" />
-            <line x1="16" y1="17" x2="8" y2="17" />
-          </svg>
+          <FileText className="w-10 h-10 text-gray-300 mb-3" />
           <p className="text-sm text-[#9ca3af] dark:text-[#5c6478]">
             No localizations found for this version.
           </p>
