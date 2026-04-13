@@ -50,11 +50,13 @@ export default function App() {
   };
   return (
     <div className="flex h-screen">
-      {/* Sidebar */}
       <aside className="w-64 border-r bg-card flex flex-col">
-        <div className="p-4 border-b">
-          <h2 className="font-bold text-lg">Marteso Admin</h2>
-          <p className="text-xs text-muted-foreground">System Administration</p>
+        <div className="p-4 border-b flex items-center gap-3">
+          <img src="/admin/logo.svg" alt="Marteso" className="h-9 w-9 shrink-0" />
+          <div>
+            <h2 className="font-bold text-base leading-tight">Marteso Admin</h2>
+            <p className="text-xs text-muted-foreground">System Administration</p>
+          </div>
         </div>
         <nav className="flex-1 overflow-y-auto p-3 space-y-4">
           <div>
@@ -107,7 +109,6 @@ export default function App() {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
         <div className="p-6">
           <Routes>

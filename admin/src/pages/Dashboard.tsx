@@ -1,9 +1,46 @@
 import { useAdminApi } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Users, Building, Smartphone, Search, BarChart3, Star,
-  Image, Hammer, Key, Bell, Activity
+  Users,
+  Building,
+  Smartphone,
+  Search,
+  BarChart3,
+  Star,
+  Image,
+  Hammer,
+  Key,
+  Bell,
+  Activity,
 } from "lucide-react";
+import {
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
+
+interface ChartPoint {
+  date: string;
+  count: number;
+}
+interface StatusPoint {
+  status: string;
+  count: number;
+}
+interface TypePoint {
+  type: string;
+  count: number;
+}
 
 interface DashboardStats {
   users: number;
@@ -17,46 +54,290 @@ interface DashboardStats {
   oauthClients: number;
   deviceTokens: number;
   analytics: number;
+  charts?: {
+    usersOverTime: ChartPoint[];
+    appsOverTime: ChartPoint[];
+    jobStatus: StatusPoint[];
+    suggestionTypes: TypePoint[];
+  };
 }
 
-const statCards: { key: keyof DashboardStats; label: string; icon: React.ReactNode; color: string }[] = [
-  { key: "users", label: "Users", icon: <Users className="h-4 w-4" />, color: "text-blue-600" },
-  { key: "teams", label: "Teams", icon: <Building className="h-4 w-4" />, color: "text-purple-600" },
-  { key: "apps", label: "Apps", icon: <Smartphone className="h-4 w-4" />, color: "text-green-600" },
-  { key: "keywords", label: "Keywords", icon: <Search className="h-4 w-4" />, color: "text-orange-600" },
-  { key: "suggestions", label: "ASO Suggestions", icon: <Activity className="h-4 w-4" />, color: "text-cyan-600" },
-  { key: "reviews", label: "Reviews", icon: <Star className="h-4 w-4" />, color: "text-yellow-600" },
-  { key: "screenshotJobs", label: "Screenshot Jobs", icon: <Image className="h-4 w-4" />, color: "text-pink-600" },
-  { key: "buildJobs", label: "Build Jobs", icon: <Hammer className="h-4 w-4" />, color: "text-red-600" },
-  { key: "oauthClients", label: "OAuth Clients", icon: <Key className="h-4 w-4" />, color: "text-indigo-600" },
-  { key: "deviceTokens", label: "Device Tokens", icon: <Bell className="h-4 w-4" />, color: "text-teal-600" },
-  { key: "analytics", label: "Analytics Records", icon: <BarChart3 className="h-4 w-4" />, color: "text-emerald-600" },
+const BRAND = "#FF6B00";
+const BRAND2 = "#CC0022";
+const PIE_COLORS = [
+  "#FF6B00",
+  "#CC0022",
+  "#f97316",
+  "#ec4899",
+  "#8b5cf6",
+  "#06b6d4",
+];
+
+const statCards = [
+  {
+    key: "users" as const,
+    label: "Users",
+    icon: <Users className="h-4 w-4" />,
+    color: "text-blue-600",
+  },
+  {
+    key: "teams" as const,
+    label: "Teams",
+    icon: <Building className="h-4 w-4" />,
+    color: "text-purple-600",
+  },
+  {
+    key: "apps" as const,
+    label: "Apps",
+    icon: <Smartphone className="h-4 w-4" />,
+    color: "text-green-600",
+  },
+  {
+    key: "keywords" as const,
+    label: "Keywords",
+    icon: <Search className="h-4 w-4" />,
+    color: "text-orange-600",
+  },
+  {
+    key: "suggestions" as const,
+    label: "ASO Suggestions",
+    icon: <Activity className="h-4 w-4" />,
+    color: "text-cyan-600",
+  },
+  {
+    key: "reviews" as const,
+    label: "Reviews",
+    icon: <Star className="h-4 w-4" />,
+    color: "text-yellow-600",
+  },
+  {
+    key: "screenshotJobs" as const,
+    label: "Screenshot Jobs",
+    icon: <Image className="h-4 w-4" />,
+    color: "text-pink-600",
+  },
+  {
+    key: "buildJobs" as const,
+    label: "Build Jobs",
+    icon: <Hammer className="h-4 w-4" />,
+    color: "text-red-600",
+  },
+  {
+    key: "oauthClients" as const,
+    label: "OAuth Clients",
+    icon: <Key className="h-4 w-4" />,
+    color: "text-indigo-600",
+  },
+  {
+    key: "deviceTokens" as const,
+    label: "Device Tokens",
+    icon: <Bell className="h-4 w-4" />,
+    color: "text-teal-600",
+  },
+  {
+    key: "analytics" as const,
+    label: "Analytics Records",
+    icon: <BarChart3 className="h-4 w-4" />,
+    color: "text-emerald-600",
+  },
 ];
 
 export default function Dashboard() {
   const { data: stats, loading } = useAdminApi<DashboardStats>("/dashboard");
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Systemübersicht — alle Daten auf einen Blick
+        </p>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {statCards.map((stat) => (
-          <Card key={stat.key}>
+          <Card key={stat.key} className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{stat.label}</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {stat.label}
+              </CardTitle>
               <span className={stat.color}>{stat.icon}</span>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-3xl font-bold">
                 {loading ? (
-                  <span className="text-muted-foreground">…</span>
+                  <span className="text-muted-foreground text-lg">…</span>
                 ) : (
-                  stats?.[stat.key]?.toLocaleString() ?? 0
+                  (stats?.[stat.key]?.toLocaleString("de-DE") ?? 0)
                 )}
               </div>
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              Neue User (letzte 30 Tage)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading || !stats?.charts?.usersOverTime?.length ? (
+              <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">
+                {loading ? "Lade…" : "Keine Daten"}
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={200}>
+                <AreaChart data={stats.charts.usersOverTime}>
+                  <defs>
+                    <linearGradient id="userGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={BRAND} stopOpacity={0.3} />
+                      <stop offset="95%" stopColor={BRAND} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(v) => v.slice(5)}
+                  />
+                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                  <Tooltip
+                    formatter={(v) => [v, "User"]}
+                    labelFormatter={(l) => `Datum: ${l}`}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="count"
+                    stroke={BRAND}
+                    fill="url(#userGrad)"
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              Neue Apps (letzte 30 Tage)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading || !stats?.charts?.appsOverTime?.length ? (
+              <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">
+                {loading ? "Lade…" : "Keine Daten"}
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={200}>
+                <AreaChart data={stats.charts.appsOverTime}>
+                  <defs>
+                    <linearGradient id="appGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={BRAND2} stopOpacity={0.3} />
+                      <stop offset="95%" stopColor={BRAND2} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(v) => v.slice(5)}
+                  />
+                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                  <Tooltip
+                    formatter={(v) => [v, "Apps"]}
+                    labelFormatter={(l) => `Datum: ${l}`}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="count"
+                    stroke={BRAND2}
+                    fill="url(#appGrad)"
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">ASO Suggestion Typen</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading || !stats?.charts?.suggestionTypes?.length ? (
+              <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">
+                {loading ? "Lade…" : "Keine Daten"}
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={stats.charts.suggestionTypes} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis
+                    type="number"
+                    tick={{ fontSize: 11 }}
+                    allowDecimals={false}
+                  />
+                  <YAxis
+                    dataKey="type"
+                    type="category"
+                    tick={{ fontSize: 11 }}
+                    width={100}
+                  />
+                  <Tooltip />
+                  <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                    {stats.charts.suggestionTypes.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Job Status Übersicht</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading || !stats?.charts?.jobStatus?.length ? (
+              <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">
+                {loading ? "Lade…" : "Keine Daten"}
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={stats.charts.jobStatus}
+                    dataKey="count"
+                    nameKey="status"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={75}
+                    label={({ status, percent }) =>
+                      `${status.replace("build_", "B:")} ${(percent * 100).toFixed(0)}%`
+                    }
+                    labelLine={false}
+                  >
+                    {stats.charts.jobStatus.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(v, n) => [v, String(n)]} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

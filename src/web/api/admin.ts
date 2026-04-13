@@ -2,6 +2,10 @@ import { Router, Request, Response, NextFunction } from "express";
 import { prisma } from "../../config";
 import { requireAuth } from "../auth";
 
+(BigInt.prototype as any).toJSON = function () {
+  return Number(this);
+};
+
 const router = Router();
 
 function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
@@ -80,6 +84,9 @@ const searchFields: Record<string, string[]> = {
 };
 
 router.get("/dashboard", async (_req: Request, res: Response) => {
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
   const [
     users,
     teams,
@@ -92,6 +99,10 @@ router.get("/dashboard", async (_req: Request, res: Response) => {
     oauthClients,
     deviceTokens,
     analytics,
+    recentUsers,
+    recentApps,
+    jobStatusCounts,
+    suggestionTypeCounts,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.team.count(),
@@ -104,7 +115,35 @@ router.get("/dashboard", async (_req: Request, res: Response) => {
     prisma.oAuthClient.count(),
     prisma.deviceToken.count(),
     prisma.appStoreAnalytics.count(),
+    prisma.$queryRaw<{ day: Date; count: number }[]>`
+      SELECT DATE_TRUNC('day', "createdAt") as day, COUNT(*)::int as count
+      FROM "User"
+      WHERE "createdAt" >= ${thirtyDaysAgo}
+      GROUP BY day ORDER BY day ASC
+    `,
+    prisma.$queryRaw<{ day: Date; count: number }[]>`
+      SELECT DATE_TRUNC('day', "createdAt") as day, COUNT(*)::int as count
+      FROM "App"
+      WHERE "createdAt" >= ${thirtyDaysAgo}
+      GROUP BY day ORDER BY day ASC
+    `,
+    prisma.$queryRaw<{ status: string; count: number }[]>`
+      SELECT status::text, COUNT(*)::int as count FROM "ScreenshotJob" GROUP BY status
+      UNION ALL
+      SELECT CONCAT('build_', status::text), COUNT(*)::int FROM "BuildJob" GROUP BY status
+    `,
+    prisma.$queryRaw<{ type: string; count: number }[]>`
+      SELECT type::text, COUNT(*)::int as count FROM "ASOSuggestion" GROUP BY type ORDER BY count DESC
+    `,
   ]);
+
+  const toChartData = (rows: { day: Date | string; count: number }[]) =>
+    rows.map((r) => ({
+      date: (r.day instanceof Date ? r.day : new Date(r.day as string))
+        .toISOString()
+        .split("T")[0],
+      count: Number(r.count),
+    }));
 
   res.json({
     users,
@@ -118,6 +157,18 @@ router.get("/dashboard", async (_req: Request, res: Response) => {
     oauthClients,
     deviceTokens,
     analytics,
+    charts: {
+      usersOverTime: toChartData(recentUsers),
+      appsOverTime: toChartData(recentApps),
+      jobStatus: jobStatusCounts.map((r) => ({
+        status: r.status,
+        count: Number(r.count),
+      })),
+      suggestionTypes: suggestionTypeCounts.map((r) => ({
+        type: r.type,
+        count: Number(r.count),
+      })),
+    },
   });
 });
 
