@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "dev": "concurrently \"tsx watch src/web/server.ts\" \"cd web && npx vite\" \"cd landing && npm run dev\" \"cd docs-site && npm start -- --port 3030\"",
+    "dev": "concurrently \"tsx watch src/web/server.ts\" \"cd web && npx vite\" \"cd landing && npm run dev\" \"cd docs-site && npm start -- --port 3030\" \"cd admin && npm run dev\"",
     "start": "tsx src/web/server.ts",
     "worker": "cd worker && tsx src/server.ts",
     "web:build": "cd web && npx vite build",
