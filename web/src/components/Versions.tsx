@@ -202,6 +202,7 @@ function ActionButton({
   onSubmitForReview,
   onPushMetadata,
   onRefetch,
+  onSync,
 }: {
   canSubmitForReview: boolean;
   submitting: string | null;
@@ -209,6 +210,7 @@ function ActionButton({
   onSubmitForReview: () => void;
   onPushMetadata: () => void;
   onRefetch: () => void;
+  onSync: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -318,6 +320,29 @@ function ActionButton({
               </svg>
               Reload
             </button>
+            <button
+              onClick={() => {
+                setOpen(false);
+                onSync();
+              }}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-4 h-4 text-[#6b7280] dark:text-[#8b93a5]"
+              >
+                <polyline points="1 4 1 10 7 10" />
+                <polyline points="23 20 23 14 17 14" />
+                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10" />
+                <path d="M3.51 15a9 9 0 0 0 14.85 3.36L23 14" />
+              </svg>
+              Sync from App Store
+            </button>
           </div>
         )}
       </div>
@@ -395,6 +420,29 @@ function ActionButton({
               <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
             </svg>
             Reload
+          </button>
+          <button
+            onClick={() => {
+              setOpen(false);
+              onSync();
+            }}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-4 h-4 text-[#6b7280] dark:text-[#8b93a5]"
+            >
+              <polyline points="1 4 1 10 7 10" />
+              <polyline points="23 20 23 14 17 14" />
+              <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10" />
+              <path d="M3.51 15a9 9 0 0 0 14.85 3.36L23 14" />
+            </svg>
+            Sync from App Store
           </button>
         </div>
       )}
@@ -1039,6 +1087,17 @@ export default function Versions({ addToast }: Props) {
     }
   };
 
+  const syncFromAppStore = async () => {
+    try {
+      const res = await apiPost("/actions/sync", {
+        bundleId: getActiveBundleId(),
+      });
+      addToast(res.message || "Sync started", "success");
+    } catch (e: any) {
+      addToast(e.message, "error");
+    }
+  };
+
   useEffect(() => {
     if (!showAddLocale) return;
     const handler = (e: MouseEvent) => {
@@ -1318,6 +1377,7 @@ export default function Versions({ addToast }: Props) {
             onSubmitForReview={submitForReview}
             onPushMetadata={submitMetadata}
             onRefetch={refetch}
+            onSync={syncFromAppStore}
           />
         </div>
       </div>
