@@ -1,4 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../../config";
 import { requireAuth } from "../auth";
 
@@ -170,6 +171,83 @@ router.get("/dashboard", async (_req: Request, res: Response) => {
       })),
     },
   });
+});
+
+const VALID_QUEUES = [
+  "scrape", "track-keywords", "sync-analytics", "extract-keywords",
+  "discover-keywords", "discover-competitors", "analyze",
+  "sync-metadata", "competitor-intel",
+];
+
+router.get("/boss/jobs", async (req: Request, res: Response) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 100, 500);
+    const queue = typeof req.query.queue === "string" ? req.query.queue : null;
+    const state = typeof req.query.state === "string" ? req.query.state : null;
+
+    let sql = `
+      SELECT id::text, name, state::text, data, output,
+             retry_count, created_on, started_on, completed_on
+      FROM pgboss.job
+      WHERE name NOT LIKE '%/dispatch'
+    `;
+    const params: any[] = [];
+
+    if (queue && VALID_QUEUES.includes(queue)) {
+      params.push(queue);
+      sql += ` AND name = $${params.length}`;
+    }
+    if (state) {
+      params.push(state);
+      sql += ` AND state::text = $${params.length}`;
+    }
+    sql += ` ORDER BY created_on DESC LIMIT $${params.length + 1}`;
+    params.push(limit);
+
+    const rows = await prisma.$queryRawUnsafe(sql, ...params);
+    res.json(rows);
+  } catch (err: any) {
+    const code = err?.meta?.driverAdapterError?.cause?.originalCode;
+    if (code === "42P01" || code === "3F000") return res.json([]);
+    res.status(500).json({ error: "Failed to query pg-boss jobs" });
+  }
+});
+
+router.get("/boss/queues", async (_req: Request, res: Response) => {
+  try {
+    const rows = await prisma.$queryRaw<{ name: string; created_on: Date }[]>`
+      SELECT name, created_on FROM pgboss.queue ORDER BY name ASC
+    `;
+    res.json(rows);
+  } catch {
+    res.json([]);
+  }
+});
+
+router.get("/boss/schedules", async (_req: Request, res: Response) => {
+  try {
+    const rows = await prisma.$queryRaw<{ name: string; cron: string; timezone: string; updated_on: Date }[]>`
+      SELECT name, cron, timezone, updated_on FROM pgboss.schedule ORDER BY name ASC
+    `;
+    res.json(rows);
+  } catch {
+    res.json([]);
+  }
+});
+
+router.get("/boss/stats", async (_req: Request, res: Response) => {
+  try {
+    const rows = await prisma.$queryRaw<{ name: string; state: string; count: number }[]>`
+      SELECT name, state::text, COUNT(*)::int as count
+      FROM pgboss.job
+      WHERE name NOT LIKE '%/dispatch'
+      GROUP BY name, state
+      ORDER BY name, state
+    `;
+    res.json(rows);
+  } catch {
+    res.json([]);
+  }
 });
 
 router.get("/:model", async (req: Request, res: Response) => {

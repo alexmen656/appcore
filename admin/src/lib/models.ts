@@ -1,4 +1,3 @@
-// Model definitions for the admin CRUD views
 export interface ModelField {
   name: string;
   type: "string" | "number" | "boolean" | "date" | "json" | "enum" | "relation";
@@ -7,7 +6,7 @@ export interface ModelField {
   enumValues?: string[];
   relationModel?: string;
   isArray?: boolean;
-  hidden?: boolean; // hide from table view
+  hidden?: boolean;
 }
 
 export interface ModelConfig {
@@ -16,7 +15,7 @@ export interface ModelConfig {
   apiPath: string;
   icon: string;
   fields: ModelField[];
-  displayField: string; // field to use as display name
+  displayField: string;
   category: string;
 }
 
@@ -336,7 +335,7 @@ export const modelConfigs: ModelConfig[] = [
     plural: "Screenshot Jobs",
     apiPath: "screenshotJob",
     icon: "image",
-    category: "Jobs",
+    category: "Jobs (2)",
     displayField: "commitSha",
     fields: [
       { name: "id", type: "string", editable: false },
@@ -356,7 +355,7 @@ export const modelConfigs: ModelConfig[] = [
     plural: "Build Jobs",
     apiPath: "buildJob",
     icon: "hammer",
-    category: "Jobs",
+    category: "Jobs (2)",
     displayField: "id",
     fields: [
       { name: "id", type: "string", editable: false },

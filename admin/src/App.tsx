@@ -5,11 +5,12 @@ import { getToken, clearToken } from "@/lib/api";
 import Dashboard from "@/pages/Dashboard";
 import ModelCrud from "@/pages/ModelCrud";
 import LoginPage from "@/pages/Login";
+import BossJobs from "@/pages/BossJobs";
 import {
   LayoutDashboard, Users, Building, UserCheck, Mail, Settings,
   Smartphone, Camera, Search, TrendingUp, Lightbulb, FlaskConical,
   Swords, BarChart3, Star, MessageSquare, FileDiff, Image,
-  Hammer, Key, Bell, Send, Fingerprint,
+  Hammer, Key, Bell, Send, Fingerprint, BriefcaseBusiness,
 } from "lucide-react";
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -74,6 +75,23 @@ export default function App() {
             </NavLink>
           </div>
 
+          <div>
+            <h3 className="px-3 mb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Jobs
+            </h3>
+            <NavLink
+              to="/jobs"
+              className={({ isActive }) =>
+                `flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors ${
+                  isActive ? "bg-primary text-primary-foreground" : "hover:bg-accent"
+                }`
+              }
+            >
+              <BriefcaseBusiness className="h-4 w-4" />
+              pg-boss Jobs
+            </NavLink>
+          </div>
+
           {modelCategories.map((category) => (
             <div key={category}>
               <h3 className="px-3 mb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -113,6 +131,7 @@ export default function App() {
         <div className="p-6">
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/jobs" element={<BossJobs />} />
             <Route path="/models/:model" element={<ModelCrud />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

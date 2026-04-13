@@ -322,8 +322,8 @@ export default function Dashboard() {
                     cx="50%"
                     cy="50%"
                     outerRadius={75}
-                    label={({ status, percent }) =>
-                      `${status.replace("build_", "B:")} ${(percent * 100).toFixed(0)}%`
+                    label={({ name, percent }) =>
+                      `${String(name).replace("build_", "B:")} ${((percent ?? 0) * 100).toFixed(0)}%`
                     }
                     labelLine={false}
                   >
