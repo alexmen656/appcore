@@ -14,9 +14,8 @@ export async function handler([job]: Job<CompetitorIntelData>[]): Promise<void> 
   logger.info(`[BOSS] Starting "${QUEUE_NAME}" job ${id} for ${bundleId}…`);
 
   const settings = await getEffectiveSettingsForTeam(teamId);
-  const intel = new CompetitorIntelService(settings);
-  const result = await intel.runFullIntelJob(bundleId);
-  
+  const result = await new CompetitorIntelService(settings).runFullIntelJob(bundleId);
+
   logger.info(`[BOSS] Competitor intel for ${bundleId} complete`, result);
   logger.info(`[BOSS] "${QUEUE_NAME}" job ${id} completed`);
 }

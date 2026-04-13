@@ -24,9 +24,8 @@ export async function handler([job]: Job<DiscoverCompetitorsData>[]): Promise<vo
   }
 
   const searchTerms = keywords.map((k) => k.term);
-  const scraper = new AppStoreScraper(country, undefined, bundleId);
-  const ids = await scraper.discoverCompetitors(searchTerms, bundleId, 4);
-  
+  const ids = await new AppStoreScraper(country, undefined, bundleId).discoverCompetitors(searchTerms, bundleId, 4);
+
   logger.info(
     `[BOSS] Competitor discovery for ${bundleId} complete: ${ids.length} new competitors found`,
   );
