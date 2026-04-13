@@ -117,31 +117,6 @@ if (process.env.NODE_ENV === "production") {
   });
 }
 
-const ADMIN_PORT = process.env.ADMIN_PORT ?? 3200;
-app.use("/admin", (req, res) => {
-  const proxyReq = http.request(
-    {
-      hostname: "localhost",
-      port: Number(ADMIN_PORT),
-      path: "/admin" + req.url,
-      method: req.method,
-      headers: { ...req.headers, host: `localhost:${ADMIN_PORT}` },
-    },
-    (proxyRes) => {
-      res.writeHead(proxyRes.statusCode ?? 200, proxyRes.headers);
-      proxyRes.pipe(res);
-    },
-  );
-  req.pipe(proxyReq);
-  proxyReq.on("error", () => {
-    res
-      .status(502)
-      .send(
-        "Admin server not running — cd admin && npm run dev",
-      );
-  });
-});
-
 app.get("/app/logo.svg", (_req, res) =>
   res.sendFile(path.join(landingPublic, "logo.svg")),
 );
@@ -150,7 +125,7 @@ if (process.env.NODE_ENV === "production") {
   app.use(express.static(landingDist));
 } else {
   app.use((req, res, next) => {
-    if (req.path.startsWith("/api") || req.path.startsWith("/app") || req.path.startsWith("/admin")) {
+    if (req.path.startsWith("/api") || req.path.startsWith("/app")) {
       return next();
     }
     const proxyReq = http.request(
