@@ -24,6 +24,7 @@ import pushRouter from "./api/push";
 import { autonomousRouter } from "./api/autonomous";
 import { teamRouter } from "./api/team";
 import { searchRouter } from "./api/search";
+import { adminRouter } from "./api/admin";
 import { notificationService } from "../services/notifications/notification.js";
 import { initScheduler as initASOScheduler } from "../autonomous";
 import fs from "fs";
@@ -52,6 +53,7 @@ app.use("/api/push", requireAuth, pushRouter);
 app.use("/api/autonomous", requireAuth, autonomousRouter);
 app.use("/api/team", teamRouter);
 app.use("/api/search", requireAuth, searchRouter);
+app.use("/api/admin", adminRouter);
 app.use("/oauth", oauthRouter);
 
 app.get("/.well-known/oauth-protected-resource", (req, res) => {
@@ -84,6 +86,7 @@ const landingDist = path.join(process.cwd(), "landing/dist");
 const landingPublic = path.join(process.cwd(), "landing/public");
 const ASTRO_PORT = 4321;
 const DOCS_PORT = 3030;
+const ADMIN_PORT = 5174;
 
 const docsDist = path.join(process.cwd(), "docs/build");
 if (process.env.NODE_ENV === "production") {
@@ -125,7 +128,7 @@ if (process.env.NODE_ENV === "production") {
   app.use(express.static(landingDist));
 } else {
   app.use((req, res, next) => {
-    if (req.path.startsWith("/api") || req.path.startsWith("/app")) {
+    if (req.path.startsWith("/api") || req.path.startsWith("/app") || req.path.startsWith("/admin")) {
       return next();
     }
     const proxyReq = http.request(
@@ -146,6 +149,34 @@ if (process.env.NODE_ENV === "production") {
       res
         .status(502)
         .send("Astro dev server not running — cd landing && npm run dev");
+    });
+  });
+}
+
+const adminDist = path.join(__dirname, "../../admin/dist");
+if (process.env.NODE_ENV === "production") {
+  app.use("/admin", express.static(adminDist));
+  app.get("/admin/*", (_req, res) => {
+    res.sendFile(path.join(adminDist, "index.html"));
+  });
+} else {
+  app.use("/admin", (req, res) => {
+    const proxyReq = http.request(
+      {
+        hostname: "localhost",
+        port: ADMIN_PORT,
+        path: "/admin" + req.url,
+        method: req.method,
+        headers: { ...req.headers, host: `localhost:${ADMIN_PORT}` },
+      },
+      (proxyRes) => {
+        res.writeHead(proxyRes.statusCode ?? 200, proxyRes.headers);
+        proxyRes.pipe(res);
+      },
+    );
+    req.pipe(proxyReq);
+    proxyReq.on("error", () => {
+      res.status(502).send("Admin dev server not running — cd admin && npm run dev");
     });
   });
 }

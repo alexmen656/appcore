@@ -5,10 +5,12 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "dev": "concurrently \"tsx watch src/web/server.ts\" \"cd web && npx vite\" \"cd landing && npm run dev\" \"cd docs-site && npm start -- --port 3030\"",
+    "dev": "concurrently \"tsx watch src/web/server.ts\" \"cd web && npx vite\" \"cd admin && npx vite\" \"cd landing && npm run dev\" \"cd docs-site && npm start -- --port 3030\"",
     "start": "tsx src/web/server.ts",
     "worker": "cd worker && tsx src/server.ts",
     "web:build": "cd web && npx vite build",
+    "admin:build": "cd admin && npx vite build",
+    "admin:dev": "cd admin && npx vite",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",

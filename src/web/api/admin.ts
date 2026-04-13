@@ -1,0 +1,213 @@
+import { Router, Request, Response, NextFunction } from "express";
+import { prisma } from "../../config";
+import { requireAuth } from "../auth";
+
+const router = Router();
+
+function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
+  if (!req.user || req.user.role !== "ADMIN") {
+    res.status(403).json({ error: "Forbidden: Admin access required" });
+    return;
+  }
+  next();
+}
+
+router.use(requireAuth);
+router.use(requireSuperAdmin);
+
+type PrismaDelegate = {
+  findMany: (args: any) => Promise<any[]>;
+  count: (args?: any) => Promise<number>;
+  findUnique: (args: any) => Promise<any>;
+  create: (args: any) => Promise<any>;
+  update: (args: any) => Promise<any>;
+  delete: (args: any) => Promise<any>;
+};
+
+function getModel(name: string): PrismaDelegate | null {
+  const models: Record<string, PrismaDelegate> = {
+    user: prisma.user,
+    team: prisma.team,
+    teamMember: prisma.teamMember,
+    teamInvite: prisma.teamInvite,
+    teamSettings: prisma.teamSettings,
+    app: prisma.app,
+    appSnapshot: prisma.appSnapshot,
+    keyword: prisma.keyword,
+    keywordRanking: prisma.keywordRanking,
+    asoSuggestion: prisma.aSOSuggestion,
+    asoExperiment: prisma.asoExperiment,
+    competitorRelation: prisma.competitorRelation,
+    appStoreAnalytics: prisma.appStoreAnalytics,
+    appReview: prisma.appReview,
+    competitorReview: prisma.competitorReview,
+    competitorReviewSummary: prisma.competitorReviewSummary,
+    appMetadataChange: prisma.appMetadataChange,
+    screenshotJob: prisma.screenshotJob,
+    buildJob: prisma.buildJob,
+    oauthClient: prisma.oAuthClient,
+    deviceToken: prisma.deviceToken,
+    pushNotificationLog: prisma.pushNotificationLog,
+    passkeyCredential: prisma.passkeyCredential,
+  };
+  return models[name] ?? null;
+}
+
+const searchFields: Record<string, string[]> = {
+  user: ["email", "name"],
+  team: ["name"],
+  teamMember: ["teamId", "userId"],
+  teamInvite: ["email"],
+  teamSettings: ["teamId"],
+  app: ["bundleId", "name", "currentTitle"],
+  appSnapshot: ["title", "subtitle", "developerName"],
+  keyword: ["term"],
+  keywordRanking: ["keywordId", "appId"],
+  asoSuggestion: ["appBundleId", "aiProvider", "aiModel"],
+  asoExperiment: ["appId"],
+  competitorRelation: ["appId", "competitorId"],
+  appStoreAnalytics: ["bundleId", "country"],
+  appReview: ["bundleId", "title", "reviewerNickname"],
+  competitorReview: ["appId", "title", "author"],
+  competitorReviewSummary: ["appId", "sentiment"],
+  appMetadataChange: ["appId", "field"],
+  screenshotJob: ["appId", "commitSha", "branch"],
+  buildJob: ["appId", "branch", "commitSha"],
+  oauthClient: ["name", "clientId"],
+  deviceToken: ["token", "userId", "bundleId"],
+  pushNotificationLog: ["title", "deviceToken"],
+  passkeyCredential: ["userId", "name"],
+};
+
+router.get("/dashboard", async (_req: Request, res: Response) => {
+  const [
+    users,
+    teams,
+    apps,
+    keywords,
+    suggestions,
+    reviews,
+    screenshotJobs,
+    buildJobs,
+    oauthClients,
+    deviceTokens,
+    analytics,
+  ] = await Promise.all([
+    prisma.user.count(),
+    prisma.team.count(),
+    prisma.app.count(),
+    prisma.keyword.count(),
+    prisma.aSOSuggestion.count(),
+    prisma.appReview.count(),
+    prisma.screenshotJob.count(),
+    prisma.buildJob.count(),
+    prisma.oAuthClient.count(),
+    prisma.deviceToken.count(),
+    prisma.appStoreAnalytics.count(),
+  ]);
+
+  res.json({
+    users,
+    teams,
+    apps,
+    keywords,
+    suggestions,
+    reviews,
+    screenshotJobs,
+    buildJobs,
+    oauthClients,
+    deviceTokens,
+    analytics,
+  });
+});
+
+router.get("/:model", async (req: Request, res: Response) => {
+  const modelName = req.params.model as string;
+  const delegate = getModel(modelName);
+  if (!delegate) {
+    res.status(404).json({ error: "Model not found" });
+    return;
+  }
+
+  const page = Math.max(1, parseInt(req.query.page as string) || 1);
+  const pageSize = Math.min(
+    100,
+    Math.max(1, parseInt(req.query.pageSize as string) || 25),
+  );
+  const search =
+    typeof req.query.search === "string" ? req.query.search.trim() : "";
+  const skip = (page - 1) * pageSize;
+
+  let where: any = {};
+  if (search && searchFields[modelName]) {
+    where = {
+      OR: searchFields[modelName].map((field) => ({
+        [field]: { contains: search, mode: "insensitive" },
+      })),
+    };
+  }
+
+  const [data, total] = await Promise.all([
+    delegate
+      .findMany({ where, skip, take: pageSize, orderBy: { createdAt: "desc" } })
+      .catch(() => delegate.findMany({ where, skip, take: pageSize })),
+    delegate.count({ where }),
+  ]);
+
+  res.json({ data, total, page, pageSize });
+});
+
+router.get("/:model/:id", async (req: Request, res: Response) => {
+  const delegate = getModel(req.params.model as string);
+  if (!delegate) {
+    res.status(404).json({ error: "Model not found" });
+    return;
+  }
+
+  const record = await delegate.findUnique({
+    where: { id: req.params.id as string },
+  });
+  if (!record) {
+    res.status(404).json({ error: "Record not found" });
+    return;
+  }
+  res.json(record);
+});
+
+router.post("/:model", async (req: Request, res: Response) => {
+  const delegate = getModel(req.params.model as string);
+  if (!delegate) {
+    res.status(404).json({ error: "Model not found" });
+    return;
+  }
+
+  const record = await delegate.create({ data: req.body });
+  res.status(201).json(record);
+});
+
+router.put("/:model/:id", async (req: Request, res: Response) => {
+  const delegate = getModel(req.params.model as string);
+  if (!delegate) {
+    res.status(404).json({ error: "Model not found" });
+    return;
+  }
+
+  const record = await delegate.update({
+    where: { id: req.params.id as string },
+    data: req.body,
+  });
+  res.json(record);
+});
+
+router.delete("/:model/:id", async (req: Request, res: Response) => {
+  const delegate = getModel(req.params.model as string);
+  if (!delegate) {
+    res.status(404).json({ error: "Model not found" });
+    return;
+  }
+
+  await delegate.delete({ where: { id: req.params.id as string } });
+  res.json({ ok: true });
+});
+
+export { router as adminRouter };
