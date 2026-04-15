@@ -361,7 +361,6 @@ export class FastlaneService {
 
     const allLocales = new Set<string>();
     for (const vl of versionLocalizations) allLocales.add(vl.attributes.locale);
-    for (const ai of appInfoLocalizations) allLocales.add(ai.attributes.locale);
 
     logger.info(
       `[Fastlane] Preparing metadata for ${allLocales.size} locale(s): ${[...allLocales].join(", ")}`,

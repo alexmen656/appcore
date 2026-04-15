@@ -147,9 +147,16 @@ class FastlaneWorkerClient {
   }
 
   async deliver(params: WorkerDeliverParams): Promise<WorkerDeliverResult> {
-    logger.info("[WorkerClient] Sending deliver task to worker...");
+    const localeCount = Object.keys(params.locales ?? {}).length;
+    const timeoutMs = Math.min(
+      60 * 60 * 1000,
+      5 * 60 * 1000 + localeCount * 2 * 60 * 1000,
+    );
+    logger.info(
+      `[WorkerClient] Sending deliver task to worker (${localeCount} locale(s), timeout ${Math.round(timeoutMs / 60000)}min)...`,
+    );
     const res = await this.getClient().post("/worker/deliver", params, {
-      timeout: 5 * 60 * 1000,
+      timeout: timeoutMs,
     });
     return res.data;
   }

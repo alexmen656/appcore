@@ -720,6 +720,55 @@ githubRouter.post(
   },
 );
 
+githubRouter.delete(
+  "/screenshots/framed/:jobId",
+  requireAuth,
+  async (req: Request, res: Response) => {
+    try {
+      const jobId = req.params.jobId as string;
+      const { url } = req.body as { url?: string };
+      if (!url) {
+        res.status(400).json({ error: "url is required" });
+        return;
+      }
+
+      const job = await prisma.screenshotJob.findUnique({ where: { id: jobId } });
+      if (!job || !job.framedByLocale) {
+        res.status(404).json({ error: "Job not found" });
+        return;
+      }
+
+      const framedByLocale = job.framedByLocale as Record<string, string[]>;
+      const updated: Record<string, string[]> = {};
+      for (const [locale, urls] of Object.entries(framedByLocale)) {
+        const filtered = urls.filter((u) => u !== url);
+        if (filtered.length > 0) updated[locale] = filtered;
+      }
+
+      await prisma.screenshotJob.update({
+        where: { id: jobId },
+        data: { framedByLocale: updated as any },
+      });
+
+      try {
+        const screenshotsBase = path.join(process.cwd(), "screenshots");
+        const rel = url.replace(/^\/screenshots\//, "");
+        const filePath = path.join(screenshotsBase, rel);
+        if (filePath.startsWith(screenshotsBase) && fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } catch (err: any) {
+        logger.warn(`Failed to delete screenshot file: ${err.message}`);
+      }
+
+      res.json({ ok: true });
+    } catch (err: any) {
+      logger.error(`Delete framed screenshot error: ${err.message}`);
+      res.status(500).json({ error: err.message });
+    }
+  },
+);
+
 githubRouter.get(
   "/screenshots/latest-framed/:appId",
   requireAuth,

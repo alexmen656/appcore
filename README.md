@@ -43,6 +43,23 @@ return if app_store_review_detail.nil? # first-time submission: review detail no
 
 ---
 
+### 1b. deliver — undefined `app_store_review_attachments` (fastlane 2.232.2 regression)
+
+**File:** `deliver/lib/deliver/upload_metadata.rb` line ~690 (method `review_attachment_file`)
+
+In 2.232.2 the local variable `app_store_review_attachments` is referenced but never assigned, so every metadata upload crashes with `NameError: undefined local variable or method 'app_store_review_attachments'`.
+
+**Change:** After the `return if app_store_review_detail.nil?` line, add:
+```ruby
+app_store_review_attachments = (app_store_review_detail.fetch_app_store_review_attachments rescue []) || []
+```
+
+Backup kept as `upload_metadata.rb.bak` on the Mac Mini worker.
+
+**Why:** Upstream fastlane bug — the previously-existing assignment was removed but the `.each` call below still references the variable. Fetching attachments via the review detail restores the original behavior.
+
+---
+
 ### 2. frameit — iPhone 16 / 17 support
 
 #### 2a. New device definitions

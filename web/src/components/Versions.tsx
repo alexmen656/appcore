@@ -820,14 +820,39 @@ function LatestBuildCard({
 function ScreenshotsPanel({
   appId,
   activeLocale,
+  addToast,
 }: {
   appId: string;
   activeLocale: string | null;
+  addToast: (msg: string, type: "success" | "error" | "info") => void;
 }) {
-  const { data, loading } = useApi<{ job: FramedJob | null }>(
+  const { data, loading, refetch } = useApi<{ job: FramedJob | null }>(
     `/github/screenshots/latest-framed/${appId}`,
     [appId],
   );
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  const deleteScreenshot = async (jobId: string, url: string) => {
+    if (!confirm("Remove this screenshot?")) return;
+    setDeleting(url);
+    try {
+      const res = await fetch(`/api/github/screenshots/framed/${jobId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ url }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? `HTTP ${res.status}`);
+      }
+      addToast("Screenshot removed", "success");
+      refetch();
+    } catch (err: any) {
+      addToast(`Failed to remove: ${err.message}`, "error");
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   const job = data?.job;
   const framedByLocale = job?.framedByLocale ?? {};
@@ -904,19 +929,32 @@ function ScreenshotsPanel({
               </div>
               <div className="flex gap-3 overflow-x-auto pb-1">
                 {urls.map((url) => (
-                  <a
-                    key={url}
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="shrink-0 group/img"
-                  >
-                    <img
-                      src={url}
-                      alt={`${label} screenshot`}
-                      className="h-[200px] w-auto rounded-xl border border-[#eef0f3] object-cover shadow-sm group-hover/img:shadow-md group-hover/img:opacity-90 transition-all"
-                    />
-                  </a>
+                  <div key={url} className="relative shrink-0 group/img">
+                    <a href={url} target="_blank" rel="noopener noreferrer">
+                      <img
+                        src={url}
+                        alt={`${label} screenshot`}
+                        className="h-[200px] w-auto rounded-xl border border-[#eef0f3] object-cover shadow-sm group-hover/img:shadow-md group-hover/img:opacity-90 transition-all"
+                      />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        deleteScreenshot(job.id, url);
+                      }}
+                      disabled={deleting === url}
+                      title="Remove screenshot"
+                      className="absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center rounded-full bg-black/60 text-white opacity-0 group-hover/img:opacity-100 hover:bg-red-600 transition-all disabled:opacity-50"
+                    >
+                      {deleting === url ? (
+                        <div className="spinner !w-3.5 !h-3.5" />
+                      ) : (
+                        <X className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -1483,7 +1521,11 @@ export default function Versions({ addToast }: Props) {
       <LatestBuildCard bundleId={data.bundleId} appName={data.appName} />
 
       {data.appId && (
-        <ScreenshotsPanel appId={data.appId} activeLocale={activeLocale} />
+        <ScreenshotsPanel
+          appId={data.appId}
+          activeLocale={activeLocale}
+          addToast={addToast}
+        />
       )}
 
       {activeLoc ? (
