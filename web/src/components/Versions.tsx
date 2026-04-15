@@ -1053,6 +1053,7 @@ export default function Versions({ addToast }: Props) {
                       ...authHeaders(),
                     },
                     body: JSON.stringify({
+                      bundleId: getActiveBundleId(),
                       appInfoLocalizationId: isAppInfoField
                         ? created.appInfoLocalizationId
                         : undefined,
@@ -1104,6 +1105,7 @@ export default function Versions({ addToast }: Props) {
           method: "DELETE",
           headers: { "Content-Type": "application/json", ...authHeaders() },
           body: JSON.stringify({
+            bundleId: getActiveBundleId(),
             appInfoLocalizationId: loc.appInfoLocalizationId ?? undefined,
             versionLocalizationId: loc.versionLocalizationId ?? undefined,
           }),
@@ -1135,6 +1137,7 @@ export default function Versions({ addToast }: Props) {
           method: "PATCH",
           headers: { "Content-Type": "application/json", ...authHeaders() },
           body: JSON.stringify({
+            bundleId: getActiveBundleId(),
             appInfoLocalizationId: loc.appInfoLocalizationId,
             versionLocalizationId: loc.versionLocalizationId,
             field,
@@ -1445,6 +1448,7 @@ export default function Versions({ addToast }: Props) {
                           ...authHeaders(),
                         },
                         body: JSON.stringify({
+                          bundleId: getActiveBundleId(),
                           versionId: data.versionId,
                           field: "copyright",
                           value: val,

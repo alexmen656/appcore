@@ -235,24 +235,6 @@ ascRouter.get("/versions", async (req, res) => {
 
     const localeMap = new Map<string, any>();
 
-    if (isEditable) {
-      for (const info of appInfoLocalizations) {
-        const loc = info.attributes.locale;
-        localeMap.set(loc, {
-          locale: loc,
-          appInfoLocalizationId: info.id,
-          name: info.attributes.name ?? "",
-          subtitle: info.attributes.subtitle ?? "",
-          privacyPolicyUrl: info.attributes.privacyPolicyUrl ?? "",
-          description: "",
-          keywords: "",
-          whatsNew: "",
-          promotionalText: "",
-          versionLocalizationId: null,
-        });
-      }
-    }
-
     const appInfoById = new Map(
       appInfoLocalizations.map((info: any) => [info.attributes.locale, info]),
     );
