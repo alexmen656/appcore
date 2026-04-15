@@ -169,6 +169,70 @@ function getLocaleName(locale: string): string {
   }
 }
 
+const LOCALE_FLAG_OVERRIDES: Record<string, string> = {
+  ar: "sa",
+  ca: "es",
+  cs: "cz",
+  da: "dk",
+  el: "gr",
+  en: "us",
+  he: "il",
+  hi: "in",
+  ja: "jp",
+  ko: "kr",
+  ms: "my",
+  no: "no",
+  sl: "si",
+  sv: "se",
+  uk: "ua",
+  vi: "vn",
+  zh: "cn",
+  "zh-Hant": "tw",
+  "pt-PT": "pt",
+  "pt-BR": "br",
+  "es-MX": "mx",
+  "es-ES": "es",
+  "fr-CA": "ca",
+  "fr-FR": "fr",
+  "en-AU": "au",
+  "en-CA": "ca",
+  "en-GB": "gb",
+  "en-US": "us",
+  "de-DE": "de",
+  "nl-NL": "nl",
+  "ar-SA": "sa",
+  "zh-Hans": "cn",
+};
+
+function getLocaleFlag(locale: string): string {
+  if (LOCALE_FLAG_OVERRIDES[locale])
+    return LOCALE_FLAG_OVERRIDES[locale];
+  const parts = locale.split("-");
+  if (parts.length > 1) return parts[1].toLowerCase();
+  const lang = parts[0];
+  if (LOCALE_FLAG_OVERRIDES[lang]) return LOCALE_FLAG_OVERRIDES[lang];
+  return lang.toLowerCase();
+}
+
+function LocaleFlag({
+  locale,
+  className,
+}: {
+  locale: string;
+  className?: string;
+}) {
+  return (
+    <img
+      src={`/app/country-flags/${getLocaleFlag(locale)}.svg`}
+      alt=""
+      className={className ?? "w-4 h-3 rounded-xs object-cover shrink-0"}
+      onError={(e) => {
+        (e.currentTarget as HTMLImageElement).style.display = "none";
+      }}
+    />
+  );
+}
+
 const DEVICE_PATTERNS: [RegExp, string][] = [
   [/6\.9|69[_-]?inch|iphone[_-]?15[_-]?pro/i, 'iPhone 6.9"'],
   [/6\.7|67[_-]?inch|iphone[_-]?1[45]/i, 'iPhone 6.7"'],
@@ -1046,10 +1110,17 @@ export default function Versions({ addToast }: Props) {
 
             if (translateRes.ok) {
               const { fields } = await translateRes.json();
+              const mergedFields: Record<string, string> = {
+                ...(fields as Record<string, string>),
+              };
+              if (sourceLoc.privacyPolicyUrl)
+                mergedFields.privacyPolicyUrl = sourceLoc.privacyPolicyUrl;
+              if (sourceLoc.supportUrl)
+                mergedFields.supportUrl = sourceLoc.supportUrl;
+              if (sourceLoc.marketingUrl)
+                mergedFields.marketingUrl = sourceLoc.marketingUrl;
               const appInfoFields = ["name", "subtitle", "privacyPolicyUrl"];
-              const savePromises = Object.entries(
-                fields as Record<string, string>,
-              )
+              const savePromises = Object.entries(mergedFields)
                 .filter(([, v]) => v && v.trim())
                 .map(([field, value]) => {
                   const isAppInfoField = appInfoFields.includes(field);
@@ -1323,12 +1394,14 @@ export default function Versions({ addToast }: Props) {
               <div key={loc.locale} className="relative group">
                 <button
                   onClick={() => setActiveLocale(loc.locale)}
-                  className={`flex flex-col items-start px-3 py-2 rounded-xl transition-all whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all whitespace-nowrap ${
                     loc.locale === activeLocale
                       ? "bg-[#ea0e2b] text-white shadow-sm"
                       : "bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] text-[#111827] dark:text-[#e8eaf0] hover:border-[#d1d5db] dark:hover:border-[#3a4050]"
                   }`}
                 >
+                  <LocaleFlag locale={loc.locale} />
+                  <span className="flex flex-col items-start">
                   <span className="text-[13px] font-medium leading-tight pr-3">
                     {getLocaleName(loc.locale)}
                   </span>
@@ -1340,6 +1413,7 @@ export default function Versions({ addToast }: Props) {
                     }`}
                   >
                     {loc.locale}
+                  </span>
                   </span>
                 </button>
                 {data.isEditable && data.localizations.length > 1 && (
@@ -1390,7 +1464,10 @@ export default function Versions({ addToast }: Props) {
                       onClick={() => createLocalization(locale)}
                       className="w-full flex items-center justify-between gap-2 px-4 py-2 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
                     >
-                      <span>{getLocaleName(locale)}</span>
+                      <span className="flex items-center gap-2">
+                        <LocaleFlag locale={locale} />
+                        {getLocaleName(locale)}
+                      </span>
                       <span className="text-[11px] font-mono text-[#9ca3af] dark:text-[#5c6478]">
                         {locale}
                       </span>
@@ -1413,6 +1490,10 @@ export default function Versions({ addToast }: Props) {
         <div className={`${cardCls} flex flex-col gap-5`}>
           <div className="flex items-center justify-between pb-3 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
             <div className="flex items-center gap-2">
+              <LocaleFlag
+                locale={activeLoc.locale}
+                className="w-5 h-4 rounded-sm object-cover shrink-0"
+              />
               <span className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
                 {getLocaleName(activeLoc.locale)}
               </span>
