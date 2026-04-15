@@ -237,7 +237,7 @@ export class BossScheduler {
     );
 
     // ── analyze ──────────────────────────────────────────────────────────────
-    await this.boss.work(`${ANALYZE_QUEUE}/dispatch`, async () => {
+    /*await this.boss.work(`${ANALYZE_QUEUE}/dispatch`, async () => {
       const teams = await loadTeamApps();
       for (const team of teams) {
         for (const app of team.apps) {
@@ -256,7 +256,7 @@ export class BossScheduler {
       "0 8 * * *",
       {},
       { tz: "Europe/Berlin" },
-    );
+    );*/
 
     // ── sync-metadata (manual only) ─────────────────────────────────────────
     await this.boss.work(SYNC_METADATA_QUEUE, syncMetadataHandler);
