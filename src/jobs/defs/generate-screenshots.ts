@@ -57,7 +57,7 @@ async function runScreenshotGenerationViaWorker(
     repoFullName = job.app.githubRepoFullName!;
 
     if (job.commitSha) {
-      await postCommitStatus(token!, repoFullName!, job.commitSha, "pending", "appcore/screenshots", "Screenshot generation in progress…");
+      await postCommitStatus(token!, repoFullName!, job.commitSha, "pending", "marteso/screenshots", "Screenshot generation in progress…");
     }
 
     log("Delegating screenshot generation to worker...");

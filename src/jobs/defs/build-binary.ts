@@ -68,7 +68,7 @@ export async function runBuildJob(
 
   const repoFullName = app?.githubRepoFullName ?? null;
   if (params.commitSha && repoFullName) {
-    await postCommitStatus(params.accessToken, repoFullName, params.commitSha, "pending", "appcore/build", "Binary build in progress…");
+    await postCommitStatus(params.accessToken, repoFullName, params.commitSha, "pending", "marteso/build", "Binary build in progress…");
   }
 
   try {
@@ -146,7 +146,7 @@ export async function runBuildJob(
         repoFullName,
         params.commitSha,
         succeeded ? "success" : "failure",
-        "appcore/build",
+        "marteso/build",
         succeeded ? "Binary build succeeded" : (result.errors?.[0] ?? "Binary build failed").slice(0, 140),
       );
     }
@@ -162,7 +162,7 @@ export async function runBuildJob(
     });
 
     if (params.commitSha && repoFullName) {
-      await postCommitStatus(params.accessToken, repoFullName, params.commitSha, "failure", "appcore/build", err.message.slice(0, 140));
+      await postCommitStatus(params.accessToken, repoFullName, params.commitSha, "failure", "marteso/build", err.message.slice(0, 140));
     }
   }
 }
