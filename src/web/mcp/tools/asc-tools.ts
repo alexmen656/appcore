@@ -163,31 +163,30 @@ export function registerAscTools(server: McpServer, userId: string) {
             .catch(() => [] as any[]),
         ]);
 
-        const localeMap: Record<string, any> = {};
+        const appInfoByLocale: Record<string, any> = {};
         for (const l of appInfoLocs) {
           const loc = l.attributes?.locale ?? l.locale;
-          if (locale && loc !== locale) continue;
-          localeMap[loc] = {
-            locale: loc,
-            appInfoLocalizationId: l.id,
-            name: l.attributes?.name ?? null,
-            subtitle: l.attributes?.subtitle ?? null,
-            privacyPolicyUrl: l.attributes?.privacyPolicyUrl ?? null,
-          };
+          appInfoByLocale[loc] = l;
         }
 
+        const localeMap: Record<string, any> = {};
         for (const l of versionLocs) {
           const loc = l.attributes?.locale ?? l.locale;
           if (locale && loc !== locale) continue;
+          const appInfo = appInfoByLocale[loc];
           localeMap[loc] = {
-            ...localeMap[loc],
             locale: loc,
+            appInfoLocalizationId: appInfo?.id ?? null,
+            name: appInfo?.attributes?.name ?? null,
+            subtitle: appInfo?.attributes?.subtitle ?? null,
+            privacyPolicyUrl: appInfo?.attributes?.privacyPolicyUrl ?? null,
             versionLocalizationId: l.id,
             description: l.attributes?.description ?? null,
             keywords: l.attributes?.keywords ?? null,
             whatsNew: l.attributes?.whatsNew ?? null,
             promotionalText: l.attributes?.promotionalText ?? null,
             supportUrl: l.attributes?.supportUrl ?? null,
+            marketingUrl: l.attributes?.marketingUrl ?? null,
           };
         }
 
@@ -223,7 +222,7 @@ export function registerAscTools(server: McpServer, userId: string) {
       description:
         "Update a single App Store Connect metadata field for a specific locale. " +
         "App info fields (name, subtitle): pass appInfoLocalizationId. " +
-        "Version fields (description, keywords, whatsNew, promotionalText, supportUrl): pass versionLocalizationId. " +
+        "Version fields (description, keywords, whatsNew, promotionalText, supportUrl, marketingUrl): pass versionLocalizationId. " +
         "Get these IDs from get_version_metadata.",
       inputSchema: {
         appInfoLocalizationId: z
@@ -236,12 +235,12 @@ export function registerAscTools(server: McpServer, userId: string) {
           .string()
           .optional()
           .describe(
-            "ID for version localization (needed for description, keywords, whatsNew, promotionalText, supportUrl).",
+            "ID for version localization (needed for description, keywords, whatsNew, promotionalText, supportUrl, marketingUrl).",
           ),
         field: z
           .string()
           .describe(
-            "Which field to update. App info fields: name, subtitle, privacyPolicyUrl. Version fields: description, keywords, whatsNew, promotionalText, supportUrl.",
+            "Which field to update. App info fields: name, subtitle, privacyPolicyUrl. Version fields: description, keywords, whatsNew, promotionalText, supportUrl, marketingUrl.",
           ),
         value: z.string().describe("New value for the field."),
       },
