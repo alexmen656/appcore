@@ -78,6 +78,10 @@ bossRouter.get("/schedules", async (_req, res) => {
 });
 
 bossRouter.post("/send", async (req, res) => {
+  if (req.user!.role !== "ADMIN") {
+    res.status(403).json({ error: "Admin access required" });
+    return;
+  }
   const { queue } = req.body as { queue?: string };
 
   if (!queue || !VALID_QUEUES.includes(queue)) {
@@ -105,6 +109,10 @@ bossRouter.post("/send", async (req, res) => {
 });
 
 bossRouter.delete("/jobs", async (req, res) => {
+  if (req.user!.role !== "ADMIN") {
+    res.status(403).json({ error: "Admin access required" });
+    return;
+  }
   const queue = (req.query.queue as string) || undefined;
 
   if (queue && !VALID_QUEUES.includes(queue)) {

@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import path from "path";
 import http from "http";
 import { env, logger, prisma } from "../config";
@@ -33,7 +34,25 @@ const app = express();
 const PORT = process.env.WEB_PORT ?? 3100;
 
 app.set("trust proxy", 1);
-app.use(cors());
+app.use(
+  helmet({
+    crossOriginEmbedderPolicy: false,
+    contentSecurityPolicy: false,
+  }),
+);
+const allowedOrigins = env.CORS_ORIGIN
+  ? env.CORS_ORIGIN.split(",").map((o) => o.trim())
+  : ["http://localhost:5173", "http://localhost:5174"];
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin))
+        return callback(null, true);
+      callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 app.use("/api/auth", authRouter);
@@ -128,7 +147,11 @@ if (process.env.NODE_ENV === "production") {
   app.use(express.static(landingDist));
 } else {
   app.use((req, res, next) => {
-    if (req.path.startsWith("/api") || req.path.startsWith("/app") || req.path.startsWith("/admin")) {
+    if (
+      req.path.startsWith("/api") ||
+      req.path.startsWith("/app") ||
+      req.path.startsWith("/admin")
+    ) {
       return next();
     }
     const proxyReq = http.request(
@@ -176,7 +199,9 @@ if (process.env.NODE_ENV === "production") {
     );
     req.pipe(proxyReq);
     proxyReq.on("error", () => {
-      res.status(502).send("Admin dev server not running — cd admin && npm run dev");
+      res
+        .status(502)
+        .send("Admin dev server not running — cd admin && npm run dev");
     });
   });
 }

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { randomBytes } from "crypto";
+import bcrypt from "bcryptjs";
 import { prisma } from "../../config";
 import { requireAuth, requireTeamAdmin } from "../auth";
 
@@ -65,10 +66,11 @@ mcpRouter.post("/oauth-clients", async (req, res) => {
     }
     const clientId = `appcore_${randomBytes(12).toString("hex")}`;
     const clientSecret = randomBytes(24).toString("hex");
+    const clientSecretHash = await bcrypt.hash(clientSecret, 10);
     const client = await prisma.oAuthClient.create({
       data: {
         clientId,
-        clientSecret,
+        clientSecret: clientSecretHash,
         name: name.trim(),
         userId: req.user!.userId,
         redirectUris: redirectUris ?? [],

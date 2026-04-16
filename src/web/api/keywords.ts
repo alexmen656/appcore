@@ -29,9 +29,13 @@ keywordsRouter.get("/", async (req, res) => {
 
     const keywordIds = keywords.map((k) => k.id);
 
-    type CompRanking = Awaited<ReturnType<typeof prisma.keywordRanking.findMany<{
-      include: { app: { select: { name: true } } };
-    }>>>[number];
+    type CompRanking = Awaited<
+      ReturnType<
+        typeof prisma.keywordRanking.findMany<{
+          include: { app: { select: { name: true } } };
+        }>
+      >
+    >[number];
     type CountRow = { keywordId: string; _count: { id: number } };
 
     let topCompRankings: CompRanking[] = [];
@@ -57,47 +61,48 @@ keywordsRouter.get("/", async (req, res) => {
       ]);
     }
 
-    const topCompMap = new Map(
-      topCompRankings.map((r) => [r.keywordId, r]),
-    );
+    const topCompMap = new Map(topCompRankings.map((r) => [r.keywordId, r]));
     const countMap = new Map(
       ourRankingCounts.map((r) => [r.keywordId, r._count.id]),
     );
 
     const result = keywords.map((k) => {
-        let topCompetitor: { name: string; rank: number } | null = null;
-        if (ownApp) {
-          const compRanking = topCompMap.get(k.id);
-          if (compRanking?.rank) {
-            topCompetitor = { name: compRanking.app.name, rank: compRanking.rank };
-          }
+      let topCompetitor: { name: string; rank: number } | null = null;
+      if (ownApp) {
+        const compRanking = topCompMap.get(k.id);
+        if (compRanking?.rank) {
+          topCompetitor = {
+            name: compRanking.app.name,
+            rank: compRanking.rank,
+          };
         }
+      }
 
-        const ourRankingCount = countMap.get(k.id) ?? 0;
+      const ourRankingCount = countMap.get(k.id) ?? 0;
 
-        const currentRank = k.rankings[0]?.rank ?? null;
-        const previousRank = k.rankings[1]?.rank ?? null;
-        const rankTrend =
-          currentRank != null && previousRank != null
-            ? previousRank - currentRank
-            : null;
+      const currentRank = k.rankings[0]?.rank ?? null;
+      const previousRank = k.rankings[1]?.rank ?? null;
+      const rankTrend =
+        currentRank != null && previousRank != null
+          ? previousRank - currentRank
+          : null;
 
-        return {
-          id: k.id,
-          term: k.term,
-          country: k.country,
-          language: k.language,
-          popularity: k.popularity,
-          difficulty: k.difficulty,
-          searchVolume: k.searchVolume,
-          ourRank: currentRank,
-          rankTrend,
-          topCompetitor,
-          trackingCount: ourRankingCount,
-          suggestionCount: k._count.suggestions,
-          updatedAt: k.updatedAt,
-        };
-      });
+      return {
+        id: k.id,
+        term: k.term,
+        country: k.country,
+        language: k.language,
+        popularity: k.popularity,
+        difficulty: k.difficulty,
+        searchVolume: k.searchVolume,
+        ourRank: currentRank,
+        rankTrend,
+        topCompetitor,
+        trackingCount: ourRankingCount,
+        suggestionCount: k._count.suggestions,
+        updatedAt: k.updatedAt,
+      };
+    });
 
     res.json(result);
   } catch (err) {
@@ -158,11 +163,19 @@ keywordsRouter.post("/", async (req, res) => {
       update: {},
     });
 
-    const ownApp = await prisma.app.findUnique({
-      where: { bundleId: activeBundleId },
-    });
+    const ownApp = activeBundleId
+      ? await prisma.app.findUnique({ where: { bundleId: activeBundleId } })
+      : null;
 
     if (ownApp) {
+      const isAdmin = req.user!.role === "ADMIN";
+      if (!isAdmin && (!ownApp.teamId || ownApp.teamId !== req.user!.teamId)) {
+        res
+          .status(403)
+          .json({ error: "Not authorized to add keywords to this app" });
+        return;
+      }
+
       await prisma.keywordRanking.create({
         data: {
           keywordId: keyword.id,

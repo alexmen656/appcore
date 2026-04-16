@@ -1,8 +1,10 @@
 import { Router, Request, Response } from "express";
+import crypto from "crypto";
 import axios from "axios";
 import fs from "fs";
 import path from "path";
 import { logger, prisma } from "../../config";
+import { env } from "../../config/env";
 import { requireAuth } from "../auth";
 import { encrypt, decryptNullable } from "../../config/encryption";
 import {
@@ -23,14 +25,38 @@ import { frameWithFastlane } from "../../services/frame-screenshots";
 
 export const githubRouter = Router();
 
+function signOAuthState(payload: object): string {
+  const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  const sig = crypto
+    .createHmac("sha256", env.JWT_SECRET)
+    .update(data)
+    .digest("base64url");
+  return `${data}.${sig}`;
+}
+
+function verifyOAuthState(state: string): { userId: string; ts: number } | null {
+  const dot = state.lastIndexOf(".");
+  if (dot < 0) return null;
+  const data = state.slice(0, dot);
+  const sig = state.slice(dot + 1);
+  const expected = crypto
+    .createHmac("sha256", env.JWT_SECRET)
+    .update(data)
+    .digest("base64url");
+  if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
+  try {
+    return JSON.parse(Buffer.from(data, "base64url").toString());
+  } catch {
+    return null;
+  }
+}
+
 githubRouter.get(
   "/oauth/start",
   requireAuth,
   async (req: Request, res: Response) => {
     try {
-      const state = Buffer.from(
-        JSON.stringify({ userId: req.user!.userId, ts: Date.now() }),
-      ).toString("base64url");
+      const state = signOAuthState({ userId: req.user!.userId, ts: Date.now() });
       const url = getGitHubOAuthUrl(state);
       res.json({ url });
     } catch (err: any) {
@@ -48,11 +74,14 @@ githubRouter.get("/oauth/callback", async (req: Request, res: Response) => {
       return;
     }
 
-    const { userId } = JSON.parse(
-      Buffer.from(stateRaw, "base64url").toString(),
-    );
-    if (!userId) {
-      res.status(400).json({ error: "Invalid state" });
+    const parsed = verifyOAuthState(stateRaw);
+    if (!parsed?.userId) {
+      res.status(400).json({ error: "Invalid or tampered state" });
+      return;
+    }
+    const { userId, ts } = parsed;
+    if (Date.now() - ts > 10 * 60 * 1000) {
+      res.status(400).json({ error: "OAuth state expired" });
       return;
     }
 

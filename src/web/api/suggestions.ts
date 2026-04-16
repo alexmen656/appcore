@@ -30,10 +30,13 @@ suggestionsRouter.get("/", async (req, res) => {
     if (type) where.type = String(type).toUpperCase();
     if (bundleId) where.appBundleId = String(bundleId);
 
+    const parsedLimit = limit ? parseInt(String(limit), 10) : 100;
+    const safeLimit = Number.isFinite(parsedLimit) ? Math.min(Math.max(1, parsedLimit), 500) : 100;
+
     const suggestions = await prisma.aSOSuggestion.findMany({
       where,
       orderBy: { createdAt: "desc" },
-      take: limit ? parseInt(String(limit)) : 100,
+      take: safeLimit,
       include: { keyword: true },
     });
 
@@ -71,10 +74,11 @@ async function updateSuggestionStatus(
   status: "APPROVED" | "REJECTED",
 ) {
   try {
-    const existing = await verifySuggestionAccess(req, res, req.params.id);
+    const id = req.params.id as string;
+    const existing = await verifySuggestionAccess(req, res, id);
     if (!existing) return;
     const suggestion = await prisma.aSOSuggestion.update({
-      where: { id: req.params.id },
+      where: { id },
       data: { status },
     });
     res.json({ ok: true, suggestion });

@@ -34,6 +34,9 @@ const envSchema = z.object({
     .string()
     .default("api.sandbox.push.apple.com"),
 
+  // CORS
+  CORS_ORIGIN: z.string().optional(),
+
   // GitHub OAuth
   GITHUB_CLIENT_ID: z.string().optional(),
   GITHUB_CLIENT_SECRET: z.string().optional(),

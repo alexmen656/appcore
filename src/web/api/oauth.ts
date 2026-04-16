@@ -71,11 +71,12 @@ oauthRouter.post("/register", async (req: Request, res: Response) => {
     const { randomBytes } = await import("crypto");
     const clientId = `appcore_${randomBytes(12).toString("hex")}`;
     const clientSecret = randomBytes(24).toString("hex");
+    const clientSecretHash = await bcrypt.hash(clientSecret, 10);
 
     await prisma.oAuthClient.create({
       data: {
         clientId,
-        clientSecret,
+        clientSecret: clientSecretHash,
         name: client_name?.trim() || "Unnamed client",
         userId: null,
         redirectUris: redirect_uris,
@@ -425,7 +426,14 @@ oauthRouter.post(
     const client = await prisma.oAuthClient.findUnique({
       where: { clientId: client_id },
     });
-    if (!client || client.clientSecret !== client_secret) {
+    if (!client) {
+      res.status(401).json({ error: "invalid_client" });
+      return;
+    }
+    const secretValid = client.clientSecret.startsWith("$2")
+      ? await bcrypt.compare(client_secret, client.clientSecret)
+      : client.clientSecret === client_secret;
+    if (!secretValid) {
       res.status(401).json({ error: "invalid_client" });
       return;
     }
