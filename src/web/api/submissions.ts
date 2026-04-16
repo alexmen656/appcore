@@ -1,41 +1,19 @@
 import { Router } from "express";
-import type { Request, Response } from "express";
 import fs from "fs";
 import path from "path";
 import os from "os";
 import { logger, getEffectiveSettings } from "../../config";
-import { requireAuth, verifyAppOwnershipByBundleId } from "../auth";
+import { requireAuth, requireBundleAccess } from "../auth";
 import { submissionUpdate } from "../../services/notifications/templates.js";
-
-async function resolveSubmissionBundleId(
-  req: Request,
-  res: Response,
-  source: "query" | "body",
-): Promise<string | null> {
-  const raw =
-    source === "query"
-      ? (req.query.bundleId as string | undefined)
-      : (req.body.bundleId as string | undefined);
-  const bundleId = raw;
-  if (!bundleId) {
-    res.status(400).json({ error: "bundleId required" });
-    return null;
-  }
-  const app = await verifyAppOwnershipByBundleId(req, res, bundleId);
-  if (!app) return null;
-  return bundleId;
-}
 
 const BUILDS_BASE_DIR = path.join(os.homedir(), "appcore", "builds");
 
 export const submissionsRouter = Router();
-submissionsRouter.use(requireAuth);
 
-submissionsRouter.get("/preview", async (req, res) => {
+submissionsRouter.get("/preview", ...requireBundleAccess("query"), async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
-    const bundleId = await resolveSubmissionBundleId(req, res, "query");
-    if (!bundleId) return;
+    const bundleId = req.bundleApp!.bundleId;
 
     const { FastlaneService } = await import("../../services/fastlane");
     const fl = new FastlaneService(bundleId, settings);
@@ -50,11 +28,10 @@ submissionsRouter.get("/preview", async (req, res) => {
   }
 });
 
-submissionsRouter.post("/metadata", async (req, res) => {
+submissionsRouter.post("/metadata", ...requireBundleAccess("body"), async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
-    const bundleId = await resolveSubmissionBundleId(req, res, "body");
-    if (!bundleId) return;
+    const bundleId = req.bundleApp!.bundleId;
     const overrides = req.body.overrides ?? undefined;
 
     const { FastlaneService } = await import("../../services/fastlane");
@@ -89,11 +66,10 @@ submissionsRouter.post("/metadata", async (req, res) => {
   }
 });
 
-submissionsRouter.post("/review", async (req, res) => {
+submissionsRouter.post("/review", ...requireBundleAccess("body"), async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);
-    const bundleId = await resolveSubmissionBundleId(req, res, "body");
-    if (!bundleId) return;
+    const bundleId = req.bundleApp!.bundleId;
 
     const { FastlaneService } = await import("../../services/fastlane");
     const fl = new FastlaneService(bundleId, settings);
@@ -126,7 +102,7 @@ submissionsRouter.post("/review", async (req, res) => {
   }
 });
 
-submissionsRouter.get("/status", async (_req, res) => {
+submissionsRouter.get("/status", requireAuth, async (_req, res) => {
   try {
     const { getLatestSubmission, getActiveSubmission } =
       await import("../../services/fastlane");
@@ -157,14 +133,9 @@ submissionsRouter.get("/status", async (_req, res) => {
   }
 });
 
-submissionsRouter.get("/build-info", async (req, res) => {
+submissionsRouter.get("/build-info", ...requireBundleAccess("query"), async (req, res) => {
   try {
-    const bundleId = await resolveSubmissionBundleId(
-      req,
-      res,
-      "query",
-    );
-    if (!bundleId) return;
+    const bundleId = req.bundleApp!.bundleId;
     if (!/^[a-zA-Z0-9]+(\.[a-zA-Z0-9-]+)*$/.test(bundleId)) {
       res.status(400).json({ error: "Invalid bundleId" });
       return;

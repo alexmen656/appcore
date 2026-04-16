@@ -1,26 +1,10 @@
 import { Router } from "express";
-import type { Request, Response } from "express";
 import { prisma, logger, getEffectiveSettingsForTeam } from "../../config";
-import { requireAuth, verifyAppOwnershipByBundleId } from "../auth";
+import { requireAuth, requireBundleAccess } from "../auth";
 import { bossScheduler } from "../../jobs/boss";
 import { QUEUE_NAME as SYNC_ANALYTICS_QUEUE } from "../../jobs/workers/sync-analytics.worker";
 
 export const analyticsRouter = Router();
-analyticsRouter.use(requireAuth);
-
-async function requireBundleIdOwnership(
-  req: Request,
-  res: Response,
-): Promise<string | null> {
-  const bundleId = (req.query.bundleId as string) || "";
-  if (!bundleId) {
-    res.status(400).json({ error: "bundleId required" });
-    return null;
-  }
-  const app = await verifyAppOwnershipByBundleId(req, res, bundleId);
-  if (!app) return null;
-  return bundleId;
-}
 
 function resolveSince(query: Record<string, any>): Date | null {
   if (query.period === "all") return null;
@@ -52,10 +36,9 @@ function resolveUntil(query: Record<string, any>): Date | null {
 }
 
 // ─── GET /api/analytics/summary ──────────────────────────────────────────────
-analyticsRouter.get("/summary", async (req, res) => {
+analyticsRouter.get("/summary", ...requireBundleAccess("query"), async (req, res) => {
   try {
-    const bundleId = await requireBundleIdOwnership(req, res);
-    if (!bundleId) return;
+    const bundleId = req.bundleApp!.bundleId;
 
     const since = resolveSince(req.query);
     const until = resolveUntil(req.query);
@@ -106,10 +89,9 @@ analyticsRouter.get("/summary", async (req, res) => {
 });
 
 // ─── GET /api/analytics/downloads ────────────────────────────────────────────
-analyticsRouter.get("/downloads", async (req, res) => {
+analyticsRouter.get("/downloads", ...requireBundleAccess("query"), async (req, res) => {
   try {
-    const bundleId = await requireBundleIdOwnership(req, res);
-    if (!bundleId) return;
+    const bundleId = req.bundleApp!.bundleId;
 
     const since = resolveSince(req.query);
     const until = resolveUntil(req.query);
@@ -187,10 +169,9 @@ analyticsRouter.get("/downloads", async (req, res) => {
 });
 
 // ─── GET /api/analytics/reviews ──────────────────────────────────────────────
-analyticsRouter.get("/reviews", async (req, res) => {
+analyticsRouter.get("/reviews", ...requireBundleAccess("query"), async (req, res) => {
   try {
-    const bundleId = await requireBundleIdOwnership(req, res);
-    if (!bundleId) return;
+    const bundleId = req.bundleApp!.bundleId;
     const limit = Math.min(parseInt(req.query.limit as string, 10) || 50, 200);
 
     const reviews = await prisma.appReview.findMany({
@@ -215,10 +196,9 @@ analyticsRouter.get("/reviews", async (req, res) => {
 });
 
 // ─── GET /api/analytics/markers ──────────────────────────────────────────────
-analyticsRouter.get("/markers", async (req, res) => {
+analyticsRouter.get("/markers", ...requireBundleAccess("query"), async (req, res) => {
   try {
-    const bundleId = await requireBundleIdOwnership(req, res);
-    if (!bundleId) return;
+    const bundleId = req.bundleApp!.bundleId;
 
     const app = await prisma.app.findUnique({
       where: { bundleId },
@@ -274,7 +254,7 @@ analyticsRouter.get("/markers", async (req, res) => {
 });
 
 // ─── POST /api/analytics/sync ─────────────────────────────────────────────────
-analyticsRouter.post("/sync", async (req, res) => {
+analyticsRouter.post("/sync", requireAuth, async (req, res) => {
   try {
     const teamId = req.user!.teamId;
     if (!teamId) {

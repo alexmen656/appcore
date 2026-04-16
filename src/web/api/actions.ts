@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
 import { prisma, getEffectiveSettingsForTeam } from "../../config";
-import { requireAuth, verifyAppOwnershipByBundleId } from "../auth";
+import { requireBundleAccess } from "../auth";
 import { bossScheduler } from "../../jobs/boss";
 import { QUEUE_NAME as SCRAPE_QUEUE } from "../../jobs/workers/scrape.worker";
 import { QUEUE_NAME as ANALYZE_QUEUE } from "../../jobs/workers/analyze.worker";
@@ -12,7 +12,7 @@ import { QUEUE_NAME as SYNC_METADATA_QUEUE } from "../../jobs/workers/sync-metad
 import { QUEUE_NAME as COMPETITOR_INTEL_QUEUE } from "../../jobs/workers/competitor-intel.worker";
 
 export const actionsRouter = Router();
-actionsRouter.use(requireAuth);
+actionsRouter.use(...requireBundleAccess("body"));
 
 function resolveTeamId(req: Request, res: Response): string | null {
   const teamId = req.user!.teamId;
@@ -23,19 +23,9 @@ function resolveTeamId(req: Request, res: Response): string | null {
   return teamId;
 }
 
-async function resolveActionApp(req: Request, res: Response) {
-  const bundleId = req.body.bundleId as string;
-  if (!bundleId) {
-    res.status(400).json({ error: "bundleId required" });
-    return null;
-  }
-  return verifyAppOwnershipByBundleId(req, res, bundleId);
-}
-
 actionsRouter.post("/scrape", async (req, res) => {
   try {
-    const app = await resolveActionApp(req, res);
-    if (!app) return;
+    const app = req.bundleApp!;
     await bossScheduler.sendJob(SCRAPE_QUEUE, {
       bundleId: app.bundleId,
       country: app.country,
@@ -50,8 +40,7 @@ actionsRouter.post("/analyze", async (req, res) => {
   try {
     const teamId = resolveTeamId(req, res);
     if (!teamId) return;
-    const app = await resolveActionApp(req, res);
-    if (!app) return;
+    const app = req.bundleApp!;
     await bossScheduler.sendJob(ANALYZE_QUEUE, {
       teamId,
       bundleId: app.bundleId,
@@ -73,8 +62,7 @@ actionsRouter.post("/sync", async (req, res) => {
       });
       return;
     }
-    const app = await resolveActionApp(req, res);
-    if (!app) return;
+    const app = req.bundleApp!;
     await bossScheduler.sendJob(SYNC_METADATA_QUEUE, {
       teamId,
       bundleId: app.bundleId,
@@ -89,8 +77,7 @@ actionsRouter.post("/track-keywords", async (req, res) => {
   try {
     const teamId = resolveTeamId(req, res);
     if (!teamId) return;
-    const app = await resolveActionApp(req, res);
-    if (!app) return;
+    const app = req.bundleApp!;
     await bossScheduler.sendJob(TRACK_KEYWORDS_QUEUE, {
       teamId,
       appId: app.id,
@@ -107,8 +94,7 @@ actionsRouter.post("/discover-keywords", async (req, res) => {
   try {
     const teamId = resolveTeamId(req, res);
     if (!teamId) return;
-    const app = await resolveActionApp(req, res);
-    if (!app) return;
+    const app = req.bundleApp!;
     await bossScheduler.sendJob(DISCOVER_KEYWORDS_QUEUE, {
       teamId,
       bundleId: app.bundleId,
@@ -121,8 +107,7 @@ actionsRouter.post("/discover-keywords", async (req, res) => {
 
 actionsRouter.post("/discover-competitors", async (req, res) => {
   try {
-    const app = await resolveActionApp(req, res);
-    if (!app) return;
+    const app = req.bundleApp!;
     const keywords = await prisma.keyword.findMany({
       where: { rankings: { some: { appId: app.id } } },
       orderBy: { popularity: "desc" },
@@ -146,8 +131,7 @@ actionsRouter.post("/competitor-intel", async (req, res) => {
   try {
     const teamId = resolveTeamId(req, res);
     if (!teamId) return;
-    const app = await resolveActionApp(req, res);
-    if (!app) return;
+    const app = req.bundleApp!;
     await bossScheduler.sendJob(COMPETITOR_INTEL_QUEUE, {
       teamId,
       bundleId: app.bundleId,

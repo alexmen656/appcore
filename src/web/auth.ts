@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import type { App } from "@prisma/client";
 import { env, prisma } from "../config";
 
 const JWT_SECRET = env.JWT_SECRET;
-export const JWT_EXPIRES_IN = "30d";
 
 export interface JwtPayload {
   userId: string;
@@ -13,7 +13,7 @@ export interface JwtPayload {
 }
 
 export function signToken(payload: JwtPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "30d" });
 }
 
 export function verifyToken(token: string): JwtPayload {
@@ -24,6 +24,7 @@ declare global {
   namespace Express {
     interface Request {
       user?: JwtPayload;
+      bundleApp?: App;
     }
   }
 }
@@ -40,6 +41,28 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   } catch {
     res.status(401).json({ error: "Invalid or expired token" });
   }
+}
+
+export function requireBundleAccess(
+  source: "params" | "query" | "body" = "query",
+  paramName = "bundleId",
+): Array<(req: Request, res: Response, next: NextFunction) => void> {
+  const bundleAccessMiddleware = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    const bundleId = req[source]?.[paramName] as string | undefined;
+    if (!bundleId) {
+      res.status(400).json({ error: `${paramName} required` });
+      return;
+    }
+    const app = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!app) return;
+    req.bundleApp = app;
+    next();
+  };
+  return [requireAuth, bundleAccessMiddleware];
 }
 
 export async function verifyAppOwnership(
