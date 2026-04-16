@@ -245,23 +245,29 @@ appsRouter.get("/:id/competitor-detail", async (req, res) => {
           orderBy: { popularity: "desc" },
         });
 
+        const kwIds = keywords.map((kw) => kw.id);
+        const [compRankings, ownRankings] = await Promise.all([
+          prisma.keywordRanking.findMany({
+            where: { keywordId: { in: kwIds }, appId: app.id },
+            orderBy: { trackedAt: "desc" },
+            distinct: ["keywordId"],
+          }),
+          prisma.keywordRanking.findMany({
+            where: { keywordId: { in: kwIds }, appId: ownApp.id },
+            orderBy: { trackedAt: "desc" },
+            distinct: ["keywordId"],
+          }),
+        ]);
+        const compRankMap = new Map(compRankings.map((r) => [r.keywordId, r.rank]));
+        const ownRankMap = new Map(ownRankings.map((r) => [r.keywordId, r.rank]));
+
         for (const kw of keywords) {
-          const compRanking = await prisma.keywordRanking.findFirst({
-            where: { keywordId: kw.id, appId: app.id },
-            orderBy: { trackedAt: "desc" },
-          });
-
-          const ourRanking = await prisma.keywordRanking.findFirst({
-            where: { keywordId: kw.id, appId: ownApp.id },
-            orderBy: { trackedAt: "desc" },
-          });
-
           keywordRankings.push({
             keyword: kw.term,
             keywordId: kw.id,
             popularity: kw.popularity,
-            competitorRank: compRanking?.rank ?? null,
-            ourRank: ourRanking?.rank ?? null,
+            competitorRank: compRankMap.get(kw.id) ?? null,
+            ourRank: ownRankMap.get(kw.id) ?? null,
           });
         }
       }

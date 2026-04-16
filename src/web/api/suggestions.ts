@@ -65,35 +65,31 @@ suggestionsRouter.get("/", async (req, res) => {
   }
 });
 
-suggestionsRouter.post("/:id/approve", async (req, res) => {
+async function updateSuggestionStatus(
+  req: Request,
+  res: Response,
+  status: "APPROVED" | "REJECTED",
+) {
   try {
     const existing = await verifySuggestionAccess(req, res, req.params.id);
     if (!existing) return;
-
     const suggestion = await prisma.aSOSuggestion.update({
       where: { id: req.params.id },
-      data: { status: "APPROVED" },
+      data: { status },
     });
     res.json({ ok: true, suggestion });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
-});
+}
 
-suggestionsRouter.post("/:id/reject", async (req, res) => {
-  try {
-    const existing = await verifySuggestionAccess(req, res, req.params.id);
-    if (!existing) return;
+suggestionsRouter.post("/:id/approve", (req, res) =>
+  updateSuggestionStatus(req, res, "APPROVED"),
+);
 
-    const suggestion = await prisma.aSOSuggestion.update({
-      where: { id: req.params.id },
-      data: { status: "REJECTED" },
-    });
-    res.json({ ok: true, suggestion });
-  } catch (err) {
-    res.status(500).json({ error: String(err) });
-  }
-});
+suggestionsRouter.post("/:id/reject", (req, res) =>
+  updateSuggestionStatus(req, res, "REJECTED"),
+);
 
 suggestionsRouter.post("/:id/apply", async (req, res) => {
   try {

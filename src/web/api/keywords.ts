@@ -27,32 +27,53 @@ keywordsRouter.get("/", async (req, res) => {
       orderBy: [{ popularity: "desc" }],
     });
 
-    const result = await Promise.all(
-      keywords.map(async (k) => {
+    const keywordIds = keywords.map((k) => k.id);
+
+    type CompRanking = Awaited<ReturnType<typeof prisma.keywordRanking.findMany<{
+      include: { app: { select: { name: true } } };
+    }>>>[number];
+    type CountRow = { keywordId: string; _count: { id: number } };
+
+    let topCompRankings: CompRanking[] = [];
+    let ourRankingCounts: CountRow[] = [];
+
+    if (ownApp) {
+      [topCompRankings, ourRankingCounts] = await Promise.all([
+        prisma.keywordRanking.findMany({
+          where: {
+            keywordId: { in: keywordIds },
+            appId: { not: ownApp.id },
+            rank: { not: null },
+          },
+          orderBy: [{ trackedAt: "desc" }, { rank: "asc" }],
+          include: { app: { select: { name: true } } },
+          distinct: ["keywordId"],
+        }),
+        prisma.keywordRanking.groupBy({
+          by: ["keywordId"],
+          where: { keywordId: { in: keywordIds }, appId: ownApp.id },
+          _count: { id: true },
+        }),
+      ]);
+    }
+
+    const topCompMap = new Map(
+      topCompRankings.map((r) => [r.keywordId, r]),
+    );
+    const countMap = new Map(
+      ourRankingCounts.map((r) => [r.keywordId, r._count.id]),
+    );
+
+    const result = keywords.map((k) => {
         let topCompetitor: { name: string; rank: number } | null = null;
         if (ownApp) {
-          const compRanking = await prisma.keywordRanking.findFirst({
-            where: {
-              keywordId: k.id,
-              appId: { not: ownApp.id },
-              rank: { not: null },
-            },
-            orderBy: [{ trackedAt: "desc" }, { rank: "asc" }],
-            include: { app: { select: { name: true } } },
-          });
+          const compRanking = topCompMap.get(k.id);
           if (compRanking?.rank) {
-            topCompetitor = {
-              name: compRanking.app.name,
-              rank: compRanking.rank,
-            };
+            topCompetitor = { name: compRanking.app.name, rank: compRanking.rank };
           }
         }
 
-        const ourRankingCount = ownApp
-          ? await prisma.keywordRanking.count({
-              where: { keywordId: k.id, appId: ownApp.id },
-            })
-          : 0;
+        const ourRankingCount = countMap.get(k.id) ?? 0;
 
         const currentRank = k.rankings[0]?.rank ?? null;
         const previousRank = k.rankings[1]?.rank ?? null;
@@ -76,8 +97,7 @@ keywordsRouter.get("/", async (req, res) => {
           suggestionCount: k._count.suggestions,
           updatedAt: k.updatedAt,
         };
-      }),
-    );
+      });
 
     res.json(result);
   } catch (err) {

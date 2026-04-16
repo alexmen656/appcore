@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../../config";
-import { requireAuth } from "../auth";
+import { requireAuth, requireTeamAdmin } from "../auth";
 import { teamInvite } from "../../services/notifications/templates.js";
 import crypto from "crypto";
 
@@ -112,17 +112,8 @@ teamRouter.post("/invite", async (req, res) => {
       return;
     }
 
-    const teamId = req.user!.teamId;
-    if (!teamId) {
-      res.status(403).json({ error: "No team" });
-      return;
-    }
-
-    const me = await getMyMembership(req.user!.userId, teamId);
-    if (!canManageTeam(me?.role) && req.user!.role !== "ADMIN") {
-      res.status(403).json({ error: "Only owners and admins can invite" });
-      return;
-    }
+    if (!(await requireTeamAdmin(req, res))) return;
+    const teamId = req.user!.teamId!;
 
     const team = await prisma.team.findUnique({ where: { id: teamId } });
     if (!team) {
@@ -186,17 +177,8 @@ teamRouter.post("/invite", async (req, res) => {
 
 teamRouter.delete("/invites/:id", async (req, res) => {
   try {
-    const teamId = req.user!.teamId;
-    if (!teamId) {
-      res.status(403).json({ error: "No team" });
-      return;
-    }
-
-    const me = await getMyMembership(req.user!.userId, teamId);
-    if (!canManageTeam(me?.role) && req.user!.role !== "ADMIN") {
-      res.status(403).json({ error: "Forbidden" });
-      return;
-    }
+    if (!(await requireTeamAdmin(req, res))) return;
+    const teamId = req.user!.teamId!;
 
     const invite = await prisma.teamInvite.findUnique({
       where: { id: req.params.id },
@@ -221,17 +203,8 @@ teamRouter.put("/members/:id", async (req, res) => {
       return;
     }
 
-    const teamId = req.user!.teamId;
-    if (!teamId) {
-      res.status(403).json({ error: "No team" });
-      return;
-    }
-
-    const me = await getMyMembership(req.user!.userId, teamId);
-    if (!canManageTeam(me?.role) && req.user!.role !== "ADMIN") {
-      res.status(403).json({ error: "Forbidden" });
-      return;
-    }
+    if (!(await requireTeamAdmin(req, res))) return;
+    const teamId = req.user!.teamId!;
 
     const target = await prisma.teamMember.findUnique({
       where: { id: req.params.id },
@@ -287,17 +260,8 @@ teamRouter.delete("/members/:id", async (req, res) => {
 
 teamRouter.get("/members/:id/apps", async (req, res) => {
   try {
-    const teamId = req.user!.teamId;
-    if (!teamId) {
-      res.status(403).json({ error: "No team" });
-      return;
-    }
-
-    const me = await getMyMembership(req.user!.userId, teamId);
-    if (!canManageTeam(me?.role) && req.user!.role !== "ADMIN") {
-      res.status(403).json({ error: "Forbidden" });
-      return;
-    }
+    if (!(await requireTeamAdmin(req, res))) return;
+    const teamId = req.user!.teamId!;
 
     const member = await prisma.teamMember.findUnique({
       where: { id: req.params.id },
@@ -322,17 +286,8 @@ teamRouter.put("/members/:id/apps", async (req, res) => {
       return;
     }
 
-    const teamId = req.user!.teamId;
-    if (!teamId) {
-      res.status(403).json({ error: "No team" });
-      return;
-    }
-
-    const me = await getMyMembership(req.user!.userId, teamId);
-    if (!canManageTeam(me?.role) && req.user!.role !== "ADMIN") {
-      res.status(403).json({ error: "Forbidden" });
-      return;
-    }
+    if (!(await requireTeamAdmin(req, res))) return;
+    const teamId = req.user!.teamId!;
 
     const member = await prisma.teamMember.findUnique({
       where: { id: req.params.id },
@@ -366,17 +321,8 @@ teamRouter.put("/", async (req, res) => {
       return;
     }
 
-    const teamId = req.user!.teamId;
-    if (!teamId) {
-      res.status(403).json({ error: "No team" });
-      return;
-    }
-
-    const me = await getMyMembership(req.user!.userId, teamId);
-    if (!canManageTeam(me?.role) && req.user!.role !== "ADMIN") {
-      res.status(403).json({ error: "Forbidden" });
-      return;
-    }
+    if (!(await requireTeamAdmin(req, res))) return;
+    const teamId = req.user!.teamId!;
 
     const team = await prisma.team.update({
       where: { id: teamId },

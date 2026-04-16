@@ -308,48 +308,35 @@ ascRouter.patch("/versions/metadata", async (req, res) => {
 
     const asc = await ascClientForUser(req.user!.userId);
 
-    if (
-      field === "name" ||
-      field === "subtitle" ||
-      field === "privacyPolicyUrl"
-    ) {
-      if (!appInfoLocalizationId) {
-        res.status(400).json({
-          error:
-            "appInfoLocalizationId is required for app info localization fields",
-        });
-        return;
-      }
-      await asc.updateAppInfoLocalization(appInfoLocalizationId, {
-        [field]: value,
-      });
-      res.json({ ok: true, field, value });
+    const METADATA_FIELDS = {
+      appInfo: {
+        fields: ["name", "subtitle", "privacyPolicyUrl"],
+        localizationId: appInfoLocalizationId,
+        errorMsg: "appInfoLocalizationId is required for app info localization fields",
+        update: (id: string) => asc.updateAppInfoLocalization(id, { [field]: value }),
+      },
+      version: {
+        fields: ["description", "keywords", "whatsNew", "promotionalText", "supportUrl", "marketingUrl"],
+        localizationId: versionLocalizationId,
+        errorMsg: "versionLocalizationId is required for version fields",
+        update: (id: string) => asc.updateVersionLocalization(id, { [field]: value }),
+      },
+    };
+
+    const matchedGroup = Object.values(METADATA_FIELDS).find((g) =>
+      g.fields.includes(field),
+    );
+
+    if (!matchedGroup) {
+      res.status(400).json({ error: `Unknown field: ${field}` });
       return;
     }
-
-    const versionFields = [
-      "description",
-      "keywords",
-      "whatsNew",
-      "promotionalText",
-      "supportUrl",
-      "marketingUrl",
-    ];
-    if (versionFields.includes(field)) {
-      if (!versionLocalizationId) {
-        res.status(400).json({
-          error: "versionLocalizationId is required for version fields",
-        });
-        return;
-      }
-      await asc.updateVersionLocalization(versionLocalizationId, {
-        [field]: value,
-      });
-      res.json({ ok: true, field, value });
+    if (!matchedGroup.localizationId) {
+      res.status(400).json({ error: matchedGroup.errorMsg });
       return;
     }
-
-    res.status(400).json({ error: `Unknown field: ${field}` });
+    await matchedGroup.update(matchedGroup.localizationId);
+    res.json({ ok: true, field, value });
   } catch (err: any) {
     logger.error("ASC updateMetadata failed", err);
     res.status(500).json({ error: err.message ?? String(err) });

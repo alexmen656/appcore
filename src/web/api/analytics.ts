@@ -107,54 +107,27 @@ analyticsRouter.get("/downloads", ...requireBundleAccess("query"), async (req, r
       orderBy: { reportDate: "asc" },
     });
 
-    const byDayMap: Record<
-      string,
-      {
-        date: string;
-        downloads: number;
-        updates: number;
-        proceeds: number;
-        impressions: number;
-        pageViews: number;
-        sessions: number;
-      }
-    > = {};
+    type DayEntry = { date: string; downloads: number; updates: number; proceeds: number; impressions: number; pageViews: number; sessions: number };
+    type CountryEntry = { downloads: number; impressions: number; pageViews: number };
+    const byDayMap: Record<string, DayEntry> = {};
+    const byCountryMap: Record<string, CountryEntry> = {};
+
     for (const r of rows) {
       const key = r.reportDate.toISOString().slice(0, 10);
-      if (!byDayMap[key])
-        byDayMap[key] = {
-          date: key,
-          downloads: 0,
-          updates: 0,
-          proceeds: 0,
-          impressions: 0,
-          pageViews: 0,
-          sessions: 0,
-        };
-      byDayMap[key].downloads += r.downloads;
-      byDayMap[key].updates += r.updates;
-      byDayMap[key].proceeds += r.proceeds;
-      byDayMap[key].impressions += r.impressions;
-      byDayMap[key].pageViews += r.pageViews;
-      byDayMap[key].sessions += r.sessions;
+      const day = (byDayMap[key] ??= { date: key, downloads: 0, updates: 0, proceeds: 0, impressions: 0, pageViews: 0, sessions: 0 });
+      day.downloads += r.downloads;
+      day.updates += r.updates;
+      day.proceeds += r.proceeds;
+      day.impressions += r.impressions;
+      day.pageViews += r.pageViews;
+      day.sessions += r.sessions;
+
+      const c = (byCountryMap[r.country] ??= { downloads: 0, impressions: 0, pageViews: 0 });
+      c.downloads += r.downloads;
+      c.impressions += r.impressions;
+      c.pageViews += r.pageViews;
     }
 
-    const byCountryMap: Record<
-      string,
-      { downloads: number; impressions: number; pageViews: number }
-    > = {};
-    for (const r of rows) {
-      if (!byCountryMap[r.country]) {
-        byCountryMap[r.country] = {
-          downloads: 0,
-          impressions: 0,
-          pageViews: 0,
-        };
-      }
-      byCountryMap[r.country].downloads += r.downloads;
-      byCountryMap[r.country].impressions += r.impressions;
-      byCountryMap[r.country].pageViews += r.pageViews;
-    }
     const byCountry = Object.entries(byCountryMap)
       .map(([country, v]) => ({ country, ...v }))
       .sort((a, b) => b.downloads - a.downloads);
