@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  AppCore
+//  Marteso
 //
 //  Created by Alex Polan on 3/6/26.
 //

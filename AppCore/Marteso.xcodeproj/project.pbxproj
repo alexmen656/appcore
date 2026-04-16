@@ -6,56 +6,59 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		D98700D32F9186DF006AB04D /* MartesoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D98700D12F9186DF006AB04D /* MartesoTests.swift */; };
+		D98700E22F9186FF006AB04D /* config.json in Resources */ = {isa = PBXBuildFile; fileRef = D98700DF2F9186FF006AB04D /* config.json */; };
+		D98700E32F9186FF006AB04D /* MartesoUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D98700DD2F9186FF006AB04D /* MartesoUITests.swift */; };
+		D98700E42F9186FF006AB04D /* MartesoUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D98700DE2F9186FF006AB04D /* MartesoUITestsLaunchTests.swift */; };
+		D98700E52F9186FF006AB04D /* SnapshotHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = D98700E02F9186FF006AB04D /* SnapshotHelper.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		D97CBC492F5AE27B0033A6A4 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = D97CBC332F5AE27A0033A6A4 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = D97CBC3A2F5AE27A0033A6A4;
-			remoteInfo = AppCore;
+			remoteInfo = Marteso;
 		};
 		D97CBC532F5AE27B0033A6A4 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = D97CBC332F5AE27A0033A6A4 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = D97CBC3A2F5AE27A0033A6A4;
-			remoteInfo = AppCore;
+			remoteInfo = Marteso;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		D97CBC3B2F5AE27A0033A6A4 /* AppCore.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AppCore.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		D97CBC482F5AE27B0033A6A4 /* AppCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AppCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		D97CBC522F5AE27B0033A6A4 /* AppCoreUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AppCoreUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D97CBC3B2F5AE27A0033A6A4 /* Marteso.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = Marteso.app; path = "/Users/alexpolan/appcore/Marteso/build/Debug-iphoneos/Marteso.app"; sourceTree = "<absolute>"; };
+		D97CBC482F5AE27B0033A6A4 /* MartesoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = MartesoTests.xctest; path = "/Users/alexpolan/appcore/Marteso/build/Debug-iphoneos/Marteso.app/PlugIns/MartesoTests.xctest"; sourceTree = "<absolute>"; };
+		D97CBC522F5AE27B0033A6A4 /* MartesoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = MartesoUITests.xctest; path = "/Users/alexpolan/appcore/Marteso/build/Debug-iphoneos/MartesoUITests-Runner.app/PlugIns/MartesoUITests.xctest"; sourceTree = "<absolute>"; };
+		D98700D12F9186DF006AB04D /* MartesoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MartesoTests.swift; sourceTree = "<group>"; };
+		D98700DD2F9186FF006AB04D /* MartesoUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MartesoUITests.swift; sourceTree = "<group>"; };
+		D98700DE2F9186FF006AB04D /* MartesoUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MartesoUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		D98700DF2F9186FF006AB04D /* config.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = config.json; sourceTree = "<group>"; };
+		D98700E02F9186FF006AB04D /* SnapshotHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotHelper.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		D9C19D172F636FA8009D5599 /* Exceptions for "AppCore" folder in "AppCore" target */ = {
+		D9C19D172F636FA8009D5599 /* Exceptions for "Marteso" folder in "Marteso" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = D97CBC3A2F5AE27A0033A6A4 /* AppCore */;
+			target = D97CBC3A2F5AE27A0033A6A4 /* Marteso */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		D97CBC3D2F5AE27A0033A6A4 /* AppCore */ = {
+		D97CBC3D2F5AE27A0033A6A4 /* Marteso */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				D9C19D172F636FA8009D5599 /* Exceptions for "AppCore" folder in "AppCore" target */,
+				D9C19D172F636FA8009D5599 /* Exceptions for "Marteso" folder in "Marteso" target */,
 			);
-			path = AppCore;
-			sourceTree = "<group>";
-		};
-		D97CBC4B2F5AE27B0033A6A4 /* AppCoreTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = AppCoreTests;
-			sourceTree = "<group>";
-		};
-		D97CBC552F5AE27B0033A6A4 /* AppCoreUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = AppCoreUITests;
+			path = Marteso;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -88,29 +91,37 @@
 		D97CBC322F5AE27A0033A6A4 = {
 			isa = PBXGroup;
 			children = (
-				D97CBC3D2F5AE27A0033A6A4 /* AppCore */,
-				D97CBC4B2F5AE27B0033A6A4 /* AppCoreTests */,
-				D97CBC552F5AE27B0033A6A4 /* AppCoreUITests */,
-				D97CBC3C2F5AE27A0033A6A4 /* Products */,
+				D98700E12F9186FF006AB04D /* MartesoUITests */,
+				D98700D22F9186DF006AB04D /* MartesoTests */,
+				D97CBC3D2F5AE27A0033A6A4 /* Marteso */,
 			);
 			sourceTree = "<group>";
 		};
-		D97CBC3C2F5AE27A0033A6A4 /* Products */ = {
+		D98700D22F9186DF006AB04D /* MartesoTests */ = {
 			isa = PBXGroup;
 			children = (
-				D97CBC3B2F5AE27A0033A6A4 /* AppCore.app */,
-				D97CBC482F5AE27B0033A6A4 /* AppCoreTests.xctest */,
-				D97CBC522F5AE27B0033A6A4 /* AppCoreUITests.xctest */,
+				D98700D12F9186DF006AB04D /* MartesoTests.swift */,
 			);
-			name = Products;
+			path = MartesoTests;
+			sourceTree = "<group>";
+		};
+		D98700E12F9186FF006AB04D /* MartesoUITests */ = {
+			isa = PBXGroup;
+			children = (
+				D98700DD2F9186FF006AB04D /* MartesoUITests.swift */,
+				D98700DE2F9186FF006AB04D /* MartesoUITestsLaunchTests.swift */,
+				D98700DF2F9186FF006AB04D /* config.json */,
+				D98700E02F9186FF006AB04D /* SnapshotHelper.swift */,
+			);
+			path = MartesoUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		D97CBC3A2F5AE27A0033A6A4 /* AppCore */ = {
+		D97CBC3A2F5AE27A0033A6A4 /* Marteso */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = D97CBC5C2F5AE27B0033A6A4 /* Build configuration list for PBXNativeTarget "AppCore" */;
+			buildConfigurationList = D97CBC5C2F5AE27B0033A6A4 /* Build configuration list for PBXNativeTarget "Marteso" */;
 			buildPhases = (
 				D97CBC372F5AE27A0033A6A4 /* Sources */,
 				D97CBC382F5AE27A0033A6A4 /* Frameworks */,
@@ -121,18 +132,18 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				D97CBC3D2F5AE27A0033A6A4 /* AppCore */,
+				D97CBC3D2F5AE27A0033A6A4 /* Marteso */,
 			);
-			name = AppCore;
+			name = Marteso;
 			packageProductDependencies = (
 			);
-			productName = AppCore;
-			productReference = D97CBC3B2F5AE27A0033A6A4 /* AppCore.app */;
+			productName = Marteso;
+			productReference = D97CBC3B2F5AE27A0033A6A4 /* Marteso.app */;
 			productType = "com.apple.product-type.application";
 		};
-		D97CBC472F5AE27B0033A6A4 /* AppCoreTests */ = {
+		D97CBC472F5AE27B0033A6A4 /* MartesoTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = D97CBC5F2F5AE27B0033A6A4 /* Build configuration list for PBXNativeTarget "AppCoreTests" */;
+			buildConfigurationList = D97CBC5F2F5AE27B0033A6A4 /* Build configuration list for PBXNativeTarget "MartesoTests" */;
 			buildPhases = (
 				D97CBC442F5AE27B0033A6A4 /* Sources */,
 				D97CBC452F5AE27B0033A6A4 /* Frameworks */,
@@ -143,19 +154,16 @@
 			dependencies = (
 				D97CBC4A2F5AE27B0033A6A4 /* PBXTargetDependency */,
 			);
-			fileSystemSynchronizedGroups = (
-				D97CBC4B2F5AE27B0033A6A4 /* AppCoreTests */,
-			);
-			name = AppCoreTests;
+			name = MartesoTests;
 			packageProductDependencies = (
 			);
-			productName = AppCoreTests;
-			productReference = D97CBC482F5AE27B0033A6A4 /* AppCoreTests.xctest */;
+			productName = MartesoTests;
+			productReference = D97CBC482F5AE27B0033A6A4 /* MartesoTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		D97CBC512F5AE27B0033A6A4 /* AppCoreUITests */ = {
+		D97CBC512F5AE27B0033A6A4 /* MartesoUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = D97CBC622F5AE27B0033A6A4 /* Build configuration list for PBXNativeTarget "AppCoreUITests" */;
+			buildConfigurationList = D97CBC622F5AE27B0033A6A4 /* Build configuration list for PBXNativeTarget "MartesoUITests" */;
 			buildPhases = (
 				D97CBC4E2F5AE27B0033A6A4 /* Sources */,
 				D97CBC4F2F5AE27B0033A6A4 /* Frameworks */,
@@ -166,14 +174,11 @@
 			dependencies = (
 				D97CBC542F5AE27B0033A6A4 /* PBXTargetDependency */,
 			);
-			fileSystemSynchronizedGroups = (
-				D97CBC552F5AE27B0033A6A4 /* AppCoreUITests */,
-			);
-			name = AppCoreUITests;
+			name = MartesoUITests;
 			packageProductDependencies = (
 			);
-			productName = AppCoreUITests;
-			productReference = D97CBC522F5AE27B0033A6A4 /* AppCoreUITests.xctest */;
+			productName = MartesoUITests;
+			productReference = D97CBC522F5AE27B0033A6A4 /* MartesoUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -199,7 +204,7 @@
 					};
 				};
 			};
-			buildConfigurationList = D97CBC362F5AE27A0033A6A4 /* Build configuration list for PBXProject "AppCore" */;
+			buildConfigurationList = D97CBC362F5AE27A0033A6A4 /* Build configuration list for PBXProject "Marteso" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -209,13 +214,13 @@
 			mainGroup = D97CBC322F5AE27A0033A6A4;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
-			productRefGroup = D97CBC3C2F5AE27A0033A6A4 /* Products */;
+			productRefGroup = D97CBC322F5AE27A0033A6A4;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				D97CBC3A2F5AE27A0033A6A4 /* AppCore */,
-				D97CBC472F5AE27B0033A6A4 /* AppCoreTests */,
-				D97CBC512F5AE27B0033A6A4 /* AppCoreUITests */,
+				D97CBC3A2F5AE27A0033A6A4 /* Marteso */,
+				D97CBC472F5AE27B0033A6A4 /* MartesoTests */,
+				D97CBC512F5AE27B0033A6A4 /* MartesoUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -225,6 +230,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D98700E22F9186FF006AB04D /* config.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -249,6 +255,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D98700D32F9186DF006AB04D /* MartesoTests.swift in Sources */,
+				D98700E32F9186FF006AB04D /* MartesoUITests.swift in Sources */,
+				D98700E42F9186FF006AB04D /* MartesoUITestsLaunchTests.swift in Sources */,
+				D98700E52F9186FF006AB04D /* SnapshotHelper.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -271,12 +281,12 @@
 /* Begin PBXTargetDependency section */
 		D97CBC4A2F5AE27B0033A6A4 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = D97CBC3A2F5AE27A0033A6A4 /* AppCore */;
+			target = D97CBC3A2F5AE27A0033A6A4 /* Marteso */;
 			targetProxy = D97CBC492F5AE27B0033A6A4 /* PBXContainerItemProxy */;
 		};
 		D97CBC542F5AE27B0033A6A4 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = D97CBC3A2F5AE27A0033A6A4 /* AppCore */;
+			target = D97CBC3A2F5AE27A0033A6A4 /* Marteso */;
 			targetProxy = D97CBC532F5AE27B0033A6A4 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -408,13 +418,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = AppCore/AppCore.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Marteso/Marteso.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = AS5BHHK5AW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = AppCore/Info.plist;
+				INFOPLIST_FILE = Marteso/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Marteso;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -443,13 +453,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = AppCore/AppCore.entitlements;
+				CODE_SIGN_ENTITLEMENTS = Marteso/Marteso.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = AS5BHHK5AW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = AppCore/Info.plist;
+				INFOPLIST_FILE = Marteso/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Marteso;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -483,7 +493,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.fringelo.AppCoreTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fringelo.MartesoTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -491,7 +501,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AppCore.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AppCore";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Marteso.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Marteso";
 			};
 			name = Debug;
 		};
@@ -505,7 +515,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.fringelo.AppCoreTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fringelo.MartesoTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -513,7 +523,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AppCore.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AppCore";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Marteso.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Marteso";
 			};
 			name = Release;
 		};
@@ -525,7 +535,7 @@
 				DEVELOPMENT_TEAM = AS5BHHK5AW;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.fringelo.AppCoreUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fringelo.MartesoUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -533,7 +543,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = AppCore;
+				TEST_TARGET_NAME = Marteso;
 			};
 			name = Debug;
 		};
@@ -545,7 +555,7 @@
 				DEVELOPMENT_TEAM = AS5BHHK5AW;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.fringelo.AppCoreUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fringelo.MartesoUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -553,14 +563,14 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = AppCore;
+				TEST_TARGET_NAME = Marteso;
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		D97CBC362F5AE27A0033A6A4 /* Build configuration list for PBXProject "AppCore" */ = {
+		D97CBC362F5AE27A0033A6A4 /* Build configuration list for PBXProject "Marteso" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				D97CBC5A2F5AE27B0033A6A4 /* Debug */,
@@ -569,7 +579,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		D97CBC5C2F5AE27B0033A6A4 /* Build configuration list for PBXNativeTarget "AppCore" */ = {
+		D97CBC5C2F5AE27B0033A6A4 /* Build configuration list for PBXNativeTarget "Marteso" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				D97CBC5D2F5AE27B0033A6A4 /* Debug */,
@@ -578,7 +588,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		D97CBC5F2F5AE27B0033A6A4 /* Build configuration list for PBXNativeTarget "AppCoreTests" */ = {
+		D97CBC5F2F5AE27B0033A6A4 /* Build configuration list for PBXNativeTarget "MartesoTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				D97CBC602F5AE27B0033A6A4 /* Debug */,
@@ -587,7 +597,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		D97CBC622F5AE27B0033A6A4 /* Build configuration list for PBXNativeTarget "AppCoreUITests" */ = {
+		D97CBC622F5AE27B0033A6A4 /* Build configuration list for PBXNativeTarget "MartesoUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				D97CBC632F5AE27B0033A6A4 /* Debug */,

@@ -1,12 +1,12 @@
 //
-//  AppCoreUITests.swift
-//  AppCoreUITests
+//  MartesoUITests.swift
+//  MartesoUITests
 //
 
 import XCTest
 
 @MainActor
-final class AppCoreUITests: XCTestCase {
+final class MartesoUITests: XCTestCase {
 
     var app: XCUIApplication!
 

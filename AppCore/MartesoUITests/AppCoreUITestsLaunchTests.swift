@@ -1,13 +1,13 @@
 //
-//  AppCoreUITestsLaunchTests.swift
-//  AppCoreUITests
+//  MartesoUITestsLaunchTests.swift
+//  MartesoUITests
 //
 //  Created by Alex Polan on 3/6/26.
 //
 
 import XCTest
 
-final class AppCoreUITestsLaunchTests: XCTestCase {
+final class MartesoUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true

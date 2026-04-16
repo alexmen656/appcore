@@ -1,6 +1,6 @@
 //
-//  AppCoreApp.swift
-//  AppCore
+//  MartesoApp.swift
+//  Marteso
 //
 //  Created by Alex Polan on 3/6/26.
 //
@@ -9,7 +9,7 @@ import SwiftUI
 import UserNotifications
 
 @main
-struct AppCoreApp: App {
+struct MartesoApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     init() {
