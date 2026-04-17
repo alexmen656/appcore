@@ -32,9 +32,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		D97CBC3B2F5AE27A0033A6A4 /* Marteso.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = Marteso.app; path = "/Users/alexpolan/appcore/Marteso/build/Debug-iphoneos/Marteso.app"; sourceTree = "<absolute>"; };
-		D97CBC482F5AE27B0033A6A4 /* MartesoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = MartesoTests.xctest; path = "/Users/alexpolan/appcore/Marteso/build/Debug-iphoneos/Marteso.app/PlugIns/MartesoTests.xctest"; sourceTree = "<absolute>"; };
-		D97CBC522F5AE27B0033A6A4 /* MartesoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = MartesoUITests.xctest; path = "/Users/alexpolan/appcore/Marteso/build/Debug-iphoneos/MartesoUITests-Runner.app/PlugIns/MartesoUITests.xctest"; sourceTree = "<absolute>"; };
+		D92B38642F91884E00C35793 /* Marteso.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Marteso.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D92B38652F91884E00C35793 /* MartesoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MartesoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D92B38662F91884E00C35793 /* MartesoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MartesoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D98700D12F9186DF006AB04D /* MartesoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MartesoTests.swift; sourceTree = "<group>"; };
 		D98700DD2F9186FF006AB04D /* MartesoUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MartesoUITests.swift; sourceTree = "<group>"; };
 		D98700DE2F9186FF006AB04D /* MartesoUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MartesoUITestsLaunchTests.swift; sourceTree = "<group>"; };
@@ -43,10 +43,11 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		D9C19D172F636FA8009D5599 /* Exceptions for "Marteso" folder in "Marteso" target */ = {
+		D97CBC3D2F5AE27A0033A6A5 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				Marteso.entitlements,
 			);
 			target = D97CBC3A2F5AE27A0033A6A4 /* Marteso */;
 		};
@@ -56,7 +57,7 @@
 		D97CBC3D2F5AE27A0033A6A4 /* Marteso */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				D9C19D172F636FA8009D5599 /* Exceptions for "Marteso" folder in "Marteso" target */,
+				D97CBC3D2F5AE27A0033A6A5 /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
 			);
 			path = Marteso;
 			sourceTree = "<group>";
@@ -94,6 +95,9 @@
 				D98700E12F9186FF006AB04D /* MartesoUITests */,
 				D98700D22F9186DF006AB04D /* MartesoTests */,
 				D97CBC3D2F5AE27A0033A6A4 /* Marteso */,
+				D92B38642F91884E00C35793 /* Marteso.app */,
+				D92B38652F91884E00C35793 /* MartesoTests.xctest */,
+				D92B38662F91884E00C35793 /* MartesoUITests.xctest */,
 			);
 			sourceTree = "<group>";
 		};
@@ -138,7 +142,7 @@
 			packageProductDependencies = (
 			);
 			productName = Marteso;
-			productReference = D97CBC3B2F5AE27A0033A6A4 /* Marteso.app */;
+			productReference = D92B38642F91884E00C35793 /* Marteso.app */;
 			productType = "com.apple.product-type.application";
 		};
 		D97CBC472F5AE27B0033A6A4 /* MartesoTests */ = {
@@ -158,7 +162,7 @@
 			packageProductDependencies = (
 			);
 			productName = MartesoTests;
-			productReference = D97CBC482F5AE27B0033A6A4 /* MartesoTests.xctest */;
+			productReference = D92B38652F91884E00C35793 /* MartesoTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		D97CBC512F5AE27B0033A6A4 /* MartesoUITests */ = {
@@ -178,7 +182,7 @@
 			packageProductDependencies = (
 			);
 			productName = MartesoUITests;
-			productReference = D97CBC522F5AE27B0033A6A4 /* MartesoUITests.xctest */;
+			productReference = D92B38662F91884E00C35793 /* MartesoUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -255,10 +259,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D98700D32F9186DF006AB04D /* MartesoTests.swift in Sources */,
-				D98700E32F9186FF006AB04D /* MartesoUITests.swift in Sources */,
-				D98700E42F9186FF006AB04D /* MartesoUITestsLaunchTests.swift in Sources */,
-				D98700E52F9186FF006AB04D /* SnapshotHelper.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -266,6 +266,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D98700D32F9186DF006AB04D /* MartesoTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -273,6 +274,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D98700E32F9186FF006AB04D /* MartesoUITests.swift in Sources */,
+				D98700E42F9186FF006AB04D /* MartesoUITestsLaunchTests.swift in Sources */,
+				D98700E52F9186FF006AB04D /* SnapshotHelper.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
