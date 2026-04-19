@@ -30,6 +30,9 @@ import Agents from "./components/Agents";
 import Settings from "./components/Settings";
 import AppSettings from "./components/AppSettings";
 import Analytics from "./components/Analytics";
+import AnalyticsDownloads from "./components/AnalyticsDownloads";
+import AnalyticsCountries from "./components/AnalyticsCountries";
+import AnalyticsReviews from "./components/AnalyticsReviews";
 import Versions from "./components/Versions";
 import Login from "./components/Login";
 import Team from "./components/Team";
@@ -67,7 +70,6 @@ import {
 
 const sidebarLinks = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/analytics", label: "Analytics", icon: BarChart2 },
   { to: "/keywords", label: "Keywords", icon: Search },
   { to: "/competitors", label: "Competitors", icon: Users },
   { to: "/suggestions", label: "Suggestions", icon: Layers },
@@ -537,6 +539,68 @@ function suggestNextVersion(versions: VersionSummary[] | null): string {
   return parts.join(".");
 }
 
+function AnalyticsSidebarSection({
+  navLinkClass,
+}: {
+  navLinkClass: (p: { isActive: boolean }) => string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const location = useLocation();
+  const isAnyAnalyticsActive = location.pathname.startsWith("/analytics");
+
+  useEffect(() => {
+    if (location.pathname.startsWith("/analytics")) setExpanded(true);
+  }, []);
+
+  const subLinks = [
+    { to: "/analytics", label: "Overview", end: true },
+    { to: "/analytics/downloads", label: "Downloads" },
+    { to: "/analytics/countries", label: "Countries" },
+    { to: "/analytics/reviews", label: "Reviews" },
+  ];
+
+  return (
+    <div>
+      <div className="flex items-center gap-1 mb-0.5">
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className={`flex-1 flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-sm font-medium transition-all [&_svg]:w-[18px] [&_svg]:h-[18px] ${
+            isAnyAnalyticsActive
+              ? "bg-[#fff1f2] text-[#C4001E] dark:bg-[#C4001E]/[0.12] dark:text-[#ff8080] [&>svg:first-child]:opacity-100"
+              : "text-[#6b7280] dark:text-[#8b93a5] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] [&>svg:first-child]:opacity-60"
+          }`}
+        >
+          <BarChart2 />
+          <span className="flex-1 text-left">Analytics</span>
+          <ChevronDown
+            className={`!w-3.5 !h-3.5 shrink-0 text-gray-400 dark:text-[#5c6478] transition-transform ${expanded ? "rotate-180" : ""}`}
+          />
+        </button>
+      </div>
+      {expanded && (
+        <div className="ml-3 pl-3 border-l border-[#e5e7eb] dark:border-[#2a2f3d] mb-1 flex flex-col gap-0.5">
+          {subLinks.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              end={link.end}
+              className={({ isActive }) =>
+                `flex items-center px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-all ${
+                  isActive
+                    ? "bg-[#fff1f2] text-[#C4001E] dark:bg-[#C4001E]/[0.12] dark:text-[#ff8080]"
+                    : "text-[#6b7280] dark:text-[#8b93a5] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0]"
+                }`
+              }
+            >
+              {link.label}
+            </NavLink>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function VersionsSidebarSection({
   navLinkClass,
 }: {
@@ -896,7 +960,14 @@ export default function App() {
         <aside className="w-[250px] min-w-[250px] bg-[#f8f9fb] dark:bg-[#0a0a0a] flex flex-col overflow-y-auto">
           <AppSwitcher current={dash?.app ?? null} addToast={addToast} />
           <nav className="px-2 pt-1 flex-1 flex flex-col">
-            {sidebarLinks.map((link) => (
+            {sidebarLinks.slice(0, 1).map((link) => (
+              <NavLink key={link.to} to={link.to} className={navLinkClass}>
+                {link.icon && <link.icon />}
+                {link.label}
+              </NavLink>
+            ))}
+            <AnalyticsSidebarSection navLinkClass={navLinkClass} />
+            {sidebarLinks.slice(1).map((link) => (
               <NavLink key={link.to} to={link.to} className={navLinkClass}>
                 {link.icon && <link.icon />}
                 {link.label}
@@ -939,6 +1010,9 @@ export default function App() {
               path="/analytics"
               element={<Analytics addToast={addToast} />}
             />
+            <Route path="/analytics/downloads" element={<AnalyticsDownloads />} />
+            <Route path="/analytics/countries" element={<AnalyticsCountries />} />
+            <Route path="/analytics/reviews" element={<AnalyticsReviews />} />
             <Route
               path="/versions/:versionId"
               element={<Versions addToast={addToast} />}
