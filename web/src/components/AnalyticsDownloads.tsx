@@ -141,9 +141,6 @@ export default function AnalyticsDownloads() {
         <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
           Downloads
         </h1>
-        <p className="text-sm text-[#9ca3af] dark:text-[#5c6478]">
-          Day-by-day metrics — {rangeLabel(range)}
-        </p>
       </div>
 
       <div className="flex flex-wrap items-center gap-2 mb-5">

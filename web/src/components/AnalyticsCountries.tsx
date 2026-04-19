@@ -2,8 +2,20 @@ import { useState, useMemo, useEffect } from "react";
 import { useApi, getActiveBundleId, authHeaders } from "../hooks/useApi";
 import type { DownloadsData, CountryData } from "../types";
 import { TH, TD } from "../styles";
-import { fmtNumber, countryName } from "../utils/formatters";
+import { fmtNumber, countryName, fmtLargeNum } from "../utils/formatters";
 import { TrendingUp, TrendingDown } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  AreaChart,
+  Area,
+  CartesianGrid,
+} from "recharts";
 import {
   type RangeKey,
   RANGE_OPTIONS,
@@ -95,9 +107,6 @@ export default function AnalyticsCountries() {
         <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
           Countries
         </h1>
-        <p className="text-sm text-[#9ca3af] dark:text-[#5c6478]">
-          Full country breakdown — {rangeLabel(range)}
-        </p>
       </div>
 
       <div className="flex flex-wrap items-center gap-2 mb-5">
@@ -134,6 +143,130 @@ export default function AnalyticsCountries() {
           </div>
         )}
       </div>
+
+      {!loading && (downloads?.byDay ?? []).length > 1 && (() => {
+        const byDay = downloads!.byDay;
+        return (
+          <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] mb-5">
+            <div className="text-[14px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-1">Downloads over time</div>
+            <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mb-4">{rangeLabel(range)}</div>
+            <ResponsiveContainer width="100%" height={160}>
+              <AreaChart data={byDay} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                <defs>
+                  <linearGradient id="countryDlGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#ea0e2b" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#ea0e2b" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: "#9ca3af" }}
+                  tickFormatter={(v: string) => {
+                    const d = new Date(v);
+                    return `${d.getMonth() + 1}/${d.getDate()}`;
+                  }}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: "#9ca3af" }}
+                  tickFormatter={(v) => fmtLargeNum(v)}
+                  width={36}
+                />
+                <Tooltip
+                  cursor={{ stroke: "#ea0e2b", strokeWidth: 1, strokeDasharray: "4 2" }}
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null;
+                    const d = new Date(String(label));
+                    const dateStr = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+                    return (
+                      <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl px-3 py-2 text-[12px] shadow-lg">
+                        <div className="text-[#9ca3af] dark:text-[#5c6478] mb-0.5">{dateStr}</div>
+                        <div className="font-semibold text-[#111827] dark:text-[#e8eaf0]">{fmtNumber(payload[0].value as number)} downloads</div>
+                      </div>
+                    );
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="downloads"
+                  stroke="#ea0e2b"
+                  strokeWidth={2}
+                  fill="url(#countryDlGrad)"
+                  dot={false}
+                  activeDot={{ r: 4, fill: "#ea0e2b", strokeWidth: 0 }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        );
+      })()}
+
+      {/* Country chart */}
+      {!loading && (downloads?.byCountry ?? []).length > 0 && (() => {
+        const top = (downloads?.byCountry ?? []).slice(0, 15);
+        const chartData = top.map((c) => ({
+          name: countryName(c.country),
+          downloads: c.downloads,
+        }));
+        return (
+          <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] mb-5">
+            <div className="text-[14px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-4">
+              Top {top.length} Countries
+            </div>
+            <ResponsiveContainer width="100%" height={top.length * 32 + 8}>
+              <BarChart
+                data={chartData}
+                layout="vertical"
+                margin={{ top: 0, right: 16, bottom: 0, left: 0 }}
+                barCategoryGap="30%"
+              >
+                <XAxis
+                  type="number"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: "#9ca3af" }}
+                  tickFormatter={(v) => fmtLargeNum(v)}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  width={110}
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12, fill: "#6b7280" }}
+                />
+                <Tooltip
+                  cursor={{ fill: "rgba(0,0,0,0.03)" }}
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null;
+                    const d = payload[0].payload;
+                    return (
+                      <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl px-3 py-2 text-[12px] shadow-lg">
+                        <div className="font-medium text-[#111827] dark:text-[#e8eaf0] mb-0.5">{d.name}</div>
+                        <div className="text-[#9ca3af] dark:text-[#5c6478]">{fmtNumber(d.downloads)} downloads</div>
+                      </div>
+                    );
+                  }}
+                />
+                <Bar dataKey="downloads" radius={[0, 4, 4, 0]}>
+                  {chartData.map((_, i) => (
+                    <Cell
+                      key={i}
+                      fill={i === 0 ? "#ea0e2b" : i < 3 ? "#f87171" : "#fca5a5"}
+                      fillOpacity={i === 0 ? 1 : i < 3 ? 0.8 : 0.5}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        );
+      })()}
 
       <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
         <div className="px-5 py-4 border-b border-[#f3f4f6] dark:border-[#2a2f3d] flex items-center justify-between">

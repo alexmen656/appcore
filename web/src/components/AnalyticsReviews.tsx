@@ -24,12 +24,8 @@ export default function AnalyticsReviews() {
         <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
           Reviews
         </h1>
-        <p className="text-sm text-[#9ca3af] dark:text-[#5c6478]">
-          {loading ? "Loading…" : `${fmtNumber(reviews?.length ?? 0)} synced reviews`}
-        </p>
       </div>
 
-      {/* Rating distribution */}
       {!loading && (reviews ?? []).length > 0 && (
         <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] mb-5">
           <div className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-4">

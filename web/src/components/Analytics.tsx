@@ -24,7 +24,38 @@ interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }
 
-// ─── Helper components ─────────────────────────────────────────────────────────
+function Sparkline({ data, color }: { data: number[]; color: string }) {
+  if (!data || data.length < 2) return null;
+  const w = 100;
+  const h = 64;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const points = data
+    .map((v, i) => {
+      const x = (i / (data.length - 1)) * w;
+      const y = h - ((v - min) / range) * (h - 4) - 2;
+      return `${x},${y}`;
+    })
+    .join(" ");
+  return (
+    <svg
+      width={w}
+      height={h}
+      viewBox={`0 0 ${w} ${h}`}
+      className="overflow-visible shrink-0"
+    >
+      <polyline
+        points={points}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
 
 function StatCard({
   label,
@@ -33,6 +64,7 @@ function StatCard({
   highlight,
   dim,
   note,
+  sparkline,
 }: {
   label: string;
   value: string | number;
@@ -40,7 +72,11 @@ function StatCard({
   highlight?: boolean;
   dim?: boolean;
   note?: string;
+  sparkline?: number[];
 }) {
+  const sparkColor = highlight ? "#ea0e2b" : "#9ca3af";
+  const hasSparkline =
+    !dim && sparkline && sparkline.length >= 2 && sparkline.some((v) => v > 0);
   return (
     <div
       className={`bg-white dark:bg-[#1c2028] border rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] ${
@@ -49,28 +85,37 @@ function StatCard({
           : "border-[#eef0f3] dark:border-[#2a2f3d]"
       }`}
     >
-      <div className="text-[11px] font-medium uppercase tracking-wide text-[#9ca3af] dark:text-[#5c6478] mb-2">
-        {label}
-      </div>
-      <div
-        className={`text-[26px] font-semibold leading-none ${
-          dim
-            ? "text-[#9ca3af] dark:text-[#5c6478]"
-            : "text-[#111827] dark:text-[#e8eaf0]"
-        }`}
-      >
-        {value}
-      </div>
-      {sub && (
-        <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mt-1.5">
-          {sub}
+      <div className="flex items-end justify-between gap-2">
+        <div className="min-w-0">
+          <div className="text-[12px] font-medium uppercase tracking-wide text-[#9ca3af] dark:text-[#5c6478] mb-2">
+            {label}
+          </div>
+          <div
+            className={`text-[28px] font-semibold leading-none ${
+              dim
+                ? "text-[#9ca3af] dark:text-[#5c6478]"
+                : "text-[#111827] dark:text-[#e8eaf0]"
+            }`}
+          >
+            {value}
+          </div>
+          {sub && (
+            <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mt-1.5">
+              {sub}
+            </div>
+          )}
+          {note && (
+            <div className="text-[11px] text-[#c4c9d4] dark:text-[#3a4050] mt-1 leading-tight">
+              {note}
+            </div>
+          )}
         </div>
-      )}
-      {note && (
-        <div className="text-[11px] text-[#c4c9d4] dark:text-[#3a4050] mt-1 leading-tight">
-          {note}
-        </div>
-      )}
+        {hasSparkline && (
+          <div className="opacity-60">
+            <Sparkline data={sparkline!} color={sparkColor} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -143,10 +188,9 @@ export default function Analytics({ addToast }: Props) {
     `/analytics/downloads?bundleId=${bundleId}${params}`,
   );
 
-  const {
-    data: reviews,
-    refetch: refetchReviews,
-  } = useApi<Review[]>(`/analytics/reviews?bundleId=${bundleId}&limit=200`);
+  const { data: reviews, refetch: refetchReviews } = useApi<Review[]>(
+    `/analytics/reviews?bundleId=${bundleId}&limit=200`,
+  );
 
   const { data: markersData } = useApi<{
     activatedAt: string | null;
@@ -215,10 +259,9 @@ export default function Analytics({ addToast }: Props) {
             Analytics
           </h1>
           <p className="text-sm text-[#9ca3af] dark:text-[#5c6478]">
-            App Store performance overview
             {summary?.lastSyncAt && (
-              <span className="ml-2">
-                · Last synced {fmtDateTime(summary.lastSyncAt)}
+              <span>
+                Last synced {fmtDateTime(summary.lastSyncAt)}
               </span>
             )}
           </p>
@@ -294,7 +337,7 @@ export default function Analytics({ addToast }: Props) {
           label="Downloads"
           value={sumLoading ? "—" : fmtNumber(summary?.totalDownloads ?? 0)}
           sub={rangeLabel(range)}
-          highlight
+          sparkline={downloads?.byDay.map((d) => d.downloads)}
         />
         <StatCard
           label="Impressions"
@@ -312,6 +355,7 @@ export default function Analytics({ addToast }: Props) {
               ? "Run a 2nd sync once Apple processes the request"
               : undefined
           }
+          sparkline={downloads?.byDay.map((d) => d.impressions)}
         />
         <StatCard
           label="Product Page Views"
@@ -329,6 +373,7 @@ export default function Analytics({ addToast }: Props) {
               ? "Run a 2nd sync once Apple processes the request"
               : undefined
           }
+          sparkline={downloads?.byDay.map((d) => d.pageViews)}
         />
         <StatCard
           label="Sessions"
@@ -346,6 +391,7 @@ export default function Analytics({ addToast }: Props) {
               ? "Run a 2nd sync once Apple processes the request"
               : undefined
           }
+          sparkline={downloads?.byDay.map((d) => d.sessions)}
         />
       </div>
 
@@ -354,6 +400,7 @@ export default function Analytics({ addToast }: Props) {
           label="Revenue"
           value={sumLoading ? "—" : fmtRevenue(summary?.totalProceeds ?? 0)}
           sub="Developer proceeds"
+          sparkline={downloads?.byDay.map((d) => d.proceeds)}
         />
         <StatCard
           label="Conversion Rate"
@@ -367,6 +414,9 @@ export default function Analytics({ addToast }: Props) {
           sub="Downloads / Impressions"
           dim={!hasEngagementData}
           note={!hasEngagementData ? "Requires impressions data" : undefined}
+          sparkline={downloads?.byDay.map((d) =>
+            d.impressions > 0 ? (d.downloads / d.impressions) * 100 : 0,
+          )}
         />
         <StatCard
           label="Avg Rating"
@@ -576,7 +626,9 @@ export default function Analytics({ addToast }: Props) {
                     <span className="text-[13px] text-[#111827] dark:text-[#e8eaf0] w-3 text-right">
                       {star}
                     </span>
-                    <span className="text-[13px] text-[#111827] dark:text-[#e8eaf0] font-medium">{star}</span>
+                    <span className="text-[13px] text-[#111827] dark:text-[#e8eaf0] font-medium">
+                      {star}
+                    </span>
                     <div className="flex-1 h-2 bg-[#f3f4f6] dark:bg-[#252b38] rounded-full overflow-hidden">
                       <div
                         className="h-full bg-amber-400 rounded-full transition-all"
