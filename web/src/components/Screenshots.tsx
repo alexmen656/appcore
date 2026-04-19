@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertTriangle, ChevronDown, GitBranch } from "lucide-react";
 
 const LOG_PREFIX_COLORS: { prefix: string; color: string }[] = [
@@ -25,6 +25,81 @@ function renderLogLine(line: string, i: number) {
     <span key={i} className="block text-[#e5e7eb]">
       {line}
     </span>
+  );
+}
+
+function useLazyLogs(path: string | null) {
+  const [logs, setLogs] = useState<string[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!path || logs !== null || loading) return;
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    fetch(`/api${path}`, { headers: authHeaders() })
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((d) => {
+        if (cancelled) return;
+        setLogs(Array.isArray(d.logs) ? d.logs : []);
+        setLoading(false);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setError(e.message);
+        setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [path]);
+
+  return { logs, loading, error };
+}
+
+function LogsBlock({
+  logs,
+  loading,
+  error,
+}: {
+  logs: string[] | null;
+  loading: boolean;
+  error: string | null;
+}) {
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 text-[12px] text-[#9ca3af] dark:text-[#5c6478] py-2">
+        <div className="spinner !w-3 !h-3" /> Loading logs…
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="text-[12px] text-red-500">
+        Failed to load logs: {error}
+      </div>
+    );
+  }
+  if (!logs || logs.length === 0) {
+    return (
+      <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478]">
+        No logs captured.
+      </div>
+    );
+  }
+  return (
+    <div>
+      <div className="text-[11px] font-medium text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide mb-1">
+        Logs ({logs.length} lines)
+      </div>
+      <pre className="text-[11px] bg-[#111827] rounded-lg p-3 overflow-x-auto max-h-[400px] overflow-y-auto font-mono leading-relaxed">
+        {logs.map(renderLogLine)}
+      </pre>
+    </div>
   );
 }
 
@@ -489,6 +564,13 @@ function JobRow({
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }) {
   const [framedUrls] = useState<string[]>([]);
+  const {
+    logs,
+    loading: logsLoading,
+    error: logsError,
+  } = useLazyLogs(
+    expanded ? `/github/screenshots/${job.appId}/${job.id}/logs` : null,
+  );
 
   return (
     <div className="border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl overflow-hidden">
@@ -573,20 +655,7 @@ function JobRow({
             </div>
           )}
 
-          {job.logs && job.logs.length > 0 ? (
-            <div>
-              <div className="text-[11px] font-medium text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide mb-1">
-                Logs ({job.logs.length} lines)
-              </div>
-              <pre className="text-[11px] bg-[#111827] rounded-lg p-3 overflow-x-auto max-h-[400px] overflow-y-auto font-mono leading-relaxed">
-                {job.logs.map(renderLogLine)}
-              </pre>
-            </div>
-          ) : (
-            <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478]">
-              No logs captured.
-            </div>
-          )}
+          <LogsBlock logs={logs} loading={logsLoading} error={logsError} />
         </div>
       )}
     </div>
@@ -663,76 +732,90 @@ export function BuildJobsTable({
       ) : (
         <div className="flex flex-col gap-3">
           {jobs.map((j) => (
-            <div
+            <BuildJobRow
               key={j.id}
-              className="border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl overflow-hidden"
-            >
-              <button
-                className="w-full flex items-center gap-4 px-4 py-3 hover:bg-[#fafbfc] dark:hover:bg-white/[0.03] transition-colors text-left"
-                onClick={() =>
-                  setExpandedJob(expandedJob === j.id ? null : j.id)
-                }
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    {j.commitSha && (
-                      <span className="text-[13px] font-mono text-[#111827] dark:text-[#e8eaf0]">
-                        {j.commitSha.slice(0, 7)}
-                      </span>
-                    )}
-                    {j.branch && (
-                      <span className="text-[12px] font-mono bg-[#f3f4f6] dark:bg-[#252b38] dark:text-[#8b93a5] px-1.5 py-0.5 rounded">
-                        {j.branch}
-                      </span>
-                    )}
-                    <span className={statusBadge(j.status)}>{j.status}</span>
-                    {j.ipaPath && (
-                      <span className="text-[11px] text-emerald-600 dark:text-emerald-400">
-                        IPA ready
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <div className="text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
-                    {new Date(j.createdAt).toLocaleString()}
-                  </div>
-                </div>
-                <ChevronDown
-                  className={`w-4 h-4 text-[#9ca3af] dark:text-[#5c6478] shrink-0 transition-transform ${expandedJob === j.id ? "rotate-180" : ""}`}
-                />
-              </button>
-
-              {expandedJob === j.id && (
-                <div className="border-t border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#161920] px-4 py-3">
-                  {j.errors.length > 0 && (
-                    <div className="mb-3 p-3 rounded-lg bg-red-50 border border-red-200">
-                      <div className="text-[11px] font-medium text-red-700 uppercase tracking-wide mb-1">
-                        Errors
-                      </div>
-                      <pre className="text-[12px] text-red-600 whitespace-pre-wrap break-all font-mono">
-                        {j.errors.join("\n")}
-                      </pre>
-                    </div>
-                  )}
-                  {j.logs.length > 0 ? (
-                    <div>
-                      <div className="text-[11px] font-medium text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide mb-2">
-                        Logs
-                      </div>
-                      <pre className="text-[11px] bg-[#111827] rounded-lg p-3 overflow-x-auto max-h-[400px] overflow-y-auto font-mono leading-relaxed">
-                        {j.logs.map(renderLogLine)}
-                      </pre>
-                    </div>
-                  ) : (
-                    <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478]">
-                      No logs captured.
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+              job={j}
+              expanded={expandedJob === j.id}
+              onToggle={() =>
+                setExpandedJob(expandedJob === j.id ? null : j.id)
+              }
+              statusBadge={statusBadge}
+            />
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BuildJobRow({
+  job,
+  expanded,
+  onToggle,
+  statusBadge,
+}: {
+  job: BuildJob;
+  expanded: boolean;
+  onToggle: () => void;
+  statusBadge: (s: string) => string;
+}) {
+  const {
+    logs,
+    loading: logsLoading,
+    error: logsError,
+  } = useLazyLogs(
+    expanded ? `/github/builds/${job.appId}/${job.id}/logs` : null,
+  );
+
+  return (
+    <div className="border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl overflow-hidden">
+      <button
+        className="w-full flex items-center gap-4 px-4 py-3 hover:bg-[#fafbfc] dark:hover:bg-white/[0.03] transition-colors text-left"
+        onClick={onToggle}
+      >
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            {job.commitSha && (
+              <span className="text-[13px] font-mono text-[#111827] dark:text-[#e8eaf0]">
+                {job.commitSha.slice(0, 7)}
+              </span>
+            )}
+            {job.branch && (
+              <span className="text-[12px] font-mono bg-[#f3f4f6] dark:bg-[#252b38] dark:text-[#8b93a5] px-1.5 py-0.5 rounded">
+                {job.branch}
+              </span>
+            )}
+            <span className={statusBadge(job.status)}>{job.status}</span>
+            {job.ipaPath && (
+              <span className="text-[11px] text-emerald-600 dark:text-emerald-400">
+                IPA ready
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="text-right shrink-0">
+          <div className="text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
+            {new Date(job.createdAt).toLocaleString()}
+          </div>
+        </div>
+        <ChevronDown
+          className={`w-4 h-4 text-[#9ca3af] dark:text-[#5c6478] shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {expanded && (
+        <div className="border-t border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#161920] px-4 py-3">
+          {job.errors.length > 0 && (
+            <div className="mb-3 p-3 rounded-lg bg-red-50 border border-red-200">
+              <div className="text-[11px] font-medium text-red-700 uppercase tracking-wide mb-1">
+                Errors
+              </div>
+              <pre className="text-[12px] text-red-600 whitespace-pre-wrap break-all font-mono">
+                {job.errors.join("\n")}
+              </pre>
+            </div>
+          )}
+          <LogsBlock logs={logs} loading={logsLoading} error={logsError} />
         </div>
       )}
     </div>

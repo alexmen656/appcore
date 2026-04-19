@@ -372,14 +372,56 @@ githubRouter.get(
         where: { appId: req.params.appId as string },
         orderBy: { createdAt: "desc" },
         take: 20,
+        select: {
+          id: true,
+          appId: true,
+          branch: true,
+          commitSha: true,
+          status: true,
+          errors: true,
+          ipaPath: true,
+          startedAt: true,
+          completedAt: true,
+          createdAt: true,
+        },
       });
       res.json(
         jobs.map((j) => ({
           ...j,
-          logs: j.logs ? JSON.parse(j.logs) : [],
+          logs: [],
           errors: j.errors ? JSON.parse(j.errors) : [],
         })),
       );
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+);
+
+githubRouter.get(
+  "/builds/:appId/:jobId/logs",
+  requireAuth,
+  async (req: Request, res: Response) => {
+    try {
+      const owned = await verifyAppOwnership(
+        req,
+        res,
+        req.params.appId as string,
+      );
+      if (!owned) return;
+
+      const job = await prisma.buildJob.findFirst({
+        where: {
+          id: req.params.jobId as string,
+          appId: req.params.appId as string,
+        },
+        select: { logs: true },
+      });
+      if (!job) {
+        res.status(404).json({ error: "Build job not found" });
+        return;
+      }
+      res.json({ logs: job.logs ? JSON.parse(job.logs) : [] });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -402,13 +444,55 @@ githubRouter.get(
         where: { appId: req.params.appId as string },
         orderBy: { createdAt: "desc" },
         take: 20,
+        select: {
+          id: true,
+          appId: true,
+          commitSha: true,
+          commitMessage: true,
+          branch: true,
+          pusher: true,
+          status: true,
+          error: true,
+          screenshotUrls: true,
+          framedByLocale: true,
+          screenshotDescriptions: true,
+          screenshotSublines: true,
+          startedAt: true,
+          completedAt: true,
+          createdAt: true,
+        },
       });
-      res.json(
-        jobs.map((j) => ({
-          ...j,
-          logs: j.logs ? JSON.parse(j.logs) : [],
-        })),
+      res.json(jobs.map((j) => ({ ...j, logs: [] })));
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+);
+
+githubRouter.get(
+  "/screenshots/:appId/:jobId/logs",
+  requireAuth,
+  async (req: Request, res: Response) => {
+    try {
+      const owned = await verifyAppOwnership(
+        req,
+        res,
+        req.params.appId as string,
       );
+      if (!owned) return;
+
+      const job = await prisma.screenshotJob.findFirst({
+        where: {
+          id: req.params.jobId as string,
+          appId: req.params.appId as string,
+        },
+        select: { logs: true },
+      });
+      if (!job) {
+        res.status(404).json({ error: "Screenshot job not found" });
+        return;
+      }
+      res.json({ logs: job.logs ? JSON.parse(job.logs) : [] });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
