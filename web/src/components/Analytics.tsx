@@ -1,10 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { RefreshCw } from "lucide-react";
-import { useApi, apiPost, getActiveBundleId } from "../hooks/useApi";
+import { useApi, apiPost, getActiveBundleId, authHeaders } from "../hooks/useApi";
 import MetricsChart from "./comps/analytics/MetricsChart";
 import type { ChartMarker } from "./comps/analytics/MetricsChart";
 import ReviewsList from "./comps/analytics/ReviewsList";
-import type { AnalyticsSummary, DownloadsData, Review } from "../types";
+import type { AnalyticsSummary, DownloadsData, CountryData, Review } from "../types";
 import { TH, TD } from "../styles";
 import {
   fmtNumber,
@@ -73,7 +73,35 @@ function rangeLabel(range: RangeKey): string {
   return map[range];
 }
 
-// ─── Helper components ────────────────────────────────────────────────────────
+
+function TrendBadge({
+  current,
+  prev,
+}: {
+  current: number;
+  prev: number | undefined;
+}) {
+  if (prev === undefined || prev === null) return null;
+  if (prev === 0 && current === 0) return null;
+  if (prev === 0)
+    return (
+      <span className="ml-1 text-[10px] text-emerald-500 font-medium">
+        new
+      </span>
+    );
+  const pct = ((current - prev) / prev) * 100;
+  const isUp = pct >= 0;
+  return (
+    <span
+      className={`ml-1 text-[10px] font-medium ${
+        isUp ? "text-emerald-500" : "text-rose-500"
+      }`}
+    >
+      {isUp ? "↑" : "↓"}
+      {Math.abs(pct).toFixed(0)}%
+    </span>
+  );
+}
 
 function StatCard({
   label,
@@ -124,8 +152,6 @@ function StatCard({
   );
 }
 
-// ─── Funnel bar ───────────────────────────────────────────────────────────────
-
 function FunnelRow({
   label,
   value,
@@ -172,11 +198,61 @@ export default function Analytics({ addToast }: Props) {
   const [countryMetric, setCountryMetric] = useState<
     "downloads" | "impressions" | "pageViews"
   >("downloads");
+  const [showTrend, setShowTrend] = useState(false);
+  const [prevCountryData, setPrevCountryData] = useState<CountryData[] | null>(
+    null,
+  );
 
   const params = useMemo(
     () => rangeToParams(range, customStart, customEnd),
     [range, customStart, customEnd],
   );
+
+  const prevParams = useMemo((): string | null => {
+    if (range === "all" || range === "ytd") return null;
+    const fmt = (d: Date) => d.toISOString().slice(0, 10);
+    if (range === "custom") {
+      if (!customStart || !customEnd) return null;
+      const start = new Date(customStart);
+      const end = new Date(customEnd);
+      const days =
+        Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
+      const prevEnd = new Date(start);
+      prevEnd.setDate(prevEnd.getDate() - 1);
+      const prevStart = new Date(prevEnd);
+      prevStart.setDate(prevStart.getDate() - days + 1);
+      return `&startDate=${fmt(prevStart)}&endDate=${fmt(prevEnd)}`;
+    }
+    const days = parseInt(range, 10);
+    const today = new Date();
+    const prevEnd = new Date(today);
+    prevEnd.setDate(prevEnd.getDate() - days);
+    const prevStart = new Date(prevEnd);
+    prevStart.setDate(prevStart.getDate() - days + 1);
+    return `&startDate=${fmt(prevStart)}&endDate=${fmt(prevEnd)}`;
+  }, [range, customStart, customEnd]);
+
+  useEffect(() => {
+    if (!showTrend || !prevParams || !bundleId) {
+      setPrevCountryData(null);
+      return;
+    }
+    let cancelled = false;
+    fetch(
+      `/api/analytics/downloads?bundleId=${bundleId}${prevParams}`,
+      { headers: authHeaders() },
+    )
+      .then((r) => r.json())
+      .then((d: DownloadsData) => {
+        if (!cancelled) setPrevCountryData(d.byCountry);
+      })
+      .catch(() => {
+        if (!cancelled) setPrevCountryData(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [showTrend, prevParams, bundleId]);
 
   const {
     data: summary,
@@ -199,6 +275,14 @@ export default function Analytics({ addToast }: Props) {
     loading: rvLoading,
     refetch: refetchReviews,
   } = useApi<Review[]>(`/analytics/reviews?bundleId=${bundleId}&limit=200`);
+
+  const prevByCountry = useMemo(
+    () =>
+      Object.fromEntries(
+        (prevCountryData ?? []).map((c) => [c.country, c]),
+      ),
+    [prevCountryData],
+  );
 
   const { data: markersData } = useApi<{
     activatedAt: string | null;
@@ -631,10 +715,26 @@ export default function Analytics({ addToast }: Props) {
 
       {(downloads?.byCountry ?? []).length > 0 && (
         <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl overflow-hidden mt-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
-          <div className="px-5 py-4 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
+          <div className="px-5 py-4 border-b border-[#f3f4f6] dark:border-[#2a2f3d] flex items-center justify-between">
             <div className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
               Full Country Breakdown ({rangeLabel(range)})
             </div>
+            <button
+              onClick={() => setShowTrend((v) => !v)}
+              disabled={!prevParams}
+              title={
+                !prevParams
+                  ? "Trend not available for this range"
+                  : "Toggle period-over-period trend"
+              }
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${
+                showTrend
+                  ? "bg-[#ea0e2b] text-white"
+                  : "bg-[#f3f4f6] dark:bg-[#252b38] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#6b7280] dark:hover:text-[#8b93a5]"
+              } disabled:opacity-40 disabled:cursor-not-allowed`}
+            >
+              Trend
+            </button>
           </div>
           <table className="w-full">
             <thead>
@@ -690,6 +790,12 @@ export default function Analytics({ addToast }: Props) {
                         className={`${TD} text-right tabular-nums text-[#111827] dark:text-[#e8eaf0]`}
                       >
                         {fmtNumber(r.downloads)}
+                        {showTrend && (
+                          <TrendBadge
+                            current={r.downloads}
+                            prev={prevByCountry[r.country]?.downloads}
+                          />
+                        )}
                       </td>
                       {hasEngagementData && (
                         <>
@@ -697,11 +803,23 @@ export default function Analytics({ addToast }: Props) {
                             className={`${TD} text-right tabular-nums text-[#9ca3af] dark:text-[#5c6478]`}
                           >
                             {r.impressions > 0 ? fmtNumber(r.impressions) : "—"}
+                            {showTrend && r.impressions > 0 && (
+                              <TrendBadge
+                                current={r.impressions}
+                                prev={prevByCountry[r.country]?.impressions}
+                              />
+                            )}
                           </td>
                           <td
                             className={`${TD} text-right tabular-nums text-[#9ca3af] dark:text-[#5c6478]`}
                           >
                             {r.pageViews > 0 ? fmtNumber(r.pageViews) : "—"}
+                            {showTrend && r.pageViews > 0 && (
+                              <TrendBadge
+                                current={r.pageViews}
+                                prev={prevByCountry[r.country]?.pageViews}
+                              />
+                            )}
                           </td>
                           <td
                             className={`${TD} text-right tabular-nums text-[#9ca3af] dark:text-[#5c6478]`}
