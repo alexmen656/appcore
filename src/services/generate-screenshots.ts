@@ -1,14 +1,14 @@
 import path from "path";
 import fs from "fs";
-import { logger, prisma } from "../../config";
-import { decryptNullable } from "../../config/encryption";
-import { frameWithFastlane } from "../../services/frame-screenshots";
-import { workerClient } from "../../services/worker-client";
-import { postCommitStatus } from "../../services/github";
+import { logger, prisma } from "../config";
+import { decryptNullable } from "../config/encryption";
+import { frameWithFastlane } from "./frame-screenshots";
+import { workerClient } from "./worker-client";
+import { postCommitStatus } from "./github";
 import {
   generateScreenshotSublines,
   type ScreenshotSublines,
-} from "../../services/screenshot-subline-generator";
+} from "./screenshot-subline-generator";
 
 export async function runScreenshotGeneration(jobId: string): Promise<void> {
   const job = await prisma.screenshotJob.findUnique({

@@ -19,8 +19,8 @@ import {
   type GitHubWebhookPayload,
 } from "../../services/github";
 import { verifyAppOwnership } from "../auth";
-import { runScreenshotGeneration } from "../../jobs/defs/generate-screenshots";
-import { runBuildJob } from "../../jobs/defs/build-binary";
+import { runScreenshotGeneration } from "../../services/generate-screenshots";
+import { runBuildJob } from "../../services/build-binary";
 import { frameWithFastlane } from "../../services/frame-screenshots";
 
 export const githubRouter = Router();

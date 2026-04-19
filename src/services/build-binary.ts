@@ -1,9 +1,9 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { logger, prisma } from "../../config";
-import { workerClient } from "../../services/worker-client";
-import { postCommitStatus } from "../../services/github";
+import { logger, prisma } from "../config";
+import { workerClient } from "./worker-client";
+import { postCommitStatus } from "./github";
 
 const BUILDS_BASE_DIR = path.join(os.homedir(), "appcore", "builds");
 
