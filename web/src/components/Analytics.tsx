@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { RefreshCw, ArrowRight } from "lucide-react";
+import { RefreshCw, ArrowRight, Clock, Download, Eye, Monitor, Activity, DollarSign, TrendingUp } from "lucide-react";
 import { useApi, apiPost, getActiveBundleId } from "../hooks/useApi";
 import MetricsChart from "./comps/analytics/MetricsChart";
 import type { ChartMarker } from "./comps/analytics/MetricsChart";
@@ -24,34 +24,42 @@ interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }
 
-function Sparkline({ data, color }: { data: number[]; color: string }) {
+function Sparkline({ data, color, id }: { data: number[]; color: string; id: string }) {
   if (!data || data.length < 2) return null;
-  const w = 100;
-  const h = 64;
+  const w = 200;
+  const h = 60;
   const min = Math.min(...data);
   const max = Math.max(...data);
+  const allZero = max === 0;
   const range = max - min || 1;
-  const points = data
-    .map((v, i) => {
-      const x = (i / (data.length - 1)) * w;
-      const y = h - ((v - min) / range) * (h - 4) - 2;
-      return `${x},${y}`;
-    })
-    .join(" ");
+  const pts = data.map((v, i) => ({
+    x: (i / (data.length - 1)) * w,
+    y: allZero ? h - 2 : h - ((v - min) / range) * (h - 8) - 4,
+  }));
+  const linePoints = pts.map((p) => `${p.x},${p.y}`).join(" ");
+  const areaPath = `M0,${h} ${pts.map((p) => `L${p.x},${p.y}`).join(" ")} L${w},${h} Z`;
   return (
     <svg
-      width={w}
-      height={h}
+      width="100%"
+      height="100%"
       viewBox={`0 0 ${w} ${h}`}
-      className="overflow-visible shrink-0"
+      preserveAspectRatio="none"
     >
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={allZero ? 0 : 0.2} />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={areaPath} fill={`url(#${id})`} />
       <polyline
-        points={points}
+        points={linePoints}
         fill="none"
         stroke={color}
-        strokeWidth="1.5"
+        strokeWidth="2"
         strokeLinejoin="round"
         strokeLinecap="round"
+        vectorEffect="non-scaling-stroke"
       />
     </svg>
   );
@@ -61,10 +69,12 @@ function StatCard({
   label,
   value,
   sub,
-  highlight,
+  highlight: _highlight,
   dim,
   note,
   sparkline,
+  icon,
+  color = "#6366f1",
 }: {
   label: string;
   value: string | number;
@@ -73,86 +83,102 @@ function StatCard({
   dim?: boolean;
   note?: string;
   sparkline?: number[];
+  icon?: ReactNode;
+  color?: string;
 }) {
-  const sparkColor = highlight ? "#ea0e2b" : "#9ca3af";
-  const hasSparkline =
-    !dim && sparkline && sparkline.length >= 2 && sparkline.some((v) => v > 0);
+  const hasSparkline = !dim && sparkline && sparkline.length >= 2;
+  const gradId = `sg_${label.replace(/\W/g, "")}`;
   return (
-    <div
-      className={`bg-white dark:bg-[#1c2028] border rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] ${
-        highlight
-          ? "border-[#fde8eb] dark:border-[#3a1f23]"
-          : "border-[#eef0f3] dark:border-[#2a2f3d]"
-      }`}
-    >
-      <div className="flex items-end justify-between gap-2">
-        <div className="min-w-0">
-          <div className="text-[12px] font-medium uppercase tracking-wide text-[#9ca3af] dark:text-[#5c6478] mb-2">
+    <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
+      <div className="px-5 pt-5 pb-3">
+        <div className="flex items-start justify-between mb-3">
+          <span className="text-[13px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
             {label}
-          </div>
-          <div
-            className={`text-[28px] font-semibold leading-none ${
-              dim
-                ? "text-[#9ca3af] dark:text-[#5c6478]"
-                : "text-[#111827] dark:text-[#e8eaf0]"
-            }`}
-          >
-            {value}
-          </div>
-          {sub && (
-            <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mt-1.5">
-              {sub}
-            </div>
-          )}
-          {note && (
-            <div className="text-[11px] text-[#c4c9d4] dark:text-[#3a4050] mt-1 leading-tight">
-              {note}
-            </div>
+          </span>
+          {icon && (
+            <span className="text-[#9ca3af] dark:text-[#5c6478]">{icon}</span>
           )}
         </div>
-        {hasSparkline && (
-          <div className="opacity-60">
-            <Sparkline data={sparkline!} color={sparkColor} />
+        <div
+          className={`text-[40px] font-bold leading-none mb-2 ${
+            dim
+              ? "text-[#9ca3af] dark:text-[#5c6478]"
+              : "text-[#111827] dark:text-[#e8eaf0]"
+          }`}
+        >
+          {value}
+        </div>
+        {sub && (
+          <div className="flex items-center gap-1.5 text-[13px] text-[#9ca3af] dark:text-[#5c6478]">
+            <Clock className="w-3.5 h-3.5 shrink-0" />
+            {sub}
           </div>
+        )}
+        {note && (
+          <div className="text-[11px] text-[#c4c9d4] dark:text-[#3a4050] mt-1 leading-tight">
+            {note}
+          </div>
+        )}
+      </div>
+      <div className="h-16">
+        {hasSparkline && (
+          <Sparkline data={sparkline!} color={color} id={gradId} />
         )}
       </div>
     </div>
   );
 }
 
-function FunnelRow({
+function FunnelStep({
   label,
   value,
-  total,
+  pct,
   color,
+  dropOff,
+  isLast,
 }: {
   label: string;
   value: number;
-  total: number;
+  pct: number;
   color: string;
+  dropOff?: number;
+  isLast?: boolean;
 }) {
-  const pct = total > 0 ? (value / total) * 100 : 0;
   return (
-    <div className="flex items-center gap-3">
-      <div className="w-28 text-[12px] text-[#6b7280] dark:text-[#8b93a5] shrink-0">
-        {label}
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span
+            className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+            style={{ background: color }}
+          />
+          <span className="text-[13px] font-medium text-[#111827] dark:text-[#e8eaf0]">
+            {label}
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-[13px] tabular-nums font-semibold text-[#111827] dark:text-[#e8eaf0]">
+            {fmtNumber(value)}
+          </span>
+          <span className="text-[12px] tabular-nums text-[#9ca3af] dark:text-[#5c6478] w-12 text-right">
+            {pct.toFixed(1)}%
+          </span>
+        </div>
       </div>
-      <div className="flex-1 h-2 bg-[#f3f4f6] dark:bg-[#252b38] rounded-full overflow-hidden">
+      <div className="h-2.5 w-full bg-[#f3f4f6] dark:bg-[#252b38] rounded-full overflow-hidden">
         <div
-          className="h-full rounded-full transition-all duration-300"
+          className="h-full rounded-full transition-all duration-500"
           style={{ width: `${pct}%`, background: color }}
         />
       </div>
-      <div className="w-24 text-right">
-        <span className="text-[13px] font-medium text-[#111827] dark:text-[#e8eaf0] tabular-nums">
-          {fmtNumber(value)}
-        </span>
-        {total > 0 && (
-          <span className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] ml-1.5">
-            {pct.toFixed(1)}%
+      {!isLast && dropOff !== undefined && (
+        <div className="flex items-center gap-1.5 pl-1 pb-1">
+          <div className="w-px h-3 bg-[#e5e7eb] dark:bg-[#2a2f3d] ml-[4px]" />
+          <span className="text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
+            {dropOff.toFixed(1)}% drop-off
           </span>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -252,7 +278,7 @@ export default function Analytics({ addToast }: Props) {
   const loading = sumLoading || dlLoading;
 
   return (
-    <div>
+    <div className="max-w-[1440px] mx-auto">
       <div className="flex items-start justify-between mb-6">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
@@ -260,9 +286,7 @@ export default function Analytics({ addToast }: Props) {
           </h1>
           <p className="text-sm text-[#9ca3af] dark:text-[#5c6478]">
             {summary?.lastSyncAt && (
-              <span>
-                Last synced {fmtDateTime(summary.lastSyncAt)}
-              </span>
+              <span>Last synced {fmtDateTime(summary.lastSyncAt)}</span>
             )}
           </p>
         </div>
@@ -332,12 +356,14 @@ export default function Analytics({ addToast }: Props) {
         )}
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
         <StatCard
           label="Downloads"
           value={sumLoading ? "—" : fmtNumber(summary?.totalDownloads ?? 0)}
           sub={rangeLabel(range)}
           sparkline={downloads?.byDay.map((d) => d.downloads)}
+          icon={<Download className="w-4 h-4" />}
+          color="#6366f1"
         />
         <StatCard
           label="Impressions"
@@ -356,6 +382,8 @@ export default function Analytics({ addToast }: Props) {
               : undefined
           }
           sparkline={downloads?.byDay.map((d) => d.impressions)}
+          icon={<Eye className="w-4 h-4" />}
+          color="#0ea5e9"
         />
         <StatCard
           label="Product Page Views"
@@ -374,7 +402,12 @@ export default function Analytics({ addToast }: Props) {
               : undefined
           }
           sparkline={downloads?.byDay.map((d) => d.pageViews)}
+          icon={<Monitor className="w-4 h-4" />}
+          color="#8b5cf6"
         />
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
         <StatCard
           label="Sessions"
           value={
@@ -392,15 +425,16 @@ export default function Analytics({ addToast }: Props) {
               : undefined
           }
           sparkline={downloads?.byDay.map((d) => d.sessions)}
+          icon={<Activity className="w-4 h-4" />}
+          color="#10b981"
         />
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
         <StatCard
           label="Revenue"
           value={sumLoading ? "—" : fmtRevenue(summary?.totalProceeds ?? 0)}
           sub="Developer proceeds"
           sparkline={downloads?.byDay.map((d) => d.proceeds)}
+          icon={<DollarSign className="w-4 h-4" />}
+          color="#f59e0b"
         />
         <StatCard
           label="Conversion Rate"
@@ -417,50 +451,37 @@ export default function Analytics({ addToast }: Props) {
           sparkline={downloads?.byDay.map((d) =>
             d.impressions > 0 ? (d.downloads / d.impressions) * 100 : 0,
           )}
-        />
-        <StatCard
-          label="Avg Rating"
-          value={
-            sumLoading || summary?.avgRating == null
-              ? "—"
-              : summary.avgRating.toFixed(1)
-          }
-          sub="All-time average"
-        />
-        <StatCard
-          label="Reviews"
-          value={sumLoading ? "—" : fmtNumber(summary?.reviewCount ?? 0)}
-          sub="Synced reviews"
+          icon={<TrendingUp className="w-4 h-4" />}
+          color="#ea0e2b"
         />
       </div>
 
-      {hasEngagementData && (
-        <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] mb-5">
-          <div className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-2">
-            Conversion funnel ({rangeLabel(range)})
+      {hasEngagementData && (() => {
+        const imp = summary?.totalImpressions ?? 0;
+        const pv = summary?.totalPageViews ?? 0;
+        const dl = summary?.totalDownloads ?? 0;
+        const pvPct = imp > 0 ? (pv / imp) * 100 : 0;
+        const dlPct = imp > 0 ? (dl / imp) * 100 : 0;
+        const dropImpToPv = 100 - pvPct;
+        const dropPvToDl = pvPct > 0 ? pvPct - dlPct : 0;
+        return (
+          <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] mb-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+                Conversion Funnel
+              </div>
+              <span className="text-[12px] text-[#9ca3af] dark:text-[#5c6478]">
+                {rangeLabel(range)}
+              </span>
+            </div>
+            <div className="flex flex-col gap-0">
+              <FunnelStep label="Impressions" value={imp} pct={100} color="#6366f1" dropOff={dropImpToPv} />
+              <FunnelStep label="Page Views" value={pv} pct={pvPct} color="#0ea5e9" dropOff={dropPvToDl} />
+              <FunnelStep label="Downloads" value={dl} pct={dlPct} color="#ea0e2b" isLast />
+            </div>
           </div>
-          <div className="space-y-3">
-            <FunnelRow
-              label="Impressions"
-              value={summary?.totalImpressions ?? 0}
-              total={summary?.totalImpressions ?? 0}
-              color="#6366f1"
-            />
-            <FunnelRow
-              label="Page Views"
-              value={summary?.totalPageViews ?? 0}
-              total={summary?.totalImpressions ?? 0}
-              color="#0ea5e9"
-            />
-            <FunnelRow
-              label="Downloads"
-              value={summary?.totalDownloads ?? 0}
-              total={summary?.totalImpressions ?? 0}
-              color="#ea0e2b"
-            />
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       <div className="mb-5">
         <div className="flex items-center justify-end mb-2">

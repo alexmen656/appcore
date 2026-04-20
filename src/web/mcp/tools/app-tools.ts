@@ -256,9 +256,9 @@ export function registerAppTools(server: McpServer, userId: string) {
           .number()
           .int()
           .min(1)
-          .max(200)
-          .default(50)
-          .describe("Max keywords to return (default 50, max 200)"),
+          .max(2000)
+          .default(2000)
+          .describe("Max keywords to return (default 2000, max 2000)"),
       },
     },
     async ({ bundleId, limit }) => {
