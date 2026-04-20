@@ -229,14 +229,15 @@ export default function AnalyticsCountryDetail() {
             >
               <defs>
                 <linearGradient id="cdDlGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#6366f1" stopOpacity={0.2} />
+                  <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="#f3f4f6"
+                strokeDasharray="0"
+                stroke="#f0f1f3"
                 vertical={false}
+                strokeWidth={1}
               />
               <XAxis
                 dataKey="date"
@@ -257,11 +258,7 @@ export default function AnalyticsCountryDetail() {
                 width={36}
               />
               <Tooltip
-                cursor={{
-                  stroke: "#6366f1",
-                  strokeWidth: 1,
-                  strokeDasharray: "4 2",
-                }}
+                cursor={{ stroke: "#6366f1", strokeWidth: 1.5, strokeDasharray: "3 3" }}
                 content={({ active, payload, label }) => {
                   if (!active || !payload?.length) return null;
                   const d = new Date(String(label));
@@ -270,8 +267,8 @@ export default function AnalyticsCountryDetail() {
                     day: "numeric",
                   });
                   return (
-                    <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl px-3 py-2 text-[12px] shadow-lg">
-                      <div className="text-[#9ca3af] dark:text-[#5c6478] mb-0.5">
+                    <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl px-3.5 py-2.5 text-[12px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
+                      <div className="text-[#9ca3af] dark:text-[#5c6478] mb-1 text-[11px]">
                         {dateStr}
                       </div>
                       <div className="font-semibold text-[#111827] dark:text-[#e8eaf0]">
@@ -282,13 +279,13 @@ export default function AnalyticsCountryDetail() {
                 }}
               />
               <Area
-                type="monotone"
+                type="monotoneX"
                 dataKey="downloads"
                 stroke="#6366f1"
-                strokeWidth={2}
+                strokeWidth={2.5}
                 fill="url(#cdDlGrad)"
                 dot={false}
-                activeDot={{ r: 4, fill: "#6366f1", strokeWidth: 0 }}
+                activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff", fill: "#6366f1" }}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -311,19 +308,15 @@ export default function AnalyticsCountryDetail() {
             >
               <defs>
                 <linearGradient id="cdImpGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.2} />
+                  <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="cdPvGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                  <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.2} />
+                  <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="#f3f4f6"
-                vertical={false}
-              />
+              <CartesianGrid strokeDasharray="0" stroke="#f0f1f3" vertical={false} strokeWidth={1} />
               <XAxis
                 dataKey="date"
                 axisLine={false}
@@ -343,11 +336,7 @@ export default function AnalyticsCountryDetail() {
                 width={36}
               />
               <Tooltip
-                cursor={{
-                  stroke: "#0ea5e9",
-                  strokeWidth: 1,
-                  strokeDasharray: "4 2",
-                }}
+                cursor={{ stroke: "#0ea5e9", strokeWidth: 1.5, strokeDasharray: "3 3" }}
                 content={({ active, payload, label }) => {
                   if (!active || !payload?.length) return null;
                   const d = new Date(String(label));
@@ -356,8 +345,8 @@ export default function AnalyticsCountryDetail() {
                     day: "numeric",
                   });
                   return (
-                    <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl px-3 py-2 text-[12px] shadow-lg space-y-0.5">
-                      <div className="text-[#9ca3af] dark:text-[#5c6478] mb-1">
+                    <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl px-3.5 py-2.5 text-[12px] shadow-[0_4px_16px_rgba(0,0,0,0.1)] space-y-1">
+                      <div className="text-[#9ca3af] dark:text-[#5c6478] mb-1 text-[11px]">
                         {dateStr}
                       </div>
                       {payload.map((p) => (
@@ -369,10 +358,10 @@ export default function AnalyticsCountryDetail() {
                             className="w-2 h-2 rounded-full shrink-0"
                             style={{ background: p.color }}
                           />
-                          <span className="text-[#9ca3af] dark:text-[#5c6478] capitalize">
+                          <span className="text-[#6b7280] dark:text-[#8b93a5] capitalize">
                             {p.dataKey as string}
                           </span>
-                          <span className="font-semibold text-[#111827] dark:text-[#e8eaf0] ml-auto">
+                          <span className="font-semibold text-[#111827] dark:text-[#e8eaf0] ml-auto tabular-nums">
                             {fmtNumber(p.value as number)}
                           </span>
                         </div>
@@ -382,22 +371,22 @@ export default function AnalyticsCountryDetail() {
                 }}
               />
               <Area
-                type="monotone"
+                type="monotoneX"
                 dataKey="impressions"
                 stroke="#0ea5e9"
-                strokeWidth={2}
+                strokeWidth={2.5}
                 fill="url(#cdImpGrad)"
                 dot={false}
-                activeDot={{ r: 4, fill: "#0ea5e9", strokeWidth: 0 }}
+                activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff", fill: "#0ea5e9" }}
               />
               <Area
-                type="monotone"
+                type="monotoneX"
                 dataKey="pageViews"
                 stroke="#8b5cf6"
-                strokeWidth={2}
+                strokeWidth={2.5}
                 fill="url(#cdPvGrad)"
                 dot={false}
-                activeDot={{ r: 4, fill: "#8b5cf6", strokeWidth: 0 }}
+                activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff", fill: "#8b5cf6" }}
               />
             </AreaChart>
           </ResponsiveContainer>

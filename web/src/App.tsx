@@ -570,7 +570,7 @@ function AnalyticsSidebarSection({
           className={`flex-1 flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-sm font-medium transition-all [&_svg]:w-[18px] [&_svg]:h-[18px] ${
             isAnyAnalyticsActive
               ? "bg-[#fff1f2] text-[#C4001E] dark:bg-[#C4001E]/[0.12] dark:text-[#ff8080] [&>svg:first-child]:opacity-100"
-              : "text-[#6b7280] dark:text-[#8b93a5] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] [&>svg:first-child]:opacity-60"
+              : "text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] [&>svg:first-child]:opacity-60"
           }`}
         >
           <BarChart2 />
@@ -591,7 +591,7 @@ function AnalyticsSidebarSection({
                 `flex items-center px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-all ${
                   isActive
                     ? "bg-[#fff1f2] text-[#C4001E] dark:bg-[#C4001E]/[0.12] dark:text-[#ff8080]"
-                    : "text-[#6b7280] dark:text-[#8b93a5] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0]"
+                    : "text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0]"
                 }`
               }
             >
@@ -724,7 +724,7 @@ function VersionsSidebarSection({
           className={`flex-1 flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-sm font-medium transition-all [&_svg]:w-[18px] [&_svg]:h-[18px] ${
             isAnyVersionActive
               ? "bg-[#fff1f2] text-[#C4001E] dark:bg-[#C4001E]/[0.12] dark:text-[#ff8080] [&>svg:first-child]:opacity-100"
-              : "text-[#6b7280] dark:text-[#8b93a5] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] [&>svg:first-child]:opacity-60"
+              : "text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] [&>svg:first-child]:opacity-60"
           }`}
         >
           <FileText />
@@ -817,7 +817,7 @@ function VersionsSidebarSection({
                 className={`flex items-center justify-between gap-2 px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-all ${
                   isActive
                     ? "bg-[#fff1f2] text-[#C4001E] dark:bg-[#C4001E]/[0.12] dark:text-[#ff8080]"
-                    : "text-[#6b7280] dark:text-[#8b93a5] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0]"
+                    : "text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0]"
                 }`}
               >
                 <span className="truncate">{v.versionString}</span>
@@ -928,7 +928,7 @@ export default function App() {
     `flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-sm font-medium mb-0.5 transition-all [&_svg]:w-[18px] [&_svg]:h-[18px] ${
       isActive
         ? "bg-[#fff1f2] text-[#C4001E] dark:bg-[#C4001E]/[0.12] dark:text-[#ff8080] [&_svg]:opacity-100"
-        : "text-[#6b7280] dark:text-[#8b93a5] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] [&_svg]:opacity-60"
+        : "text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] [&_svg]:opacity-60"
     }`;
 
   return (

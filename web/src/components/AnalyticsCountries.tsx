@@ -181,17 +181,18 @@ export default function AnalyticsCountries() {
                       y2="1"
                     >
                       <stop
-                        offset="5%"
+                        offset="0%"
                         stopColor="#ea0e2b"
-                        stopOpacity={0.15}
+                        stopOpacity={0.2}
                       />
-                      <stop offset="95%" stopColor="#ea0e2b" stopOpacity={0} />
+                      <stop offset="100%" stopColor="#ea0e2b" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="#f3f4f6"
+                    strokeDasharray="0"
+                    stroke="#f0f1f3"
                     vertical={false}
+                    strokeWidth={1}
                   />
                   <XAxis
                     dataKey="date"
@@ -212,11 +213,7 @@ export default function AnalyticsCountries() {
                     width={36}
                   />
                   <Tooltip
-                    cursor={{
-                      stroke: "#ea0e2b",
-                      strokeWidth: 1,
-                      strokeDasharray: "4 2",
-                    }}
+                    cursor={{ stroke: "#ea0e2b", strokeWidth: 1.5, strokeDasharray: "3 3" }}
                     content={({ active, payload, label }) => {
                       if (!active || !payload?.length) return null;
                       const d = new Date(String(label));
@@ -225,11 +222,11 @@ export default function AnalyticsCountries() {
                         day: "numeric",
                       });
                       return (
-                        <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl px-3 py-2 text-[12px] shadow-lg">
-                          <div className="text-[#9ca3af] dark:text-[#5c6478] mb-0.5">
+                        <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl px-3.5 py-2.5 text-[12px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
+                          <div className="text-[#9ca3af] dark:text-[#5c6478] mb-1 text-[11px]">
                             {dateStr}
                           </div>
-                          <div className="font-semibold text-[#111827] dark:text-[#e8eaf0]">
+                          <div className="font-semibold text-[#111827] dark:text-[#e8eaf0] tabular-nums">
                             {fmtNumber(payload[0].value as number)} downloads
                           </div>
                         </div>
@@ -237,13 +234,13 @@ export default function AnalyticsCountries() {
                     }}
                   />
                   <Area
-                    type="monotone"
+                    type="monotoneX"
                     dataKey="downloads"
                     stroke="#ea0e2b"
-                    strokeWidth={2}
+                    strokeWidth={2.5}
                     fill="url(#countryDlGrad)"
                     dot={false}
-                    activeDot={{ r: 4, fill: "#ea0e2b", strokeWidth: 0 }}
+                    activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff", fill: "#ea0e2b" }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -288,16 +285,16 @@ export default function AnalyticsCountries() {
                     tick={{ fontSize: 12, fill: "#6b7280" }}
                   />
                   <Tooltip
-                    cursor={{ fill: "rgba(0,0,0,0.03)" }}
+                    cursor={{ fill: "rgba(0,0,0,0.025)" }}
                     content={({ active, payload }) => {
                       if (!active || !payload?.length) return null;
                       const d = payload[0].payload;
                       return (
-                        <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl px-3 py-2 text-[12px] shadow-lg">
+                        <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl px-3.5 py-2.5 text-[12px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
                           <div className="font-medium text-[#111827] dark:text-[#e8eaf0] mb-0.5">
                             {d.name}
                           </div>
-                          <div className="text-[#9ca3af] dark:text-[#5c6478]">
+                          <div className="text-[#9ca3af] dark:text-[#5c6478] tabular-nums">
                             {fmtNumber(d.downloads)} downloads
                           </div>
                         </div>

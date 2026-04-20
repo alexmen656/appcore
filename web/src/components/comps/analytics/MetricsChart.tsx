@@ -143,7 +143,7 @@ export default function MetricsChart({ data, markers = [] }: Props) {
       ) : (
         <ResponsiveContainer width="100%" height={260}>
           <ComposedChart data={data} margin={{ top: 4, right: showRightAxis ? 48 : 16, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+            <CartesianGrid strokeDasharray="0" stroke="#f0f1f3" vertical={false} strokeWidth={1} />
             <XAxis
               dataKey="date"
               tickFormatter={fmtShortDate}
@@ -231,13 +231,13 @@ export default function MetricsChart({ data, markers = [] }: Props) {
                 <Line
                   key={m.key}
                   yAxisId="left"
-                  type="monotone"
+                  type="monotoneX"
                   dataKey={m.key}
                   name={m.label}
                   stroke={m.color}
-                  strokeWidth={1.5}
+                  strokeWidth={2}
                   dot={false}
-                  activeDot={{ r: 4, strokeWidth: 0 }}
+                  activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff", fill: m.color }}
                 />
               ),
             )}
