@@ -36,195 +36,244 @@ function resolveUntil(query: Record<string, any>): Date | null {
 }
 
 // ─── GET /api/analytics/summary ──────────────────────────────────────────────
-analyticsRouter.get("/summary", ...requireBundleAccess("query"), async (req, res) => {
-  try {
-    const bundleId = req.bundleApp!.bundleId;
+analyticsRouter.get(
+  "/summary",
+  ...requireBundleAccess("query"),
+  async (req, res) => {
+    try {
+      const bundleId = req.bundleApp!.bundleId;
 
-    const since = resolveSince(req.query);
-    const until = resolveUntil(req.query);
-    const dateFilter: Record<string, Date> = {};
-    if (since) dateFilter.gte = since;
-    if (until) dateFilter.lte = until;
+      const since = resolveSince(req.query);
+      const until = resolveUntil(req.query);
+      const dateFilter: Record<string, Date> = {};
+      if (since) dateFilter.gte = since;
+      if (until) dateFilter.lte = until;
 
-    const [metricAgg, reviewAgg] = await Promise.all([
-      prisma.appStoreAnalytics.aggregate({
+      const [metricAgg, reviewAgg] = await Promise.all([
+        prisma.appStoreAnalytics.aggregate({
+          where: {
+            bundleId,
+            ...(Object.keys(dateFilter).length
+              ? { reportDate: dateFilter }
+              : {}),
+          },
+          _sum: {
+            downloads: true,
+            proceeds: true,
+            impressions: true,
+            pageViews: true,
+            sessions: true,
+          },
+        }),
+        prisma.appReview.aggregate({
+          where: { bundleId },
+          _avg: { rating: true },
+          _count: { id: true },
+        }),
+      ]);
+      const lastSync = { completedAt: new Date("2025-01-01") };
+
+      const downloads = metricAgg._sum.downloads ?? 0;
+      const impressions = metricAgg._sum.impressions ?? 0;
+      const pageViews = metricAgg._sum.pageViews ?? 0;
+
+      res.json({
+        totalDownloads: downloads,
+        totalProceeds: metricAgg._sum.proceeds ?? 0,
+        totalImpressions: impressions,
+        totalPageViews: pageViews,
+        totalSessions: metricAgg._sum.sessions ?? 0,
+        conversionRate:
+          impressions > 0 ? (downloads / impressions) * 100 : null,
+        avgRating: reviewAgg._avg.rating ?? null,
+        reviewCount: reviewAgg._count.id,
+        lastSyncAt: lastSync?.completedAt ?? null,
+      });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  },
+);
+
+// ─── GET /api/analytics/downloads ────────────────────────────────────────────
+analyticsRouter.get(
+  "/downloads",
+  ...requireBundleAccess("query"),
+  async (req, res) => {
+    try {
+      const bundleId = req.bundleApp!.bundleId;
+
+      const since = resolveSince(req.query);
+      const until = resolveUntil(req.query);
+      const dateFilter: Record<string, Date> = {};
+      if (since) dateFilter.gte = since;
+      if (until) dateFilter.lte = until;
+
+      const countryFilter = req.query.country as string | undefined;
+
+      const rows = await prisma.appStoreAnalytics.findMany({
         where: {
           bundleId,
           ...(Object.keys(dateFilter).length ? { reportDate: dateFilter } : {}),
+          ...(countryFilter ? { country: countryFilter.toUpperCase() } : {}),
         },
-        _sum: {
-          downloads: true,
-          proceeds: true,
-          impressions: true,
-          pageViews: true,
-          sessions: true,
-        },
-      }),
-      prisma.appReview.aggregate({
-        where: { bundleId },
-        _avg: { rating: true },
-        _count: { id: true },
-      }),
-    ]);
-    const lastSync = { completedAt: new Date("2025-01-01") };
+        orderBy: { reportDate: "asc" },
+      });
 
-    const downloads = metricAgg._sum.downloads ?? 0;
-    const impressions = metricAgg._sum.impressions ?? 0;
-    const pageViews = metricAgg._sum.pageViews ?? 0;
+      type DayEntry = {
+        date: string;
+        downloads: number;
+        updates: number;
+        proceeds: number;
+        impressions: number;
+        pageViews: number;
+        sessions: number;
+      };
+      type CountryEntry = {
+        downloads: number;
+        impressions: number;
+        pageViews: number;
+      };
+      const byDayMap: Record<string, DayEntry> = {};
+      const byCountryMap: Record<string, CountryEntry> = {};
 
-    res.json({
-      totalDownloads: downloads,
-      totalProceeds: metricAgg._sum.proceeds ?? 0,
-      totalImpressions: impressions,
-      totalPageViews: pageViews,
-      totalSessions: metricAgg._sum.sessions ?? 0,
-      conversionRate: impressions > 0 ? (downloads / impressions) * 100 : null,
-      avgRating: reviewAgg._avg.rating ?? null,
-      reviewCount: reviewAgg._count.id,
-      lastSyncAt: lastSync?.completedAt ?? null,
-    });
-  } catch (err) {
-    res.status(500).json({ error: String(err) });
-  }
-});
+      for (const r of rows) {
+        const key = r.reportDate.toISOString().slice(0, 10);
+        const day = (byDayMap[key] ??= {
+          date: key,
+          downloads: 0,
+          updates: 0,
+          proceeds: 0,
+          impressions: 0,
+          pageViews: 0,
+          sessions: 0,
+        });
+        day.downloads += r.downloads;
+        day.updates += r.updates;
+        day.proceeds += r.proceeds;
+        day.impressions += r.impressions;
+        day.pageViews += r.pageViews;
+        day.sessions += r.sessions;
 
-// ─── GET /api/analytics/downloads ────────────────────────────────────────────
-analyticsRouter.get("/downloads", ...requireBundleAccess("query"), async (req, res) => {
-  try {
-    const bundleId = req.bundleApp!.bundleId;
+        const c = (byCountryMap[r.country] ??= {
+          downloads: 0,
+          impressions: 0,
+          pageViews: 0,
+        });
+        c.downloads += r.downloads;
+        c.impressions += r.impressions;
+        c.pageViews += r.pageViews;
+      }
 
-    const since = resolveSince(req.query);
-    const until = resolveUntil(req.query);
-    const dateFilter: Record<string, Date> = {};
-    if (since) dateFilter.gte = since;
-    if (until) dateFilter.lte = until;
+      const byCountry = Object.entries(byCountryMap)
+        .map(([country, v]) => ({ country, ...v }))
+        .sort((a, b) => b.downloads - a.downloads);
 
-    const rows = await prisma.appStoreAnalytics.findMany({
-      where: {
-        bundleId,
-        ...(Object.keys(dateFilter).length ? { reportDate: dateFilter } : {}),
-      },
-      orderBy: { reportDate: "asc" },
-    });
-
-    type DayEntry = { date: string; downloads: number; updates: number; proceeds: number; impressions: number; pageViews: number; sessions: number };
-    type CountryEntry = { downloads: number; impressions: number; pageViews: number };
-    const byDayMap: Record<string, DayEntry> = {};
-    const byCountryMap: Record<string, CountryEntry> = {};
-
-    for (const r of rows) {
-      const key = r.reportDate.toISOString().slice(0, 10);
-      const day = (byDayMap[key] ??= { date: key, downloads: 0, updates: 0, proceeds: 0, impressions: 0, pageViews: 0, sessions: 0 });
-      day.downloads += r.downloads;
-      day.updates += r.updates;
-      day.proceeds += r.proceeds;
-      day.impressions += r.impressions;
-      day.pageViews += r.pageViews;
-      day.sessions += r.sessions;
-
-      const c = (byCountryMap[r.country] ??= { downloads: 0, impressions: 0, pageViews: 0 });
-      c.downloads += r.downloads;
-      c.impressions += r.impressions;
-      c.pageViews += r.pageViews;
+      res.json({
+        byDay: Object.values(byDayMap),
+        byCountry,
+      });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
     }
-
-    const byCountry = Object.entries(byCountryMap)
-      .map(([country, v]) => ({ country, ...v }))
-      .sort((a, b) => b.downloads - a.downloads);
-
-    res.json({
-      byDay: Object.values(byDayMap),
-      byCountry,
-    });
-  } catch (err) {
-    res.status(500).json({ error: String(err) });
-  }
-});
+  },
+);
 
 // ─── GET /api/analytics/reviews ──────────────────────────────────────────────
-analyticsRouter.get("/reviews", ...requireBundleAccess("query"), async (req, res) => {
-  try {
-    const bundleId = req.bundleApp!.bundleId;
-    const limit = Math.min(parseInt(req.query.limit as string, 10) || 50, 200);
+analyticsRouter.get(
+  "/reviews",
+  ...requireBundleAccess("query"),
+  async (req, res) => {
+    try {
+      const bundleId = req.bundleApp!.bundleId;
+      const limit = Math.min(
+        parseInt(req.query.limit as string, 10) || 50,
+        200,
+      );
 
-    const reviews = await prisma.appReview.findMany({
-      where: { bundleId },
-      orderBy: { reviewedAt: "desc" },
-      take: limit,
-      select: {
-        id: true,
-        rating: true,
-        title: true,
-        body: true,
-        reviewerNickname: true,
-        territory: true,
-        reviewedAt: true,
-      },
-    });
+      const reviews = await prisma.appReview.findMany({
+        where: { bundleId },
+        orderBy: { reviewedAt: "desc" },
+        take: limit,
+        select: {
+          id: true,
+          rating: true,
+          title: true,
+          body: true,
+          reviewerNickname: true,
+          territory: true,
+          reviewedAt: true,
+        },
+      });
 
-    res.json(reviews);
-  } catch (err) {
-    res.status(500).json({ error: String(err) });
-  }
-});
+      res.json(reviews);
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  },
+);
 
 // ─── GET /api/analytics/markers ──────────────────────────────────────────────
-analyticsRouter.get("/markers", ...requireBundleAccess("query"), async (req, res) => {
-  try {
-    const bundleId = req.bundleApp!.bundleId;
+analyticsRouter.get(
+  "/markers",
+  ...requireBundleAccess("query"),
+  async (req, res) => {
+    try {
+      const bundleId = req.bundleApp!.bundleId;
 
-    const app = await prisma.app.findUnique({
-      where: { bundleId },
-      select: { id: true, createdAt: true, isOwnApp: true, trackId: true },
-    });
+      const app = await prisma.app.findUnique({
+        where: { bundleId },
+        select: { id: true, createdAt: true, isOwnApp: true, trackId: true },
+      });
 
-    if (!app) {
-      res.json({ activatedAt: null, versionUpdates: [] });
-      return;
-    }
-
-    let versionChanges = await prisma.appMetadataChange.findMany({
-      where: { appId: app.id, field: "version" },
-      orderBy: { detectedAt: "asc" },
-      select: { newValue: true, detectedAt: true },
-    });
-
-    if (versionChanges.length === 0 && app.isOwnApp && app.trackId) {
-      const { AppStoreScraper } =
-        await import("../../services/appstore-scraper");
-      const scraper = new AppStoreScraper();
-      const history = await scraper.scrapeVersionHistory(Number(app.trackId));
-      for (const { version, date } of history) {
-        await prisma.appMetadataChange.create({
-          data: {
-            appId: app.id,
-            field: "version",
-            oldValue: null,
-            newValue: version,
-            detectedAt: new Date(date),
-          },
-        });
+      if (!app) {
+        res.json({ activatedAt: null, versionUpdates: [] });
+        return;
       }
-      if (history.length > 0) {
-        versionChanges = await prisma.appMetadataChange.findMany({
-          where: { appId: app.id, field: "version" },
-          orderBy: { detectedAt: "asc" },
-          select: { newValue: true, detectedAt: true },
-        });
-      }
-    }
 
-    res.json({
-      activatedAt: app.createdAt.toISOString().slice(0, 10),
-      versionUpdates: versionChanges.map((c) => ({
-        date: c.detectedAt.toISOString().slice(0, 10),
-        version: c.newValue ?? "",
-      })),
-    });
-  } catch (err) {
-    res.status(500).json({ error: String(err) });
-  }
-});
+      let versionChanges = await prisma.appMetadataChange.findMany({
+        where: { appId: app.id, field: "version" },
+        orderBy: { detectedAt: "asc" },
+        select: { newValue: true, detectedAt: true },
+      });
+
+      if (versionChanges.length === 0 && app.isOwnApp && app.trackId) {
+        const { AppStoreScraper } =
+          await import("../../services/appstore-scraper");
+        const scraper = new AppStoreScraper();
+        const history = await scraper.scrapeVersionHistory(Number(app.trackId));
+        for (const { version, date } of history) {
+          await prisma.appMetadataChange.create({
+            data: {
+              appId: app.id,
+              field: "version",
+              oldValue: null,
+              newValue: version,
+              detectedAt: new Date(date),
+            },
+          });
+        }
+        if (history.length > 0) {
+          versionChanges = await prisma.appMetadataChange.findMany({
+            where: { appId: app.id, field: "version" },
+            orderBy: { detectedAt: "asc" },
+            select: { newValue: true, detectedAt: true },
+          });
+        }
+      }
+
+      res.json({
+        activatedAt: app.createdAt.toISOString().slice(0, 10),
+        versionUpdates: versionChanges.map((c) => ({
+          date: c.detectedAt.toISOString().slice(0, 10),
+          version: c.newValue ?? "",
+        })),
+      });
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  },
+);
 
 // ─── POST /api/analytics/sync ─────────────────────────────────────────────────
 analyticsRouter.post("/sync", requireAuth, async (req, res) => {

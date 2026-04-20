@@ -1,6 +1,16 @@
 import { useState, useMemo, type ReactNode } from "react";
-import { Link } from "react-router-dom";
-import { RefreshCw, ArrowRight, Clock, Download, Eye, Monitor, Activity, DollarSign, TrendingUp } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  RefreshCw,
+  ArrowRight,
+  Clock,
+  Download,
+  Eye,
+  Monitor,
+  Activity,
+  DollarSign,
+  TrendingUp,
+} from "lucide-react";
 import { useApi, apiPost, getActiveBundleId } from "../hooks/useApi";
 import MetricsChart from "./comps/analytics/MetricsChart";
 import type { ChartMarker } from "./comps/analytics/MetricsChart";
@@ -24,7 +34,15 @@ interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }
 
-function Sparkline({ data, color, id }: { data: number[]; color: string; id: string }) {
+function Sparkline({
+  data,
+  color,
+  id,
+}: {
+  data: number[];
+  color: string;
+  id: string;
+}) {
   if (!data || data.length < 2) return null;
   const w = 200;
   const h = 60;
@@ -185,6 +203,7 @@ function FunnelStep({
 
 export default function Analytics({ addToast }: Props) {
   const bundleId = getActiveBundleId() ?? "";
+  const navigate = useNavigate();
   const [syncing, setSyncing] = useState(false);
   const [range, setRange] = useState<RangeKey>("30d");
   const [customStart, setCustomStart] = useState("");
@@ -456,32 +475,51 @@ export default function Analytics({ addToast }: Props) {
         />
       </div>
 
-      {hasEngagementData && (() => {
-        const imp = summary?.totalImpressions ?? 0;
-        const pv = summary?.totalPageViews ?? 0;
-        const dl = summary?.totalDownloads ?? 0;
-        const pvPct = imp > 0 ? (pv / imp) * 100 : 0;
-        const dlPct = imp > 0 ? (dl / imp) * 100 : 0;
-        const dropImpToPv = 100 - pvPct;
-        const dropPvToDl = pvPct > 0 ? pvPct - dlPct : 0;
-        return (
-          <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] mb-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
-                Conversion Funnel
+      {hasEngagementData &&
+        (() => {
+          const imp = summary?.totalImpressions ?? 0;
+          const pv = summary?.totalPageViews ?? 0;
+          const dl = summary?.totalDownloads ?? 0;
+          const pvPct = imp > 0 ? (pv / imp) * 100 : 0;
+          const dlPct = imp > 0 ? (dl / imp) * 100 : 0;
+          const dropImpToPv = 100 - pvPct;
+          const dropPvToDl = pvPct > 0 ? pvPct - dlPct : 0;
+          return (
+            <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] mb-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+                  Conversion Funnel
+                </div>
+                <span className="text-[12px] text-[#9ca3af] dark:text-[#5c6478]">
+                  {rangeLabel(range)}
+                </span>
               </div>
-              <span className="text-[12px] text-[#9ca3af] dark:text-[#5c6478]">
-                {rangeLabel(range)}
-              </span>
+              <div className="flex flex-col gap-0">
+                <FunnelStep
+                  label="Impressions"
+                  value={imp}
+                  pct={100}
+                  color="#6366f1"
+                  dropOff={dropImpToPv}
+                />
+                <FunnelStep
+                  label="Page Views"
+                  value={pv}
+                  pct={pvPct}
+                  color="#0ea5e9"
+                  dropOff={dropPvToDl}
+                />
+                <FunnelStep
+                  label="Downloads"
+                  value={dl}
+                  pct={dlPct}
+                  color="#ea0e2b"
+                  isLast
+                />
+              </div>
             </div>
-            <div className="flex flex-col gap-0">
-              <FunnelStep label="Impressions" value={imp} pct={100} color="#6366f1" dropOff={dropImpToPv} />
-              <FunnelStep label="Page Views" value={pv} pct={pvPct} color="#0ea5e9" dropOff={dropPvToDl} />
-              <FunnelStep label="Downloads" value={dl} pct={dlPct} color="#ea0e2b" isLast />
-            </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
 
       <div className="mb-5">
         <div className="flex items-center justify-end mb-2">
@@ -566,7 +604,12 @@ export default function Analytics({ addToast }: Props) {
                     return (
                       <tr
                         key={r.country}
-                        className="hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors"
+                        onClick={() =>
+                          navigate(
+                            `/analytics/countries/${r.country.toLowerCase()}`,
+                          )
+                        }
+                        className="hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors cursor-pointer"
                       >
                         <td className={TD}>
                           <div className="flex items-center gap-2">

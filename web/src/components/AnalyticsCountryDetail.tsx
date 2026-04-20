@@ -1,0 +1,518 @@
+import { useState, useMemo } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { ArrowLeft, Download, Eye, Monitor, Star } from "lucide-react";
+import { useApi, getActiveBundleId } from "../hooks/useApi";
+import type { DownloadsData, Review } from "../types";
+import { fmtNumber, fmtLargeNum, countryName } from "../utils/formatters";
+import {
+  type RangeKey,
+  RANGE_OPTIONS,
+  rangeToParams,
+  rangeLabel,
+} from "../utils/analyticsRange";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
+import { TD } from "../styles";
+
+function StatTile({
+  label,
+  value,
+  icon,
+  color,
+}: {
+  label: string;
+  value: string | number;
+  icon: React.ReactNode;
+  color: string;
+}) {
+  return (
+    <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
+      <div className="flex items-start justify-between mb-3">
+        <span className="text-[13px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+          {label}
+        </span>
+        <span style={{ color }} className="opacity-60">
+          {icon}
+        </span>
+      </div>
+      <div className="text-[36px] font-bold leading-none text-[#111827] dark:text-[#e8eaf0]">
+        {value}
+      </div>
+      <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mt-2">
+        {label}
+      </div>
+    </div>
+  );
+}
+
+export default function AnalyticsCountryDetail() {
+  const { country } = useParams<{ country: string }>();
+  const navigate = useNavigate();
+  const bundleId = getActiveBundleId() ?? "";
+  const [range, setRange] = useState<RangeKey>("30d");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
+
+  const countryCode = (country ?? "").toUpperCase();
+
+  const params = useMemo(
+    () => rangeToParams(range, customStart, customEnd),
+    [range, customStart, customEnd],
+  );
+
+  const { data: downloads, loading } = useApi<DownloadsData>(
+    `/analytics/downloads?bundleId=${bundleId}${params}&country=${countryCode}`,
+  );
+
+  const { data: allReviews, loading: reviewsLoading } = useApi<Review[]>(
+    `/analytics/reviews?bundleId=${bundleId}&limit=200`,
+  );
+
+  const reviews = useMemo(
+    () =>
+      (allReviews ?? []).filter(
+        (r) => (r.territory ?? "").toUpperCase() === countryCode,
+      ),
+    [allReviews, countryCode],
+  );
+
+  const totals = useMemo(() => {
+    const rows = downloads?.byDay ?? [];
+    return {
+      downloads: rows.reduce((s, d) => s + d.downloads, 0),
+      impressions: rows.reduce((s, d) => s + d.impressions, 0),
+      pageViews: rows.reduce((s, d) => s + d.pageViews, 0),
+    };
+  }, [downloads?.byDay]);
+
+  const hasEngagementData = totals.impressions > 0 || totals.pageViews > 0;
+  const conversionRate =
+    totals.impressions > 0
+      ? ((totals.downloads / totals.impressions) * 100).toFixed(1) + "%"
+      : "—";
+
+  const ratingCounts = useMemo(() => {
+    const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    for (const r of reviews) counts[r.rating] = (counts[r.rating] ?? 0) + 1;
+    return counts;
+  }, [reviews]);
+
+  const avgRating =
+    reviews.length > 0
+      ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
+      : null;
+
+  return (
+    <div className="max-w-[1440px] mx-auto">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="p-1.5 rounded-lg hover:bg-[#f3f4f6] dark:hover:bg-[#252b38] transition-colors text-[#9ca3af] dark:text-[#5c6478]"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </button>
+        <img
+          src={`/app/country-flags/${countryCode.toLowerCase()}.svg`}
+          alt={countryCode}
+          className="w-7 h-5 rounded-sm object-cover shrink-0"
+          onError={(e) => {
+            (e.target as HTMLImageElement).style.display = "none";
+          }}
+        />
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] leading-tight">
+            {countryName(countryCode)}
+          </h1>
+          <p className="text-sm text-[#9ca3af] dark:text-[#5c6478]">
+            {countryCode} · Analytics breakdown
+          </p>
+        </div>
+      </div>
+
+      {/* Range picker */}
+      <div className="flex flex-wrap items-center gap-2 mb-5">
+        <div className="flex gap-1 p-1 bg-[#f3f4f6] dark:bg-[#1c2028] rounded-xl">
+          {RANGE_OPTIONS.map((opt) => (
+            <button
+              key={opt.key}
+              onClick={() => setRange(opt.key)}
+              className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
+                range === opt.key
+                  ? "bg-white dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
+                  : "text-[#9ca3af] dark:text-[#5c6478] hover:text-[#6b7280] dark:hover:text-[#8b93a5]"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        {range === "custom" && (
+          <div className="flex items-center gap-1.5">
+            <input
+              type="date"
+              value={customStart}
+              onChange={(e) => setCustomStart(e.target.value)}
+              className="h-8 px-2.5 text-[12px] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl text-[#111827] dark:text-[#e8eaf0] bg-white dark:bg-[#1c2028] focus:outline-none"
+            />
+            <span className="text-[#9ca3af] text-[12px]">–</span>
+            <input
+              type="date"
+              value={customEnd}
+              onChange={(e) => setCustomEnd(e.target.value)}
+              className="h-8 px-2.5 text-[12px] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl text-[#111827] dark:text-[#e8eaf0] bg-white dark:bg-[#1c2028] focus:outline-none"
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Stat tiles */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+        <StatTile
+          label="Downloads"
+          value={loading ? "—" : fmtNumber(totals.downloads)}
+          icon={<Download className="w-4 h-4" />}
+          color="#6366f1"
+        />
+        <StatTile
+          label="Impressions"
+          value={
+            loading
+              ? "—"
+              : hasEngagementData
+                ? fmtNumber(totals.impressions)
+                : "—"
+          }
+          icon={<Eye className="w-4 h-4" />}
+          color="#0ea5e9"
+        />
+        <StatTile
+          label="Page Views"
+          value={
+            loading
+              ? "—"
+              : hasEngagementData
+                ? fmtNumber(totals.pageViews)
+                : "—"
+          }
+          icon={<Monitor className="w-4 h-4" />}
+          color="#8b5cf6"
+        />
+        <StatTile
+          label="Conv. Rate"
+          value={loading ? "—" : hasEngagementData ? conversionRate : "—"}
+          icon={<Star className="w-4 h-4" />}
+          color="#f59e0b"
+        />
+      </div>
+
+      {/* Downloads chart */}
+      {!loading && (downloads?.byDay ?? []).length > 1 && (
+        <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] mb-5">
+          <div className="text-[14px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-1">
+            Downloads over time
+          </div>
+          <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mb-4">
+            {rangeLabel(range)}
+          </div>
+          <ResponsiveContainer width="100%" height={180}>
+            <AreaChart
+              data={downloads!.byDay}
+              margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
+            >
+              <defs>
+                <linearGradient id="cdDlGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="#f3f4f6"
+                vertical={false}
+              />
+              <XAxis
+                dataKey="date"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: "#9ca3af" }}
+                tickFormatter={(v: string) => {
+                  const d = new Date(v);
+                  return `${d.getMonth() + 1}/${d.getDate()}`;
+                }}
+                interval="preserveStartEnd"
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: "#9ca3af" }}
+                tickFormatter={(v) => fmtLargeNum(v)}
+                width={36}
+              />
+              <Tooltip
+                cursor={{
+                  stroke: "#6366f1",
+                  strokeWidth: 1,
+                  strokeDasharray: "4 2",
+                }}
+                content={({ active, payload, label }) => {
+                  if (!active || !payload?.length) return null;
+                  const d = new Date(String(label));
+                  const dateStr = d.toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                  });
+                  return (
+                    <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl px-3 py-2 text-[12px] shadow-lg">
+                      <div className="text-[#9ca3af] dark:text-[#5c6478] mb-0.5">
+                        {dateStr}
+                      </div>
+                      <div className="font-semibold text-[#111827] dark:text-[#e8eaf0]">
+                        {fmtNumber(payload[0].value as number)} downloads
+                      </div>
+                    </div>
+                  );
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="downloads"
+                stroke="#6366f1"
+                strokeWidth={2}
+                fill="url(#cdDlGrad)"
+                dot={false}
+                activeDot={{ r: 4, fill: "#6366f1", strokeWidth: 0 }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Impressions chart */}
+      {!loading && hasEngagementData && (downloads?.byDay ?? []).length > 1 && (
+        <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] mb-5">
+          <div className="text-[14px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-1">
+            Impressions &amp; Page Views
+          </div>
+          <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mb-4">
+            {rangeLabel(range)}
+          </div>
+          <ResponsiveContainer width="100%" height={180}>
+            <AreaChart
+              data={downloads!.byDay}
+              margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
+            >
+              <defs>
+                <linearGradient id="cdImpGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="cdPvGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="#f3f4f6"
+                vertical={false}
+              />
+              <XAxis
+                dataKey="date"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: "#9ca3af" }}
+                tickFormatter={(v: string) => {
+                  const d = new Date(v);
+                  return `${d.getMonth() + 1}/${d.getDate()}`;
+                }}
+                interval="preserveStartEnd"
+              />
+              <YAxis
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: "#9ca3af" }}
+                tickFormatter={(v) => fmtLargeNum(v)}
+                width={36}
+              />
+              <Tooltip
+                cursor={{
+                  stroke: "#0ea5e9",
+                  strokeWidth: 1,
+                  strokeDasharray: "4 2",
+                }}
+                content={({ active, payload, label }) => {
+                  if (!active || !payload?.length) return null;
+                  const d = new Date(String(label));
+                  const dateStr = d.toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                  });
+                  return (
+                    <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl px-3 py-2 text-[12px] shadow-lg space-y-0.5">
+                      <div className="text-[#9ca3af] dark:text-[#5c6478] mb-1">
+                        {dateStr}
+                      </div>
+                      {payload.map((p) => (
+                        <div
+                          key={p.dataKey as string}
+                          className="flex items-center gap-2"
+                        >
+                          <span
+                            className="w-2 h-2 rounded-full shrink-0"
+                            style={{ background: p.color }}
+                          />
+                          <span className="text-[#9ca3af] dark:text-[#5c6478] capitalize">
+                            {p.dataKey as string}
+                          </span>
+                          <span className="font-semibold text-[#111827] dark:text-[#e8eaf0] ml-auto">
+                            {fmtNumber(p.value as number)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="impressions"
+                stroke="#0ea5e9"
+                strokeWidth={2}
+                fill="url(#cdImpGrad)"
+                dot={false}
+                activeDot={{ r: 4, fill: "#0ea5e9", strokeWidth: 0 }}
+              />
+              <Area
+                type="monotone"
+                dataKey="pageViews"
+                stroke="#8b5cf6"
+                strokeWidth={2}
+                fill="url(#cdPvGrad)"
+                dot={false}
+                activeDot={{ r: 4, fill: "#8b5cf6", strokeWidth: 0 }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Reviews */}
+      <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
+        <div className="px-5 py-4 border-b border-[#f3f4f6] dark:border-[#2a2f3d] flex items-center justify-between">
+          <div className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+            Reviews from {countryName(countryCode)}
+          </div>
+          {avgRating && (
+            <div className="flex items-center gap-1.5 text-[13px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+              <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+              {avgRating}
+              <span className="text-[#9ca3af] dark:text-[#5c6478] font-normal">
+                ({reviews.length})
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Rating bar */}
+        {reviews.length > 0 && (
+          <div className="px-5 py-4 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
+            <div className="flex flex-col gap-1.5">
+              {[5, 4, 3, 2, 1].map((star) => {
+                const count = ratingCounts[star] ?? 0;
+                const pct =
+                  reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+                return (
+                  <div key={star} className="flex items-center gap-3">
+                    <span className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] w-3 text-right shrink-0">
+                      {star}
+                    </span>
+                    <div className="flex-1 h-2 bg-[#f3f4f6] dark:bg-[#252b38] rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-amber-400 rounded-full transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span className="text-[12px] tabular-nums text-[#9ca3af] dark:text-[#5c6478] w-7 text-right shrink-0">
+                      {count}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {reviewsLoading ? (
+          <div className="px-5 py-8 text-center text-[13px] text-[#9ca3af] dark:text-[#5c6478]">
+            Loading…
+          </div>
+        ) : reviews.length === 0 ? (
+          <div className="px-5 py-8 text-center text-[13px] text-[#9ca3af] dark:text-[#5c6478]">
+            No reviews from {countryName(countryCode)}
+          </div>
+        ) : (
+          <div className="divide-y divide-[#f3f4f6] dark:divide-[#2a2f3d]">
+            {reviews.slice(0, 30).map((r) => (
+              <div key={r.id} className="px-5 py-4">
+                <div className="flex items-start justify-between gap-3 mb-1.5">
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star
+                        key={s}
+                        className={`w-3.5 h-3.5 ${
+                          s <= r.rating
+                            ? "fill-amber-400 text-amber-400"
+                            : "text-[#e5e7eb] dark:text-[#2a2f3d]"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] shrink-0">
+                    {new Date(r.reviewedAt).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
+                {r.title && (
+                  <div className="text-[13px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-1">
+                    {r.title}
+                  </div>
+                )}
+                {r.body && (
+                  <div className="text-[13px] text-[#6b7280] dark:text-[#8b93a5] leading-relaxed line-clamp-4">
+                    {r.body}
+                  </div>
+                )}
+                {r.reviewerNickname && (
+                  <div className="text-[11px] text-[#c4c9d4] dark:text-[#3a4050] mt-1.5">
+                    — {r.reviewerNickname}
+                  </div>
+                )}
+              </div>
+            ))}
+            {reviews.length > 30 && (
+              <div className="px-5 py-3 text-center">
+                <Link
+                  to="/analytics/reviews"
+                  className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#ea0e2b] transition-colors"
+                >
+                  +{reviews.length - 30} more reviews
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

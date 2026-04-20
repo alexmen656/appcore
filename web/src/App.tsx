@@ -32,6 +32,7 @@ import AppSettings from "./components/AppSettings";
 import Analytics from "./components/Analytics";
 import AnalyticsDownloads from "./components/AnalyticsDownloads";
 import AnalyticsCountries from "./components/AnalyticsCountries";
+import AnalyticsCountryDetail from "./components/AnalyticsCountryDetail";
 import AnalyticsReviews from "./components/AnalyticsReviews";
 import Versions from "./components/Versions";
 import Login from "./components/Login";
@@ -222,7 +223,9 @@ function AppSwitcher({
               {activeApp?.bundleId ?? current?.bundleId ?? "—"}
             </div>
           </div>
-          <ChevronDown className={`w-4 h-4 shrink-0 text-gray-400 dark:text-[#5c6478] transition-transform ${open ? "rotate-180" : ""}`} />
+          <ChevronDown
+            className={`w-4 h-4 shrink-0 text-gray-400 dark:text-[#5c6478] transition-transform ${open ? "rotate-180" : ""}`}
+          />
         </button>
 
         {open && (
@@ -726,7 +729,9 @@ function VersionsSidebarSection({
         >
           <FileText />
           <span className="flex-1 text-left">Versions</span>
-          <ChevronDown className={`!w-3.5 !h-3.5 shrink-0 text-gray-400 dark:text-[#5c6478] transition-transform ${expanded ? "rotate-180" : ""}`} />
+          <ChevronDown
+            className={`!w-3.5 !h-3.5 shrink-0 text-gray-400 dark:text-[#5c6478] transition-transform ${expanded ? "rotate-180" : ""}`}
+          />
         </button>
         <button
           onClick={openNewForm}
@@ -1010,8 +1015,18 @@ export default function App() {
               path="/analytics"
               element={<Analytics addToast={addToast} />}
             />
-            <Route path="/analytics/downloads" element={<AnalyticsDownloads />} />
-            <Route path="/analytics/countries" element={<AnalyticsCountries />} />
+            <Route
+              path="/analytics/downloads"
+              element={<AnalyticsDownloads />}
+            />
+            <Route
+              path="/analytics/countries"
+              element={<AnalyticsCountries />}
+            />
+            <Route
+              path="/analytics/countries/:country"
+              element={<AnalyticsCountryDetail />}
+            />
             <Route path="/analytics/reviews" element={<AnalyticsReviews />} />
             <Route
               path="/versions/:versionId"
