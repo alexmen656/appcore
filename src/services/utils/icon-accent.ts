@@ -84,3 +84,41 @@ export async function extractAccentColor(
     return null;
   }
 }
+
+const inFlight = new Map<string, Promise<string | null>>();
+
+export async function ensureAccentColor(
+  appId: string,
+  iconUrl: string | null | undefined,
+  cached: { accentColor: string | null; accentColorIconUrl: string | null },
+): Promise<string | null> {
+  if (!iconUrl) return cached.accentColor;
+  if (cached.accentColor && cached.accentColorIconUrl === iconUrl) {
+    return cached.accentColor;
+  }
+  const key = `${appId}:${iconUrl}`;
+  const existing = inFlight.get(key);
+  if (existing) return existing;
+  const task = (async () => {
+    const hex = await extractAccentColor(iconUrl);
+    if (hex) {
+      await prisma.app
+        .update({
+          where: { id: appId },
+          data: { accentColor: hex, accentColorIconUrl: iconUrl },
+        })
+        .catch((err) => {
+          logger.warn(`Failed to cache accent color for app ${appId}`, {
+            err: String(err),
+          });
+        });
+    }
+    return hex;
+  })();
+  inFlight.set(key, task);
+  try {
+    return await task;
+  } finally {
+    inFlight.delete(key);
+  }
+}

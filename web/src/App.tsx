@@ -569,7 +569,7 @@ function AnalyticsSidebarSection({
           onClick={() => setExpanded((v) => !v)}
           className={`flex-1 flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-sm font-medium transition-all [&_svg]:w-[18px] [&_svg]:h-[18px] ${
             isAnyAnalyticsActive
-              ? "bg-[#fff1f2] text-[#C4001E] dark:bg-[#C4001E]/[0.12] dark:text-[#ff8080] [&>svg:first-child]:opacity-100"
+              ? "bg-white text-[#1a1a2e] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.06)] dark:bg-[#1f242e] dark:text-[#e8eaf0] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3)] [&>svg:first-child]:opacity-100"
               : "text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] [&>svg:first-child]:opacity-60"
           }`}
         >
@@ -590,7 +590,7 @@ function AnalyticsSidebarSection({
               className={({ isActive }) =>
                 `flex items-center px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-all ${
                   isActive
-                    ? "bg-[#fff1f2] text-[#C4001E] dark:bg-[#C4001E]/[0.12] dark:text-[#ff8080]"
+                    ? "bg-white text-[#1a1a2e] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.06)] dark:bg-[#1f242e] dark:text-[#e8eaf0] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
                     : "text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0]"
                 }`
               }
@@ -723,7 +723,7 @@ function VersionsSidebarSection({
           onClick={handleToggle}
           className={`flex-1 flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-sm font-medium transition-all [&_svg]:w-[18px] [&_svg]:h-[18px] ${
             isAnyVersionActive
-              ? "bg-[#fff1f2] text-[#C4001E] dark:bg-[#C4001E]/[0.12] dark:text-[#ff8080] [&>svg:first-child]:opacity-100"
+              ? "bg-white text-[#1a1a2e] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.06)] dark:bg-[#1f242e] dark:text-[#e8eaf0] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3)] [&>svg:first-child]:opacity-100"
               : "text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] [&>svg:first-child]:opacity-60"
           }`}
         >
@@ -816,7 +816,7 @@ function VersionsSidebarSection({
                 to={`/versions/${v.versionId}`}
                 className={`flex items-center justify-between gap-2 px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-all ${
                   isActive
-                    ? "bg-[#fff1f2] text-[#C4001E] dark:bg-[#C4001E]/[0.12] dark:text-[#ff8080]"
+                    ? "bg-white text-[#1a1a2e] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.06)] dark:bg-[#1f242e] dark:text-[#e8eaf0] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
                     : "text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0]"
                 }`}
               >
@@ -936,7 +936,7 @@ export default function App() {
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-sm font-medium mb-0.5 transition-all [&_svg]:w-[18px] [&_svg]:h-[18px] ${
       isActive
-        ? "bg-[#fff1f2] text-[#C4001E] dark:bg-[#C4001E]/[0.12] dark:text-[#ff8080] [&_svg]:opacity-100"
+        ? "bg-white text-[#1a1a2e] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.06)] dark:bg-[#1f242e] dark:text-[#e8eaf0] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3)] [&_svg]:opacity-100"
         : "text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] [&_svg]:opacity-60"
     }`;
 
@@ -970,7 +970,7 @@ export default function App() {
           onToggleDark={() => setDark((d) => !d)}
         />
       </header>
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0">
         <aside className="w-[250px] min-w-[250px] bg-[var(--shell-bg)] flex flex-col overflow-y-auto transition-colors">
           <AppSwitcher current={dash?.app ?? null} addToast={addToast} />
           <nav className="px-2 pt-1 flex-1 flex flex-col">
@@ -1000,7 +1000,7 @@ export default function App() {
           </nav>
         </aside>
 
-        <main className="flex-1 overflow-y-auto px-7 py-6 bg-white dark:bg-[#0f1117] rounded-tl-2xl">
+        <main className="relative z-30 flex-1 overflow-y-auto overscroll-contain px-7 py-6 bg-white dark:bg-[#0f1117] rounded-tl-2xl border-t border-l border-[rgba(16,24,40,0.06)] dark:border-[rgba(255,255,255,0.05)] shadow-[-4px_-4px_14px_-8px_rgba(16,24,40,0.05),0_-6px_16px_-8px_rgba(16,24,40,0.07)] dark:shadow-[-4px_-4px_14px_-8px_rgba(0,0,0,0.3),0_-6px_16px_-8px_rgba(0,0,0,0.35)]">
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />

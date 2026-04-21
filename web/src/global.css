@@ -2,6 +2,12 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+html,
+body {
+  background: var(--shell-bg);
+  overscroll-behavior: none;
+}
+
 :root {
   --app-accent: transparent;
   --shell-base: #f8f9fb;
