@@ -313,7 +313,7 @@ export default function Analytics({ addToast }: Props) {
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] disabled:opacity-60 transition-colors shrink-0"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-medium bg-[#D94412] text-white hover:bg-[#c80b24] disabled:opacity-60 transition-colors shrink-0"
           >
             {syncing ? (
               <>
@@ -362,7 +362,7 @@ export default function Analytics({ addToast }: Props) {
               type="date"
               value={customStart}
               onChange={(e) => setCustomStart(e.target.value)}
-              className="h-8 px-2.5 text-[12px] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl text-[#111827] dark:text-[#e8eaf0] bg-white dark:bg-[#1c2028] focus:outline-none focus:border-[#c4c9d4] dark:focus:border-[#ea0e2b]"
+              className="h-8 px-2.5 text-[12px] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl text-[#111827] dark:text-[#e8eaf0] bg-white dark:bg-[#1c2028] focus:outline-none focus:border-[#c4c9d4] dark:focus:border-[#D94412]"
             />
             <span className="text-[#9ca3af] dark:text-[#5c6478] text-[12px]">
               –
@@ -371,7 +371,7 @@ export default function Analytics({ addToast }: Props) {
               type="date"
               value={customEnd}
               onChange={(e) => setCustomEnd(e.target.value)}
-              className="h-8 px-2.5 text-[12px] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl text-[#111827] dark:text-[#e8eaf0] bg-white dark:bg-[#1c2028] focus:outline-none focus:border-[#c4c9d4] dark:focus:border-[#ea0e2b]"
+              className="h-8 px-2.5 text-[12px] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl text-[#111827] dark:text-[#e8eaf0] bg-white dark:bg-[#1c2028] focus:outline-none focus:border-[#c4c9d4] dark:focus:border-[#D94412]"
             />
           </div>
         )}
@@ -473,7 +473,7 @@ export default function Analytics({ addToast }: Props) {
             d.impressions > 0 ? (d.downloads / d.impressions) * 100 : 0,
           )}
           icon={<TrendingUp className="w-4 h-4" />}
-          color="#ea0e2b"
+          color="#D94412"
         />
       </div>
 
@@ -515,7 +515,7 @@ export default function Analytics({ addToast }: Props) {
                   label="Downloads"
                   value={dl}
                   pct={dlPct}
-                  color="#ea0e2b"
+                  color="#D94412"
                   isLast
                 />
               </div>
@@ -527,7 +527,7 @@ export default function Analytics({ addToast }: Props) {
         <div className="flex items-center justify-end mb-2">
           <Link
             to="/analytics/downloads"
-            className="flex items-center gap-1 text-[12px] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#ea0e2b] transition-colors"
+            className="flex items-center gap-1 text-[12px] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#D94412] transition-colors"
           >
             Day-by-day table <ArrowRight className="w-3 h-3" />
           </Link>
@@ -567,7 +567,7 @@ export default function Analytics({ addToast }: Props) {
               )}
               <Link
                 to="/analytics/countries"
-                className="flex items-center gap-1 text-[12px] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#ea0e2b] transition-colors"
+                className="flex items-center gap-1 text-[12px] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#D94412] transition-colors"
               >
                 All <ArrowRight className="w-3 h-3" />
               </Link>
@@ -641,7 +641,7 @@ export default function Analytics({ addToast }: Props) {
                           <div className="flex items-center justify-end gap-2">
                             <div className="w-16 h-1.5 bg-[#f3f4f6] dark:bg-[#252b38] rounded-full overflow-hidden">
                               <div
-                                className="h-full bg-[#ea0e2b] rounded-full"
+                                className="h-full bg-[#D94412] rounded-full"
                                 style={{
                                   width: `${total > 0 ? (val / total) * 100 : 0}%`,
                                 }}
@@ -668,7 +668,7 @@ export default function Analytics({ addToast }: Props) {
             </div>
             <Link
               to="/analytics/reviews"
-              className="flex items-center gap-1 text-[12px] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#ea0e2b] transition-colors"
+              className="flex items-center gap-1 text-[12px] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#D94412] transition-colors"
             >
               All reviews <ArrowRight className="w-3 h-3" />
             </Link>

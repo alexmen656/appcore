@@ -413,7 +413,7 @@ export default function Submissions({ addToast }: Props) {
                     onClick={() => setActiveLocale(loc.locale)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                       activeLocale === loc.locale
-                        ? "bg-[#ea0e2b] text-white"
+                        ? "bg-[#D94412] text-white"
                         : "bg-gray-50 dark:bg-[#252b38] text-gray-600 dark:text-[#8b93a5] hover:bg-gray-100 dark:hover:bg-[#2a2f3d]"
                     }`}
                   >

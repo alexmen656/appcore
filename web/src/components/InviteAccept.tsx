@@ -106,7 +106,7 @@ export default function InviteAccept({
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#f8f9fb] dark:bg-[#0f1117] px-4">
         <div className="max-w-sm w-full text-center">
-          <div className="text-[26px] font-bold text-[#ea0e2b] tracking-[-0.3px] mb-8">
+          <div className="text-[26px] font-bold text-[#D94412] tracking-[-0.3px] mb-8">
             marteso
           </div>
           <div className="p-6 bg-white dark:bg-[#1c2028] border border-[#e5e7eb] dark:border-[#2a2f3d] rounded-2xl">
@@ -133,18 +133,18 @@ export default function InviteAccept({
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f8f9fb] dark:bg-[#0f1117] px-4">
       <div className="max-w-sm w-full">
-        <div className="text-[26px] font-bold text-[#ea0e2b] tracking-[-0.3px] mb-8 text-center">
+        <div className="text-[26px] font-bold text-[#D94412] tracking-[-0.3px] mb-8 text-center">
           marteso
         </div>
 
-        <div className="mb-4 p-4 bg-[#fef2f3] dark:bg-[#2a1f23] border border-[#ea0e2b]/20 rounded-xl text-center">
+        <div className="mb-4 p-4 bg-[#fef2f3] dark:bg-[#2a1f23] border border-[#D94412]/20 rounded-xl text-center">
           <p className="text-sm font-semibold text-[#1a1a2e] dark:text-[#e8eaf0]">
             Du wurdest eingeladen
           </p>
           <p className="text-sm text-gray-600 dark:text-[#8b93a5] mt-0.5">
-            Team <strong className="text-[#ea0e2b]">{invite.teamName}</strong>{" "}
+            Team <strong className="text-[#D94412]">{invite.teamName}</strong>{" "}
             als{" "}
-            <strong className="text-[#ea0e2b]">
+            <strong className="text-[#D94412]">
               {ROLE_LABELS[invite.role] ?? invite.role}
             </strong>{" "}
             beizutreten
@@ -174,7 +174,7 @@ export default function InviteAccept({
                 placeholder="Name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="px-3 py-2.5 text-sm rounded-xl border border-[#e5e7eb] dark:border-[#2a2f3d] bg-[#f7f8fa] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] focus:outline-none focus:border-[#ea0e2b]"
+                className="px-3 py-2.5 text-sm rounded-xl border border-[#e5e7eb] dark:border-[#2a2f3d] bg-[#f7f8fa] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] focus:outline-none focus:border-[#D94412]"
               />
             )}
             <input
@@ -183,7 +183,7 @@ export default function InviteAccept({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="px-3 py-2.5 text-sm rounded-xl border border-[#e5e7eb] dark:border-[#2a2f3d] bg-[#f7f8fa] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] focus:outline-none focus:border-[#ea0e2b]"
+              className="px-3 py-2.5 text-sm rounded-xl border border-[#e5e7eb] dark:border-[#2a2f3d] bg-[#f7f8fa] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] focus:outline-none focus:border-[#D94412]"
             />
             <input
               type="password"
@@ -192,13 +192,13 @@ export default function InviteAccept({
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={8}
-              className="px-3 py-2.5 text-sm rounded-xl border border-[#e5e7eb] dark:border-[#2a2f3d] bg-[#f7f8fa] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] focus:outline-none focus:border-[#ea0e2b]"
+              className="px-3 py-2.5 text-sm rounded-xl border border-[#e5e7eb] dark:border-[#2a2f3d] bg-[#f7f8fa] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] focus:outline-none focus:border-[#D94412]"
             />
-            {error && <p className="text-xs text-[#ea0e2b]">{error}</p>}
+            {error && <p className="text-xs text-[#D94412]">{error}</p>}
             <button
               type="submit"
               disabled={submitting}
-              className="mt-1 py-2.5 rounded-xl bg-[#ea0e2b] text-white text-sm font-semibold hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-1 py-2.5 rounded-xl bg-[#D94412] text-white text-sm font-semibold hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting
                 ? "…"

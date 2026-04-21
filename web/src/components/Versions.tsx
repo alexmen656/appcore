@@ -321,7 +321,7 @@ function ActionButton({
         <button
           onClick={onSubmitForReview}
           disabled={busy}
-          className="inline-flex items-center gap-2 pl-4 pr-3 py-[9px] rounded-l-xl text-[13px] font-semibold bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-2 pl-4 pr-3 py-[9px] rounded-l-xl text-[13px] font-semibold bg-[#D94412] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {submitting === "review" ? (
             <>
@@ -338,7 +338,7 @@ function ActionButton({
         <button
           onClick={() => setOpen((v) => !v)}
           disabled={busy}
-          className="px-2.5 rounded-r-xl bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-2.5 rounded-r-xl bg-[#D94412] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="More actions"
         >
           <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
@@ -386,7 +386,7 @@ function ActionButton({
       <button
         onClick={onPushMetadata}
         disabled={busy}
-        className="inline-flex items-center gap-2 pl-3.5 pr-3 py-[8px] rounded-l-xl text-[13px] font-medium border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-[#111827] dark:text-[#e8eaf0] hover:border-[#ea0e2b] hover:text-[#ea0e2b] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="inline-flex items-center gap-2 pl-3.5 pr-3 py-[8px] rounded-l-xl text-[13px] font-medium border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-[#111827] dark:text-[#e8eaf0] hover:border-[#D94412] hover:text-[#D94412] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {submitting === "metadata" ? (
           <>
@@ -403,7 +403,7 @@ function ActionButton({
       <button
         onClick={() => setOpen((v) => !v)}
         disabled={busy}
-        className="px-2.5 rounded-r-xl border border-l-0 border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-[#6b7280] dark:text-[#8b93a5] hover:border-[#ea0e2b] hover:text-[#ea0e2b] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="px-2.5 rounded-r-xl border border-l-0 border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-[#6b7280] dark:text-[#8b93a5] hover:border-[#D94412] hover:text-[#D94412] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         aria-label="More actions"
       >
           <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
@@ -527,7 +527,7 @@ function EditableField({
           {!editing && isEditable && (
             <button
               onClick={() => setEditing(true)}
-              className="opacity-0 group-hover:opacity-100 transition-opacity text-[11px] text-[#ea0e2b] font-medium hover:underline"
+              className="opacity-0 group-hover:opacity-100 transition-opacity text-[11px] text-[#D94412] font-medium hover:underline"
             >
               Edit
             </button>
@@ -569,7 +569,7 @@ function EditableField({
             <button
               onClick={handleSave}
               disabled={saving || isOverLimit}
-              className="inline-flex items-center gap-1.5 px-3 py-[6px] rounded-xl text-xs font-semibold bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 px-3 py-[6px] rounded-xl text-xs font-semibold bg-[#D94412] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? (
                 <>
@@ -666,7 +666,7 @@ function InlineEditField({
         {!editing && isEditable && (
           <button
             onClick={() => setEditing(true)}
-            className="opacity-0 group-hover:opacity-100 transition-opacity text-[11px] text-[#ea0e2b] font-medium hover:underline"
+            className="opacity-0 group-hover:opacity-100 transition-opacity text-[11px] text-[#D94412] font-medium hover:underline"
           >
             Edit
           </button>
@@ -694,7 +694,7 @@ function InlineEditField({
             <button
               onClick={handleSave}
               disabled={saving}
-              className="inline-flex items-center gap-1.5 px-3 py-[6px] rounded-xl text-xs font-semibold bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-3 py-[6px] rounded-xl text-xs font-semibold bg-[#D94412] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50"
             >
               {saving ? (
                 <>
@@ -1302,7 +1302,7 @@ export default function Versions({ addToast }: Props) {
         <p className="text-sm">{error}</p>
         <button
           onClick={refetch}
-          className="text-[#ea0e2b] text-sm font-medium hover:underline"
+          className="text-[#D94412] text-sm font-medium hover:underline"
         >
           Retry
         </button>
@@ -1434,7 +1434,7 @@ export default function Versions({ addToast }: Props) {
                   onClick={() => setActiveLocale(loc.locale)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all whitespace-nowrap ${
                     loc.locale === activeLocale
-                      ? "bg-[#ea0e2b] text-white shadow-sm"
+                      ? "bg-[#D94412] text-white shadow-sm"
                       : "bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] text-[#111827] dark:text-[#e8eaf0] hover:border-[#d1d5db] dark:hover:border-[#3a4050]"
                   }`}
                 >
@@ -1464,7 +1464,7 @@ export default function Versions({ addToast }: Props) {
                     className={`absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity ${
                       loc.locale === activeLocale
                         ? "bg-white/20 hover:bg-white/40 text-white"
-                        : "bg-[#f3f4f6] dark:bg-[#2a2f3d] hover:bg-red-100 dark:hover:bg-red-900/30 text-[#9ca3af] hover:text-[#ea0e2b]"
+                        : "bg-[#f3f4f6] dark:bg-[#2a2f3d] hover:bg-red-100 dark:hover:bg-red-900/30 text-[#9ca3af] hover:text-[#D94412]"
                     }`}
                     title="Remove language"
                   >
@@ -1483,7 +1483,7 @@ export default function Versions({ addToast }: Props) {
               <button
                 onClick={() => setShowAddLocale((v) => !v)}
                 disabled={addingLocale}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-[#d1d5db] dark:border-[#3a4050] text-[#6b7280] dark:text-[#8b93a5] hover:border-[#ea0e2b] hover:text-[#ea0e2b] transition-all text-[13px] font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-[#d1d5db] dark:border-[#3a4050] text-[#6b7280] dark:text-[#8b93a5] hover:border-[#D94412] hover:text-[#D94412] transition-all text-[13px] font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {addingLocale ? (
                   <div className="spinner !w-3.5 !h-3.5" />
@@ -1611,7 +1611,7 @@ export default function Versions({ addToast }: Props) {
                         href="https://appstoreconnect.apple.com"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#ea0e2b] transition-colors"
+                        className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#D94412] transition-colors"
                       >
                         Edit in ASC ↗
                       </a>

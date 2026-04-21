@@ -29,7 +29,7 @@ interface Props {
 const METRICS = [
   { key: "impressions", label: "Impressions", color: "#6366f1", axis: "left" },
   { key: "pageViews", label: "Page Views", color: "#0ea5e9", axis: "left" },
-  { key: "downloads", label: "Downloads", color: "#ea0e2b", axis: "left" },
+  { key: "downloads", label: "Downloads", color: "#D94412", axis: "left" },
   { key: "updates", label: "Updates", color: "#f97316", axis: "left" },
   { key: "sessions", label: "Sessions", color: "#10b981", axis: "left" },
   { key: "proceeds", label: "Revenue (USD)", color: "#f59e0b", axis: "right" },

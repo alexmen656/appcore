@@ -65,10 +65,10 @@ function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
       className={`inline-flex flex-col ml-1 leading-none ${active ? "opacity-100" : "opacity-25"}`}
     >
       <ChevronUp
-        className={`w-3 h-3 -mb-1 ${active && dir === "asc" ? "text-[#ea0e2b]" : "text-current"}`}
+        className={`w-3 h-3 -mb-1 ${active && dir === "asc" ? "text-[#D94412]" : "text-current"}`}
       />
       <ChevronDown
-        className={`w-3 h-3 -mt-1 ${active && dir === "desc" ? "text-[#ea0e2b]" : "text-current"}`}
+        className={`w-3 h-3 -mt-1 ${active && dir === "desc" ? "text-[#D94412]" : "text-current"}`}
       />
     </span>
   );

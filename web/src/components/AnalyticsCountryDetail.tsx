@@ -493,7 +493,7 @@ export default function AnalyticsCountryDetail() {
               <div className="px-5 py-3 text-center">
                 <Link
                   to="/analytics/reviews"
-                  className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#ea0e2b] transition-colors"
+                  className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#D94412] transition-colors"
                 >
                   +{reviews.length - 30} more reviews
                 </Link>

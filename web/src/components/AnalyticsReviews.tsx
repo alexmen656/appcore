@@ -52,7 +52,7 @@ export default function AnalyticsReviews() {
                   </span>
                   <div className="flex-1 h-2 bg-[#f3f4f6] dark:bg-[#252b38] rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all ${isActive ? "bg-[#ea0e2b]" : "bg-amber-400"}`}
+                      className={`h-full rounded-full transition-all ${isActive ? "bg-[#D94412]" : "bg-amber-400"}`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -69,7 +69,7 @@ export default function AnalyticsReviews() {
           {minRating !== null && (
             <button
               onClick={() => setMinRating(null)}
-              className="mt-3 text-[11px] text-[#ea0e2b] hover:underline"
+              className="mt-3 text-[11px] text-[#D94412] hover:underline"
             >
               Clear filter
             </button>

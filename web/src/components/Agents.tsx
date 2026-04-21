@@ -126,7 +126,7 @@ export default function Agents({ addToast }: Props) {
             disabled={toggling || !config}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
               config?.mcpEnabled
-                ? "bg-[#ea0e2b]"
+                ? "bg-[#D94412]"
                 : "bg-gray-200 dark:bg-[#2a2f3d]"
             }`}
           >
@@ -151,7 +151,7 @@ export default function Agents({ addToast }: Props) {
             <li>
               Enter the MCP Server URL:{" "}
               <code
-                className="font-mono text-[#111827] dark:text-[#e8eaf0] cursor-pointer hover:text-[#ea0e2b]"
+                className="font-mono text-[#111827] dark:text-[#e8eaf0] cursor-pointer hover:text-[#D94412]"
                 onClick={() => copyToClipboard(mcpUrl)}
                 title="Click to copy"
               >
@@ -204,7 +204,7 @@ export default function Agents({ addToast }: Props) {
                         </code>
                         <button
                           onClick={() => copyToClipboard(client.clientId)}
-                          className="text-[10px] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#ea0e2b] transition-colors"
+                          className="text-[10px] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#D94412] transition-colors"
                           title="Copy Client ID"
                         >
                           ⎘
@@ -245,7 +245,7 @@ export default function Agents({ addToast }: Props) {
               key={tool.name}
               className="flex items-start gap-3 p-3 bg-[#f8f9fb] dark:bg-[#252b38] rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d]"
             >
-              <code className="text-[12px] font-mono font-semibold text-[#ea0e2b] shrink-0 mt-0.5">
+              <code className="text-[12px] font-mono font-semibold text-[#D94412] shrink-0 mt-0.5">
                 {tool.name}
               </code>
               <span className="text-xs text-gray-500 dark:text-[#8b93a5] mt-0.5">

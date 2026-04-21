@@ -5,7 +5,7 @@
   --text-primary: #ffffff;
   --text-secondary: #9ca3af;
   --text-tertiary: #6b7280;
-  --accent: #ea0e2b;
+  --accent: #D94412;
   --accent-dim: rgba(234, 14, 43, 0.1);
   --accent-blue: #5e6ad2;
   --accent-blue-dim: rgba(94, 106, 210, 0.1);
@@ -125,7 +125,7 @@ nav.scrolled {
 }
 
 .btn-primary {
-  background: #ea0e2b;
+  background: #D94412;
   color: white;
 }
 

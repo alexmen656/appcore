@@ -230,12 +230,12 @@ class NotificationService {
       <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
       <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8f9fb;margin:0;padding:40px 20px;">
       <div style="max-width:480px;margin:0 auto;background:white;border-radius:16px;padding:40px;border:1px solid #e5e7eb;">
-      <div style="font-size:24px;font-weight:800;color:#ea0e2b;margin-bottom:24px;letter-spacing:-0.3px;">marteso</div>
+      <div style="font-size:24px;font-weight:800;color:#D94412;margin-bottom:24px;letter-spacing:-0.3px;">marteso</div>
       <h1 style="font-size:20px;font-weight:700;color:#1a1a2e;margin:0 0 12px;">${content.title}</h1>
       <div style="color:#6b7280;font-size:15px;line-height:1.6;margin:0 0 24px;">${content.body}</div>
       ${
         content.cta
-          ? `<a href="${content.cta.url}" style="display:inline-block;background:#ea0e2b;color:white;text-decoration:none;font-weight:600;font-size:15px;padding:12px 28px;border-radius:12px;margin-top:8px;">${content.cta.label}</a>`
+          ? `<a href="${content.cta.url}" style="display:inline-block;background:#D94412;color:white;text-decoration:none;font-weight:600;font-size:15px;padding:12px 28px;border-radius:12px;margin-top:8px;">${content.cta.label}</a>`
           : ""
       }
       <p style="color:#9ca3af;font-size:12px;margin-top:24px;line-height:1.5;">${

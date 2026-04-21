@@ -133,7 +133,7 @@ export default function Login({ onAuth }: Props) {
         <div className="w-[400px] bg-white dark:bg-[#1c2028] rounded-2xl shadow-xl border border-[#eef0f3] dark:border-[#2a2f3d] p-10">
           <div className="flex flex-col items-center text-center gap-3 mb-6">
             <div className="w-12 h-12 rounded-full bg-[#fff0f2] dark:bg-[#2a1520] flex items-center justify-center">
-              <PasskeyIcon className="text-[#ea0e2b]" size={24} />
+              <PasskeyIcon className="text-[#D94412]" size={24} />
             </div>
             <h2 className="text-lg font-semibold text-[#111827] dark:text-[#e8eaf0]">
               Add a Passkey?
@@ -251,7 +251,7 @@ export default function Login({ onAuth }: Props) {
             <>
               No account yet?{" "}
               <button
-                className="text-[#ea0e2b] font-medium hover:underline"
+                className="text-[#D94412] font-medium hover:underline"
                 onClick={() => { setMode("register"); setError(null); }}
               >
                 Register
@@ -261,7 +261,7 @@ export default function Login({ onAuth }: Props) {
             <>
               Already have an account?{" "}
               <button
-                className="text-[#ea0e2b] font-medium hover:underline"
+                className="text-[#D94412] font-medium hover:underline"
                 onClick={() => { setMode("login"); setError(null); }}
               >
                 Sign in

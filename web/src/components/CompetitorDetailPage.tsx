@@ -101,7 +101,7 @@ export default function CompetitorDetailPage({ addToast }: Props) {
                 onClick={() => setTab(t.key)}
                 className={`px-3.5 py-2 text-[13px] font-medium rounded-t-lg transition-colors ${
                   tab === t.key
-                    ? "text-[#ea0e2b] border-b-2 border-[#ea0e2b] -mb-px"
+                    ? "text-[#D94412] border-b-2 border-[#D94412] -mb-px"
                     : "text-[#9ca3af] dark:text-[#5c6478] hover:text-[#111827] dark:hover:text-[#e8eaf0]"
                 }`}
               >

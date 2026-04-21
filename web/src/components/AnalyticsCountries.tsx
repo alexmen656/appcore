@@ -140,7 +140,7 @@ export default function AnalyticsCountries() {
               type="date"
               value={customStart}
               onChange={(e) => setCustomStart(e.target.value)}
-              className="h-8 px-2.5 text-[12px] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl text-[#111827] dark:text-[#e8eaf0] bg-white dark:bg-[#1c2028] focus:outline-none focus:border-[#c4c9d4] dark:focus:border-[#ea0e2b]"
+              className="h-8 px-2.5 text-[12px] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl text-[#111827] dark:text-[#e8eaf0] bg-white dark:bg-[#1c2028] focus:outline-none focus:border-[#c4c9d4] dark:focus:border-[#D94412]"
             />
             <span className="text-[#9ca3af] dark:text-[#5c6478] text-[12px]">
               –
@@ -149,7 +149,7 @@ export default function AnalyticsCountries() {
               type="date"
               value={customEnd}
               onChange={(e) => setCustomEnd(e.target.value)}
-              className="h-8 px-2.5 text-[12px] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl text-[#111827] dark:text-[#e8eaf0] bg-white dark:bg-[#1c2028] focus:outline-none focus:border-[#c4c9d4] dark:focus:border-[#ea0e2b]"
+              className="h-8 px-2.5 text-[12px] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl text-[#111827] dark:text-[#e8eaf0] bg-white dark:bg-[#1c2028] focus:outline-none focus:border-[#c4c9d4] dark:focus:border-[#D94412]"
             />
           </div>
         )}
@@ -182,10 +182,10 @@ export default function AnalyticsCountries() {
                     >
                       <stop
                         offset="0%"
-                        stopColor="#ea0e2b"
+                        stopColor="#D94412"
                         stopOpacity={0.2}
                       />
-                      <stop offset="100%" stopColor="#ea0e2b" stopOpacity={0} />
+                      <stop offset="100%" stopColor="#D94412" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid
@@ -213,7 +213,7 @@ export default function AnalyticsCountries() {
                     width={36}
                   />
                   <Tooltip
-                    cursor={{ stroke: "#ea0e2b", strokeWidth: 1.5, strokeDasharray: "3 3" }}
+                    cursor={{ stroke: "#D94412", strokeWidth: 1.5, strokeDasharray: "3 3" }}
                     content={({ active, payload, label }) => {
                       if (!active || !payload?.length) return null;
                       const d = new Date(String(label));
@@ -236,11 +236,11 @@ export default function AnalyticsCountries() {
                   <Area
                     type="monotoneX"
                     dataKey="downloads"
-                    stroke="#ea0e2b"
+                    stroke="#D94412"
                     strokeWidth={2.5}
                     fill="url(#countryDlGrad)"
                     dot={false}
-                    activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff", fill: "#ea0e2b" }}
+                    activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff", fill: "#D94412" }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -306,7 +306,7 @@ export default function AnalyticsCountries() {
                       <Cell
                         key={i}
                         fill={
-                          i === 0 ? "#ea0e2b" : i < 3 ? "#f87171" : "#fca5a5"
+                          i === 0 ? "#D94412" : i < 3 ? "#f87171" : "#fca5a5"
                         }
                         fillOpacity={i === 0 ? 1 : i < 3 ? 0.8 : 0.5}
                       />
@@ -333,7 +333,7 @@ export default function AnalyticsCountries() {
             }
             className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${
               showTrend
-                ? "bg-[#ea0e2b] text-white"
+                ? "bg-[#D94412] text-white"
                 : "bg-[#f3f4f6] dark:bg-[#252b38] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#6b7280] dark:hover:text-[#8b93a5]"
             } disabled:opacity-40 disabled:cursor-not-allowed`}
           >
@@ -450,7 +450,7 @@ export default function AnalyticsCountries() {
                         <div className="flex items-center justify-end gap-2">
                           <div className="w-16 h-1.5 bg-[#f3f4f6] dark:bg-[#252b38] rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-[#ea0e2b] rounded-full"
+                              className="h-full bg-[#D94412] rounded-full"
                               style={{
                                 width: `${total > 0 ? (r.downloads / total) * 100 : 0}%`,
                               }}

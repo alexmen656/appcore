@@ -42,7 +42,7 @@ export default function DownloadsChart({ data }: Props) {
               onClick={() => setRange(r.days)}
               className={`px-2.5 py-1 rounded-lg text-[12px] font-medium transition-colors ${
                 range === r.days
-                  ? "bg-[#ea0e2b] text-white"
+                  ? "bg-[#D94412] text-white"
                   : "bg-[#f3f4f6] dark:bg-[#252b38] text-[#6b7280] dark:text-[#8b93a5] hover:bg-[#e5e7eb] dark:hover:bg-[#2a2f3d]"
               }`}
             >
@@ -91,7 +91,7 @@ export default function DownloadsChart({ data }: Props) {
               type="monotone"
               dataKey="downloads"
               name="Downloads"
-              stroke="#ea0e2b"
+              stroke="#D94412"
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 4 }}

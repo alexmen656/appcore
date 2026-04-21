@@ -21,7 +21,7 @@ export default function OwnAppCard({ app }: Props) {
   return (
     <div className="mb-6">
       <div className="text-xs font-medium uppercase tracking-wide text-[#9ca3af] dark:text-[#5c6478] mb-3">Your App</div>
-      <div className="bg-white dark:bg-[#1c2028] border-2 border-[#ea0e2b] rounded-2xl p-5 inline-flex items-center gap-3">
+      <div className="bg-white dark:bg-[#1c2028] border-2 border-[#D94412] rounded-2xl p-5 inline-flex items-center gap-3">
         <AppIcon url={app.iconUrl} name={app.name} own />
         <div>
           <div className="text-sm font-semibold text-[#111827] dark:text-[#e8eaf0]">{app.name}</div>

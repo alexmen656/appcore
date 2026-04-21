@@ -99,7 +99,7 @@ export default function Suggestions({ addToast }: Props) {
         <button
           onClick={runAnalyze}
           disabled={analyzing}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium bg-[#D94412] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {analyzing ? <><div className="spinner" /> Analyzing…</> : "Run AI Analysis"}
         </button>

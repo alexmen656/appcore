@@ -79,7 +79,7 @@ export default function Competitors({ addToast }: Props) {
           <button
             onClick={discoverCompetitors}
             disabled={discovering || intelRunning}
-            className="inline-flex items-center gap-1.5 pl-3.5 pr-3 py-2 rounded-l-xl text-sm font-semibold bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1.5 pl-3.5 pr-3 py-2 rounded-l-xl text-sm font-semibold bg-[#D94412] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {discovering ? <><div className="spinner !w-3.5 !h-3.5" /> Discovering…</> : "Discover Competitors"}
           </button>
@@ -87,7 +87,7 @@ export default function Competitors({ addToast }: Props) {
           <button
             onClick={() => setMenuOpen((o) => !o)}
             disabled={discovering || intelRunning}
-            className="px-2.5 rounded-r-xl bg-[#ea0e2b] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-2.5 rounded-r-xl bg-[#D94412] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="More actions"
           >
             <ChevronDown className={`w-3.5 h-3.5 transition-transform ${menuOpen ? "rotate-180" : ""}`} />

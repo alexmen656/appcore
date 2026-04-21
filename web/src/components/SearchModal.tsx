@@ -249,7 +249,7 @@ export default function SearchModal({ open, onClose }: Props) {
                       }`}
                     >
                       <span
-                        className={`shrink-0 ${isActive ? "text-[#ea0e2b]" : "text-[#9ca3af] dark:text-[#5c6478]"}`}
+                        className={`shrink-0 ${isActive ? "text-[#D94412]" : "text-[#9ca3af] dark:text-[#5c6478]"}`}
                       >
                         <ItemIcon type={item.icon} />
                       </span>

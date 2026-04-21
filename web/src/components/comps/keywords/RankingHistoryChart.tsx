@@ -16,7 +16,7 @@ import type { RankingEntry, KeywordHistoryData } from "../../../types";
 export type { KeywordHistoryData as HistoryData };
 
 const CHART_COLORS = [
-  "#ea0e2b",
+  "#D94412",
   "#3b82f6",
   "#10b981",
   "#f59e0b",
@@ -107,7 +107,7 @@ export default function RankingHistoryChart({
           <div>
             <h3 className="text-base font-semibold text-[#111827] dark:text-[#e8eaf0]">
               Ranking History:{" "}
-              <span className="text-[#ea0e2b]">{keyword.term}</span>
+              <span className="text-[#D94412]">{keyword.term}</span>
             </h3>
             <div className="mt-1 text-xs text-[#9ca3af] dark:text-[#5c6478]">
               {keyword.country.toUpperCase()} · Popularity {keyword.popularity ?? "—"} · Difficulty{" "}

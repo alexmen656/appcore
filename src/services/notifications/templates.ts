@@ -26,7 +26,7 @@ export async function teamInvite({
     to,
     subject: `Du wurdest zu ${teamName} auf marteso eingeladen`,
     title: "Du wurdest eingeladen",
-    body: `<strong style="color:#1a1a2e;">${inviterName}</strong> hat dich eingeladen, dem Team <strong style="color:#1a1a2e;">${teamName}</strong> als <strong style="color:#ea0e2b;">${roleLabel[role] ?? role}</strong> beizutreten.`,
+    body: `<strong style="color:#1a1a2e;">${inviterName}</strong> hat dich eingeladen, dem Team <strong style="color:#1a1a2e;">${teamName}</strong> als <strong style="color:#D94412;">${roleLabel[role] ?? role}</strong> beizutreten.`,
     cta: { label: "Einladung annehmen", url: inviteUrl },
     footer:
       "Dieser Link läuft in 7 Tagen ab. Falls du diese Einladung nicht erwartet hast, kannst du diese E-Mail ignorieren.",

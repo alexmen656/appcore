@@ -13,7 +13,7 @@ export default function AppIcon({ url, name, own }: Props) {
     />
   ) : (
     <div
-      className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-base shrink-0 ${own ? "bg-[#ea0e2b] text-white" : "bg-[#f3f4f6] text-[#6b7280]"}`}
+      className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-base shrink-0 ${own ? "bg-[#D94412] text-white" : "bg-[#f3f4f6] text-[#6b7280]"}`}
     >
       {name.charAt(0)}
     </div>
