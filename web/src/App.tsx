@@ -36,6 +36,8 @@ import AnalyticsCountries from "./components/AnalyticsCountries";
 import AnalyticsCountryDetail from "./components/AnalyticsCountryDetail";
 import AnalyticsReviews from "./components/AnalyticsReviews";
 import Versions from "./components/Versions";
+import MonetizationSubscriptions from "./components/MonetizationSubscriptions";
+import MonetizationProducts from "./components/MonetizationProducts";
 import Login from "./components/Login";
 import Team from "./components/Team";
 import InviteAccept from "./components/InviteAccept";
@@ -68,6 +70,7 @@ import {
   BookOpen,
   MessageSquare,
   LogOut,
+  DollarSign,
 } from "lucide-react";
 
 const sidebarLinks = [
@@ -839,6 +842,65 @@ function VersionsSidebarSection({
   );
 }
 
+function MonetizationSidebarSection({
+  navLinkClass,
+}: {
+  navLinkClass: (p: { isActive: boolean }) => string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const location = useLocation();
+  const isAnyMonetizationActive = location.pathname.startsWith("/monetization");
+
+  useEffect(() => {
+    if (location.pathname.startsWith("/monetization")) setExpanded(true);
+  }, []);
+
+  const subLinks = [
+    { to: "/monetization/subscriptions", label: "Subscriptions" },
+    { to: "/monetization/products", label: "Products" },
+  ];
+
+  return (
+    <div>
+      <div className="flex items-center gap-1 mb-0.5">
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className={`flex-1 flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-sm font-medium transition-all [&_svg]:w-[18px] [&_svg]:h-[18px] ${
+            isAnyMonetizationActive
+              ? "bg-white text-[#1a1a2e] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.06)] dark:bg-[#1f242e] dark:text-[#e8eaf0] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3)] [&>svg:first-child]:opacity-100"
+              : "text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] [&>svg:first-child]:opacity-60"
+          }`}
+        >
+          <DollarSign />
+          <span className="flex-1 text-left">Monetization</span>
+          <ChevronDown
+            className={`!w-3.5 !h-3.5 shrink-0 text-gray-400 dark:text-[#5c6478] transition-transform ${expanded ? "rotate-180" : ""}`}
+          />
+        </button>
+      </div>
+      {expanded && (
+        <div className="ml-3 pl-3 border-l border-[#e5e7eb] dark:border-[#2a2f3d] mb-1 flex flex-col gap-0.5">
+          {subLinks.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              className={({ isActive }) =>
+                `flex items-center px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-all ${
+                  isActive
+                    ? "bg-white text-[#1a1a2e] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.06)] dark:bg-[#1f242e] dark:text-[#e8eaf0] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
+                    : "text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0]"
+                }`
+              }
+            >
+              {link.label}
+            </NavLink>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function App() {
   const { data: dash } = useApi<DashboardData>("/dashboard");
   const { toasts, addToast } = useToast();
@@ -991,6 +1053,7 @@ export default function App() {
                 {link.label}
               </NavLink>
             ))}
+            <MonetizationSidebarSection navLinkClass={navLinkClass} />
             <VersionsSidebarSection navLinkClass={navLinkClass} />
             <div className="mt-auto pb-3">
               <div className="h-px bg-[#eef0f3] dark:bg-[#2a2f3d] mx-1 mb-2 mt-1" />
@@ -1049,6 +1112,14 @@ export default function App() {
               path="/versions"
               element={<Versions addToast={addToast} />}
             />
+            <Route
+              path="/monetization/subscriptions"
+              element={<MonetizationSubscriptions />}
+            />
+            <Route
+              path="/monetization/products"
+              element={<MonetizationProducts />}
+            />
             <Route path="/agents" element={<Agents addToast={addToast} />} />
             <Route path="/actions" element={<Actions addToast={addToast} />} />
             <Route
@@ -1061,7 +1132,13 @@ export default function App() {
             />
             <Route
               path="/profile"
-              element={<ProfileSettings user={user} onUserUpdate={(u) => setUser(u)} addToast={addToast} />}
+              element={
+                <ProfileSettings
+                  user={user}
+                  onUserUpdate={(u) => setUser(u)}
+                  addToast={addToast}
+                />
+              }
             />
             <Route
               path="/team"
