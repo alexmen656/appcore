@@ -303,29 +303,31 @@ export default function Analytics({ addToast }: Props) {
           <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
             Analytics
           </h1>
-          <p className="text-sm text-[#9ca3af] dark:text-[#5c6478]">
+        </div>
+        <div className="flex">
+          <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mr-3">
             {summary?.lastSyncAt && (
-              <span>Last synced {fmtDateTime(summary.lastSyncAt)}</span>
+              <span className="block h-full content-center">Last synced {fmtDateTime(summary.lastSyncAt)}</span>
             )}
           </p>
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] disabled:opacity-60 transition-colors shrink-0"
+          >
+            {syncing ? (
+              <>
+                <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                Syncing…
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-3.5 h-3.5" />
+                Sync Now
+              </>
+            )}
+          </button>
         </div>
-        <button
-          onClick={handleSync}
-          disabled={syncing}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-medium bg-[#ea0e2b] text-white hover:bg-[#c80b24] disabled:opacity-60 transition-colors shrink-0"
-        >
-          {syncing ? (
-            <>
-              <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-              Syncing…
-            </>
-          ) : (
-            <>
-              <RefreshCw className="w-3.5 h-3.5" />
-              Sync Now
-            </>
-          )}
-        </button>
       </div>
 
       {!loading && !summary?.totalDownloads && (reviews ?? []).length === 0 && (
