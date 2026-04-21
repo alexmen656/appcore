@@ -312,14 +312,24 @@ ascRouter.patch("/versions/metadata", async (req, res) => {
       appInfo: {
         fields: ["name", "subtitle", "privacyPolicyUrl"],
         localizationId: appInfoLocalizationId,
-        errorMsg: "appInfoLocalizationId is required for app info localization fields",
-        update: (id: string) => asc.updateAppInfoLocalization(id, { [field]: value }),
+        errorMsg:
+          "appInfoLocalizationId is required for app info localization fields",
+        update: (id: string) =>
+          asc.updateAppInfoLocalization(id, { [field]: value }),
       },
       version: {
-        fields: ["description", "keywords", "whatsNew", "promotionalText", "supportUrl", "marketingUrl"],
+        fields: [
+          "description",
+          "keywords",
+          "whatsNew",
+          "promotionalText",
+          "supportUrl",
+          "marketingUrl",
+        ],
         localizationId: versionLocalizationId,
         errorMsg: "versionLocalizationId is required for version fields",
-        update: (id: string) => asc.updateVersionLocalization(id, { [field]: value }),
+        update: (id: string) =>
+          asc.updateVersionLocalization(id, { [field]: value }),
       },
     };
 
@@ -632,15 +642,18 @@ ascRouter.post("/subscriptions/groups", async (req, res) => {
       return;
     }
 
-    const { data: resp } = await (asc as any).client.post("/subscriptionGroups", {
-      data: {
-        type: "subscriptionGroups",
-        attributes: { referenceName },
-        relationships: {
-          app: { data: { type: "apps", id: app.id } },
+    const { data: resp } = await (asc as any).client.post(
+      "/subscriptionGroups",
+      {
+        data: {
+          type: "subscriptionGroups",
+          attributes: { referenceName },
+          relationships: {
+            app: { data: { type: "apps", id: app.id } },
+          },
         },
       },
-    });
+    );
 
     res.status(201).json({
       id: resp.data.id,
@@ -690,18 +703,29 @@ ascRouter.delete("/subscriptions/groups/:id", async (req, res) => {
 
 ascRouter.post("/subscriptions", async (req, res) => {
   try {
-    const { groupId, name, productId, familySharable, subscriptionPeriod, groupLevel, reviewNote } =
-      req.body as {
-        groupId?: string;
-        name?: string;
-        productId?: string;
-        familySharable?: boolean;
-        subscriptionPeriod?: string;
-        groupLevel?: number;
-        reviewNote?: string;
-      };
+    const {
+      groupId,
+      name,
+      productId,
+      familySharable,
+      subscriptionPeriod,
+      groupLevel,
+      reviewNote,
+    } = req.body as {
+      groupId?: string;
+      name?: string;
+      productId?: string;
+      familySharable?: boolean;
+      subscriptionPeriod?: string;
+      groupLevel?: number;
+      reviewNote?: string;
+    };
     if (!groupId || !name || !productId || !subscriptionPeriod) {
-      res.status(400).json({ error: "groupId, name, productId and subscriptionPeriod are required" });
+      res
+        .status(400)
+        .json({
+          error: "groupId, name, productId and subscriptionPeriod are required",
+        });
       return;
     }
 
@@ -729,7 +753,8 @@ ascRouter.post("/subscriptions", async (req, res) => {
       productId: resp.data.attributes?.productId ?? productId,
       familySharable: resp.data.attributes?.familySharable ?? false,
       state: resp.data.attributes?.state ?? "",
-      subscriptionPeriod: resp.data.attributes?.subscriptionPeriod ?? subscriptionPeriod,
+      subscriptionPeriod:
+        resp.data.attributes?.subscriptionPeriod ?? subscriptionPeriod,
       reviewNote: resp.data.attributes?.reviewNote ?? null,
       groupLevel: resp.data.attributes?.groupLevel ?? null,
     });
@@ -753,8 +778,10 @@ ascRouter.patch("/subscriptions/:id", async (req, res) => {
 
     const attributes: Record<string, any> = {};
     if (name !== undefined) attributes.name = name;
-    if (familySharable !== undefined) attributes.familySharable = familySharable;
-    if (subscriptionPeriod !== undefined) attributes.subscriptionPeriod = subscriptionPeriod;
+    if (familySharable !== undefined)
+      attributes.familySharable = familySharable;
+    if (subscriptionPeriod !== undefined)
+      attributes.subscriptionPeriod = subscriptionPeriod;
     if (reviewNote !== undefined) attributes.reviewNote = reviewNote;
     if (groupLevel !== undefined) attributes.groupLevel = groupLevel;
 
@@ -781,3 +808,261 @@ ascRouter.delete("/subscriptions/:id", async (req, res) => {
   }
 });
 
+ascRouter.get("/subscriptions/:id/localizations", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const asc = await ascClientForUser(req.user!.userId);
+    const { data: resp } = await (asc as any).client.get(
+      `/subscriptions/${id}/subscriptionLocalizations`,
+      {
+        params: {
+          "fields[subscriptionLocalizations]": "name,locale,description,state",
+          limit: 200,
+        },
+      },
+    );
+    res.json(
+      (resp.data ?? []).map((l: any) => ({
+        id: l.id,
+        locale: l.attributes?.locale ?? "",
+        name: l.attributes?.name ?? "",
+        description: l.attributes?.description ?? "",
+        state: l.attributes?.state ?? "",
+      })),
+    );
+  } catch (err: any) {
+    logger.error("ASC listSubscriptionLocalizations failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.post("/subscriptions/localizations", async (req, res) => {
+  try {
+    const { subscriptionId, locale, name, description } = req.body as {
+      subscriptionId?: string;
+      locale?: string;
+      name?: string;
+      description?: string;
+    };
+    if (!subscriptionId || !locale || !name) {
+      res
+        .status(400)
+        .json({ error: "subscriptionId, locale and name are required" });
+      return;
+    }
+    const asc = await ascClientForUser(req.user!.userId);
+    const { data: resp } = await (asc as any).client.post(
+      "/subscriptionLocalizations",
+      {
+        data: {
+          type: "subscriptionLocalizations",
+          attributes: { locale, name, ...(description ? { description } : {}) },
+          relationships: {
+            subscription: {
+              data: { type: "subscriptions", id: subscriptionId },
+            },
+          },
+        },
+      },
+    );
+    res.status(201).json({
+      id: resp.data.id,
+      locale: resp.data.attributes?.locale ?? locale,
+      name: resp.data.attributes?.name ?? name,
+      description: resp.data.attributes?.description ?? description ?? "",
+      state: resp.data.attributes?.state ?? "",
+    });
+  } catch (err: any) {
+    logger.error("ASC createSubscriptionLocalization failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.patch("/subscriptions/localizations/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description } = req.body as {
+      name?: string;
+      description?: string;
+    };
+    const attributes: Record<string, any> = {};
+    if (name !== undefined) attributes.name = name;
+    if (description !== undefined) attributes.description = description;
+    const asc = await ascClientForUser(req.user!.userId);
+    await (asc as any).client.patch(`/subscriptionLocalizations/${id}`, {
+      data: { type: "subscriptionLocalizations", id, attributes },
+    });
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error("ASC updateSubscriptionLocalization failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.delete("/subscriptions/localizations/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const asc = await ascClientForUser(req.user!.userId);
+    await (asc as any).client.delete(`/subscriptionLocalizations/${id}`);
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error("ASC deleteSubscriptionLocalization failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.get("/subscriptions/:id/price-points", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const territory = (req.query.territory as string) || undefined;
+    const asc = await ascClientForUser(req.user!.userId);
+    const { data: resp } = await (asc as any).client.get(
+      `/subscriptions/${id}/pricePoints`,
+      {
+        params: {
+          include: "territory",
+          "fields[subscriptionPricePoints]": "customerPrice,proceeds,territory",
+          "fields[territories]": "currency",
+          ...(territory ? { "filter[territory]": territory } : {}),
+          limit: 8000,
+        },
+      },
+    );
+    const included: any[] = resp.included ?? [];
+    const terrMap = new Map<string, any>(included.map((t: any) => [t.id, t]));
+    res.json(
+      (resp.data ?? []).map((pp: any) => {
+        const terrId = pp.relationships?.territory?.data?.id ?? null;
+        const terr = terrId ? terrMap.get(terrId) : null;
+        return {
+          id: pp.id,
+          customerPrice: pp.attributes?.customerPrice ?? null,
+          proceeds: pp.attributes?.proceeds ?? null,
+          territory: terrId,
+          currency: terr?.attributes?.currency ?? null,
+        };
+      }),
+    );
+  } catch (err: any) {
+    logger.error("ASC listSubscriptionPricePoints failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.get("/subscriptions/:id/prices", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const asc = await ascClientForUser(req.user!.userId);
+    const { data: resp } = await (asc as any).client.get(
+      `/subscriptions/${id}/prices`,
+      {
+        params: {
+          include: "territory,subscriptionPricePoint",
+          "fields[subscriptionPrices]":
+            "startDate,preserved,territory,subscriptionPricePoint",
+          "fields[territories]": "currency",
+          "fields[subscriptionPricePoints]": "customerPrice,proceeds,territory",
+          limit: 200,
+        },
+      },
+    );
+    const included: any[] = resp.included ?? [];
+    const terrMap = new Map<string, any>(
+      included
+        .filter((i: any) => i.type === "territories")
+        .map((t: any) => [t.id, t]),
+    );
+    const ppMap = new Map<string, any>(
+      included
+        .filter((i: any) => i.type === "subscriptionPricePoints")
+        .map((pp: any) => [pp.id, pp]),
+    );
+    res.json(
+      (resp.data ?? []).map((p: any) => {
+        const terrId = p.relationships?.territory?.data?.id ?? null;
+        const ppId = p.relationships?.subscriptionPricePoint?.data?.id ?? null;
+        const terr = terrId ? terrMap.get(terrId) : null;
+        const pp = ppId ? ppMap.get(ppId) : null;
+        return {
+          id: p.id,
+          territory: terrId,
+          currency: terr?.attributes?.currency ?? null,
+          customerPrice: pp?.attributes?.customerPrice ?? null,
+          proceeds: pp?.attributes?.proceeds ?? null,
+          pricePointId: ppId,
+          startDate: p.attributes?.startDate ?? null,
+          preserved: p.attributes?.preserved ?? false,
+        };
+      }),
+    );
+  } catch (err: any) {
+    logger.error("ASC listSubscriptionPrices failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.post("/subscriptions/prices", async (req, res) => {
+  try {
+    const {
+      subscriptionId,
+      pricePointId,
+      territory,
+      startDate,
+      preserveCurrentPrice,
+    } = req.body as {
+      subscriptionId?: string;
+      pricePointId?: string;
+      territory?: string;
+      startDate?: string | null;
+      preserveCurrentPrice?: boolean;
+    };
+    if (!subscriptionId || !pricePointId) {
+      res
+        .status(400)
+        .json({ error: "subscriptionId and pricePointId are required" });
+      return;
+    }
+    const asc = await ascClientForUser(req.user!.userId);
+    const { data: resp } = await (asc as any).client.post(
+      "/subscriptionPrices",
+      {
+        data: {
+          type: "subscriptionPrices",
+          attributes: {
+            ...(startDate !== undefined ? { startDate } : {}),
+            ...(preserveCurrentPrice !== undefined
+              ? { preserveCurrentPrice }
+              : {}),
+          },
+          relationships: {
+            subscription: {
+              data: { type: "subscriptions", id: subscriptionId },
+            },
+            subscriptionPricePoint: {
+              data: { type: "subscriptionPricePoints", id: pricePointId },
+            },
+            ...(territory
+              ? { territory: { data: { type: "territories", id: territory } } }
+              : {}),
+          },
+        },
+      },
+    );
+    res.status(201).json({ id: resp.data.id, ok: true });
+  } catch (err: any) {
+    logger.error("ASC createSubscriptionPrice failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.delete("/subscriptions/prices/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const asc = await ascClientForUser(req.user!.userId);
+    await (asc as any).client.delete(`/subscriptionPrices/${id}`);
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error("ASC deleteSubscriptionPrice failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});

@@ -419,3 +419,30 @@ export interface SubscriptionGroup {
   referenceName: string;
   subscriptions: SubscriptionItem[];
 }
+
+export interface SubscriptionLocalization {
+  id: string;
+  locale: string;
+  name: string;
+  description: string;
+  state: string;
+}
+
+export interface SubscriptionPricePoint {
+  id: string;
+  customerPrice: string | null;
+  proceeds: string | null;
+  territory: string | null;
+  currency: string | null;
+}
+
+export interface SubscriptionPrice {
+  id: string;
+  territory: string | null;
+  currency: string | null;
+  customerPrice: string | null;
+  proceeds: string | null;
+  pricePointId: string | null;
+  startDate: string | null;
+  preserved: boolean;
+}
