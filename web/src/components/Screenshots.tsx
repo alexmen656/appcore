@@ -182,7 +182,7 @@ export default function Screenshots({ addToast }: Props) {
           <span className="text-sm text-amber-800">
             Connect your GitHub account in{" "}
             <a href="/settings" className="underline font-medium">
-              User Settings
+              Team Settings
             </a>{" "}
             first to enable repo linking.
           </span>
@@ -354,7 +354,7 @@ export function RepoLinker({
             </button>
           ) : (
             <p className="text-sm text-[#9ca3af] dark:text-[#5c6478]">
-              Connect GitHub in User Settings to link a repo.
+              Connect GitHub in Team Settings to link a repo.
             </p>
           )}
         </div>

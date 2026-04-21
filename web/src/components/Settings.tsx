@@ -43,16 +43,11 @@ export default function Settings({ addToast }: Props) {
       </div>
     );
 
-  const btnSecondarySmall = `${btnSecondary} !px-[10px] !py-[5px] !text-xs`;
-
   return (
     <div className="max-w-3xl">
       <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
-        User Settings
+        Team Settings
       </h1>
-      <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">
-        Your personal credentials: GitHub account, App Store Connect keys, and AI provider.
-      </p>
 
       <form onSubmit={handleSave} className="flex flex-col gap-0">
         <AscCredentialsSection

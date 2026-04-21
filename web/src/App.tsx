@@ -29,6 +29,7 @@ import Actions from "./components/Actions";
 import Agents from "./components/Agents";
 import Settings from "./components/Settings";
 import AppSettings from "./components/AppSettings";
+import ProfileSettings from "./components/ProfileSettings";
 import Analytics from "./components/Analytics";
 import AnalyticsDownloads from "./components/AnalyticsDownloads";
 import AnalyticsCountries from "./components/AnalyticsCountries";
@@ -449,12 +450,20 @@ function HeaderProfileMenu({
           </div>
           <div className="h-px bg-[#e5e7eb] dark:bg-[#2a2f3d] mx-3 my-1" />
           <NavLink
+            to="/profile"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors text-[13px] text-[#1a1a2e] dark:text-[#e8eaf0] font-medium"
+          >
+            <SettingsIcon className="w-4 h-4 text-gray-400 dark:text-[#5c6478] shrink-0" />
+            Profile Settings
+          </NavLink>
+          <NavLink
             to="/settings"
             onClick={() => setOpen(false)}
             className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors text-[13px] text-[#1a1a2e] dark:text-[#e8eaf0] font-medium"
           >
             <SettingsIcon className="w-4 h-4 text-gray-400 dark:text-[#5c6478] shrink-0" />
-            Account Settings
+            Team Settings
           </NavLink>
           <NavLink
             to="/team"
@@ -1049,6 +1058,10 @@ export default function App() {
             <Route
               path="/app-settings"
               element={<AppSettings addToast={addToast} />}
+            />
+            <Route
+              path="/profile"
+              element={<ProfileSettings user={user} onUserUpdate={(u) => setUser(u)} addToast={addToast} />}
             />
             <Route
               path="/team"

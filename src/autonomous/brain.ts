@@ -124,7 +124,7 @@ export class ASOBrain {
     const anthropicKey = settings.anthropicApiKey;
     if (!anthropicKey) {
       throw new Error(
-        "ANTHROPIC_API_KEY not configured in user settings. Required for ASOBrain.",
+        "ANTHROPIC_API_KEY not configured in Team Settings. Required for ASOBrain.",
       );
     }
 

@@ -264,6 +264,41 @@ authRouter.get("/me", requireAuth, async (req, res) => {
   }
 });
 
+authRouter.patch("/profile", requireAuth, async (req, res) => {
+  try {
+    const { name, email } = req.body as { name?: string; email?: string };
+    const updates: { name?: string; email?: string } = {};
+    if (typeof name === "string") updates.name = name.trim();
+    if (typeof email === "string") {
+      const trimmed = email.trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+        res.status(400).json({ error: "Invalid email address" });
+        return;
+      }
+      const existing = await prisma.user.findFirst({
+        where: { email: trimmed, NOT: { id: req.user!.userId } },
+      });
+      if (existing) {
+        res.status(409).json({ error: "Email already in use" });
+        return;
+      }
+      updates.email = trimmed;
+    }
+    if (Object.keys(updates).length === 0) {
+      res.status(400).json({ error: "Nothing to update" });
+      return;
+    }
+    const user = await prisma.user.update({
+      where: { id: req.user!.userId },
+      data: updates,
+      select: { id: true, email: true, name: true, role: true },
+    });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 authRouter.get("/users", requireAuth, async (req, res) => {
   try {
     if (req.user!.role !== "ADMIN") {
