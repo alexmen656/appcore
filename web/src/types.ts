@@ -402,3 +402,20 @@ export interface CompetitorDetail {
   metadataChanges: MetadataChange[];
   keywordRankings: CompetitorKeywordRanking[];
 }
+
+export interface SubscriptionItem {
+  id: string;
+  name: string;
+  productId: string;
+  familySharable: boolean;
+  state: string;
+  subscriptionPeriod: string | null;
+  reviewNote: string | null;
+  groupLevel: number | null;
+}
+
+export interface SubscriptionGroup {
+  id: string;
+  referenceName: string;
+  subscriptions: SubscriptionItem[];
+}

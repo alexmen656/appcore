@@ -551,3 +551,233 @@ ascRouter.post("/versions", async (req, res) => {
     res.status(500).json({ error: err.message ?? String(err) });
   }
 });
+
+ascRouter.get("/subscriptions/groups", async (req, res) => {
+  try {
+    const bundleId = (req.query.bundleId as string) || undefined;
+    if (bundleId) {
+      const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+      if (!owned) return;
+    }
+    const asc = await ascClientForUser(req.user!.userId);
+    const app = await asc.getApp(bundleId);
+    if (!app) {
+      res.status(404).json({ error: "App not found in App Store Connect" });
+      return;
+    }
+
+    const { data: resp } = await (asc as any).client.get(
+      `/apps/${app.id}/subscriptionGroups`,
+      {
+        params: {
+          include: "subscriptions",
+          "fields[subscriptionGroups]": "referenceName,subscriptions",
+          "fields[subscriptions]":
+            "name,productId,familySharable,state,subscriptionPeriod,reviewNote,groupLevel",
+          "limit[subscriptions]": 50,
+          limit: 200,
+        },
+      },
+    );
+
+    const included: any[] = resp.included ?? [];
+    const subMap = new Map<string, any>(included.map((s: any) => [s.id, s]));
+
+    const groups = (resp.data ?? []).map((g: any) => ({
+      id: g.id,
+      referenceName: g.attributes?.referenceName ?? "",
+      subscriptions: (g.relationships?.subscriptions?.data ?? [])
+        .map((ref: any) => {
+          const s = subMap.get(ref.id);
+          if (!s) return null;
+          return {
+            id: s.id,
+            name: s.attributes?.name ?? "",
+            productId: s.attributes?.productId ?? "",
+            familySharable: s.attributes?.familySharable ?? false,
+            state: s.attributes?.state ?? "",
+            subscriptionPeriod: s.attributes?.subscriptionPeriod ?? null,
+            reviewNote: s.attributes?.reviewNote ?? null,
+            groupLevel: s.attributes?.groupLevel ?? null,
+          };
+        })
+        .filter(Boolean),
+    }));
+
+    res.json(groups);
+  } catch (err: any) {
+    logger.error("ASC listSubscriptionGroups failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.post("/subscriptions/groups", async (req, res) => {
+  try {
+    const { bundleId, referenceName } = req.body as {
+      bundleId?: string;
+      referenceName?: string;
+    };
+    if (!referenceName) {
+      res.status(400).json({ error: "referenceName is required" });
+      return;
+    }
+    if (bundleId) {
+      const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+      if (!owned) return;
+    }
+    const asc = await ascClientForUser(req.user!.userId);
+    const app = await asc.getApp(bundleId);
+    if (!app) {
+      res.status(404).json({ error: "App not found in App Store Connect" });
+      return;
+    }
+
+    const { data: resp } = await (asc as any).client.post("/subscriptionGroups", {
+      data: {
+        type: "subscriptionGroups",
+        attributes: { referenceName },
+        relationships: {
+          app: { data: { type: "apps", id: app.id } },
+        },
+      },
+    });
+
+    res.status(201).json({
+      id: resp.data.id,
+      referenceName: resp.data.attributes?.referenceName ?? referenceName,
+      subscriptions: [],
+    });
+  } catch (err: any) {
+    logger.error("ASC createSubscriptionGroup failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.patch("/subscriptions/groups/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { referenceName } = req.body as { referenceName?: string };
+    if (!referenceName) {
+      res.status(400).json({ error: "referenceName is required" });
+      return;
+    }
+    const asc = await ascClientForUser(req.user!.userId);
+    await (asc as any).client.patch(`/subscriptionGroups/${id}`, {
+      data: {
+        type: "subscriptionGroups",
+        id,
+        attributes: { referenceName },
+      },
+    });
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error("ASC updateSubscriptionGroup failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.delete("/subscriptions/groups/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const asc = await ascClientForUser(req.user!.userId);
+    await (asc as any).client.delete(`/subscriptionGroups/${id}`);
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error("ASC deleteSubscriptionGroup failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.post("/subscriptions", async (req, res) => {
+  try {
+    const { groupId, name, productId, familySharable, subscriptionPeriod, groupLevel, reviewNote } =
+      req.body as {
+        groupId?: string;
+        name?: string;
+        productId?: string;
+        familySharable?: boolean;
+        subscriptionPeriod?: string;
+        groupLevel?: number;
+        reviewNote?: string;
+      };
+    if (!groupId || !name || !productId || !subscriptionPeriod) {
+      res.status(400).json({ error: "groupId, name, productId and subscriptionPeriod are required" });
+      return;
+    }
+
+    const asc = await ascClientForUser(req.user!.userId);
+    const { data: resp } = await (asc as any).client.post("/subscriptions", {
+      data: {
+        type: "subscriptions",
+        attributes: {
+          name,
+          productId,
+          familySharable: familySharable ?? false,
+          subscriptionPeriod,
+          ...(groupLevel != null ? { groupLevel } : {}),
+          ...(reviewNote ? { reviewNote } : {}),
+        },
+        relationships: {
+          group: { data: { type: "subscriptionGroups", id: groupId } },
+        },
+      },
+    });
+
+    res.status(201).json({
+      id: resp.data.id,
+      name: resp.data.attributes?.name ?? name,
+      productId: resp.data.attributes?.productId ?? productId,
+      familySharable: resp.data.attributes?.familySharable ?? false,
+      state: resp.data.attributes?.state ?? "",
+      subscriptionPeriod: resp.data.attributes?.subscriptionPeriod ?? subscriptionPeriod,
+      reviewNote: resp.data.attributes?.reviewNote ?? null,
+      groupLevel: resp.data.attributes?.groupLevel ?? null,
+    });
+  } catch (err: any) {
+    logger.error("ASC createSubscription failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.patch("/subscriptions/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, familySharable, subscriptionPeriod, reviewNote, groupLevel } =
+      req.body as {
+        name?: string;
+        familySharable?: boolean;
+        subscriptionPeriod?: string;
+        reviewNote?: string;
+        groupLevel?: number;
+      };
+
+    const attributes: Record<string, any> = {};
+    if (name !== undefined) attributes.name = name;
+    if (familySharable !== undefined) attributes.familySharable = familySharable;
+    if (subscriptionPeriod !== undefined) attributes.subscriptionPeriod = subscriptionPeriod;
+    if (reviewNote !== undefined) attributes.reviewNote = reviewNote;
+    if (groupLevel !== undefined) attributes.groupLevel = groupLevel;
+
+    const asc = await ascClientForUser(req.user!.userId);
+    await (asc as any).client.patch(`/subscriptions/${id}`, {
+      data: { type: "subscriptions", id, attributes },
+    });
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error("ASC updateSubscription failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.delete("/subscriptions/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const asc = await ascClientForUser(req.user!.userId);
+    await (asc as any).client.delete(`/subscriptions/${id}`);
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error("ASC deleteSubscription failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+

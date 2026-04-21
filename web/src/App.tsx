@@ -1114,7 +1114,7 @@ export default function App() {
             />
             <Route
               path="/monetization/subscriptions"
-              element={<MonetizationSubscriptions />}
+              element={<MonetizationSubscriptions addToast={addToast} />}
             />
             <Route
               path="/monetization/products"
