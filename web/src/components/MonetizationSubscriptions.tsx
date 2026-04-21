@@ -2,14 +2,17 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import {
   Plus,
   RefreshCw,
-  ChevronDown,
   Pencil,
   Trash2,
   X,
   Check,
-  Repeat2,
   Globe,
   DollarSign,
+  ArrowLeft,
+  MoreHorizontal,
+  Paperclip,
+  FileText,
+  Upload,
 } from "lucide-react";
 import { authHeaders, getActiveBundleId } from "../hooks/useApi";
 import {
@@ -18,6 +21,8 @@ import {
   btnPrimary,
   btnSecondary,
   btnSecSm,
+  TH,
+  TD,
 } from "../styles";
 import type {
   SubscriptionGroup,
@@ -25,6 +30,7 @@ import type {
   SubscriptionLocalization,
   SubscriptionPrice,
   SubscriptionPricePoint,
+  SubscriptionReviewScreenshot,
 } from "../types";
 
 interface Props {
@@ -42,26 +48,17 @@ const PERIOD_LABELS: Record<string, string> = {
 
 const PERIODS = Object.keys(PERIOD_LABELS);
 
-const STATE_COLORS: Record<string, string> = {
-  APPROVED:
-    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-  READY_TO_SUBMIT:
-    "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400",
-  MISSING_METADATA:
-    "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  WAITING_FOR_REVIEW:
-    "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  IN_REVIEW:
-    "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
-  REJECTED: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
-  DEVELOPER_ACTION_NEEDED:
-    "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
-  DEVELOPER_REMOVED_FROM_SALE:
-    "bg-gray-100 text-gray-500 dark:bg-gray-800/50 dark:text-gray-400",
-  REMOVED_FROM_SALE:
-    "bg-gray-100 text-gray-500 dark:bg-gray-800/50 dark:text-gray-400",
-  PENDING_BINARY_APPROVAL:
-    "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400",
+const STATE_DOT: Record<string, string> = {
+  APPROVED: "bg-emerald-500",
+  READY_TO_SUBMIT: "bg-sky-500",
+  MISSING_METADATA: "bg-amber-500",
+  WAITING_FOR_REVIEW: "bg-blue-500",
+  IN_REVIEW: "bg-violet-500",
+  REJECTED: "bg-red-500",
+  DEVELOPER_ACTION_NEEDED: "bg-red-500",
+  DEVELOPER_REMOVED_FROM_SALE: "bg-gray-400",
+  REMOVED_FROM_SALE: "bg-gray-400",
+  PENDING_BINARY_APPROVAL: "bg-sky-500",
 };
 
 const STATE_SHORT: Record<string, string> = {
@@ -77,15 +74,22 @@ const STATE_SHORT: Record<string, string> = {
   PENDING_BINARY_APPROVAL: "Pending",
 };
 
-function StateTag({ state }: { state: string }) {
-  const cls =
-    STATE_COLORS[state] ??
-    "bg-gray-100 text-gray-500 dark:bg-[#252b38] dark:text-[#8b93a5]";
+function StatusBadge({ state }: { state: string }) {
+  const dot = STATE_DOT[state] ?? "bg-gray-400";
+  const label = STATE_SHORT[state] ?? state;
+  const isApproved = state === "APPROVED";
+  const isError = state === "REJECTED" || state === "DEVELOPER_ACTION_NEEDED";
+  const containerCls = isApproved
+    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+    : isError
+      ? "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
+      : "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20";
   return (
     <span
-      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cls}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${containerCls}`}
     >
-      {STATE_SHORT[state] ?? state}
+      <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+      {label}
     </span>
   );
 }
@@ -114,9 +118,17 @@ interface SubFormProps {
   onCancel: () => void;
   saving: boolean;
   title: string;
+  lockProductId?: boolean;
 }
 
-function SubForm({ initial, onSave, onCancel, saving, title }: SubFormProps) {
+function SubForm({
+  initial,
+  onSave,
+  onCancel,
+  saving,
+  title,
+  lockProductId,
+}: SubFormProps) {
   const [form, setForm] = useState<SubFormState>({
     ...emptySubForm(),
     ...initial,
@@ -150,6 +162,7 @@ function SubForm({ initial, onSave, onCancel, saving, title }: SubFormProps) {
             value={form.productId}
             onChange={(e) => set("productId", e.target.value)}
             placeholder="e.g. com.app.pro.monthly"
+            disabled={lockProductId}
           />
         </div>
         <div className="flex flex-col gap-1">
@@ -256,10 +269,12 @@ function LocalizationsPanel({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/asc/subscriptions/${subscriptionId}/localizations`, {
-        headers: authHeaders(),
-      });
-      if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      const res = await fetch(
+        `/api/asc/subscriptions/${subscriptionId}/localizations`,
+        { headers: authHeaders() },
+      );
+      if (!res.ok)
+        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
       setLocs(await res.json());
     } catch (err: any) {
       addToast(err.message, "error");
@@ -269,7 +284,9 @@ function LocalizationsPanel({
     }
   }, [subscriptionId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const addLoc = async () => {
     if (!newLocale.trim() || !newName.trim()) return;
@@ -308,11 +325,15 @@ function LocalizationsPanel({
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ name: editName, description: editDesc }),
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
-      setLocs((l) =>
-        l?.map((loc) =>
-          loc.id === id ? { ...loc, name: editName, description: editDesc } : loc,
-        ) ?? null,
+      if (!res.ok)
+        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      setLocs(
+        (l) =>
+          l?.map((loc) =>
+            loc.id === id
+              ? { ...loc, name: editName, description: editDesc }
+              : loc,
+          ) ?? null,
       );
       setEditingId(null);
       addToast("Localization updated", "success");
@@ -331,7 +352,8 @@ function LocalizationsPanel({
         method: "DELETE",
         headers: authHeaders(),
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      if (!res.ok)
+        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
       setLocs((l) => l?.filter((loc) => loc.id !== id) ?? null);
       addToast("Localization deleted", "success");
     } catch (err: any) {
@@ -343,104 +365,148 @@ function LocalizationsPanel({
 
   if (loading && !locs) {
     return (
-      <div className="flex items-center gap-1.5 py-3 text-[12px] text-[#9ca3af] dark:text-[#5c6478]">
+      <div className="flex items-center gap-1.5 py-4 text-[12px] text-[#9ca3af] dark:text-[#5c6478]">
         <div className="spinner !w-3 !h-3" /> Loading…
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      {locs?.length === 0 && !showAdd && (
-        <p className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] py-2">
+    <div className="rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#252b38]">
+        <span className="text-[13px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+          Localizations
+        </span>
+        <button
+          onClick={() => setShowAdd(true)}
+          className="inline-flex items-center gap-1 text-[12px] text-[#C4001E] hover:opacity-80 transition-opacity font-medium"
+        >
+          <Paperclip className="w-3.5 h-3.5" /> Add
+        </button>
+      </div>
+
+      {(!locs || locs.length === 0) && !showAdd ? (
+        <p className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] px-4 py-4">
           No localizations yet.
         </p>
-      )}
-      {locs?.map((loc) =>
-        editingId === loc.id ? (
-          <div
-            key={loc.id}
-            className="rounded-lg border border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#1c2028] p-3 flex flex-col gap-2"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-mono font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase">
-                {loc.locale}
-              </span>
-            </div>
-            <input
-              className={inputCls}
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              placeholder="Display name"
-            />
-            <input
-              className={inputCls}
-              value={editDesc}
-              onChange={(e) => setEditDesc(e.target.value)}
-              placeholder="Description (optional)"
-            />
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => setEditingId(null)} className={btnSecSm}>
-                Cancel
-              </button>
-              <button
-                onClick={() => saveEdit(loc.id)}
-                disabled={savingEdit || !editName.trim()}
-                className={btnSecSm}
-              >
-                {savingEdit ? <div className="spinner !w-3 !h-3" /> : <Check className="w-3 h-3" />}
-                Save
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div
-            key={loc.id}
-            className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d]"
-          >
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-mono font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase shrink-0">
-                  {loc.locale}
-                </span>
-                <span className="text-[13px] font-medium text-[#111827] dark:text-[#e8eaf0] truncate">
-                  {loc.name}
-                </span>
-              </div>
-              {loc.description && (
-                <p className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] mt-0.5 truncate">
-                  {loc.description}
-                </p>
-              )}
-            </div>
-            <div className="flex gap-1 shrink-0">
-              <button
-                onClick={() => {
-                  setEditingId(loc.id);
-                  setEditName(loc.name);
-                  setEditDesc(loc.description ?? "");
-                }}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-[#C4001E] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all"
-              >
-                <Pencil className="w-3 h-3" />
-              </button>
-              <button
-                onClick={() => deleteLoc(loc.id)}
-                disabled={deletingId === loc.id}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all disabled:opacity-50"
-              >
-                {deletingId === loc.id ? <div className="spinner !w-3 !h-3" /> : <Trash2 className="w-3 h-3" />}
-              </button>
-            </div>
-          </div>
-        ),
+      ) : (
+        <table className="w-full">
+          <thead>
+            <tr>
+              <th className={TH}>Locale</th>
+              <th className={TH}>Name</th>
+              <th className={TH}>Description</th>
+              <th className={TH} />
+            </tr>
+          </thead>
+          <tbody>
+            {locs?.map((loc) =>
+              editingId === loc.id ? (
+                <tr
+                  key={loc.id}
+                  className="border-t border-[#f3f4f6] dark:border-[#2a2f3d]"
+                >
+                  <td className={TD}>
+                    <span className="text-[11px] font-mono font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase">
+                      {loc.locale}
+                    </span>
+                  </td>
+                  <td className={TD}>
+                    <input
+                      className={inputCls}
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="Display name"
+                    />
+                  </td>
+                  <td className={TD}>
+                    <input
+                      className={inputCls}
+                      value={editDesc}
+                      onChange={(e) => setEditDesc(e.target.value)}
+                      placeholder="Description (optional)"
+                    />
+                  </td>
+                  <td className={`${TD} text-right`}>
+                    <div className="flex gap-1 justify-end">
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className={btnSecSm}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => saveEdit(loc.id)}
+                        disabled={savingEdit || !editName.trim()}
+                        className={btnSecSm}
+                      >
+                        {savingEdit ? (
+                          <div className="spinner !w-3 !h-3" />
+                        ) : (
+                          <Check className="w-3 h-3" />
+                        )}
+                        Save
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                <tr
+                  key={loc.id}
+                  className="group border-t border-[#f3f4f6] dark:border-[#2a2f3d] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors"
+                >
+                  <td className={TD}>
+                    <span className="text-[11px] font-mono font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase">
+                      {loc.locale}
+                    </span>
+                  </td>
+                  <td
+                    className={`${TD} font-medium text-[#111827] dark:text-[#e8eaf0]`}
+                  >
+                    {loc.name}
+                  </td>
+                  <td className={`${TD} text-[#6b7280] dark:text-[#8b93a5]`}>
+                    {loc.description || "—"}
+                  </td>
+                  <td className={`${TD} text-right`}>
+                    <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => {
+                          setEditingId(loc.id);
+                          setEditName(loc.name);
+                          setEditDesc(loc.description ?? "");
+                        }}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-[#C4001E] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => deleteLoc(loc.id)}
+                        disabled={deletingId === loc.id}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all disabled:opacity-50"
+                      >
+                        {deletingId === loc.id ? (
+                          <div className="spinner !w-3 !h-3" />
+                        ) : (
+                          <Trash2 className="w-3 h-3" />
+                        )}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ),
+            )}
+          </tbody>
+        </table>
       )}
 
-      {showAdd ? (
-        <div className="rounded-lg border border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#1c2028] p-3 flex flex-col gap-2">
-          <div className="grid grid-cols-2 gap-2">
+      {showAdd && (
+        <div className="border-t border-[#eef0f3] dark:border-[#2a2f3d] p-3 flex flex-col gap-2 bg-[#fafbfc] dark:bg-[#1c2028]">
+          <div className="grid grid-cols-3 gap-2">
             <div className="flex flex-col gap-1">
-              <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] font-medium">Locale</label>
+              <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] font-medium">
+                Locale
+              </label>
               <input
                 className={inputCls}
                 value={newLocale}
@@ -449,7 +515,9 @@ function LocalizationsPanel({
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] font-medium">Display Name</label>
+              <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] font-medium">
+                Display Name
+              </label>
               <input
                 className={inputCls}
                 value={newName}
@@ -457,15 +525,17 @@ function LocalizationsPanel({
                 placeholder="Pro"
               />
             </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] font-medium">Description (optional)</label>
-            <input
-              className={inputCls}
-              value={newDesc}
-              onChange={(e) => setNewDesc(e.target.value)}
-              placeholder="Unlock all features"
-            />
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] font-medium">
+                Description (optional)
+              </label>
+              <input
+                className={inputCls}
+                value={newDesc}
+                onChange={(e) => setNewDesc(e.target.value)}
+                placeholder="Unlock all features"
+              />
+            </div>
           </div>
           <div className="flex gap-2 justify-end">
             <button onClick={() => setShowAdd(false)} className={btnSecSm}>
@@ -476,19 +546,15 @@ function LocalizationsPanel({
               disabled={saving || !newLocale.trim() || !newName.trim()}
               className={btnSecSm}
             >
-              {saving ? <div className="spinner !w-3 !h-3" /> : <Plus className="w-3 h-3" />}
+              {saving ? (
+                <div className="spinner !w-3 !h-3" />
+              ) : (
+                <Plus className="w-3 h-3" />
+              )}
               Add
             </button>
           </div>
         </div>
-      ) : (
-        <button
-          onClick={() => setShowAdd(true)}
-          className="flex items-center gap-1.5 text-[12px] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#C4001E] transition-colors"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Add localization
-        </button>
       )}
     </div>
   );
@@ -505,7 +571,9 @@ function PricingPanel({
   const [loading, setLoading] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [territory, setTerritory] = useState("USA");
-  const [pricePoints, setPricePoints] = useState<SubscriptionPricePoint[] | null>(null);
+  const [pricePoints, setPricePoints] = useState<
+    SubscriptionPricePoint[] | null
+  >(null);
   const [loadingPP, setLoadingPP] = useState(false);
   const [selectedPP, setSelectedPP] = useState("");
   const [saving, setSaving] = useState(false);
@@ -515,10 +583,12 @@ function PricingPanel({
   const loadPrices = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/asc/subscriptions/${subscriptionId}/prices`, {
-        headers: authHeaders(),
-      });
-      if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      const res = await fetch(
+        `/api/asc/subscriptions/${subscriptionId}/prices`,
+        { headers: authHeaders() },
+      );
+      if (!res.ok)
+        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
       setPrices(await res.json());
     } catch (err: any) {
       addToast(err.message, "error");
@@ -528,29 +598,35 @@ function PricingPanel({
     }
   }, [subscriptionId]);
 
-  useEffect(() => { loadPrices(); }, [loadPrices]);
+  useEffect(() => {
+    loadPrices();
+  }, [loadPrices]);
 
-  const loadPricePoints = useCallback(async (terr: string) => {
-    if (!terr.trim()) return;
-    setLoadingPP(true);
-    setPricePoints(null);
-    setSelectedPP("");
-    try {
-      const res = await fetch(
-        `/api/asc/subscriptions/${subscriptionId}/price-points?territory=${encodeURIComponent(terr.trim())}`,
-        { headers: authHeaders() },
-      );
-      if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
-      const data: SubscriptionPricePoint[] = await res.json();
-      setPricePoints(data);
-      if (data.length > 0) setSelectedPP(data[0].id);
-    } catch (err: any) {
-      addToast(err.message, "error");
-      setPricePoints([]);
-    } finally {
-      setLoadingPP(false);
-    }
-  }, [subscriptionId]);
+  const loadPricePoints = useCallback(
+    async (terr: string) => {
+      if (!terr.trim()) return;
+      setLoadingPP(true);
+      setPricePoints(null);
+      setSelectedPP("");
+      try {
+        const res = await fetch(
+          `/api/asc/subscriptions/${subscriptionId}/price-points?territory=${encodeURIComponent(terr.trim())}`,
+          { headers: authHeaders() },
+        );
+        if (!res.ok)
+          throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+        const data: SubscriptionPricePoint[] = await res.json();
+        setPricePoints(data);
+        if (data.length > 0) setSelectedPP(data[0].id);
+      } catch (err: any) {
+        addToast(err.message, "error");
+        setPricePoints([]);
+      } finally {
+        setLoadingPP(false);
+      }
+    },
+    [subscriptionId],
+  );
 
   const handleTerritoryChange = (val: string) => {
     setTerritory(val);
@@ -570,7 +646,11 @@ function PricingPanel({
       const res = await fetch("/api/asc/subscriptions/prices", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ subscriptionId, pricePointId: selectedPP, territory }),
+        body: JSON.stringify({
+          subscriptionId,
+          pricePointId: selectedPP,
+          territory,
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
@@ -592,7 +672,8 @@ function PricingPanel({
         method: "DELETE",
         headers: authHeaders(),
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      if (!res.ok)
+        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
       setPrices((p) => p?.filter((pr) => pr.id !== id) ?? null);
       addToast("Price removed", "success");
     } catch (err: any) {
@@ -604,65 +685,99 @@ function PricingPanel({
 
   if (loading && !prices) {
     return (
-      <div className="flex items-center gap-1.5 py-3 text-[12px] text-[#9ca3af] dark:text-[#5c6478]">
+      <div className="flex items-center gap-1.5 py-4 text-[12px] text-[#9ca3af] dark:text-[#5c6478]">
         <div className="spinner !w-3 !h-3" /> Loading…
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      {prices?.length === 0 && !showAdd && (
-        <p className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] py-2">
+    <div className="rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#252b38]">
+        <span className="text-[13px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+          Pricing
+        </span>
+        <button
+          onClick={openAdd}
+          className="inline-flex items-center gap-1 text-[12px] text-[#C4001E] hover:opacity-80 transition-opacity font-medium"
+        >
+          <Plus className="w-3.5 h-3.5" /> Add Territory
+        </button>
+      </div>
+
+      {(!prices || prices.length === 0) && !showAdd ? (
+        <p className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] px-4 py-4">
           No prices set yet.
         </p>
-      )}
-      {prices && prices.length > 0 && (
-        <div className="rounded-lg border border-[#eef0f3] dark:border-[#2a2f3d] overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-[#f3f4f6] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#1c2028]">
-                <th className="text-left text-[11px] font-medium uppercase tracking-wide text-[#9ca3af] dark:text-[#5c6478] px-3 py-2">Territory</th>
-                <th className="text-left text-[11px] font-medium uppercase tracking-wide text-[#9ca3af] dark:text-[#5c6478] px-3 py-2">Currency</th>
-                <th className="text-left text-[11px] font-medium uppercase tracking-wide text-[#9ca3af] dark:text-[#5c6478] px-3 py-2">Customer Price</th>
-                <th className="text-left text-[11px] font-medium uppercase tracking-wide text-[#9ca3af] dark:text-[#5c6478] px-3 py-2">Proceeds</th>
-                <th className="px-3 py-2" />
+      ) : (
+        <table className="w-full">
+          <thead>
+            <tr>
+              <th className={TH}>Territory</th>
+              <th className={TH}>Currency</th>
+              <th className={TH}>Customer Price</th>
+              <th className={TH}>Proceeds</th>
+              <th className={TH} />
+            </tr>
+          </thead>
+          <tbody>
+            {prices?.map((p) => (
+              <tr
+                key={p.id}
+                className="group border-t border-[#f3f4f6] dark:border-[#2a2f3d] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors"
+              >
+                <td
+                  className={`${TD} font-mono font-medium text-[#111827] dark:text-[#e8eaf0]`}
+                >
+                  {p.territory ?? "—"}
+                </td>
+                <td className={`${TD} text-[#6b7280] dark:text-[#8b93a5]`}>
+                  {p.currency ?? "—"}
+                </td>
+                <td
+                  className={`${TD} font-semibold text-[#111827] dark:text-[#e8eaf0]`}
+                >
+                  {p.customerPrice != null
+                    ? `${p.currency ?? ""} ${p.customerPrice}`
+                    : "—"}
+                </td>
+                <td className={`${TD} text-[#6b7280] dark:text-[#8b93a5]`}>
+                  {p.proceeds != null
+                    ? `${p.currency ?? ""} ${p.proceeds}`
+                    : "—"}
+                </td>
+                <td className={`${TD} text-right`}>
+                  <button
+                    onClick={() => deletePrice(p.id)}
+                    disabled={deletingId === p.id}
+                    className="p-1.5 opacity-0 group-hover:opacity-100 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all disabled:opacity-50"
+                  >
+                    {deletingId === p.id ? (
+                      <div className="spinner !w-3 !h-3" />
+                    ) : (
+                      <Trash2 className="w-3 h-3" />
+                    )}
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {prices.map((p) => (
-                <tr key={p.id} className="border-b border-[#f3f4f6] dark:border-[#2a2f3d] last:border-0 bg-white dark:bg-[#1c2028]">
-                  <td className="px-3 py-2.5 text-[12px] font-mono font-medium text-[#111827] dark:text-[#e8eaf0]">{p.territory ?? "—"}</td>
-                  <td className="px-3 py-2.5 text-[12px] text-[#6b7280] dark:text-[#8b93a5]">{p.currency ?? "—"}</td>
-                  <td className="px-3 py-2.5 text-[12px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
-                    {p.customerPrice != null ? `${p.currency ?? ""} ${p.customerPrice}` : "—"}
-                  </td>
-                  <td className="px-3 py-2.5 text-[12px] text-[#6b7280] dark:text-[#8b93a5]">{p.proceeds ?? "—"}</td>
-                  <td className="px-3 py-2.5 text-right">
-                    <button
-                      onClick={() => deletePrice(p.id)}
-                      disabled={deletingId === p.id}
-                      className="p-1 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all disabled:opacity-50"
-                    >
-                      {deletingId === p.id ? <div className="spinner !w-3 !h-3" /> : <Trash2 className="w-3 h-3" />}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
       )}
 
-      {showAdd ? (
-        <div className="rounded-lg border border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#1c2028] p-3 flex flex-col gap-2">
+      {showAdd && (
+        <div className="border-t border-[#eef0f3] dark:border-[#2a2f3d] p-3 flex flex-col gap-2 bg-[#fafbfc] dark:bg-[#1c2028]">
           <div className="grid grid-cols-2 gap-2">
             <div className="flex flex-col gap-1">
-              <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] font-medium">Territory (3-letter code)</label>
+              <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] font-medium">
+                Territory (3-letter code)
+              </label>
               <input
                 className={inputCls}
                 value={territory}
-                onChange={(e) => handleTerritoryChange(e.target.value.toUpperCase())}
+                onChange={(e) =>
+                  handleTerritoryChange(e.target.value.toUpperCase())
+                }
                 placeholder="USA"
                 maxLength={3}
               />
@@ -670,7 +785,11 @@ function PricingPanel({
             <div className="flex flex-col gap-1">
               <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] font-medium">
                 Price Tier
-                {loadingPP && <span className="ml-1 text-[10px] text-[#9ca3af]">loading…</span>}
+                {loadingPP && (
+                  <span className="ml-1 text-[10px] text-[#9ca3af]">
+                    loading…
+                  </span>
+                )}
               </label>
               {pricePoints && pricePoints.length > 0 ? (
                 <select
@@ -685,68 +804,637 @@ function PricingPanel({
                   ))}
                 </select>
               ) : (
-                <div className={`${inputCls} text-[#9ca3af] dark:text-[#5c6478]`}>
-                  {loadingPP ? "Loading tiers…" : pricePoints !== null ? "No tiers found" : "Enter territory first"}
+                <div
+                  className={`${inputCls} text-[#9ca3af] dark:text-[#5c6478]`}
+                >
+                  {loadingPP
+                    ? "Loading tiers…"
+                    : pricePoints !== null
+                      ? "No tiers found"
+                      : "Enter territory first"}
                 </div>
               )}
             </div>
           </div>
           <div className="flex gap-2 justify-end">
-            <button onClick={() => setShowAdd(false)} className={btnSecSm}>Cancel</button>
+            <button onClick={() => setShowAdd(false)} className={btnSecSm}>
+              Cancel
+            </button>
             <button
               onClick={addPrice}
               disabled={saving || !selectedPP}
               className={btnSecSm}
             >
-              {saving ? <div className="spinner !w-3 !h-3" /> : <Check className="w-3 h-3" />}
+              {saving ? (
+                <div className="spinner !w-3 !h-3" />
+              ) : (
+                <Check className="w-3 h-3" />
+              )}
               Set Price
             </button>
           </div>
         </div>
-      ) : (
-        <button
-          onClick={openAdd}
-          className="flex items-center gap-1.5 text-[12px] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#C4001E] transition-colors"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Set price for territory
-        </button>
       )}
     </div>
   );
 }
 
-interface GroupRowProps {
+interface ReviewPanelProps {
+  subscriptionId: string;
+  reviewNote: string | null;
+  onReviewNoteUpdated: (note: string | null) => void;
+  addToast: (msg: string, type: "success" | "error" | "info") => void;
+}
+
+function ReviewPanel({
+  subscriptionId,
+  reviewNote,
+  onReviewNoteUpdated,
+  addToast,
+}: ReviewPanelProps) {
+  const [editingNote, setEditingNote] = useState(false);
+  const [noteText, setNoteText] = useState(reviewNote ?? "");
+  const [savingNote, setSavingNote] = useState(false);
+  const [screenshot, setScreenshot] =
+    useState<SubscriptionReviewScreenshot | null>(null);
+  const [loadingScreenshot, setLoadingScreenshot] = useState(true);
+  const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
+  const [deletingScreenshot, setDeletingScreenshot] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingScreenshot(true);
+    fetch(`/api/asc/subscriptions/${subscriptionId}/review-screenshot`, {
+      headers: authHeaders(),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!cancelled) setScreenshot(data ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setScreenshot(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingScreenshot(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [subscriptionId]);
+
+  const handleSaveNote = async () => {
+    setSavingNote(true);
+    try {
+      const res = await fetch(`/api/asc/subscriptions/${subscriptionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ reviewNote: noteText || null }),
+      });
+
+      if (!res.ok)
+        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+
+      onReviewNoteUpdated(noteText || null);
+      setEditingNote(false);
+      addToast("Review note saved", "success");
+    } catch (err: any) {
+      addToast(err.message, "error");
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingScreenshot(true);
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      const res = await fetch(
+        `/api/asc/subscriptions/${subscriptionId}/review-screenshot`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...authHeaders() },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileSize: file.size,
+            fileData: base64,
+          }),
+        },
+      );
+      if (!res.ok)
+        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      addToast("Screenshot uploaded — may take a moment to process", "success");
+
+      const refresh = await fetch(
+        `/api/asc/subscriptions/${subscriptionId}/review-screenshot`,
+        { headers: authHeaders() },
+      );
+      if (refresh.ok) setScreenshot(await refresh.json());
+    } catch (err: any) {
+      addToast(err.message, "error");
+    } finally {
+      setUploadingScreenshot(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleDeleteScreenshot = async () => {
+    if (!screenshot) return;
+    if (!confirm("Delete this review screenshot?")) return;
+    setDeletingScreenshot(true);
+    try {
+      const res = await fetch(
+        `/api/asc/subscriptions/review-screenshots/${screenshot.id}`,
+        { method: "DELETE", headers: authHeaders() },
+      );
+      if (!res.ok)
+        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      setScreenshot(null);
+      addToast("Screenshot deleted", "success");
+    } catch (err: any) {
+      addToast(err.message, "error");
+    } finally {
+      setDeletingScreenshot(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[12px] font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide">
+            Review Note
+          </span>
+          {!editingNote && (
+            <button
+              onClick={() => {
+                setNoteText(reviewNote ?? "");
+                setEditingNote(true);
+              }}
+              className="text-[12px] text-[#C4001E] hover:underline"
+            >
+              {reviewNote ? "Edit" : "Add"}
+            </button>
+          )}
+        </div>
+        {editingNote ? (
+          <div className="flex flex-col gap-2">
+            <textarea
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              rows={4}
+              maxLength={4000}
+              placeholder="Notes for the App Review team…"
+              className={`${inputCls} resize-none`}
+            />
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-[#9ca3af]">
+                {noteText.length}/4000
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setEditingNote(false)}
+                  className={btnSecondary}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveNote}
+                  disabled={savingNote}
+                  className={btnPrimary}
+                >
+                  {savingNote ? (
+                    <div className="spinner !w-3.5 !h-3.5" />
+                  ) : (
+                    <Check className="w-3.5 h-3.5" />
+                  )}
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : reviewNote ? (
+          <p className="text-[13px] text-[#374151] dark:text-[#c4c9d6] whitespace-pre-wrap leading-relaxed rounded-xl bg-[#f9fafb] dark:bg-[#1a1f2b] border border-[#eef0f3] dark:border-[#2a2f3d] px-3.5 py-3">
+            {reviewNote}
+          </p>
+        ) : (
+          <p className="text-[13px] text-[#9ca3af] dark:text-[#5c6478] italic">
+            No review note added.
+          </p>
+        )}
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[12px] font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide">
+            Review Screenshot
+          </span>
+          {!loadingScreenshot && !screenshot && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingScreenshot}
+              className="text-[12px] text-[#C4001E] hover:underline disabled:opacity-50"
+            >
+              {uploadingScreenshot ? "Uploading…" : "Upload"}
+            </button>
+          )}
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+        {loadingScreenshot ? (
+          <div className="flex items-center gap-2 text-[13px] text-[#9ca3af]">
+            <div className="spinner !w-3.5 !h-3.5" /> Loading…
+          </div>
+        ) : screenshot ? (
+          <div className="relative w-fit rounded-xl overflow-hidden border border-[#eef0f3] dark:border-[#2a2f3d] group">
+            {screenshot.imageUrl ? (
+              <img
+                src={screenshot.imageUrl}
+                alt="Review screenshot"
+                className="block max-w-xs max-h-48 object-contain"
+              />
+            ) : (
+              <div className="flex items-center justify-center w-48 h-28 bg-[#f3f4f6] dark:bg-[#1a1f2b]">
+                <Upload className="w-6 h-6 text-[#9ca3af]" />
+              </div>
+            )}
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingScreenshot}
+                className="px-2.5 py-1.5 rounded-lg bg-white text-[12px] font-medium text-[#111827] hover:bg-gray-100 transition disabled:opacity-50"
+              >
+                Replace
+              </button>
+              <button
+                onClick={handleDeleteScreenshot}
+                disabled={deletingScreenshot}
+                className="px-2.5 py-1.5 rounded-lg bg-red-600 text-[12px] font-medium text-white hover:bg-red-700 transition disabled:opacity-50"
+              >
+                {deletingScreenshot ? "…" : "Delete"}
+              </button>
+            </div>
+            {screenshot.fileName && (
+              <p className="px-2.5 py-1.5 text-[11px] text-[#6b7280] dark:text-[#8b93a5] border-t border-[#eef0f3] dark:border-[#2a2f3d] truncate">
+                {screenshot.fileName}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="flex flex-col items-center justify-center w-48 h-28 rounded-xl border-2 border-dashed border-[#d1d5db] dark:border-[#2a2f3d] text-[#9ca3af] dark:text-[#5c6478] hover:border-[#C4001E] hover:text-[#C4001E] transition-colors cursor-pointer"
+          >
+            {uploadingScreenshot ? (
+              <div className="spinner !w-5 !h-5" />
+            ) : (
+              <>
+                <Upload className="w-5 h-5 mb-1" />
+                <span className="text-[12px]">Upload PNG/JPG</span>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface DetailViewProps {
+  sub: SubscriptionItem;
   group: SubscriptionGroup;
-  onGroupUpdated: (id: string, referenceName: string) => void;
-  onGroupDeleted: (id: string) => void;
-  onSubCreated: (groupId: string, sub: SubscriptionItem) => void;
-  onSubUpdated: (groupId: string, sub: SubscriptionItem) => void;
-  onSubDeleted: (groupId: string, subId: string) => void;
+  bundleId: string | null;
+  onBack: () => void;
+  onUpdated: (updated: SubscriptionItem) => void;
+  onDeleted: () => void;
   addToast: Props["addToast"];
 }
 
-function GroupRow({
+function DetailView({
+  sub,
   group,
+  bundleId,
+  onBack,
+  onUpdated,
+  onDeleted,
+  addToast,
+}: DetailViewProps) {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [activeTab, setActiveTab] = useState<
+    "localizations" | "pricing" | "review"
+  >("localizations");
+
+  const handleUpdate = async (form: SubFormState) => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/asc/subscriptions/${sub.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({
+          name: form.name,
+          familySharable: form.familySharable,
+          subscriptionPeriod: form.subscriptionPeriod,
+          reviewNote: form.reviewNote || undefined,
+          groupLevel: parseInt(form.groupLevel) || undefined,
+        }),
+      });
+      if (!res.ok)
+        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      onUpdated({
+        ...sub,
+        name: form.name,
+        familySharable: form.familySharable,
+        subscriptionPeriod: form.subscriptionPeriod,
+        reviewNote: form.reviewNote || null,
+        groupLevel: parseInt(form.groupLevel) || null,
+      });
+      setEditing(false);
+      addToast("Subscription updated", "success");
+    } catch (err: any) {
+      addToast(err.message, "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm(`Delete "${sub.name}"? This cannot be undone.`)) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/asc/subscriptions/${sub.id}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      if (!res.ok)
+        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      onDeleted();
+      addToast("Subscription deleted", "success");
+    } catch (err: any) {
+      addToast(err.message, "error");
+      setDeleting(false);
+    }
+  };
+
+  const AppleLogo = () => (
+    <svg
+      className="w-3.5 h-3.5 text-[#555] dark:text-[#aaa] shrink-0"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+    >
+      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
+    </svg>
+  );
+
+  const fields: { label: string; value: React.ReactNode }[] = [
+    {
+      label: "Identifier",
+      value: (
+        <span className="font-mono text-[13px] text-[#111827] dark:text-[#e8eaf0]">
+          {sub.productId}
+        </span>
+      ),
+    },
+    {
+      label: "App",
+      value: (
+        <span className="flex items-center gap-1.5 text-[13px] text-[#111827] dark:text-[#e8eaf0]">
+          <AppleLogo />
+          {bundleId ?? "App Store"}
+        </span>
+      ),
+    },
+    {
+      label: "Store",
+      value: (
+        <span className="text-[13px] text-[#111827] dark:text-[#e8eaf0]">
+          App Store
+        </span>
+      ),
+    },
+    {
+      label: "Store Status",
+      value: <StatusBadge state={sub.state} />,
+    },
+    {
+      label: "Display Name",
+      value: (
+        <span className="text-[13px] text-[#111827] dark:text-[#e8eaf0]">
+          {sub.name}
+        </span>
+      ),
+    },
+    {
+      label: "Product Type",
+      value: (
+        <span className="text-[13px] text-[#111827] dark:text-[#e8eaf0]">
+          Subscription
+          {sub.subscriptionPeriod
+            ? ` · ${PERIOD_LABELS[sub.subscriptionPeriod] ?? sub.subscriptionPeriod}`
+            : ""}
+        </span>
+      ),
+    },
+    {
+      label: "Subscription group",
+      value: (
+        <span className="text-[13px] text-[#111827] dark:text-[#e8eaf0]">
+          {group.referenceName}
+        </span>
+      ),
+    },
+    {
+      label: "Family sharing",
+      value: (
+        <span className="text-[13px] text-[#111827] dark:text-[#e8eaf0]">
+          {sub.familySharable ? "Enabled" : "Disabled"}
+        </span>
+      ),
+    },
+  ];
+
+  return (
+    <div className="max-w-[1440px] mx-auto">
+      <div className="flex items-start justify-between mb-6 gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            onClick={onBack}
+            className="p-2 rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] text-[#6b7280] dark:text-[#8b93a5] hover:text-[#111827] dark:hover:text-[#e8eaf0] hover:border-[#C4001E] transition-all shrink-0"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <div className="min-w-0 flex items-center gap-2">
+            <h1 className="text-2xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] truncate">
+              {sub.name}
+            </h1>
+            {!editing && (
+              <button
+                onClick={() => setEditing(true)}
+                className="p-1.5 rounded-lg text-[#9ca3af] dark:text-[#5c6478] hover:text-[#C4001E] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+        {!editing && (
+          <div className="flex gap-2 shrink-0">
+            <button onClick={() => setEditing(true)} className={btnPrimary}>
+              <Pencil className="w-3.5 h-3.5" /> Edit
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="inline-flex items-center gap-1.5 px-3 py-[7px] rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] text-[13px] font-medium text-red-500 hover:border-red-300 dark:hover:border-red-800 transition-all disabled:opacity-50"
+            >
+              {deleting ? (
+                <div className="spinner !w-3.5 !h-3.5" />
+              ) : (
+                <Trash2 className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {editing ? (
+        <div className={cardCls}>
+          <SubForm
+            title="Edit Subscription"
+            initial={{
+              name: sub.name,
+              productId: sub.productId,
+              familySharable: sub.familySharable,
+              subscriptionPeriod: sub.subscriptionPeriod ?? "ONE_MONTH",
+              reviewNote: sub.reviewNote ?? "",
+              groupLevel: String(sub.groupLevel ?? 1),
+            }}
+            onSave={handleUpdate}
+            onCancel={() => setEditing(false)}
+            saving={saving}
+            lockProductId
+          />
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <div className={cardCls}>
+            <dl className="divide-y divide-[#f3f4f6] dark:divide-[#2a2f3d]">
+              {fields.map(({ label, value }) => (
+                <div
+                  key={label}
+                  className="flex items-center gap-4 py-3 first:pt-0 last:pb-0"
+                >
+                  <dt className="w-44 shrink-0 text-[12px] font-medium text-[#6b7280] dark:text-[#8b93a5]">
+                    {label}
+                  </dt>
+                  <dd className="flex-1 min-w-0">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+
+          <div className={cardCls}>
+            <div className="flex gap-1 mb-4 pb-3 border-b border-[#eef0f3] dark:border-[#2a2f3d]">
+              <button
+                onClick={() => setActiveTab("localizations")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${
+                  activeTab === "localizations"
+                    ? "bg-[#f3f4f6] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0]"
+                    : "text-[#6b7280] dark:text-[#8b93a5] hover:text-[#111827] dark:hover:text-[#e8eaf0]"
+                }`}
+              >
+                <Globe className="w-3.5 h-3.5" /> Localizations
+              </button>
+              <button
+                onClick={() => setActiveTab("pricing")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${
+                  activeTab === "pricing"
+                    ? "bg-[#f3f4f6] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0]"
+                    : "text-[#6b7280] dark:text-[#8b93a5] hover:text-[#111827] dark:hover:text-[#e8eaf0]"
+                }`}
+              >
+                <DollarSign className="w-3.5 h-3.5" /> Pricing
+              </button>
+              <button
+                onClick={() => setActiveTab("review")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${
+                  activeTab === "review"
+                    ? "bg-[#f3f4f6] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0]"
+                    : "text-[#6b7280] dark:text-[#8b93a5] hover:text-[#111827] dark:hover:text-[#e8eaf0]"
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" /> Review
+              </button>
+            </div>
+            {activeTab === "localizations" ? (
+              <LocalizationsPanel subscriptionId={sub.id} addToast={addToast} />
+            ) : activeTab === "pricing" ? (
+              <PricingPanel subscriptionId={sub.id} addToast={addToast} />
+            ) : (
+              <ReviewPanel
+                subscriptionId={sub.id}
+                reviewNote={sub.reviewNote}
+                onReviewNoteUpdated={(note) =>
+                  onUpdated({ ...sub, reviewNote: note })
+                }
+                addToast={addToast}
+              />
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface GroupTableProps {
+  group: SubscriptionGroup;
+  bundleId: string | null;
+  onSelectSub: (sub: SubscriptionItem) => void;
+  onGroupUpdated: (id: string, referenceName: string) => void;
+  onGroupDeleted: (id: string) => void;
+  onSubCreated: (groupId: string, sub: SubscriptionItem) => void;
+  addToast: Props["addToast"];
+}
+
+function GroupTable({
+  group,
+  bundleId,
+  onSelectSub,
   onGroupUpdated,
   onGroupDeleted,
   onSubCreated,
-  onSubUpdated,
-  onSubDeleted,
   addToast,
-}: GroupRowProps) {
-  const [expanded, setExpanded] = useState(true);
+}: GroupTableProps) {
+  const [showNewSub, setShowNewSub] = useState(false);
+  const [savingSub, setSavingSub] = useState(false);
+  const [showGroupMenu, setShowGroupMenu] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameVal, setNameVal] = useState(group.referenceName);
   const [savingName, setSavingName] = useState(false);
   const [deletingGroup, setDeletingGroup] = useState(false);
-  const [addingSubForm, setAddingSubForm] = useState(false);
-  const [openDetailSub, setOpenDetailSub] = useState<string | null>(null);
-  const [detailTab, setDetailTab] = useState<Record<string, "localizations" | "pricing">>({});
-  const [savingSub, setSavingSub] = useState(false);
-  const [editingSub, setEditingSub] = useState<string | null>(null);
-  const [savingSubEdit, setSavingSubEdit] = useState(false);
-  const [deletingSub, setDeletingSub] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowGroupMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const saveName = async () => {
     if (!nameVal.trim()) return;
@@ -809,7 +1497,7 @@ function GroupRow({
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
       onSubCreated(group.id, json as SubscriptionItem);
-      setAddingSubForm(false);
+      setShowNewSub(false);
       addToast("Subscription created", "success");
     } catch (err: any) {
       addToast(err.message, "error");
@@ -818,296 +1506,180 @@ function GroupRow({
     }
   };
 
-  const updateSub = async (subId: string, form: SubFormState) => {
-    setSavingSubEdit(true);
-    try {
-      const res = await fetch(`/api/asc/subscriptions/${subId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({
-          name: form.name,
-          familySharable: form.familySharable,
-          subscriptionPeriod: form.subscriptionPeriod,
-          reviewNote: form.reviewNote || undefined,
-          groupLevel: parseInt(form.groupLevel) || undefined,
-        }),
-      });
-      if (!res.ok)
-        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
-      onSubUpdated(group.id, {
-        ...group.subscriptions.find((s) => s.id === subId)!,
-        name: form.name,
-        familySharable: form.familySharable,
-        subscriptionPeriod: form.subscriptionPeriod,
-        reviewNote: form.reviewNote || null,
-        groupLevel: parseInt(form.groupLevel) || null,
-      });
-      setEditingSub(null);
-      addToast("Subscription updated", "success");
-    } catch (err: any) {
-      addToast(err.message, "error");
-    } finally {
-      setSavingSubEdit(false);
-    }
-  };
-
-  const deleteSub = async (subId: string) => {
-    const sub = group.subscriptions.find((s) => s.id === subId);
-    if (!confirm(`Delete "${sub?.name}"? This cannot be undone.`)) return;
-    setDeletingSub(subId);
-    try {
-      const res = await fetch(`/api/asc/subscriptions/${subId}`, {
-        method: "DELETE",
-        headers: authHeaders(),
-      });
-      if (!res.ok)
-        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
-      onSubDeleted(group.id, subId);
-      addToast("Subscription deleted", "success");
-    } catch (err: any) {
-      addToast(err.message, "error");
-    } finally {
-      setDeletingSub(null);
-    }
-  };
+  const AppleLogo = () => (
+    <svg
+      className="w-3.5 h-3.5 text-[#9ca3af] dark:text-[#5c6478] shrink-0"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+    >
+      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
+    </svg>
+  );
 
   return (
-    <div className={cardCls}>
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => setExpanded((v) => !v)}
-          className="flex items-center gap-1.5 flex-1 min-w-0"
-        >
-          <ChevronDown
-            className={`w-4 h-4 text-gray-400 shrink-0 transition-transform ${expanded ? "" : "-rotate-90"}`}
-          />
+    <div className={`${cardCls} overflow-hidden !p-0`}>
+      <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef0f3] dark:border-[#2a2f3d]">
+        <div className="flex items-center gap-2 min-w-0">
           {editingName ? (
-            <input
-              className={`${inputCls} py-1 text-sm font-semibold`}
-              value={nameVal}
-              onChange={(e) => setNameVal(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") saveName();
-                if (e.key === "Escape") setEditingName(false);
-              }}
-              onClick={(e) => e.stopPropagation()}
-              autoFocus
-            />
+            <div className="flex items-center gap-2">
+              <input
+                className={`${inputCls} py-1.5 text-sm font-semibold`}
+                value={nameVal}
+                onChange={(e) => setNameVal(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") saveName();
+                  if (e.key === "Escape") {
+                    setEditingName(false);
+                    setNameVal(group.referenceName);
+                  }
+                }}
+                autoFocus
+              />
+              <button
+                onClick={saveName}
+                disabled={savingName}
+                className={btnSecSm}
+              >
+                {savingName ? (
+                  <div className="spinner !w-3 !h-3" />
+                ) : (
+                  <Check className="w-3 h-3" />
+                )}
+              </button>
+              <button
+                onClick={() => {
+                  setEditingName(false);
+                  setNameVal(group.referenceName);
+                }}
+                className={btnSecSm}
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
           ) : (
-            <span className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0] truncate">
-              {group.referenceName}
-            </span>
+            <>
+              <AppleLogo />
+              <span className="text-[14px] font-semibold text-[#111827] dark:text-[#e8eaf0] truncate">
+                {group.referenceName}
+                {bundleId ? ` (${bundleId})` : ""}
+              </span>
+            </>
           )}
-        </button>
-        <span className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] shrink-0">
-          {group.subscriptions.length}{" "}
-          {group.subscriptions.length === 1 ? "product" : "products"}
-        </span>
-        {editingName ? (
-          <div className="flex gap-1 shrink-0">
+        </div>
+
+        {!editingName && (
+          <div className="flex items-center gap-2 shrink-0">
             <button
-              onClick={saveName}
-              disabled={savingName}
-              className={btnSecSm}
+              onClick={() => setShowNewSub(true)}
+              className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#C4001E] hover:opacity-80 transition-opacity"
             >
-              {savingName ? (
-                <div className="spinner !w-3 !h-3" />
-              ) : (
-                <Check className="w-3 h-3" />
+              <Plus className="w-4 h-4" /> New
+            </button>
+            <div className="relative" ref={menuRef}>
+              <button
+                onClick={() => setShowGroupMenu((v) => !v)}
+                className="p-1.5 rounded-lg text-[#9ca3af] dark:text-[#5c6478] hover:text-[#111827] dark:hover:text-[#e8eaf0] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all"
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+              {showGroupMenu && (
+                <div className="absolute right-0 top-full mt-1 w-44 rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] shadow-lg z-10 py-1 overflow-hidden">
+                  <button
+                    onClick={() => {
+                      setShowGroupMenu(false);
+                      setEditingName(true);
+                    }}
+                    className="w-full text-left px-3 py-2 text-[13px] text-[#374151] dark:text-[#c4cad8] hover:bg-[#f3f4f6] dark:hover:bg-[#252b38] flex items-center gap-2 transition-colors"
+                  >
+                    <Pencil className="w-3.5 h-3.5" /> Rename group
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowGroupMenu(false);
+                      deleteGroup();
+                    }}
+                    disabled={deletingGroup}
+                    className="w-full text-left px-3 py-2 text-[13px] text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors disabled:opacity-50"
+                  >
+                    {deletingGroup ? (
+                      <div className="spinner !w-3.5 !h-3.5" />
+                    ) : (
+                      <Trash2 className="w-3.5 h-3.5" />
+                    )}
+                    Delete group
+                  </button>
+                </div>
               )}
-            </button>
-            <button
-              onClick={() => {
-                setEditingName(false);
-                setNameVal(group.referenceName);
-              }}
-              className={btnSecSm}
-            >
-              <X className="w-3 h-3" />
-            </button>
-          </div>
-        ) : (
-          <div className="flex gap-1 shrink-0">
-            <button
-              onClick={() => setEditingName(true)}
-              title="Rename group"
-              className="p-1.5 rounded-lg text-gray-400 hover:text-[#C4001E] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all"
-            >
-              <Pencil className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={deleteGroup}
-              disabled={deletingGroup}
-              title="Delete group"
-              className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all disabled:opacity-50"
-            >
-              {deletingGroup ? (
-                <div className="spinner !w-3.5 !h-3.5" />
-              ) : (
-                <Trash2 className="w-3.5 h-3.5" />
-              )}
-            </button>
+            </div>
           </div>
         )}
       </div>
 
-      {expanded && (
-        <div className="mt-4 flex flex-col gap-2">
-          {group.subscriptions.length === 0 && !addingSubForm && (
-            <p className="text-[13px] text-[#9ca3af] dark:text-[#5c6478] text-center py-4">
-              No subscriptions yet
-            </p>
+      <table className="w-full">
+        <thead>
+          <tr>
+            <th className={TH}>Product</th>
+            <th className={TH}>Status</th>
+            <th className={TH}>Period</th>
+            <th className={TH}>Group Level</th>
+            <th className={TH} />
+          </tr>
+        </thead>
+        <tbody>
+          {group.subscriptions.length === 0 && !showNewSub && (
+            <tr>
+              <td
+                colSpan={5}
+                className="px-5 py-8 text-center text-[13px] text-[#9ca3af] dark:text-[#5c6478]"
+              >
+                No subscriptions yet — click <strong>+ New</strong> to add one
+              </td>
+            </tr>
           )}
-
-          {group.subscriptions.map((sub) =>
-            editingSub === sub.id ? (
-              <SubForm
-                key={sub.id}
-                title="Edit Subscription"
-                initial={{
-                  name: sub.name,
-                  productId: sub.productId,
-                  familySharable: sub.familySharable,
-                  subscriptionPeriod: sub.subscriptionPeriod ?? "ONE_MONTH",
-                  reviewNote: sub.reviewNote ?? "",
-                  groupLevel: String(sub.groupLevel ?? 1),
-                }}
-                onSave={(form) => updateSub(sub.id, form)}
-                onCancel={() => setEditingSub(null)}
-                saving={savingSubEdit}
-              />
-            ) : (
-              <div key={sub.id} className="flex flex-col gap-0">
-                <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-[#f7f8fa] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d]">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-white dark:bg-[#1c2028] border border-[#e5e7eb] dark:border-[#2a2f3d] flex items-center justify-center shrink-0">
-                      <Repeat2 className="w-4 h-4 text-[#C4001E]" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[13px] font-semibold text-[#111827] dark:text-[#e8eaf0] truncate">
-                          {sub.name}
-                        </span>
-                        <StateTag state={sub.state} />
-                      </div>
-                      <div className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] font-mono truncate mt-0.5">
-                        {sub.productId}
-                        {sub.subscriptionPeriod && (
-                          <>
-                            {" "}
-                            ·{" "}
-                            {PERIOD_LABELS[sub.subscriptionPeriod] ??
-                              sub.subscriptionPeriod}
-                          </>
-                        )}
-                        {sub.familySharable && <> · Family</>}
-                        {sub.groupLevel != null && <> · Level {sub.groupLevel}</>}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-1 shrink-0">
-                    <button
-                      onClick={() =>
-                        setOpenDetailSub(openDetailSub === sub.id ? null : sub.id)
-                      }
-                      title="Manage localizations & pricing"
-                      className={`p-1.5 rounded-lg transition-all ${
-                        openDetailSub === sub.id
-                          ? "text-[#C4001E] bg-white dark:bg-[#1c2028]"
-                          : "text-gray-400 hover:text-[#C4001E] hover:bg-white dark:hover:bg-[#1c2028]"
-                      }`}
-                    >
-                      <ChevronDown
-                        className={`w-3.5 h-3.5 transition-transform ${
-                          openDetailSub === sub.id ? "rotate-180" : ""
-                        }`}
-                      />
-                    </button>
-                    <button
-                      onClick={() => setEditingSub(sub.id)}
-                      title="Edit"
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-[#C4001E] hover:bg-white dark:hover:bg-[#1c2028] transition-all"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => deleteSub(sub.id)}
-                      disabled={deletingSub === sub.id}
-                      title="Delete"
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all disabled:opacity-50"
-                    >
-                      {deletingSub === sub.id ? (
-                        <div className="spinner !w-3.5 !h-3.5" />
-                      ) : (
-                        <Trash2 className="w-3.5 h-3.5" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                {openDetailSub === sub.id && (
-                  <div className="mt-2 rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#1c2028] p-3">
-                    <div className="flex gap-1 mb-3">
-                      <button
-                        onClick={() =>
-                          setDetailTab((t) => ({ ...t, [sub.id]: "localizations" }))
-                        }
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${
-                          (detailTab[sub.id] ?? "localizations") === "localizations"
-                            ? "bg-white dark:bg-[#252b38] text-[#C4001E] border border-[#eef0f3] dark:border-[#2a2f3d] shadow-sm"
-                            : "text-[#6b7280] dark:text-[#8b93a5] hover:text-[#C4001E]"
-                        }`}
-                      >
-                        <Globe className="w-3.5 h-3.5" />
-                        Localizations
-                      </button>
-                      <button
-                        onClick={() =>
-                          setDetailTab((t) => ({ ...t, [sub.id]: "pricing" }))
-                        }
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${
-                          detailTab[sub.id] === "pricing"
-                            ? "bg-white dark:bg-[#252b38] text-[#C4001E] border border-[#eef0f3] dark:border-[#2a2f3d] shadow-sm"
-                            : "text-[#6b7280] dark:text-[#8b93a5] hover:text-[#C4001E]"
-                        }`}
-                      >
-                        <DollarSign className="w-3.5 h-3.5" />
-                        Pricing
-                      </button>
-                    </div>
-                    {(detailTab[sub.id] ?? "localizations") === "localizations" ? (
-                      <LocalizationsPanel
-                        subscriptionId={sub.id}
-                        addToast={addToast}
-                      />
-                    ) : (
-                      <PricingPanel
-                        subscriptionId={sub.id}
-                        addToast={addToast}
-                      />
-                    )}
-                  </div>
-                )}
-              </div>
-            ),
-          )}
-
-          {addingSubForm ? (
-            <SubForm
-              title="New Subscription"
-              onSave={createSub}
-              onCancel={() => setAddingSubForm(false)}
-              saving={savingSub}
-            />
-          ) : (
-            <button
-              onClick={() => setAddingSubForm(true)}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-dashed border-[#d1d5db] dark:border-[#2a2f3d] text-[13px] text-[#9ca3af] dark:text-[#5c6478] hover:border-[#C4001E] hover:text-[#C4001E] transition-all"
+          {group.subscriptions.map((sub) => (
+            <tr
+              key={sub.id}
+              onClick={() => onSelectSub(sub)}
+              className="group border-t border-[#f3f4f6] dark:border-[#2a2f3d] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] cursor-pointer transition-colors"
             >
-              <Plus className="w-3.5 h-3.5" />
-              Add subscription
-            </button>
-          )}
+              <td className={TD}>
+                <div>
+                  <p className="text-[13px] font-medium text-[#111827] dark:text-[#e8eaf0]">
+                    {sub.name}
+                  </p>
+                  <p className="text-[11px] font-mono text-[#9ca3af] dark:text-[#5c6478] mt-0.5">
+                    {sub.productId}
+                  </p>
+                </div>
+              </td>
+              <td className={TD}>
+                <StatusBadge state={sub.state} />
+              </td>
+              <td className={`${TD} text-[#6b7280] dark:text-[#8b93a5]`}>
+                {sub.subscriptionPeriod
+                  ? (PERIOD_LABELS[sub.subscriptionPeriod] ??
+                    sub.subscriptionPeriod)
+                  : "—"}
+              </td>
+              <td className={`${TD} text-[#6b7280] dark:text-[#8b93a5]`}>
+                {sub.groupLevel ?? "—"}
+              </td>
+              <td className={`${TD} text-right`}>
+                <MoreHorizontal className="w-4 h-4 text-[#9ca3af] dark:text-[#5c6478] opacity-0 group-hover:opacity-100 transition-opacity" />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {showNewSub && (
+        <div className="border-t border-[#eef0f3] dark:border-[#2a2f3d] p-4">
+          <SubForm
+            title="New Subscription"
+            onSave={createSub}
+            onCancel={() => setShowNewSub(false)}
+            saving={savingSub}
+          />
         </div>
       )}
     </div>
@@ -1120,11 +1692,16 @@ export default function MonetizationSubscriptions({ addToast }: Props) {
   const [newGroupName, setNewGroupName] = useState("");
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [showNewGroupForm, setShowNewGroupForm] = useState(false);
+  const [selectedSub, setSelectedSub] = useState<{
+    sub: SubscriptionItem;
+    group: SubscriptionGroup;
+  } | null>(null);
+
+  const bundleId = getActiveBundleId();
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const bundleId = getActiveBundleId();
       const url = bundleId
         ? `/api/asc/subscriptions/groups?bundleId=${encodeURIComponent(bundleId)}`
         : "/api/asc/subscriptions/groups";
@@ -1147,6 +1724,7 @@ export default function MonetizationSubscriptions({ addToast }: Props) {
   useEffect(() => {
     const handler = () => {
       setGroups(null);
+      setSelectedSub(null);
       load();
     };
     window.addEventListener("app-changed", handler);
@@ -1157,7 +1735,6 @@ export default function MonetizationSubscriptions({ addToast }: Props) {
     if (!newGroupName.trim()) return;
     setCreatingGroup(true);
     try {
-      const bundleId = getActiveBundleId();
       const res = await fetch("/api/asc/subscriptions/groups", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
@@ -1197,22 +1774,27 @@ export default function MonetizationSubscriptions({ addToast }: Props) {
         ) ?? null,
     );
 
-  const handleSubUpdated = (groupId: string, sub: SubscriptionItem) =>
+  const handleSubUpdated = (updated: SubscriptionItem) => {
     setGroups(
       (g) =>
-        g?.map((group) =>
-          group.id === groupId
-            ? {
-                ...group,
-                subscriptions: group.subscriptions.map((s) =>
-                  s.id === sub.id ? sub : s,
-                ),
-              }
-            : group,
-        ) ?? null,
+        g?.map((group) => ({
+          ...group,
+          subscriptions: group.subscriptions.map((s) =>
+            s.id === updated.id ? updated : s,
+          ),
+        })) ?? null,
     );
+    setSelectedSub((prev) =>
+      prev && prev.sub.id === updated.id ? { ...prev, sub: updated } : prev,
+    );
+  };
 
-  const handleSubDeleted = (groupId: string, subId: string) =>
+  const handleSubDeleted = () => {
+    if (!selectedSub) return;
+    const {
+      group: { id: groupId },
+      sub: { id: subId },
+    } = selectedSub;
     setGroups(
       (g) =>
         g?.map((group) =>
@@ -1226,15 +1808,29 @@ export default function MonetizationSubscriptions({ addToast }: Props) {
             : group,
         ) ?? null,
     );
+    setSelectedSub(null);
+  };
+
+  if (selectedSub) {
+    return (
+      <DetailView
+        sub={selectedSub.sub}
+        group={selectedSub.group}
+        bundleId={bundleId}
+        onBack={() => setSelectedSub(null)}
+        onUpdated={handleSubUpdated}
+        onDeleted={handleSubDeleted}
+        addToast={addToast}
+      />
+    );
+  }
 
   return (
     <div className="max-w-[1440px] mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
-            Subscriptions
-          </h1>
-        </div>
+        <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0]">
+          Subscriptions
+        </h1>
         <div className="flex gap-2">
           <button onClick={load} disabled={loading} className={btnSecondary}>
             <RefreshCw
@@ -1246,8 +1842,7 @@ export default function MonetizationSubscriptions({ addToast }: Props) {
             onClick={() => setShowNewGroupForm(true)}
             className={btnPrimary}
           >
-            <Plus className="w-3.5 h-3.5" />
-            New Group
+            <Plus className="w-3.5 h-3.5" /> New Group
           </button>
         </div>
       </div>
@@ -1293,7 +1888,7 @@ export default function MonetizationSubscriptions({ addToast }: Props) {
 
       {loading && !groups && (
         <div className="flex items-center justify-center py-16 gap-2 text-[#9ca3af] dark:text-[#5c6478] text-sm">
-          <div className="spinner" /> Loading subscription groups…
+          <div className="spinner" /> Loading subscriptions…
         </div>
       )}
 
@@ -1302,7 +1897,19 @@ export default function MonetizationSubscriptions({ addToast }: Props) {
           className={`${cardCls} flex flex-col items-center justify-center py-16 gap-4 text-center`}
         >
           <div className="w-12 h-12 rounded-2xl bg-[#fef2f3] dark:bg-[#2a1f23] flex items-center justify-center">
-            <Repeat2 className="w-6 h-6 text-[#C4001E]" />
+            <svg
+              className="w-6 h-6 text-[#C4001E]"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.5}
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+              />
+            </svg>
           </div>
           <div>
             <p className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
@@ -1316,8 +1923,7 @@ export default function MonetizationSubscriptions({ addToast }: Props) {
             onClick={() => setShowNewGroupForm(true)}
             className={btnPrimary}
           >
-            <Plus className="w-3.5 h-3.5" />
-            New Group
+            <Plus className="w-3.5 h-3.5" /> New Group
           </button>
         </div>
       )}
@@ -1325,14 +1931,14 @@ export default function MonetizationSubscriptions({ addToast }: Props) {
       {groups && groups.length > 0 && (
         <div className="flex flex-col gap-4">
           {groups.map((group) => (
-            <GroupRow
+            <GroupTable
               key={group.id}
               group={group}
+              bundleId={bundleId}
+              onSelectSub={(sub) => setSelectedSub({ sub, group })}
               onGroupUpdated={handleGroupUpdated}
               onGroupDeleted={handleGroupDeleted}
               onSubCreated={handleSubCreated}
-              onSubUpdated={handleSubUpdated}
-              onSubDeleted={handleSubDeleted}
               addToast={addToast}
             />
           ))}

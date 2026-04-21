@@ -1066,3 +1066,113 @@ ascRouter.delete("/subscriptions/prices/:id", async (req, res) => {
     res.status(500).json({ error: err.message ?? String(err) });
   }
 });
+
+ascRouter.get("/subscriptions/:id/review-screenshot", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const asc = await ascClientForUser(req.user!.userId);
+    const { data: resp } = await (asc as any).client.get(
+      `/subscriptions/${id}/appStoreReviewScreenshot`,
+      {
+        params: {
+          "fields[subscriptionAppStoreReviewScreenshots]":
+            "fileName,fileSize,sourceFileChecksum,imageAsset,assetToken,assetType,uploadOperations,assetDeliveryState",
+        },
+      },
+    );
+    if (!resp.data) {
+      res.json(null);
+      return;
+    }
+    const d = resp.data;
+    const asset = d.attributes?.imageAsset ?? null;
+    res.json({
+      id: d.id,
+      fileName: d.attributes?.fileName ?? null,
+      fileSize: d.attributes?.fileSize ?? null,
+      assetDeliveryState: d.attributes?.assetDeliveryState ?? null,
+      imageUrl: asset?.templateUrl
+        ? asset.templateUrl
+            .replace("{w}", String(asset.width ?? 320))
+            .replace("{h}", String(asset.height ?? 180))
+            .replace("{f}", "png")
+        : null,
+      width: asset?.width ?? null,
+      height: asset?.height ?? null,
+    });
+  } catch (err: any) {
+    logger.error("ASC getSubscriptionReviewScreenshot failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.post("/subscriptions/:id/review-screenshot", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { fileName, fileSize, fileData } = req.body as {
+      fileName?: string;
+      fileSize?: number;
+      fileData?: string;
+    };
+    if (!fileName || !fileSize || !fileData) {
+      res.status(400).json({ error: "fileName, fileSize and fileData are required" });
+      return;
+    }
+
+    const asc = await ascClientForUser(req.user!.userId);
+
+    const { data: createResp } = await (asc as any).client.post(
+      "/subscriptionAppStoreReviewScreenshots",
+      {
+        data: {
+          type: "subscriptionAppStoreReviewScreenshots",
+          attributes: { fileName, fileSize },
+          relationships: {
+            subscription: { data: { type: "subscriptions", id } },
+          },
+        },
+      },
+    );
+
+    const screenshotId = createResp.data.id;
+    const uploadOps: any[] = createResp.data.attributes?.uploadOperations ?? [];
+    const fileBytes = Buffer.from(fileData, "base64");
+
+    for (const op of uploadOps) {
+      const chunk = fileBytes.slice(op.offset, op.offset + op.length);
+      await axios.put(op.url, chunk, {
+        headers: Object.fromEntries(
+          (op.requestHeaders ?? []).map((h: any) => [h.name, h.value]),
+        ),
+      });
+    }
+
+    await (asc as any).client.patch(
+      `/subscriptionAppStoreReviewScreenshots/${screenshotId}`,
+      {
+        data: {
+          type: "subscriptionAppStoreReviewScreenshots",
+          id: screenshotId,
+          attributes: { uploaded: true },
+        },
+      },
+    );
+
+    res.status(201).json({ id: screenshotId, ok: true });
+  } catch (err: any) {
+    logger.error("ASC createSubscriptionReviewScreenshot failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.delete("/subscriptions/review-screenshots/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const asc = await ascClientForUser(req.user!.userId);
+    await (asc as any).client.delete(`/subscriptionAppStoreReviewScreenshots/${id}`);
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error("ASC deleteSubscriptionReviewScreenshot failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});

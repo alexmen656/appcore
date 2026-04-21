@@ -446,3 +446,13 @@ export interface SubscriptionPrice {
   startDate: string | null;
   preserved: boolean;
 }
+
+export interface SubscriptionReviewScreenshot {
+  id: string;
+  fileName: string | null;
+  fileSize: number | null;
+  assetDeliveryState: { state: string } | null;
+  imageUrl: string | null;
+  width: number | null;
+  height: number | null;
+}
