@@ -6,6 +6,7 @@ import {
   verifyAppOwnership,
   verifyAppOwnershipByBundleId,
 } from "../auth";
+import { ensureAccentColor } from "../../services/utils/icon-accent";
 
 export const appsRouter = Router();
 
@@ -68,8 +69,19 @@ appsRouter.get("/", async (req, res) => {
       orderBy: [{ isOwnApp: "desc" }, { name: "asc" }],
     });
 
+    const accentColors = await Promise.all(
+      apps.map((a) =>
+        a.isOwnApp
+          ? ensureAccentColor(a.id, a.snapshots[0]?.iconUrl ?? null, {
+              accentColor: a.accentColor,
+              accentColorIconUrl: a.accentColorIconUrl,
+            })
+          : Promise.resolve(null),
+      ),
+    );
+
     res.json(
-      apps.map((a) => ({
+      apps.map((a, i) => ({
         id: a.id,
         bundleId: a.bundleId,
         name: a.name,
@@ -82,6 +94,7 @@ appsRouter.get("/", async (req, res) => {
         rating: a.snapshots[0]?.rating ?? null,
         ratingsCount: a.snapshots[0]?.ratingsCount ?? null,
         iconUrl: a.snapshots[0]?.iconUrl ?? null,
+        accentColor: accentColors[i],
         competitorCount: a._count.competitors + a._count.competitorOf,
         rankingCount: a._count.rankings,
         updatedAt: a.updatedAt,

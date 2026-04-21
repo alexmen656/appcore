@@ -149,6 +149,8 @@ model App {
   signingProvisioningProfile String?
   signingTeamId              String?
   snapshotEnvVars            String?
+  accentColor                String?
+  accentColorIconUrl         String?
   memberAccess               TeamMemberAppAccess[]
   snapshots                  AppSnapshot[]
   rankings                   KeywordRanking[]

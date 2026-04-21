@@ -857,6 +857,15 @@ export default function App() {
   }, [dark]);
 
   useEffect(() => {
+    const hex = dash?.app?.accentColor;
+    if (hex) {
+      document.documentElement.style.setProperty("--app-accent", hex);
+    } else {
+      document.documentElement.style.removeProperty("--app-accent");
+    }
+  }, [dash?.app?.accentColor]);
+
+  useEffect(() => {
     const token = getToken();
     if (!token) {
       setAuthLoading(false);
@@ -932,10 +941,10 @@ export default function App() {
     }`;
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-[#f8f9fb] dark:bg-[#0a0a0a]">
+    <div className="flex flex-col h-screen overflow-hidden bg-[var(--shell-bg)] transition-colors">
       <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
       <ToastContainer toasts={toasts} />
-      <header className="h-[52px] bg-[#f8f9fb] dark:bg-[#0a0a0a] flex items-center px-4 shrink-0 z-20">
+      <header className="h-[52px] bg-[var(--shell-bg)] flex items-center px-4 shrink-0 z-20 transition-colors">
         <a href="/app/" className="flex items-center gap-2.5">
           <img src="/app/logo.svg" alt="Marteso" className="h-[23px] w-auto" />
           <span className="text-[24px] font-bold tracking-[-0.3px] bg-gradient-to-br from-[#D94412] to-[#C4001E] bg-clip-text text-transparent">
@@ -962,7 +971,7 @@ export default function App() {
         />
       </header>
       <div className="flex flex-1 overflow-hidden">
-        <aside className="w-[250px] min-w-[250px] bg-[#f8f9fb] dark:bg-[#0a0a0a] flex flex-col overflow-y-auto">
+        <aside className="w-[250px] min-w-[250px] bg-[var(--shell-bg)] flex flex-col overflow-y-auto transition-colors">
           <AppSwitcher current={dash?.app ?? null} addToast={addToast} />
           <nav className="px-2 pt-1 flex-1 flex flex-col">
             {sidebarLinks.slice(0, 1).map((link) => (

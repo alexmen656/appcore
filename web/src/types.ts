@@ -55,6 +55,7 @@ export interface AppItem {
   rating: number | null;
   ratingsCount: number | null;
   iconUrl: string | null;
+  accentColor: string | null;
   subtitle: string | null;
   competitorCount: number;
   updatedAt: string;
@@ -78,6 +79,7 @@ export interface AppInfo {
   rating: number;
   ratingsCount: number;
   iconUrl: string;
+  accentColor: string | null;
 }
 
 export interface Stats {

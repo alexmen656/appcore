@@ -3,7 +3,10 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --sidebar-bg: #f8f9fb;
+  --app-accent: transparent;
+  --shell-base: #f8f9fb;
+  --shell-bg: color-mix(in srgb, var(--app-accent) 5%, var(--shell-base));
+  --sidebar-bg: var(--shell-bg);
   --content-bg: #f8f9fb;
   --accent: #C4001E;
   --accent-hover: #A8001A;
@@ -25,7 +28,9 @@
 }
 
 .dark {
-  --sidebar-bg: #13161d;
+  --shell-base: #0a0a0a;
+  --shell-bg: color-mix(in srgb, var(--app-accent) 9%, var(--shell-base));
+  --sidebar-bg: var(--shell-bg);
   --content-bg: #0f1117;
   --text-primary: #e8eaf0;
   --text-secondary: #8b93a5;

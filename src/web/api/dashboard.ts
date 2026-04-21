@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { prisma, env, getEffectiveSettings } from "../../config";
 import { requireAuth } from "../auth";
+import { ensureAccentColor } from "../../services/utils/icon-accent";
 
 export const dashboardRouter = Router();
 dashboardRouter.use(requireAuth);
@@ -68,6 +69,13 @@ dashboardRouter.get("/", async (req, res) => {
       take: 5,
     });
 
+    const accentColor = ownApp
+      ? await ensureAccentColor(ownApp.id, ownApp.snapshots[0]?.iconUrl, {
+          accentColor: ownApp.accentColor,
+          accentColorIconUrl: ownApp.accentColorIconUrl,
+        })
+      : null;
+
     res.json({
       app: ownApp
         ? {
@@ -79,6 +87,7 @@ dashboardRouter.get("/", async (req, res) => {
             rating: ownApp.snapshots[0]?.rating,
             ratingsCount: ownApp.snapshots[0]?.ratingsCount,
             iconUrl: ownApp.snapshots[0]?.iconUrl,
+            accentColor,
           }
         : null,
       stats: {
