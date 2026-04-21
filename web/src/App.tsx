@@ -438,17 +438,12 @@ function HeaderProfileMenu({
       {open && (
         <div className="absolute right-0 top-[calc(100%+6px)] w-52 bg-white dark:bg-[#1c2028] border border-[#e5e7eb] dark:border-[#2a2f3d] rounded-xl shadow-lg z-50 overflow-hidden">
           <div className="px-3 pt-2.5 pb-1">
-            <div className="text-[13px] font-semibold text-[#1a1a2e] dark:text-[#e8eaf0] truncate">
+            <div className="text-[16px] font-semibold text-[#1a1a2e] dark:text-[#e8eaf0] truncate">
               {displayName}
             </div>
             {user.email && (
-              <div className="text-[10px] text-[#9ca3af] dark:text-[#5c6478] truncate">
+              <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] truncate">
                 {user.email}
-              </div>
-            )}
-            {user.role === "ADMIN" && (
-              <div className="text-[10px] text-[#C4001E] font-medium uppercase tracking-wide">
-                Admin
               </div>
             )}
           </div>
@@ -944,7 +939,7 @@ export default function App() {
     <div className="flex flex-col h-screen overflow-hidden bg-[var(--shell-bg)] transition-colors">
       <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
       <ToastContainer toasts={toasts} />
-      <header className="h-[52px] bg-[var(--shell-bg)] flex items-center px-4 shrink-0 z-20 transition-colors">
+      <header className="h-[52px] bg-[var(--shell-bg)] flex items-center px-4 shrink-0 z-40 transition-colors">
         <a href="/app/" className="flex items-center gap-2.5">
           <img src="/app/logo.svg" alt="Marteso" className="h-[23px] w-auto" />
           <span className="text-[24px] font-bold tracking-[-0.3px] bg-gradient-to-br from-[#D94412] to-[#C4001E] bg-clip-text text-transparent">
