@@ -30,6 +30,7 @@ interface ASCAppStoreVersion {
     appStoreState: string;
     platform: string;
     releaseType: string;
+    copyright?: string;
   };
 }
 
@@ -153,7 +154,7 @@ export class AppStoreConnectClient {
         "filter[appStoreState]": "READY_FOR_SALE",
         "filter[platform]": "IOS",
         "fields[appStoreVersions]":
-          "versionString,appStoreState,platform,releaseType",
+          "versionString,appStoreState,platform,releaseType,copyright",
       },
     });
     return data.data?.[0] ?? null;
@@ -164,11 +165,28 @@ export class AppStoreConnectClient {
       params: {
         "filter[platform]": "IOS",
         "fields[appStoreVersions]":
-          "versionString,appStoreState,platform,releaseType",
+          "versionString,appStoreState,platform,releaseType,copyright",
         limit: 50,
       },
     });
     return data.data ?? [];
+  }
+
+  async updateVersionAttributes(
+    versionId: string,
+    updates: { copyright?: string },
+  ): Promise<void> {
+    try {
+      await this.client.patch(`/appStoreVersions/${versionId}`, {
+        data: {
+          type: "appStoreVersions",
+          id: versionId,
+          attributes: updates,
+        },
+      });
+    } catch (err: any) {
+      this.throwASCError(err);
+    }
   }
 
   async getVersionLocalizations(
@@ -349,7 +367,7 @@ export class AppStoreConnectClient {
               "filter[appStoreState]": state,
               "filter[platform]": "IOS",
               "fields[appStoreVersions]":
-                "versionString,appStoreState,platform,releaseType",
+                "versionString,appStoreState,platform,releaseType,copyright",
             },
           })
           .then(({ data }) => data.data?.[0] ?? null)
@@ -587,5 +605,100 @@ export class AppStoreConnectClient {
       },
     });
     logger.info(`Submitted version ${versionId} for App Review`);
+  }
+
+  async getReviewDetail(versionId: string): Promise<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email: string;
+    demoAccountRequired: boolean;
+    demoAccountName: string;
+    demoAccountPassword: string;
+  } | null> {
+    try {
+      const { data } = await this.client.get(
+        `/appStoreVersions/${versionId}/appStoreReviewDetail`,
+        {
+          params: {
+            "fields[appStoreReviewDetails]":
+              "contactFirstName,contactLastName,contactPhone,contactEmail,demoAccountRequired,demoAccountName,demoAccountPassword",
+          },
+        },
+      );
+      if (!data.data) return null;
+      const a = data.data.attributes;
+      return {
+        id: data.data.id,
+        firstName: a.contactFirstName ?? "",
+        lastName: a.contactLastName ?? "",
+        phone: a.contactPhone ?? "",
+        email: a.contactEmail ?? "",
+        demoAccountRequired: a.demoAccountRequired ?? false,
+        demoAccountName: a.demoAccountName ?? "",
+        demoAccountPassword: a.demoAccountPassword ?? "",
+      };
+    } catch (err: any) {
+      if (err?.response?.status === 404) return null;
+      return null;
+    }
+  }
+
+  async upsertReviewDetail(
+    versionId: string,
+    existingDetailId: string | null,
+    info: {
+      firstName: string;
+      lastName: string;
+      phone: string;
+      email: string;
+      demoAccountRequired: boolean;
+      demoAccountName?: string;
+      demoAccountPassword?: string;
+    },
+  ): Promise<string> {
+    const attributes: Record<string, any> = {
+      contactFirstName: info.firstName,
+      contactLastName: info.lastName,
+      contactPhone: info.phone,
+      contactEmail: info.email,
+      demoAccountRequired: info.demoAccountRequired,
+    };
+    if (info.demoAccountRequired) {
+      attributes.demoAccountName = info.demoAccountName ?? "";
+      attributes.demoAccountPassword = info.demoAccountPassword ?? "";
+    }
+
+    try {
+      if (existingDetailId) {
+        await this.client.patch(
+          `/appStoreReviewDetails/${existingDetailId}`,
+          {
+            data: {
+              type: "appStoreReviewDetails",
+              id: existingDetailId,
+              attributes,
+            },
+          },
+        );
+        return existingDetailId;
+      } else {
+        const { data } = await this.client.post("/appStoreReviewDetails", {
+          data: {
+            type: "appStoreReviewDetails",
+            attributes,
+            relationships: {
+              appStoreVersion: {
+                data: { type: "appStoreVersions", id: versionId },
+              },
+            },
+          },
+        });
+        return data.data.id;
+      }
+    } catch (err: any) {
+      this.throwASCError(err);
+    }
   }
 }

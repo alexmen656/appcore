@@ -225,6 +225,14 @@ export interface SettingsData {
   anthropicApiKey: string;
   anthropicApiKeySet: boolean;
   aiProvider: string;
+  presetCopyright: string;
+  reviewerFirstName: string;
+  reviewerLastName: string;
+  reviewerPhone: string;
+  reviewerEmail: string;
+  reviewerDemoAccountRequired: boolean;
+  reviewerDemoUsername: string;
+  reviewerDemoPassword: string;
 }
 
 export interface GitHubStatus {
@@ -339,8 +347,16 @@ export interface VersionsData {
   versionString: string | null;
   appStoreState: string | null;
   isEditable: boolean;
-  copyright?: string;
+  copyright: string;
   ageRating?: string;
+  reviewerFirstName?: string;
+  reviewerLastName?: string;
+  reviewerPhone?: string;
+  reviewerEmail?: string;
+  reviewerDemoAccountRequired?: boolean;
+  reviewerDemoUsername?: string;
+  reviewerDemoPassword?: string;
+  reviewDetailId?: string | null;
   localizations: VersionLocalization[];
 }
 

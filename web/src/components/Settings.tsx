@@ -3,6 +3,7 @@ import { useApi, apiPut } from "../hooks/useApi";
 import AscCredentialsSection from "./comps/settings/AscCredentialsSection";
 import AiProviderSection from "./comps/settings/AiProviderSection";
 import GitHubSection from "./comps/settings/GitHubSection";
+import PresetMetadataSection from "./comps/settings/PresetMetadataSection";
 import { SettingsData } from "./comps/settings/types";
 import { inputCls, textareaCls, btnSecondary, btnPrimary } from "../styles";
 
@@ -60,6 +61,11 @@ export default function Settings({ addToast }: Props) {
         <AiProviderSection
           form={form}
           data={data ?? null}
+          inputCls={inputCls}
+          onChange={set}
+        />
+        <PresetMetadataSection
+          form={form}
           inputCls={inputCls}
           onChange={set}
         />

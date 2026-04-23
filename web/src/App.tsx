@@ -643,6 +643,17 @@ function VersionsSidebarSection({
       const res = await fetch(url, { headers: authHeaders() });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: VersionSummary[] = await res.json();
+
+      data.sort((a, b) => {
+        const aParts = a.versionString.split(".").map(Number);
+        const bParts = b.versionString.split(".").map(Number);
+        for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
+          const aNum = aParts[i] || 0;
+          const bNum = bParts[i] || 0;
+          if (aNum !== bNum) return bNum - aNum;
+        }
+        return 0;
+      });
       setVersions(data);
       if (location.pathname === "/versions" && data.length > 0) {
         const best = data.find((v) => v.isEditable) ?? data[0];

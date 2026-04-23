@@ -101,11 +101,56 @@ async function upsertVersionDetailToDb(
     update: {
       appStoreState: version.attributes.appStoreState,
       versionString: version.attributes.versionString,
-      copyright: copyright ?? null,
-      ageRating: ageRating ?? null,
+      copyright: copyright !== undefined ? (copyright ?? null) : undefined,
+      ageRating: ageRating !== undefined ? (ageRating ?? null) : undefined,
       syncedAt: new Date(),
     },
   });
+
+  const existing = await prisma.appStoreVersion.findUnique({
+    where: { id: version.id },
+    select: { reviewerFirstName: true, reviewDetailId: true },
+  });
+
+  if (!existing?.reviewerFirstName && !existing?.reviewDetailId) {
+    const app = await prisma.app.findUnique({
+      where: { bundleId },
+      select: { teamId: true },
+    });
+
+    if (app?.teamId) {
+      const ts = await prisma.teamSettings.findUnique({
+        where: { teamId: app.teamId },
+        select: {
+          presetCopyright: true,
+          reviewerFirstName: true,
+          reviewerLastName: true,
+          reviewerPhone: true,
+          reviewerEmail: true,
+          reviewerDemoAccountRequired: true,
+          reviewerDemoUsername: true,
+          reviewerDemoPassword: true,
+        },
+      });
+
+      if (ts) {
+        await prisma.appStoreVersion.update({
+          where: { id: version.id },
+          data: {
+            copyright: copyright ?? ts.presetCopyright ?? null,
+            reviewerFirstName: ts.reviewerFirstName ?? null,
+            reviewerLastName: ts.reviewerLastName ?? null,
+            reviewerPhone: ts.reviewerPhone ?? null,
+            reviewerEmail: ts.reviewerEmail ?? null,
+            reviewerDemoAccountRequired:
+              ts.reviewerDemoAccountRequired ?? false,
+            reviewerDemoUsername: ts.reviewerDemoUsername ?? null,
+            reviewerDemoPassword: ts.reviewerDemoPassword ?? null,
+          },
+        });
+      }
+    }
+  }
 
   await Promise.all(
     localizations.map((loc) =>
@@ -393,8 +438,17 @@ ascRouter.get("/versions", async (req, res) => {
           versionString: cached.versionString,
           appStoreState: cached.appStoreState,
           isEditable: editableStates.has(cached.appStoreState),
-          copyright: cached.copyright ?? undefined,
+          copyright: cached.copyright ?? "",
           ageRating: cached.ageRating ?? undefined,
+          reviewerFirstName: cached.reviewerFirstName ?? "",
+          reviewerLastName: cached.reviewerLastName ?? "",
+          reviewerPhone: cached.reviewerPhone ?? "",
+          reviewerEmail: cached.reviewerEmail ?? "",
+          reviewerDemoAccountRequired:
+            cached.reviewerDemoAccountRequired ?? false,
+          reviewerDemoUsername: cached.reviewerDemoUsername ?? "",
+          reviewerDemoPassword: cached.reviewerDemoPassword ?? "",
+          reviewDetailId: cached.reviewDetailId ?? null,
           localizations: cached.localizations.map((l: any) => ({
             locale: l.locale,
             appInfoLocalizationId: l.appInfoLocalizationId,
@@ -430,6 +484,7 @@ ascRouter.get("/versions", async (req, res) => {
         appStoreState: string;
         platform: string;
         releaseType: string;
+        copyright?: string;
       };
     } | null = null;
 
@@ -499,6 +554,7 @@ ascRouter.get("/versions", async (req, res) => {
       versionString: version?.attributes.versionString ?? null,
       appStoreState: version?.attributes.appStoreState ?? null,
       isEditable,
+      copyright: version?.attributes.copyright ?? "",
       localizations,
     });
   } catch (err: any) {
@@ -511,12 +567,14 @@ ascRouter.patch("/versions/metadata", async (req, res) => {
   try {
     const {
       bundleId,
+      versionId: bodyVersionId,
       appInfoLocalizationId,
       versionLocalizationId,
       field,
       value,
     } = req.body as {
       bundleId?: string;
+      versionId?: string;
       appInfoLocalizationId?: string;
       versionLocalizationId?: string;
       field: string;
@@ -535,6 +593,23 @@ ascRouter.patch("/versions/metadata", async (req, res) => {
     if (!ownedApp) return;
 
     const asc = await ascClientForUser(req.user!.userId);
+
+    if (field === "copyright") {
+      if (!bodyVersionId) {
+        res.status(400).json({ error: "versionId required for copyright" });
+        return;
+      }
+      await asc.updateVersionAttributes(bodyVersionId, { copyright: value });
+      await prisma.appStoreVersion
+        .update({
+          where: { id: bodyVersionId },
+          data: { copyright: value || null },
+        })
+        .catch(() => {});
+      await invalidateVersionCache(bundleId);
+      res.json({ ok: true, field, value });
+      return;
+    }
 
     const METADATA_FIELDS = {
       appInfo: {
@@ -578,6 +653,170 @@ ascRouter.patch("/versions/metadata", async (req, res) => {
     res.json({ ok: true, field, value });
   } catch (err: any) {
     logger.error("ASC updateMetadata failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.get("/versions/reviewer-info", async (req, res) => {
+  try {
+    const versionId = req.query.versionId as string;
+    const bundleId = req.query.bundleId as string;
+    if (!versionId || !bundleId) {
+      res.status(400).json({ error: "versionId and bundleId required" });
+      return;
+    }
+    const ownedApp = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!ownedApp) return;
+
+    const cached = await prisma.appStoreVersion.findUnique({
+      where: { id: versionId },
+      select: {
+        reviewerFirstName: true,
+        reviewerLastName: true,
+        reviewerPhone: true,
+        reviewerEmail: true,
+        reviewerDemoAccountRequired: true,
+        reviewerDemoUsername: true,
+        reviewerDemoPassword: true,
+        reviewDetailId: true,
+      },
+    });
+
+    res.json({
+      reviewerFirstName: cached?.reviewerFirstName ?? "",
+      reviewerLastName: cached?.reviewerLastName ?? "",
+      reviewerPhone: cached?.reviewerPhone ?? "",
+      reviewerEmail: cached?.reviewerEmail ?? "",
+      reviewerDemoAccountRequired: cached?.reviewerDemoAccountRequired ?? false,
+      reviewerDemoUsername: cached?.reviewerDemoUsername ?? "",
+      reviewerDemoPassword: cached?.reviewerDemoPassword ?? "",
+      reviewDetailId: cached?.reviewDetailId ?? null,
+    });
+  } catch (err: any) {
+    logger.error("ASC getReviewerInfo failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.patch("/versions/reviewer-info", async (req, res) => {
+  try {
+    const {
+      bundleId,
+      versionId,
+      reviewerFirstName,
+      reviewerLastName,
+      reviewerPhone,
+      reviewerEmail,
+      reviewerDemoAccountRequired,
+      reviewerDemoUsername,
+      reviewerDemoPassword,
+    } = req.body as {
+      bundleId?: string;
+      versionId?: string;
+      reviewerFirstName?: string;
+      reviewerLastName?: string;
+      reviewerPhone?: string;
+      reviewerEmail?: string;
+      reviewerDemoAccountRequired?: boolean;
+      reviewerDemoUsername?: string;
+      reviewerDemoPassword?: string;
+    };
+
+    if (!bundleId || !versionId) {
+      res.status(400).json({ error: "bundleId and versionId required" });
+      return;
+    }
+    const ownedApp = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!ownedApp) return;
+
+    const asc = await ascClientForUser(req.user!.userId);
+
+    const dbVersion = await prisma.appStoreVersion.findUnique({
+      where: { id: versionId },
+      select: { reviewDetailId: true },
+    });
+
+    const existingDetailId = dbVersion?.reviewDetailId ?? null;
+
+    const newDetailId = await asc.upsertReviewDetail(
+      versionId,
+      existingDetailId,
+      {
+        firstName: reviewerFirstName ?? "",
+        lastName: reviewerLastName ?? "",
+        phone: reviewerPhone ?? "",
+        email: reviewerEmail ?? "",
+        demoAccountRequired: reviewerDemoAccountRequired ?? false,
+        demoAccountName: reviewerDemoUsername,
+        demoAccountPassword: reviewerDemoPassword,
+      },
+    );
+
+    await prisma.appStoreVersion.update({
+      where: { id: versionId },
+      data: {
+        reviewerFirstName: reviewerFirstName ?? null,
+        reviewerLastName: reviewerLastName ?? null,
+        reviewerPhone: reviewerPhone ?? null,
+        reviewerEmail: reviewerEmail ?? null,
+        reviewerDemoAccountRequired: reviewerDemoAccountRequired ?? false,
+        reviewerDemoUsername: reviewerDemoUsername ?? null,
+        reviewerDemoPassword: reviewerDemoPassword ?? null,
+        reviewDetailId: newDetailId,
+      },
+    });
+
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error("ASC updateReviewerInfo failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.post("/versions/reviewer-info/sync", async (req, res) => {
+  try {
+    const { bundleId, versionId } = req.body as {
+      bundleId?: string;
+      versionId?: string;
+    };
+    if (!bundleId || !versionId) {
+      res.status(400).json({ error: "bundleId and versionId required" });
+      return;
+    }
+    const ownedApp = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!ownedApp) return;
+
+    const asc = await ascClientForUser(req.user!.userId);
+    const detail = await asc.getReviewDetail(versionId);
+
+    if (detail) {
+      await prisma.appStoreVersion.update({
+        where: { id: versionId },
+        data: {
+          reviewerFirstName: detail.firstName || null,
+          reviewerLastName: detail.lastName || null,
+          reviewerPhone: detail.phone || null,
+          reviewerEmail: detail.email || null,
+          reviewerDemoAccountRequired: detail.demoAccountRequired,
+          reviewerDemoUsername: detail.demoAccountName || null,
+          reviewerDemoPassword: detail.demoAccountPassword || null,
+          reviewDetailId: detail.id,
+        },
+      });
+    }
+
+    res.json({
+      ok: true,
+      reviewerFirstName: detail?.firstName ?? "",
+      reviewerLastName: detail?.lastName ?? "",
+      reviewerPhone: detail?.phone ?? "",
+      reviewerEmail: detail?.email ?? "",
+      reviewerDemoAccountRequired: detail?.demoAccountRequired ?? false,
+      reviewerDemoUsername: detail?.demoAccountName ?? "",
+      reviewerDemoPassword: detail?.demoAccountPassword ?? "",
+    });
+  } catch (err: any) {
+    logger.error("ASC syncReviewerInfo failed", err);
     res.status(500).json({ error: err.message ?? String(err) });
   }
 });

@@ -115,12 +115,20 @@ model TeamSettings {
   anthropicApiKey   String?
   aiProvider        String?   @default("openai")
   ascVendorNumber   String?
-  mcpEnabled        Boolean   @default(false)
-  githubAccessToken String?
-  githubUsername    String?
-  githubAvatarUrl   String?
-  githubConnectedAt DateTime?
-  updatedAt         DateTime  @updatedAt
+  mcpEnabled               Boolean   @default(false)
+  githubAccessToken        String?
+  githubUsername           String?
+  githubAvatarUrl          String?
+  githubConnectedAt        DateTime?
+  presetCopyright          String?
+  reviewerFirstName        String?
+  reviewerLastName         String?
+  reviewerPhone            String?
+  reviewerEmail            String?
+  reviewerDemoAccountRequired Boolean @default(false)
+  reviewerDemoUsername     String?
+  reviewerDemoPassword     String?
+  updatedAt                DateTime  @updatedAt
 }
 
 model App {
@@ -523,10 +531,18 @@ model AppStoreVersion {
   appStoreState String
   platform      String
   releaseType   String?
-  copyright     String?
-  ageRating     String?
-  syncedAt      DateTime                      @default(now())
-  localizations AppStoreVersionLocalization[]
+  copyright                   String?
+  ageRating                   String?
+  reviewerFirstName           String?
+  reviewerLastName            String?
+  reviewerPhone               String?
+  reviewerEmail               String?
+  reviewerDemoAccountRequired Boolean?
+  reviewerDemoUsername        String?
+  reviewerDemoPassword        String?
+  reviewDetailId              String?
+  syncedAt                    DateTime                      @default(now())
+  localizations               AppStoreVersionLocalization[]
 
   @@index([bundleId, appStoreState])
   @@index([bundleId, syncedAt])

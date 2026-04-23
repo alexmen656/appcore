@@ -26,6 +26,14 @@ settingsRouter.get("/", async (req, res) => {
             anthropicApiKey: settings.anthropicApiKey ? "••••••••" : "",
             anthropicApiKeySet: !!settings.anthropicApiKey,
             aiProvider: settings.aiProvider ?? "openai",
+            presetCopyright: settings.presetCopyright ?? "",
+            reviewerFirstName: settings.reviewerFirstName ?? "",
+            reviewerLastName: settings.reviewerLastName ?? "",
+            reviewerPhone: settings.reviewerPhone ?? "",
+            reviewerEmail: settings.reviewerEmail ?? "",
+            reviewerDemoAccountRequired: settings.reviewerDemoAccountRequired ?? false,
+            reviewerDemoUsername: settings.reviewerDemoUsername ?? "",
+            reviewerDemoPassword: settings.reviewerDemoPassword ?? "",
           }
         : {
             ascIssuerId: "",
@@ -38,6 +46,14 @@ settingsRouter.get("/", async (req, res) => {
             anthropicApiKey: "",
             anthropicApiKeySet: false,
             aiProvider: "openai",
+            presetCopyright: "",
+            reviewerFirstName: "",
+            reviewerLastName: "",
+            reviewerPhone: "",
+            reviewerEmail: "",
+            reviewerDemoAccountRequired: false,
+            reviewerDemoUsername: "",
+            reviewerDemoPassword: "",
           },
     );
   } catch (err) {
@@ -62,6 +78,14 @@ settingsRouter.put("/", async (req, res) => {
       openaiApiKey,
       anthropicApiKey,
       aiProvider,
+      presetCopyright,
+      reviewerFirstName,
+      reviewerLastName,
+      reviewerPhone,
+      reviewerEmail,
+      reviewerDemoAccountRequired,
+      reviewerDemoUsername,
+      reviewerDemoPassword,
     } = req.body as Record<string, any>;
 
     const data: Record<string, any> = {};
@@ -76,6 +100,14 @@ settingsRouter.put("/", async (req, res) => {
     if (anthropicApiKey !== undefined && anthropicApiKey !== "••••••••")
       data.anthropicApiKey = anthropicApiKey ? encrypt(anthropicApiKey) : null;
     if (aiProvider !== undefined) data.aiProvider = aiProvider || "openai";
+    if (presetCopyright !== undefined) data.presetCopyright = presetCopyright || null;
+    if (reviewerFirstName !== undefined) data.reviewerFirstName = reviewerFirstName || null;
+    if (reviewerLastName !== undefined) data.reviewerLastName = reviewerLastName || null;
+    if (reviewerPhone !== undefined) data.reviewerPhone = reviewerPhone || null;
+    if (reviewerEmail !== undefined) data.reviewerEmail = reviewerEmail || null;
+    if (reviewerDemoAccountRequired !== undefined) data.reviewerDemoAccountRequired = !!reviewerDemoAccountRequired;
+    if (reviewerDemoUsername !== undefined) data.reviewerDemoUsername = reviewerDemoUsername || null;
+    if (reviewerDemoPassword !== undefined) data.reviewerDemoPassword = reviewerDemoPassword || null;
 
     await prisma.teamSettings.upsert({
       where: { teamId },

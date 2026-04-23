@@ -21,6 +21,7 @@ import {
   AlertCircle,
   Plus,
   X,
+  ShieldCheck,
 } from "lucide-react";
 
 interface Props {
@@ -770,7 +771,8 @@ function LatestBuildCard({
 
   return (
     <div className={`${cardCls} mb-5`}>
-      <div className="text-[14px] font-bold mb-3">{/*tracking-widest text-[#9ca3af] dark:text-[#5c6478] uppercase */}
+      <div className="text-[14px] font-bold mb-3">
+        {/*tracking-widest text-[#9ca3af] dark:text-[#5c6478] uppercase */}
         Latest Build
       </div>
       <div className="flex items-start gap-4">
@@ -898,7 +900,8 @@ function ScreenshotsPanel({
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <div className="text-[14px] font-bold">{/*uppercase tracking-widest text-[#9ca3af] dark:text-[#5c6478]*/}
+        <div className="text-[14px] font-bold">
+          {/*uppercase tracking-widest text-[#9ca3af] dark:text-[#5c6478]*/}
           Screenshots
         </div>
         <span className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] font-mono">
@@ -955,6 +958,241 @@ function ScreenshotsPanel({
               </div>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReviewerInfoPanel({
+  data,
+  addToast,
+  onRefetch,
+}: {
+  data: VersionsData;
+  addToast: (msg: string, type: "success" | "error" | "info") => void;
+  onRefetch: () => void;
+}) {
+  const [form, setForm] = useState({
+    reviewerFirstName: data.reviewerFirstName ?? "",
+    reviewerLastName: data.reviewerLastName ?? "",
+    reviewerPhone: data.reviewerPhone ?? "",
+    reviewerEmail: data.reviewerEmail ?? "",
+    reviewerDemoAccountRequired: data.reviewerDemoAccountRequired ?? false,
+    reviewerDemoUsername: data.reviewerDemoUsername ?? "",
+    reviewerDemoPassword: data.reviewerDemoPassword ?? "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    setForm({
+      reviewerFirstName: data.reviewerFirstName ?? "",
+      reviewerLastName: data.reviewerLastName ?? "",
+      reviewerPhone: data.reviewerPhone ?? "",
+      reviewerEmail: data.reviewerEmail ?? "",
+      reviewerDemoAccountRequired: data.reviewerDemoAccountRequired ?? false,
+      reviewerDemoUsername: data.reviewerDemoUsername ?? "",
+      reviewerDemoPassword: data.reviewerDemoPassword ?? "",
+    });
+    setDirty(false);
+  }, [data.versionId]);
+
+  const set = (key: keyof typeof form, value: any) => {
+    setForm((f) => ({ ...f, [key]: value }));
+    setDirty(true);
+  };
+
+  const handleSave = async () => {
+    if (!data.versionId) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/asc/versions/reviewer-info", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({
+          bundleId: getActiveBundleId(),
+          versionId: data.versionId,
+          ...form,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? `HTTP ${res.status}`);
+      }
+      addToast("Reviewer info saved to App Store Connect", "success");
+      setDirty(false);
+      onRefetch();
+    } catch (err: any) {
+      addToast(`Failed to save: ${err.message}`, "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSync = async () => {
+    if (!data.versionId) return;
+    setSyncing(true);
+    try {
+      const res = await fetch("/api/asc/versions/reviewer-info/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({
+          bundleId: getActiveBundleId(),
+          versionId: data.versionId,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? `HTTP ${res.status}`);
+      }
+      addToast("Reviewer info synced from App Store Connect", "success");
+      onRefetch();
+    } catch (err: any) {
+      addToast(`Sync failed: ${err.message}`, "error");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  if (!data.versionId) return null;
+
+  return (
+    <div className={`${cardCls} mt-5`}>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-[#9ca3af] dark:text-[#5c6478]" />
+          <span className="text-[14px] font-bold text-[#111827] dark:text-[#e8eaf0]">
+            App Review Contact
+          </span>
+        </div>
+        <button
+          onClick={handleSync}
+          disabled={syncing}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#eef0f3] dark:border-[#2a2f3d] bg-transparent text-[12px] text-[#6b7280] dark:text-[#8b93a5] hover:border-[#D94412] hover:text-[#D94412] transition-all disabled:opacity-50"
+        >
+          <RefreshCcw
+            className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`}
+          />
+          Sync from ASC
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="text-[12px] font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide block mb-1.5">
+            First Name
+          </label>
+          <input
+            type="text"
+            className={inputCls}
+            value={form.reviewerFirstName}
+            onChange={(e) => set("reviewerFirstName", e.target.value)}
+            placeholder="Max"
+          />
+        </div>
+        <div>
+          <label className="text-[12px] font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide block mb-1.5">
+            Last Name
+          </label>
+          <input
+            type="text"
+            className={inputCls}
+            value={form.reviewerLastName}
+            onChange={(e) => set("reviewerLastName", e.target.value)}
+            placeholder="Mustermann"
+          />
+        </div>
+        <div>
+          <label className="text-[12px] font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide block mb-1.5">
+            Phone Number
+          </label>
+          <input
+            type="tel"
+            className={inputCls}
+            value={form.reviewerPhone}
+            onChange={(e) => set("reviewerPhone", e.target.value)}
+            placeholder="+49 151 12345678"
+          />
+        </div>
+        <div>
+          <label className="text-[12px] font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide block mb-1.5">
+            E-Mail
+          </label>
+          <input
+            type="email"
+            className={inputCls}
+            value={form.reviewerEmail}
+            onChange={(e) => set("reviewerEmail", e.target.value)}
+            placeholder="review@yourcompany.com"
+          />
+        </div>
+
+        <div className="col-span-2 flex items-center gap-3">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={form.reviewerDemoAccountRequired}
+              onChange={(e) =>
+                set("reviewerDemoAccountRequired", e.target.checked)
+              }
+              className="w-4 h-4 rounded accent-[#D94412]"
+            />
+            <span className="text-[13px] text-[#111827] dark:text-[#e8eaf0]">
+              Login required (Demo Account)
+            </span>
+          </label>
+        </div>
+
+        {form.reviewerDemoAccountRequired && (
+          <>
+            <div>
+              <label className="text-[12px] font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide block mb-1.5">
+                Demo Username
+              </label>
+              <input
+                type="text"
+                className={inputCls}
+                value={form.reviewerDemoUsername}
+                onChange={(e) => set("reviewerDemoUsername", e.target.value)}
+                placeholder="demo@example.com"
+              />
+            </div>
+            <div>
+              <label className="text-[12px] font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide block mb-1.5">
+                Demo Password
+              </label>
+              <input
+                type="password"
+                autoComplete="off"
+                className={inputCls}
+                value={form.reviewerDemoPassword}
+                onChange={(e) => set("reviewerDemoPassword", e.target.value)}
+                placeholder="••••••••"
+              />
+            </div>
+          </>
+        )}
+      </div>
+
+      {dirty && (
+        <div className="flex justify-end mt-4">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-medium bg-gradient-to-br from-[#D94412] to-[#C4001E] text-white hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? (
+              <>
+                <div className="spinner w-3.5 h-3.5" /> Saving…
+              </>
+            ) : (
+              <>
+                <Check className="w-3.5 h-3.5" /> Save to App Store Connect
+              </>
+            )}
+          </button>
         </div>
       )}
     </div>
@@ -1425,7 +1663,6 @@ export default function Versions({ addToast }: Props) {
 
       {activeLoc ? (
         <div className={`${cardCls} flex flex-col gap-5`}>
-
           {/* Language selector */}
           {(data.localizations.length > 1 || data.isEditable) && (
             <div className="-mx-5 -mt-5 px-5 pt-4 pb-4 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
@@ -1476,7 +1713,10 @@ export default function Versions({ addToast }: Props) {
                   ))}
                 </div>
                 {data.isEditable && data.versionId && (
-                  <div ref={addLocaleRef} className="relative shrink-0 self-start">
+                  <div
+                    ref={addLocaleRef}
+                    className="relative shrink-0 self-start"
+                  >
                     <button
                       onClick={() => setShowAddLocale((v) => !v)}
                       disabled={addingLocale}
@@ -1492,7 +1732,8 @@ export default function Versions({ addToast }: Props) {
                     {showAddLocale && (
                       <div className="absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl shadow-lg py-1 min-w-[200px] max-h-64 overflow-y-auto">
                         {ALL_ASC_LOCALES.filter(
-                          (l) => !data.localizations.some((loc) => loc.locale === l),
+                          (l) =>
+                            !data.localizations.some((loc) => loc.locale === l),
                         ).map((locale) => (
                           <button
                             key={locale}
@@ -1550,7 +1791,8 @@ export default function Versions({ addToast }: Props) {
             />
           )}
 
-          <div className="text-[14px] font-bold pt-4 border-t border-[#f3f4f6] dark:border-[#2a2f3d] -mb-1">{/*uppercase tracking-widest text-[#9ca3af] dark:text-[#5c6478]*/}
+          <div className="text-[14px] font-bold pt-4 border-t border-[#f3f4f6] dark:border-[#2a2f3d] -mb-1">
+            {/*uppercase tracking-widest text-[#9ca3af] dark:text-[#5c6478]*/}
             App Metadata
           </div>
 
@@ -1564,64 +1806,60 @@ export default function Versions({ addToast }: Props) {
               onSave={handleSave}
             />
           ))}
-          {(data.copyright !== undefined || data.ageRating !== undefined) && (
-            <div className="pt-4 border-t border-[#f3f4f6]">
-              <div className="text-[11px] font-bold uppercase tracking-widest text-[#9ca3af] dark:text-[#5c6478] mb-4">
-                Version Info
-              </div>
-              <div className="flex flex-col gap-5">
-                {data.copyright !== undefined && (
-                  <InlineEditField
-                    label="Copyright"
-                    value={data.copyright ?? ""}
-                    isEditable={data.isEditable}
-                    onSave={async (val) => {
-                      const res = await fetch("/api/asc/versions/metadata", {
-                        method: "PATCH",
-                        headers: {
-                          "Content-Type": "application/json",
-                          ...authHeaders(),
-                        },
-                        body: JSON.stringify({
-                          bundleId: getActiveBundleId(),
-                          versionId: data.versionId,
-                          field: "copyright",
-                          value: val,
-                        }),
-                      });
-                      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                      addToast("Copyright updated", "success");
-                      refetch();
-                    }}
-                  />
-                )}
-                {data.ageRating !== undefined && (
-                  <div className="group">
-                    <div className="text-[12px] font-semibold text-[#6b7280] uppercase tracking-wide mb-1.5 flex items-center gap-2">
-                      Age Rating
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[13px] text-[#111827] dark:text-[#e8eaf0] px-3.5 py-[9px] border border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#252b38] rounded-xl">
-                        {data.ageRating || (
-                          <span className="text-[#c8cdd3] dark:text-[#3a4050] italic">
-                            Not set
-                          </span>
-                        )}
-                      </span>
-                      <a
-                        href="https://appstoreconnect.apple.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#D94412] transition-colors"
-                      >
-                        Edit in ASC ↗
-                      </a>
-                    </div>
-                  </div>
-                )}
-              </div>
+          <div className="pt-4 border-t border-[#f3f4f6]">
+            <div className="text-[11px] font-bold uppercase tracking-widest text-[#9ca3af] dark:text-[#5c6478] mb-4">
+              Version Info
             </div>
-          )}
+            <div className="flex flex-col gap-5">
+              <InlineEditField
+                label="Copyright"
+                value={data.copyright ?? ""}
+                isEditable={data.isEditable}
+                onSave={async (val) => {
+                  const res = await fetch("/api/asc/versions/metadata", {
+                    method: "PATCH",
+                    headers: {
+                      "Content-Type": "application/json",
+                      ...authHeaders(),
+                    },
+                    body: JSON.stringify({
+                      bundleId: getActiveBundleId(),
+                      versionId: data.versionId,
+                      field: "copyright",
+                      value: val,
+                    }),
+                  });
+                  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                  addToast("Copyright updated", "success");
+                  refetch();
+                }}
+              />
+              {data.ageRating !== undefined && (
+                <div className="group">
+                  <div className="text-[12px] font-semibold text-[#6b7280] uppercase tracking-wide mb-1.5 flex items-center gap-2">
+                    Age Rating
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] text-[#111827] dark:text-[#e8eaf0] px-3.5 py-[9px] border border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#252b38] rounded-xl">
+                      {data.ageRating || (
+                        <span className="text-[#c8cdd3] dark:text-[#3a4050] italic">
+                          Not set
+                        </span>
+                      )}
+                    </span>
+                    <a
+                      href="https://appstoreconnect.apple.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#D94412] transition-colors"
+                    >
+                      Edit in ASC ↗
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       ) : data.localizations.length === 0 ? (
         <div
@@ -1633,6 +1871,14 @@ export default function Versions({ addToast }: Props) {
           </p>
         </div>
       ) : null}
+
+      {data.versionId && (
+        <ReviewerInfoPanel
+          data={data}
+          addToast={addToast}
+          onRefetch={refetch}
+        />
+      )}
     </div>
   );
 }
