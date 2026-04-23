@@ -8,7 +8,7 @@ import {
 } from "../hooks/useApi";
 import SigningSection from "./comps/settings/SigningSection";
 import SnapshotEnvSection from "./comps/settings/SnapshotEnvSection";
-import { RepoLinker } from "./Screenshots";
+import { RepoLinker } from "./Logs";
 import type { AppItem, GitHubStatus } from "../types";
 
 interface Props {

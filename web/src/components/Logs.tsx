@@ -1,5 +1,19 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, ChevronDown, GitBranch } from "lucide-react";
+import {
+  useApi,
+  apiPost,
+  getActiveBundleId,
+  authHeaders,
+} from "../hooks/useApi";
+import { cardCls, btnPrimary, btnSecondary, btnSecSm } from "../styles";
+import type {
+  GitHubRepo,
+  AppRepoLink,
+  ScreenshotJob,
+  BuildJob,
+  AppItem,
+} from "../types";
 
 const LOG_PREFIX_COLORS: { prefix: string; color: string }[] = [
   { prefix: "[snapshot]", color: "#38bdf8" },
@@ -99,104 +113,6 @@ function LogsBlock({
       <pre className="text-[11px] bg-[#111827] rounded-lg p-3 overflow-x-auto max-h-[400px] overflow-y-auto font-mono leading-relaxed">
         {logs.map(renderLogLine)}
       </pre>
-    </div>
-  );
-}
-
-import {
-  useApi,
-  apiPost,
-  getActiveBundleId,
-  authHeaders,
-} from "../hooks/useApi";
-import {
-  cardCls,
-  btnPrimary,
-  btnPrimSm,
-  btnSecondary,
-  btnSecSm,
-  inputCls,
-} from "../styles";
-import type {
-  GitHubStatus,
-  GitHubRepo,
-  AppRepoLink,
-  ScreenshotJob,
-  BuildJob,
-  AppItem,
-} from "../types";
-
-interface Props {
-  addToast: (msg: string, type: "success" | "error" | "info") => void;
-}
-
-const PRESETS = [
-  { label: "Purple", bg1: "#667eea", bg2: "#764ba2" },
-  { label: "Blue", bg1: "#4facfe", bg2: "#00f2fe" },
-  { label: "Sunset", bg1: "#f093fb", bg2: "#f5576c" },
-  { label: "Mint", bg1: "#43e97b", bg2: "#38f9d7" },
-  { label: "Coral", bg1: "#f7971e", bg2: "#ffd200" },
-  { label: "Night", bg1: "#0f0c29", bg2: "#302b63" },
-];
-
-export default function Screenshots({ addToast }: Props) {
-  const { data: ghStatus } = useApi<GitHubStatus>("/github/status", [], true);
-  const { data: apps } = useApi<AppItem[]>("/apps", [], true);
-
-  const bundleId = getActiveBundleId();
-  const activeApp = apps?.find((a) => a.bundleId === bundleId && a.isOwnApp);
-
-  if (!activeApp) {
-    return (
-      <div className="max-w-4xl">
-        <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
-          Screenshots
-        </h1>
-        <p className="text-sm text-[#6b7280] dark:text-[#8b93a5] mb-8">
-          Select an app to manage GitHub integration and screenshot generation.
-        </p>
-        <div
-          className={`${cardCls} text-center py-12 text-gray-400 dark:text-[#5c6478]`}
-        >
-          No app selected. Choose an app from the sidebar.
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="max-w-4xl">
-      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
-        Screenshots
-      </h1>
-      <p className="text-sm text-[#6b7280] dark:text-[#8b93a5] mb-8">
-        Automatically generate App Store screenshots via Fastlane when you push
-        to GitHub.
-      </p>
-
-      {!ghStatus?.connected && (
-        <div
-          className={`${cardCls} mb-5 flex items-center gap-3 border-amber-200 bg-amber-50`}
-        >
-          <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
-          <span className="text-sm text-amber-800">
-            Connect your GitHub account in{" "}
-            <a href="/settings" className="underline font-medium">
-              Team Settings
-            </a>{" "}
-            first to enable repo linking.
-          </span>
-        </div>
-      )}
-
-      <RepoLinker
-        appId={activeApp.id}
-        appName={activeApp.name}
-        connected={!!ghStatus?.connected}
-        addToast={addToast}
-      />
-
-      <ScreenshotJobsTable appId={activeApp.id} addToast={addToast} />
     </div>
   );
 }
@@ -815,6 +731,31 @@ function BuildJobRow({
           )}
           <LogsBlock logs={logs} loading={logsLoading} error={logsError} />
         </div>
+      )}
+    </div>
+  );
+}
+
+interface Props {
+  addToast: (msg: string, type: "success" | "error" | "info") => void;
+}
+
+export default function Actions({ addToast }: Props) {
+  const { data: apps } = useApi<AppItem[]>("/apps", [], true);
+  const bundleId = getActiveBundleId();
+  const activeApp = apps?.find((a) => a.bundleId === bundleId && a.isOwnApp);
+
+  return (
+    <div>
+      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-5">
+        Logs
+      </h1>
+
+      {activeApp && (
+        <>
+          <BuildJobsTable appId={activeApp.id} addToast={addToast} />
+          <ScreenshotJobsTable appId={activeApp.id} addToast={addToast} />
+        </>
       )}
     </div>
   );
