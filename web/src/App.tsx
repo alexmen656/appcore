@@ -82,7 +82,7 @@ const sidebarLinks = [
 
 const sidebarOperations = [
   { to: "/agents", label: "Agents", icon: Bot },
-  { to: "/actions", label: "Logs", icon: Zap },
+  { to: "/logs", label: "Logs", icon: Zap },
   { to: "/app-settings", label: "Settings", icon: SettingsIcon },
 ];
 
@@ -1132,7 +1132,7 @@ export default function App() {
               element={<MonetizationProducts />}
             />
             <Route path="/agents" element={<Agents addToast={addToast} />} />
-            <Route path="/actions" element={<Actions addToast={addToast} />} />
+            <Route path="/logs" element={<Actions addToast={addToast} />} />
             <Route
               path="/settings"
               element={<Settings addToast={addToast} />}

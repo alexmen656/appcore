@@ -72,7 +72,7 @@ function LogsBlock({
 }) {
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-[12px] text-[#9ca3af] dark:text-[#5c6478] py-2">
+      <div className="flex items-center gap-2 text-[12px] text-[#6b7280] dark:text-[#8b93a5] py-2">
         <div className="spinner !w-3 !h-3" /> Loading logs…
       </div>
     );
@@ -86,7 +86,7 @@ function LogsBlock({
   }
   if (!logs || logs.length === 0) {
     return (
-      <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478]">
+      <div className="text-[12px] text-[#6b7280] dark:text-[#8b93a5]">
         No logs captured.
       </div>
     );
@@ -152,7 +152,7 @@ export default function Screenshots({ addToast }: Props) {
         <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
           Screenshots
         </h1>
-        <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">
+        <p className="text-sm text-[#6b7280] dark:text-[#8b93a5] mb-8">
           Select an app to manage GitHub integration and screenshot generation.
         </p>
         <div
@@ -169,7 +169,7 @@ export default function Screenshots({ addToast }: Props) {
       <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
         Screenshots
       </h1>
-      <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">
+      <p className="text-sm text-[#6b7280] dark:text-[#8b93a5] mb-8">
         Automatically generate App Store screenshots via Fastlane when you push
         to GitHub.
       </p>
@@ -310,7 +310,7 @@ export function RepoLinker({
       <h2 className="text-[18px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-1">
         GitHub Repository
       </h2>
-      <p className="text-xs text-[#9ca3af] dark:text-[#5c6478] mb-4">
+      <p className="text-xs text-[#6b7280] dark:text-[#8b93a5] mb-4">
         Link a GitHub repo to this app. On every push, Marteso will
         automatically generate screenshots and binary.
       </p>
@@ -319,14 +319,12 @@ export function RepoLinker({
         <div className="flex items-center gap-3">
           <div className="flex justify-between gap-2 bg-[#f8f9fb] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl px-4 py-2.5 w-full">
             <div className="flex items-center gap-3">
-              <GitBranch
-                className="w-5 h-5 text-[#111827] dark:text-[#e8eaf0]"
-              />
+              <GitBranch className="w-5 h-5 text-[#111827] dark:text-[#e8eaf0]" />
               <div>
                 <div className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0]">
                   {link.repoFullName}
                 </div>
-                <div className="text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
+                <div className="text-[11px] text-[#6b7280] dark:text-[#8b93a5]">
                   {link.iosDir
                     ? `iOS folder: ${link.iosDir}/`
                     : "Repo connected"}
@@ -353,7 +351,7 @@ export function RepoLinker({
               Link Repository
             </button>
           ) : (
-            <p className="text-sm text-[#9ca3af] dark:text-[#5c6478]">
+            <p className="text-sm text-[#6b7280] dark:text-[#8b93a5]">
               Connect GitHub in Team Settings to link a repo.
             </p>
           )}
@@ -368,7 +366,7 @@ export function RepoLinker({
                 Select a repository
               </h3>
               {loadingRepos ? (
-                <div className="flex items-center gap-2 text-sm text-[#9ca3af] dark:text-[#5c6478] py-4">
+                <div className="flex items-center gap-2 text-sm text-[#6b7280] dark:text-[#8b93a5] py-4">
                   <div className="spinner !w-4 !h-4" /> Loading repositories…
                 </div>
               ) : (
@@ -409,13 +407,13 @@ export function RepoLinker({
               <h3 className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0] mb-0.5">
                 iOS app folder
               </h3>
-              <p className="text-xs text-[#9ca3af] dark:text-[#5c6478] mb-3">
+              <p className="text-xs text-[#6b7280] dark:text-[#8b93a5] mb-3">
                 Select the folder that contains the iOS app code (e.g.{" "}
                 <code className="font-mono">ios</code> for React Native). Leave
                 as root if the Xcode project is at the repo root.
               </p>
               {loadingDirs ? (
-                <div className="flex items-center gap-2 text-sm text-[#9ca3af] dark:text-[#5c6478] py-4">
+                <div className="flex items-center gap-2 text-sm text-[#6b7280] dark:text-[#8b93a5] py-4">
                   <div className="spinner !w-4 !h-4" /> Scanning folders…
                 </div>
               ) : (
@@ -485,7 +483,7 @@ export function ScreenshotJobsTable({
       RUNNING:
         "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
       COMPLETED:
-        "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
+        "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/40",
       FAILED: "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400",
     };
     return `inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium ${colors[s] ?? "bg-gray-50 text-gray-600 dark:bg-[#252b38] dark:text-[#8b93a5]"}`;
@@ -507,7 +505,7 @@ export function ScreenshotJobsTable({
   return (
     <div className={`${cardCls} mb-5`}>
       <div className="flex items-center justify-between mb-1">
-        <h2 className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+        <h2 className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
           Screenshot Jobs
         </h2>
         <button
@@ -518,7 +516,7 @@ export function ScreenshotJobsTable({
           {triggering ? "Starting…" : "Run Now"}
         </button>
       </div>
-      <p className="text-xs text-[#9ca3af] dark:text-[#5c6478] mb-4">
+      <p className="text-xs text-[#6b7280] dark:text-[#8b93a5] mb-4">
         Recent screenshot generation runs triggered by GitHub pushes.
       </p>
 
@@ -573,7 +571,7 @@ function JobRow({
   );
 
   return (
-    <div className="border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl overflow-hidden">
+    <div className="bg-[#fafbfc] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] text-[#111827] dark:text-[#e8eaf0] hover:border-[#d1d5db] dark:hover:border-[#3a4050] rounded-xl overflow-hidden">
       <button
         className="w-full flex items-center gap-4 px-4 py-3 hover:bg-[#fafbfc] dark:hover:bg-white/[0.03] transition-colors text-left"
         onClick={onToggle}
@@ -595,15 +593,15 @@ function JobRow({
           )}
         </div>
         <div className="text-right shrink-0">
-          <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478]">
+          <div className="text-[12px] text-[#6b7280] dark:text-[#8b93a5]">
             {job.pusher ? `by ${job.pusher}` : ""}
           </div>
-          <div className="text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
+          <div className="text-[11px] text-[#6b7280] dark:text-[#8b93a5]">
             {new Date(job.createdAt).toLocaleString()}
           </div>
         </div>
         <ChevronDown
-          className={`w-4 h-4 text-[#9ca3af] dark:text-[#5c6478] shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`}
+          className={`w-4 h-4 text-[#6b7280] dark:text-[#8b93a5] shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`}
         />
       </button>
 
@@ -684,7 +682,7 @@ export function BuildJobsTable({
       RUNNING:
         "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
       COMPLETED:
-        "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
+        "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/40",
       FAILED: "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400",
     };
     return `inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium ${colors[s] ?? "bg-gray-50 text-gray-600 dark:bg-[#252b38] dark:text-[#8b93a5]"}`;
@@ -706,7 +704,7 @@ export function BuildJobsTable({
   return (
     <div className={`${cardCls} mb-5`}>
       <div className="flex items-center justify-between mb-1">
-        <h2 className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+        <h2 className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
           Build Jobs
         </h2>
         <button
@@ -717,7 +715,7 @@ export function BuildJobsTable({
           {triggering ? "Starting…" : "Run Now"}
         </button>
       </div>
-      <p className="text-xs text-[#9ca3af] dark:text-[#5c6478] mb-4">
+      <p className="text-xs text-[#6b7280] dark:text-[#8b93a5] mb-4">
         Binary build runs triggered by GitHub pushes.
       </p>
 
@@ -768,7 +766,7 @@ function BuildJobRow({
   );
 
   return (
-    <div className="border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl overflow-hidden">
+    <div className="bg-[#fafbfc] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] text-[#111827] dark:text-[#e8eaf0] hover:border-[#d1d5db] dark:hover:border-[#3a4050] rounded-xl overflow-hidden">
       <button
         className="w-full flex items-center gap-4 px-4 py-3 hover:bg-[#fafbfc] dark:hover:bg-white/[0.03] transition-colors text-left"
         onClick={onToggle}
@@ -794,12 +792,12 @@ function BuildJobRow({
           </div>
         </div>
         <div className="text-right shrink-0">
-          <div className="text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
+          <div className="text-[11px] text-[#6b7280] dark:text-[#8b93a5]">
             {new Date(job.createdAt).toLocaleString()}
           </div>
         </div>
         <ChevronDown
-          className={`w-4 h-4 text-[#9ca3af] dark:text-[#5c6478] shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`}
+          className={`w-4 h-4 text-[#6b7280] dark:text-[#8b93a5] shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`}
         />
       </button>
 
