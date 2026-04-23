@@ -8,6 +8,127 @@ import { AIAnalyzer } from "../../services/ai-analyzer";
 export const ascRouter = Router();
 ascRouter.use(requireAuth);
 
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+function isFresh(syncedAt: Date): boolean {
+  return Date.now() - syncedAt.getTime() < CACHE_TTL_MS;
+}
+
+async function upsertVersionsToDb(
+  bundleId: string,
+  ascAppId: string,
+  appName: string,
+  versions: Array<{
+    id: string;
+    attributes: {
+      versionString: string;
+      appStoreState: string;
+      platform: string;
+      releaseType?: string;
+    };
+  }>,
+): Promise<void> {
+  await Promise.all(
+    versions.map((v) =>
+      prisma.appStoreVersion.upsert({
+        where: { id: v.id },
+        create: {
+          id: v.id,
+          bundleId,
+          ascAppId,
+          appName,
+          versionString: v.attributes.versionString,
+          appStoreState: v.attributes.appStoreState,
+          platform: v.attributes.platform,
+          releaseType: v.attributes.releaseType ?? null,
+          syncedAt: new Date(),
+        },
+        update: {
+          appStoreState: v.attributes.appStoreState,
+          versionString: v.attributes.versionString,
+          syncedAt: new Date(),
+        },
+      }),
+    ),
+  );
+}
+
+async function upsertVersionDetailToDb(
+  bundleId: string,
+  ascAppId: string,
+  appName: string,
+  version: {
+    id: string;
+    attributes: {
+      versionString: string;
+      appStoreState: string;
+      platform: string;
+      releaseType?: string;
+    };
+  },
+  localizations: Array<{
+    locale: string;
+    appInfoLocalizationId: string | null;
+    versionLocalizationId: string | null;
+    name: string;
+    subtitle: string;
+    description: string;
+    keywords: string;
+    whatsNew: string;
+    promotionalText: string;
+    supportUrl: string;
+    marketingUrl: string;
+    privacyPolicyUrl: string;
+  }>,
+  copyright?: string | null,
+  ageRating?: string | null,
+): Promise<void> {
+  await prisma.appStoreVersion.upsert({
+    where: { id: version.id },
+    create: {
+      id: version.id,
+      bundleId,
+      ascAppId,
+      appName,
+      versionString: version.attributes.versionString,
+      appStoreState: version.attributes.appStoreState,
+      platform: version.attributes.platform,
+      releaseType: version.attributes.releaseType ?? null,
+      copyright: copyright ?? null,
+      ageRating: ageRating ?? null,
+      syncedAt: new Date(),
+    },
+    update: {
+      appStoreState: version.attributes.appStoreState,
+      versionString: version.attributes.versionString,
+      copyright: copyright ?? null,
+      ageRating: ageRating ?? null,
+      syncedAt: new Date(),
+    },
+  });
+
+  await Promise.all(
+    localizations.map((loc) =>
+      prisma.appStoreVersionLocalization.upsert({
+        where: {
+          versionId_locale: { versionId: version.id, locale: loc.locale },
+        },
+        create: { versionId: version.id, ...loc },
+        update: { ...loc },
+      }),
+    ),
+  );
+}
+
+async function invalidateVersionCache(bundleId: string): Promise<void> {
+  await prisma.appStoreVersion
+    .updateMany({
+      where: { bundleId },
+      data: { syncedAt: new Date(0) },
+    })
+    .catch(() => {});
+}
+
 async function ascClientForUser(
   userId: string,
 ): Promise<AppStoreConnectClient> {
@@ -148,12 +269,6 @@ ascRouter.get("/versions/list", async (req, res) => {
       const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
       if (!owned) return;
     }
-    const asc = await ascClientForUser(req.user!.userId);
-    const app = await asc.getApp(bundleId);
-    if (!app) {
-      res.status(404).json({ error: "App not found in App Store Connect" });
-      return;
-    }
 
     const editableStates = new Set([
       "PREPARE_FOR_SUBMISSION",
@@ -164,7 +279,47 @@ ascRouter.get("/versions/list", async (req, res) => {
       "PENDING_DEVELOPER_RELEASE",
     ]);
 
+    const refresh = req.query.refresh === "true";
+    if (!refresh && bundleId) {
+      const recent = await prisma.appStoreVersion.findFirst({
+        where: {
+          bundleId,
+          syncedAt: { gte: new Date(Date.now() - CACHE_TTL_MS) },
+        },
+      });
+      if (recent) {
+        const cached = await prisma.appStoreVersion.findMany({
+          where: { bundleId },
+          orderBy: { syncedAt: "desc" },
+        });
+        res.json(
+          cached.map((v) => ({
+            versionId: v.id,
+            versionString: v.versionString,
+            appStoreState: v.appStoreState,
+            platform: v.platform,
+            isEditable: editableStates.has(v.appStoreState),
+          })),
+        );
+        return;
+      }
+    }
+
+    const asc = await ascClientForUser(req.user!.userId);
+    const app = await asc.getApp(bundleId);
+    if (!app) {
+      res.status(404).json({ error: "App not found in App Store Connect" });
+      return;
+    }
+
     const versions = await asc.listVersions(app.id);
+    await upsertVersionsToDb(
+      app.attributes.bundleId,
+      app.id,
+      app.attributes.name,
+      versions,
+    );
+
     res.json(
       versions.map((v) => ({
         versionId: v.id,
@@ -188,14 +343,6 @@ ascRouter.get("/versions", async (req, res) => {
       const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
       if (!owned) return;
     }
-    const asc = await ascClientForUser(req.user!.userId);
-    const app = await asc.getApp(bundleId);
-    if (!app) {
-      res.status(404).json({ error: "App not found in App Store Connect" });
-      return;
-    }
-
-    const appInfoLocalizations = await asc.getAppInfoLocalizations(app.id);
 
     const editableStates = new Set([
       "PREPARE_FOR_SUBMISSION",
@@ -205,6 +352,76 @@ ascRouter.get("/versions", async (req, res) => {
       "WAITING_FOR_REVIEW",
       "PENDING_DEVELOPER_RELEASE",
     ]);
+
+    const refresh = req.query.refresh === "true";
+    if (!refresh) {
+      let cached: any = null;
+      if (versionId) {
+        cached = await prisma.appStoreVersion.findUnique({
+          where: { id: versionId },
+          include: { localizations: true },
+        });
+        if (cached && !isFresh(cached.syncedAt)) cached = null;
+      } else if (bundleId) {
+        cached = await prisma.appStoreVersion.findFirst({
+          where: {
+            bundleId,
+            appStoreState: { in: [...editableStates] },
+            syncedAt: { gte: new Date(Date.now() - CACHE_TTL_MS) },
+          },
+          include: { localizations: true },
+          orderBy: { syncedAt: "desc" },
+        });
+        if (!cached) {
+          cached = await prisma.appStoreVersion.findFirst({
+            where: {
+              bundleId,
+              syncedAt: { gte: new Date(Date.now() - CACHE_TTL_MS) },
+            },
+            include: { localizations: true },
+            orderBy: { syncedAt: "desc" },
+          });
+        }
+      }
+
+      if (cached && cached.localizations.length > 0) {
+        res.json({
+          appId: cached.ascAppId,
+          appName: cached.appName,
+          bundleId: cached.bundleId,
+          versionId: cached.id,
+          versionString: cached.versionString,
+          appStoreState: cached.appStoreState,
+          isEditable: editableStates.has(cached.appStoreState),
+          copyright: cached.copyright ?? undefined,
+          ageRating: cached.ageRating ?? undefined,
+          localizations: cached.localizations.map((l: any) => ({
+            locale: l.locale,
+            appInfoLocalizationId: l.appInfoLocalizationId,
+            versionLocalizationId: l.versionLocalizationId,
+            name: l.name,
+            subtitle: l.subtitle,
+            description: l.description,
+            keywords: l.keywords,
+            whatsNew: l.whatsNew,
+            promotionalText: l.promotionalText,
+            supportUrl: l.supportUrl,
+            marketingUrl: l.marketingUrl,
+            privacyPolicyUrl: l.privacyPolicyUrl,
+          })),
+        });
+        return;
+      }
+    }
+
+    const asc = await ascClientForUser(req.user!.userId);
+    const app = await asc.getApp(bundleId);
+    if (!app) {
+      res.status(404).json({ error: "App not found in App Store Connect" });
+      return;
+    }
+
+    const appInfoLocalizations = await asc.getAppInfoLocalizations(app.id);
 
     let version: {
       id: string;
@@ -234,7 +451,6 @@ ascRouter.get("/versions", async (req, res) => {
     }
 
     const localeMap = new Map<string, any>();
-
     const appInfoById = new Map(
       appInfoLocalizations.map((info: any) => [info.attributes.locale, info]),
     );
@@ -263,6 +479,18 @@ ascRouter.get("/versions", async (req, res) => {
       });
     }
 
+    const localizations = Array.from(localeMap.values());
+
+    if (version) {
+      await upsertVersionDetailToDb(
+        app.attributes.bundleId,
+        app.id,
+        app.attributes.name,
+        version,
+        localizations,
+      );
+    }
+
     res.json({
       appId: app.id,
       appName: app.attributes.name,
@@ -271,7 +499,7 @@ ascRouter.get("/versions", async (req, res) => {
       versionString: version?.attributes.versionString ?? null,
       appStoreState: version?.attributes.appStoreState ?? null,
       isEditable,
-      localizations: Array.from(localeMap.values()),
+      localizations,
     });
   } catch (err: any) {
     logger.error("ASC getVersions failed", err);
@@ -346,6 +574,7 @@ ascRouter.patch("/versions/metadata", async (req, res) => {
       return;
     }
     await matchedGroup.update(matchedGroup.localizationId);
+    await invalidateVersionCache(bundleId);
     res.json({ ok: true, field, value });
   } catch (err: any) {
     logger.error("ASC updateMetadata failed", err);
@@ -429,6 +658,7 @@ ascRouter.post("/versions/localizations", async (req, res) => {
         versionLocs.find((l: any) => l.attributes.locale === locale)?.id ??
         null;
     }
+    await invalidateVersionCache(bundleId);
     res.json({
       ok: true,
       locale,
@@ -473,6 +703,7 @@ ascRouter.delete("/versions/localizations", async (req, res) => {
         : Promise.resolve(),
     ]);
 
+    await invalidateVersionCache(bundleId);
     res.json({ ok: true });
   } catch (err: any) {
     logger.error("ASC deleteLocalization failed", err);
@@ -721,11 +952,9 @@ ascRouter.post("/subscriptions", async (req, res) => {
       reviewNote?: string;
     };
     if (!groupId || !name || !productId || !subscriptionPeriod) {
-      res
-        .status(400)
-        .json({
-          error: "groupId, name, productId and subscriptionPeriod are required",
-        });
+      res.status(400).json({
+        error: "groupId, name, productId and subscriptionPeriod are required",
+      });
       return;
     }
 
@@ -1115,7 +1344,9 @@ ascRouter.post("/subscriptions/:id/review-screenshot", async (req, res) => {
       fileData?: string;
     };
     if (!fileName || !fileSize || !fileData) {
-      res.status(400).json({ error: "fileName, fileSize and fileData are required" });
+      res
+        .status(400)
+        .json({ error: "fileName, fileSize and fileData are required" });
       return;
     }
 
@@ -1169,7 +1400,9 @@ ascRouter.delete("/subscriptions/review-screenshots/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const asc = await ascClientForUser(req.user!.userId);
-    await (asc as any).client.delete(`/subscriptionAppStoreReviewScreenshots/${id}`);
+    await (asc as any).client.delete(
+      `/subscriptionAppStoreReviewScreenshots/${id}`,
+    );
     res.json({ ok: true });
   } catch (err: any) {
     logger.error("ASC deleteSubscriptionReviewScreenshot failed", err);

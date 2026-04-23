@@ -122,7 +122,7 @@ export class BossScheduler {
     );
 
     // ── scrape ──────────────────────────────────────────────────────────────
-    await this.boss.work(`${SCRAPE_QUEUE}/dispatch`, async () => {
+   /* await this.boss.work(`${SCRAPE_QUEUE}/dispatch`, async () => {
       const teams = await loadTeamApps();
       for (const team of teams) {
         for (const app of team.apps) {
@@ -141,7 +141,7 @@ export class BossScheduler {
       "0 0 * * *",
       {},
       { tz: "Europe/Berlin" },
-    );
+    );*/
 
     // ── sync-analytics ──────────────────────────────────────────────────────
     await this.boss.work(`${SYNC_ANALYTICS_QUEUE}/dispatch`, async () => {
@@ -170,7 +170,7 @@ export class BossScheduler {
     );
 
     // ── extract-keywords ─────────────────────────────────────────────────────
-    await this.boss.work(`${EXTRACT_KEYWORDS_QUEUE}/dispatch`, async () => {
+    /*await this.boss.work(`${EXTRACT_KEYWORDS_QUEUE}/dispatch`, async () => {
       const teams = await loadTeamApps();
       for (const team of teams) {
         for (const app of team.apps) {
@@ -190,10 +190,10 @@ export class BossScheduler {
       "0 6 * * 1",
       {},
       { tz: "Europe/Berlin" },
-    );
+    );*/
 
     // ── discover-keywords ────────────────────────────────────────────────────
-    await this.boss.work(`${DISCOVER_KEYWORDS_QUEUE}/dispatch`, async () => {
+    /*await this.boss.work(`${DISCOVER_KEYWORDS_QUEUE}/dispatch`, async () => {
       const teams = await loadTeamApps();
       for (const team of teams) {
         for (const app of team.apps) {
@@ -212,10 +212,10 @@ export class BossScheduler {
       "0 3,11,19 * * *",
       {},
       { tz: "Europe/Berlin" },
-    );
+    );*/
 
     // ── discover-competitors ─────────────────────────────────────────────────
-    await this.boss.work(`${DISCOVER_COMPETITORS_QUEUE}/dispatch`, async () => {
+    /*await this.boss.work(`${DISCOVER_COMPETITORS_QUEUE}/dispatch`, async () => {
       const teams = await loadTeamApps();
       for (const team of teams) {
         for (const app of team.apps) {
@@ -234,7 +234,7 @@ export class BossScheduler {
       "0 5 * * *",
       {},
       { tz: "Europe/Berlin" },
-    );
+    );*/
 
     // ── analyze ──────────────────────────────────────────────────────────────
     /*await this.boss.work(`${ANALYZE_QUEUE}/dispatch`, async () => {

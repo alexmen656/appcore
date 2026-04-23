@@ -513,3 +513,42 @@ enum AsoExperimentStatus {
   EVALUATED
   REJECTED
 }
+
+model AppStoreVersion {
+  id            String                        @id // ASC version ID
+  bundleId      String
+  ascAppId      String
+  appName       String
+  versionString String
+  appStoreState String
+  platform      String
+  releaseType   String?
+  copyright     String?
+  ageRating     String?
+  syncedAt      DateTime                      @default(now())
+  localizations AppStoreVersionLocalization[]
+
+  @@index([bundleId, appStoreState])
+  @@index([bundleId, syncedAt])
+}
+
+model AppStoreVersionLocalization {
+  id                    String          @id @default(cuid())
+  versionId             String
+  version               AppStoreVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  locale                String
+  appInfoLocalizationId String?
+  versionLocalizationId String?
+  name                  String          @default("")
+  subtitle              String          @default("")
+  description           String          @default("")
+  keywords              String          @default("")
+  whatsNew              String          @default("")
+  promotionalText       String          @default("")
+  supportUrl            String          @default("")
+  marketingUrl          String          @default("")
+  privacyPolicyUrl      String          @default("")
+
+  @@unique([versionId, locale])
+  @@index([versionId])
+}
