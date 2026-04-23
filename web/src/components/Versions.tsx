@@ -205,8 +205,7 @@ const LOCALE_FLAG_OVERRIDES: Record<string, string> = {
 };
 
 function getLocaleFlag(locale: string): string {
-  if (LOCALE_FLAG_OVERRIDES[locale])
-    return LOCALE_FLAG_OVERRIDES[locale];
+  if (LOCALE_FLAG_OVERRIDES[locale]) return LOCALE_FLAG_OVERRIDES[locale];
   const parts = locale.split("-");
   if (parts.length > 1) return parts[1].toLowerCase();
   const lang = parts[0];
@@ -341,7 +340,9 @@ function ActionButton({
           className="px-2.5 rounded-r-xl bg-[#D94412] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="More actions"
         >
-          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+          <ChevronDown
+            className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`}
+          />
         </button>
         {open && (
           <div className="absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl shadow-lg py-1 min-w-[180px]">
@@ -406,7 +407,9 @@ function ActionButton({
         className="px-2.5 rounded-r-xl border border-l-0 border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-[#6b7280] dark:text-[#8b93a5] hover:border-[#D94412] hover:text-[#D94412] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         aria-label="More actions"
       >
-          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown
+          className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`}
+        />
       </button>
       {open && (
         <div className="absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl shadow-lg py-1 min-w-[160px]">
@@ -577,8 +580,7 @@ function EditableField({
                 </>
               ) : (
                 <>
-                  <Check className="w-3 h-3" />{" "}
-                  Save
+                  <Check className="w-3 h-3" /> Save
                 </>
               )}
             </button>
@@ -768,7 +770,7 @@ function LatestBuildCard({
 
   return (
     <div className={`${cardCls} mb-5`}>
-      <div className="text-[11px] font-bold uppercase tracking-widest text-[#9ca3af] dark:text-[#5c6478] mb-3">
+      <div className="text-[14px] font-bold mb-3">{/*tracking-widest text-[#9ca3af] dark:text-[#5c6478] uppercase */}
         Latest Build
       </div>
       <div className="flex items-start gap-4">
@@ -777,10 +779,10 @@ function LatestBuildCard({
             <img
               src={build.iconUrl}
               alt={appName}
-              className="w-14 h-14 rounded-[14px] border border-[#eef0f3] dark:border-[#2a2f3d] shadow-sm object-cover"
+              className="w-16 h-16 rounded-[16px] border border-[#eef0f3] dark:border-[#2a2f3d] shadow-sm object-cover"
             />
           ) : (
-            <div className="w-14 h-14 rounded-[14px] bg-[#f3f4f6] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] flex items-center justify-center">
+            <div className="w-16 h-16 rounded-[16px] bg-[#f3f4f6] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] flex items-center justify-center">
               <Store className="w-6 h-6 text-[#9ca3af]" />
             </div>
           )}
@@ -801,7 +803,7 @@ function LatestBuildCard({
             </span>
           </div>
 
-          <div className="flex items-center gap-3 mt-2.5 flex-wrap">
+          <div className="flex items-center gap-3 mt-2 flex-wrap">
             <span className="flex items-center gap-1 text-[12px] text-[#6b7280] dark:text-[#8b93a5]">
               <FileText className="w-3.5 h-3.5 shrink-0" />
               {sizeMb} MB
@@ -894,25 +896,14 @@ function ScreenshotsPanel({
   );
 
   return (
-    <div className={`${cardCls} mb-5`}>
-      <div className="flex items-center gap-2 mb-4">
-        <h2 className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="text-[14px] font-bold">{/*uppercase tracking-widest text-[#9ca3af] dark:text-[#5c6478]*/}
           Screenshots
-        </h2>
-        <span className="text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
-          <span className="font-mono">{job.commitSha.slice(0, 7)}</span>
+        </div>
+        <span className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] font-mono">
+          {job.commitSha.slice(0, 7)}
           {job.branch ? ` · ${job.branch}` : ""}
-          {" · "}
-          {new Date(job.createdAt).toLocaleDateString()}
-          {effectiveLocale && (
-            <>
-              {" "}
-              ·{" "}
-              <span className="font-medium text-[#6b7280] dark:text-[#8b93a5]">
-                {effectiveLocale}
-              </span>
-            </>
-          )}
         </span>
       </div>
 
@@ -924,8 +915,13 @@ function ScreenshotsPanel({
         <div className="flex flex-col gap-5">
           {sortedGroups.map(([label, urls]) => (
             <div key={label}>
-              <div className="text-[10px] font-bold uppercase tracking-widest text-[#9ca3af] dark:text-[#5c6478] mb-2.5">
-                {label}
+              <div className="flex items-center gap-2 mb-2.5">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-[#9ca3af] dark:text-[#5c6478]">
+                  {label}
+                </div>
+                <span className="text-[10px] text-[#c8cdd3] dark:text-[#3a4050]">
+                  — max 10
+                </span>
               </div>
               <div className="flex gap-3 overflow-x-auto pb-1">
                 {urls.map((url) => (
@@ -1425,123 +1421,116 @@ export default function Versions({ addToast }: Props) {
         </div>
       )}
 
-      {(data.localizations.length > 1 || data.isEditable) && (
-        <div className="flex items-start gap-2 mb-5">
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 flex-wrap flex-1 min-w-0">
-            {data.localizations.map((loc) => (
-              <div key={loc.locale} className="relative group">
-                <button
-                  onClick={() => setActiveLocale(loc.locale)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all whitespace-nowrap ${
-                    loc.locale === activeLocale
-                      ? "bg-[#D94412] text-white shadow-sm"
-                      : "bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] text-[#111827] dark:text-[#e8eaf0] hover:border-[#d1d5db] dark:hover:border-[#3a4050]"
-                  }`}
-                >
-                  <LocaleFlag locale={loc.locale} />
-                  <span className="flex flex-col items-start">
-                  <span className="text-[13px] font-medium leading-tight pr-3">
-                    {getLocaleName(loc.locale)}
-                  </span>
-                  <span
-                    className={`text-[10px] font-mono mt-0.5 ${
-                      loc.locale === activeLocale
-                        ? "text-white/70"
-                        : "text-[#9ca3af]"
-                    }`}
-                  >
-                    {loc.locale}
-                  </span>
-                  </span>
-                </button>
-                {data.isEditable && data.localizations.length > 1 && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeLocale(loc);
-                    }}
-                    disabled={removingLocale === loc.locale}
-                    className={`absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity ${
-                      loc.locale === activeLocale
-                        ? "bg-white/20 hover:bg-white/40 text-white"
-                        : "bg-[#f3f4f6] dark:bg-[#2a2f3d] hover:bg-red-100 dark:hover:bg-red-900/30 text-[#9ca3af] hover:text-[#D94412]"
-                    }`}
-                    title="Remove language"
-                  >
-                    {removingLocale === loc.locale ? (
-                      <div className="spinner !w-2.5 !h-2.5" />
-                    ) : (
-                      <X className="w-2 h-2" />
-                    )}
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-          {data.isEditable && data.versionId && (
-            <div ref={addLocaleRef} className="relative shrink-0">
-              <button
-                onClick={() => setShowAddLocale((v) => !v)}
-                disabled={addingLocale}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-[#d1d5db] dark:border-[#3a4050] text-[#6b7280] dark:text-[#8b93a5] hover:border-[#D94412] hover:text-[#D94412] transition-all text-[13px] font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {addingLocale ? (
-                  <div className="spinner !w-3.5 !h-3.5" />
-                ) : (
-                  <Plus className="w-3.5 h-3.5" />
-                )}
-                Add Language
-              </button>
-              {showAddLocale && (
-                <div className="absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl shadow-lg py-1 min-w-[200px] max-h-64 overflow-y-auto">
-                  {ALL_ASC_LOCALES.filter(
-                    (l) => !data.localizations.some((loc) => loc.locale === l),
-                  ).map((locale) => (
-                    <button
-                      key={locale}
-                      onClick={() => createLocalization(locale)}
-                      className="w-full flex items-center justify-between gap-2 px-4 py-2 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
-                    >
-                      <span className="flex items-center gap-2">
-                        <LocaleFlag locale={locale} />
-                        {getLocaleName(locale)}
-                      </span>
-                      <span className="text-[11px] font-mono text-[#9ca3af] dark:text-[#5c6478]">
-                        {locale}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
       <LatestBuildCard bundleId={data.bundleId} appName={data.appName} />
-
-      {data.appId && (
-        <ScreenshotsPanel
-          appId={data.appId}
-          activeLocale={activeLocale}
-          addToast={addToast}
-        />
-      )}
 
       {activeLoc ? (
         <div className={`${cardCls} flex flex-col gap-5`}>
+
+          {/* Language selector */}
+          {(data.localizations.length > 1 || data.isEditable) && (
+            <div className="-mx-5 -mt-5 px-5 pt-4 pb-4 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
+              <div className="flex items-start gap-2">
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 flex-wrap flex-1 min-w-0">
+                  {data.localizations.map((loc) => (
+                    <div key={loc.locale} className="relative group">
+                      <button
+                        onClick={() => setActiveLocale(loc.locale)}
+                        className={`flex items-center gap-2 px-3.5 py-[7px] rounded-xl transition-all whitespace-nowrap ${
+                          loc.locale === activeLocale
+                            ? "bg-[#111827] dark:bg-[#e8eaf0] text-white dark:text-[#111827] shadow-sm"
+                            : "bg-[#fafbfc] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] text-[#111827] dark:text-[#e8eaf0] hover:border-[#d1d5db] dark:hover:border-[#3a4050]"
+                        }`}
+                      >
+                        <LocaleFlag locale={loc.locale} />
+                        <span className="text-[13px] font-medium">
+                          {getLocaleName(loc.locale)}
+                        </span>
+                        {/*<Check
+                          className={`w-3.5 h-3.5 shrink-0 ${
+                            loc.locale === activeLocale ? "opacity-100" : "opacity-30"
+                          }`}
+                        />*/}
+                      </button>
+                      {data.isEditable && data.localizations.length > 1 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeLocale(loc);
+                          }}
+                          disabled={removingLocale === loc.locale}
+                          className={`absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm ${
+                            loc.locale === activeLocale
+                              ? "bg-white/20 hover:bg-white/40 text-white"
+                              : "bg-[#f3f4f6] dark:bg-[#2a2f3d] hover:bg-red-100 dark:hover:bg-red-900/30 text-[#9ca3af] hover:text-[#D94412]"
+                          }`}
+                          title="Remove language"
+                        >
+                          {removingLocale === loc.locale ? (
+                            <div className="spinner !w-2.5 !h-2.5" />
+                          ) : (
+                            <X className="w-2 h-2" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {data.isEditable && data.versionId && (
+                  <div ref={addLocaleRef} className="relative shrink-0 self-start">
+                    <button
+                      onClick={() => setShowAddLocale((v) => !v)}
+                      disabled={addingLocale}
+                      className="flex items-center gap-1.5 px-3 py-[7px] rounded-xl border border-dashed border-[#d1d5db] dark:border-[#3a4050] text-[#6b7280] dark:text-[#8b93a5] hover:border-[#D94412] hover:text-[#D94412] transition-all text-[13px] font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {addingLocale ? (
+                        <div className="spinner !w-3.5 !h-3.5" />
+                      ) : (
+                        <Plus className="w-3.5 h-3.5" />
+                      )}
+                      Add Language
+                    </button>
+                    {showAddLocale && (
+                      <div className="absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl shadow-lg py-1 min-w-[200px] max-h-64 overflow-y-auto">
+                        {ALL_ASC_LOCALES.filter(
+                          (l) => !data.localizations.some((loc) => loc.locale === l),
+                        ).map((locale) => (
+                          <button
+                            key={locale}
+                            onClick={() => createLocalization(locale)}
+                            className="w-full flex items-center justify-between gap-2 px-4 py-2 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
+                          >
+                            <span className="flex items-center gap-2">
+                              <LocaleFlag locale={locale} />
+                              {getLocaleName(locale)}
+                            </span>
+                            <span className="text-[11px] font-mono text-[#9ca3af] dark:text-[#5c6478]">
+                              {locale}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Active locale header */}
           <div className="flex items-center justify-between pb-3 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
-            <div className="flex items-center gap-2">
+            <div className="flex items-start gap-2.5">
               <LocaleFlag
                 locale={activeLoc.locale}
-                className="w-5 h-4 rounded-sm object-cover shrink-0"
+                className="w-5 h-4 rounded-xs object-cover shrink-0 mt-1"
               />
-              <span className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
-                {getLocaleName(activeLoc.locale)}
-              </span>
-              <span className="text-[11px] font-mono text-[#9ca3af] dark:text-[#5c6478]">
-                {activeLoc.locale}
-              </span>
+              <div>
+                <div className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0] leading-tight">
+                  {getLocaleName(activeLoc.locale)}
+                </div>
+                <div className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] mt-0.5">
+                  Locale: {activeLoc.locale}
+                </div>
+              </div>
             </div>
             {data.isEditable ? (
               <span className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/40 px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide">
@@ -1553,6 +1542,18 @@ export default function Versions({ addToast }: Props) {
               </span>
             )}
           </div>
+          {data.appId && (
+            <ScreenshotsPanel
+              appId={data.appId}
+              activeLocale={activeLocale}
+              addToast={addToast}
+            />
+          )}
+
+          <div className="text-[14px] font-bold pt-4 border-t border-[#f3f4f6] dark:border-[#2a2f3d] -mb-1">{/*uppercase tracking-widest text-[#9ca3af] dark:text-[#5c6478]*/}
+            App Metadata
+          </div>
+
           {FIELD_META.map((field) => (
             <EditableField
               key={field.key}
