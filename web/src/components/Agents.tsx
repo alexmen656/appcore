@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useApi, apiPut, apiPost, apiDelete } from "../hooks/useApi";
-import SectionCard from "./comps/settings/SectionCard";
+import SectionCard from "./settings/SectionCard";
 import type { McpConfig, OAuthClient } from "../types";
 import { btnSecSm, TH, TD } from "../styles";
 

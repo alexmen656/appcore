@@ -9,7 +9,11 @@ interface Props {
   onChange: (key: keyof SettingsData, value: any) => void;
 }
 
-export default function PresetMetadataSection({ form, inputCls, onChange }: Props) {
+export default function PresetMetadataSection({
+  form,
+  inputCls,
+  onChange,
+}: Props) {
   const [showDemoCredentials, setShowDemoCredentials] = useState(
     form.reviewerDemoAccountRequired ?? false,
   );
@@ -59,7 +63,10 @@ export default function PresetMetadataSection({ form, inputCls, onChange }: Prop
             placeholder="Mustermann"
           />
         </Field>
-        <Field label="Phone Number" hint="Include country code, e.g. +49 151 12345678">
+        <Field
+          label="Phone Number"
+          hint="Include country code, e.g. +49 151 12345678"
+        >
           <input
             type="tel"
             className={inputCls}
@@ -99,7 +106,9 @@ export default function PresetMetadataSection({ form, inputCls, onChange }: Prop
                 type="text"
                 className={inputCls}
                 value={form.reviewerDemoUsername ?? ""}
-                onChange={(e) => onChange("reviewerDemoUsername", e.target.value)}
+                onChange={(e) =>
+                  onChange("reviewerDemoUsername", e.target.value)
+                }
                 placeholder="demo@example.com"
               />
             </Field>
@@ -109,7 +118,9 @@ export default function PresetMetadataSection({ form, inputCls, onChange }: Prop
                 autoComplete="off"
                 className={inputCls}
                 value={form.reviewerDemoPassword ?? ""}
-                onChange={(e) => onChange("reviewerDemoPassword", e.target.value)}
+                onChange={(e) =>
+                  onChange("reviewerDemoPassword", e.target.value)
+                }
                 placeholder="••••••••"
               />
             </Field>

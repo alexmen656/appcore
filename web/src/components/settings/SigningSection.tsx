@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { authHeaders } from "../../../hooks/useApi";
+import { authHeaders } from "../../hooks/useApi";
 import SectionCard from "./SectionCard";
-import { btnPrimary, btnSecondary, inputCls } from "../../../styles";
+import { btnPrimary, btnSecondary, inputCls } from "../../styles";
 import { CheckCircle, Paperclip, FileText } from "lucide-react";
 
 interface SigningStatus {
@@ -46,18 +46,25 @@ export default function SigningSection({ appId, addToast }: Props) {
   const fetchStatus = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/apps/${appId}/signing`, { headers: authHeaders() });
+      const res = await fetch(`/api/apps/${appId}/signing`, {
+        headers: authHeaders(),
+      });
       if (res.ok) setStatus(await res.json());
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchStatus(); }, [appId]);
+  useEffect(() => {
+    fetchStatus();
+  }, [appId]);
 
   const handleSave = async () => {
     if (!p12File || !profileFile || !password) {
-      addToast("Certificate (.p12), provisioning profile, and password are required", "error");
+      addToast(
+        "Certificate (.p12), provisioning profile, and password are required",
+        "error",
+      );
       return;
     }
     setSaving(true);
@@ -67,9 +74,15 @@ export default function SigningSection({ appId, addToast }: Props) {
       const res = await fetch(`/api/apps/${appId}/signing`, {
         method: "PUT",
         headers: { ...authHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({ p12Base64, p12Password: password, profileBase64, teamId: teamId || undefined }),
+        body: JSON.stringify({
+          p12Base64,
+          p12Password: password,
+          profileBase64,
+          teamId: teamId || undefined,
+        }),
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? "Failed to save");
+      if (!res.ok)
+        throw new Error((await res.json()).error ?? "Failed to save");
       addToast("Signing credentials saved", "success");
       setShowForm(false);
       setP12File(null);
@@ -85,14 +98,20 @@ export default function SigningSection({ appId, addToast }: Props) {
   };
 
   const handleRemove = async () => {
-    if (!confirm("Remove signing credentials? Binary builds will fail until new credentials are added.")) return;
+    if (
+      !confirm(
+        "Remove signing credentials? Binary builds will fail until new credentials are added.",
+      )
+    )
+      return;
     setRemoving(true);
     try {
       const res = await fetch(`/api/apps/${appId}/signing`, {
         method: "DELETE",
         headers: authHeaders(),
       });
-      if (!res.ok) throw new Error((await res.json()).error ?? "Failed to remove");
+      if (!res.ok)
+        throw new Error((await res.json()).error ?? "Failed to remove");
       addToast("Signing credentials removed", "success");
       fetchStatus();
     } catch (err: any) {
@@ -122,13 +141,21 @@ export default function SigningSection({ appId, addToast }: Props) {
                 Credentials configured
               </div>
               <div className="text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
-                {status?.teamId ? `Team ID: ${status.teamId}` : "Cert + profile stored"}
+                {status?.teamId
+                  ? `Team ID: ${status.teamId}`
+                  : "Cert + profile stored"}
               </div>
             </div>
           </div>
           <div className="flex gap-2">
-            <button className={btnSecondary} onClick={() => setShowForm(true)}>Update</button>
-            <button className={btnSecondary} onClick={handleRemove} disabled={removing}>
+            <button className={btnSecondary} onClick={() => setShowForm(true)}>
+              Update
+            </button>
+            <button
+              className={btnSecondary}
+              onClick={handleRemove}
+              disabled={removing}
+            >
               {removing ? "Removing…" : "Remove"}
             </button>
           </div>
@@ -138,7 +165,8 @@ export default function SigningSection({ appId, addToast }: Props) {
           {!hasAll && !showForm && (
             <div className="flex items-center justify-between">
               <div className="text-sm text-[#6b7280] dark:text-[#8b93a5]">
-                No signing credentials configured — binary builds will be skipped.
+                No signing credentials configured — binary builds will be
+                skipped.
               </div>
               <button className={btnPrimary} onClick={() => setShowForm(true)}>
                 Add Credentials
@@ -196,14 +224,18 @@ export default function SigningSection({ appId, addToast }: Props) {
                 >
                   <FileText className="w-4 h-4 text-[#9ca3af] flex-shrink-0" />
                   <span className="text-[13px] text-[#9ca3af] dark:text-[#5c6478]">
-                    {profileFile ? profileFile.name : "Choose .mobileprovision file…"}
+                    {profileFile
+                      ? profileFile.name
+                      : "Choose .mobileprovision file…"}
                   </span>
                   <input
                     ref={profileRef}
                     type="file"
                     accept=".mobileprovision"
                     className="hidden"
-                    onChange={(e) => setProfileFile(e.target.files?.[0] ?? null)}
+                    onChange={(e) =>
+                      setProfileFile(e.target.files?.[0] ?? null)
+                    }
                   />
                 </div>
               </div>
@@ -211,7 +243,8 @@ export default function SigningSection({ appId, addToast }: Props) {
               {/* Team ID */}
               <div>
                 <label className="block text-xs font-medium text-[#6b7280] dark:text-[#8b93a5] mb-1.5">
-                  Apple Team ID <span className="font-normal text-[#9ca3af]">(optional)</span>
+                  Apple Team ID{" "}
+                  <span className="font-normal text-[#9ca3af]">(optional)</span>
                 </label>
                 <input
                   type="text"
@@ -223,10 +256,22 @@ export default function SigningSection({ appId, addToast }: Props) {
               </div>
 
               <div className="flex gap-2 pt-1">
-                <button className={btnPrimary} onClick={handleSave} disabled={saving}>
+                <button
+                  className={btnPrimary}
+                  onClick={handleSave}
+                  disabled={saving}
+                >
                   {saving ? "Saving…" : "Save Credentials"}
                 </button>
-                <button className={btnSecondary} onClick={() => { setShowForm(false); setP12File(null); setProfileFile(null); setPassword(""); }}>
+                <button
+                  className={btnSecondary}
+                  onClick={() => {
+                    setShowForm(false);
+                    setP12File(null);
+                    setProfileFile(null);
+                    setPassword("");
+                  }}
+                >
                   Cancel
                 </button>
               </div>

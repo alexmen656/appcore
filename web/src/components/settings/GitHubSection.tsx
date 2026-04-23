@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { useApi, apiPost, authHeaders } from "../../../hooks/useApi";
+import { useApi, apiPost, authHeaders } from "../../hooks/useApi";
 import SectionCard from "./SectionCard";
-import type { GitHubStatus } from "../../../types";
-import { btnPrimary, btnSecondary } from "../../../styles";
+import type { GitHubStatus } from "../../types";
+import { btnPrimary, btnSecondary } from "../../styles";
 import { GitBranch } from "lucide-react";
 
 export default function GitHubSection() {

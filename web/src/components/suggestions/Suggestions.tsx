@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { ClipboardList } from "lucide-react";
-import { useApi, apiPost, getActiveBundleId } from "../hooks/useApi";
-import FilterBar from "./comps/suggestions/FilterBar";
-import LocalePills from "./comps/suggestions/LocalePills";
-import SuggestionCard, { Suggestion } from "./comps/suggestions/SuggestionCard";
+import { useApi, apiPost, getActiveBundleId } from "../../hooks/useApi";
+import FilterBar from "./FilterBar";
+import LocalePills from "./LocalePills";
+import SuggestionCard, { Suggestion } from "./SuggestionCard";
 
 interface SuggestionsData {
   suggestions: Record<string, Suggestion[]>;
@@ -101,7 +101,13 @@ export default function Suggestions({ addToast }: Props) {
           disabled={analyzing}
           className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium bg-[#D94412] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {analyzing ? <><div className="spinner" /> Analyzing…</> : "Run AI Analysis"}
+          {analyzing ? (
+            <>
+              <div className="spinner" /> Analyzing…
+            </>
+          ) : (
+            "Run AI Analysis"
+          )}
         </button>
       </div>
       <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">

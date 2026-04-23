@@ -11,9 +11,6 @@ export default function AuthHeader({ mode }: Props) {
           <div className="text-3xl font-bold leading-tight bg-gradient-to-br from-[#D94412] to-[#C4001E] bg-clip-text text-transparent">
             marteso
           </div>
-          {/*<<div className="text-xs text-[#9ca3af] dark:text-[#5c6478]">
-            ASO Engine by Fringelo
-          </div>*/}
         </div>
       </div>
       <h2 className="text-[22px] font-bold text-[#111827] dark:text-[#e8eaf0] mb-6 tracking-tight">

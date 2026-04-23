@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import { User } from "lucide-react";
-import { apiPost, getToken, authHeaders } from "../hooks/useApi";
-import { inputCls, btnPrimary, cardCls } from "../styles";
-import type { AuthUser } from "../types";
+import { getToken, authHeaders } from "../../hooks/useApi";
+import { inputCls, btnPrimary, cardCls } from "../../styles";
+import type { AuthUser } from "../../types";
 
 interface Props {
   user: AuthUser;

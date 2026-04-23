@@ -5,11 +5,11 @@ import {
   getActiveBundleId,
   apiDelete,
   setActiveBundleId,
-} from "../hooks/useApi";
-import SigningSection from "./comps/settings/SigningSection";
-import SnapshotEnvSection from "./comps/settings/SnapshotEnvSection";
-import { RepoLinker } from "./Logs";
-import type { AppItem, GitHubStatus } from "../types";
+} from "../../hooks/useApi";
+import SigningSection from "./SigningSection";
+import SnapshotEnvSection from "./SnapshotEnvSection";
+import { RepoLinker } from "../Logs";
+import type { AppItem, GitHubStatus } from "../../types";
 
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
@@ -22,7 +22,7 @@ export default function AppSettings({ addToast }: Props) {
   const activeApp = apps?.find(
     (a) => a.bundleId === getActiveBundleId() && a.isOwnApp,
   );
-  
+
   return (
     <div className="max-w-3xl">
       <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-5">

@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { useApi, apiPut } from "../hooks/useApi";
-import AscCredentialsSection from "./comps/settings/AscCredentialsSection";
-import AiProviderSection from "./comps/settings/AiProviderSection";
-import GitHubSection from "./comps/settings/GitHubSection";
-import PresetMetadataSection from "./comps/settings/PresetMetadataSection";
-import { SettingsData } from "./comps/settings/types";
-import { inputCls, textareaCls, btnSecondary, btnPrimary } from "../styles";
+import { useApi, apiPut } from "../../hooks/useApi";
+import AscCredentialsSection from "./AscCredentialsSection";
+import AiProviderSection from "./AiProviderSection";
+import GitHubSection from "./GitHubSection";
+import PresetMetadataSection from "./PresetMetadataSection";
+import { SettingsData } from "./types";
+import { inputCls, textareaCls, btnPrimary } from "../../styles";
 
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
@@ -21,7 +21,7 @@ export default function Settings({ addToast }: Props) {
   }, [data]);
 
   const set = (key: keyof SettingsData, value: any) =>
-    setForm((f) => ({ ...f, [key]: value }));
+    setForm((f: Partial<SettingsData>) => ({ ...f, [key]: value }));
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,11 +64,7 @@ export default function Settings({ addToast }: Props) {
           inputCls={inputCls}
           onChange={set}
         />
-        <PresetMetadataSection
-          form={form}
-          inputCls={inputCls}
-          onChange={set}
-        />
+        <PresetMetadataSection form={form} inputCls={inputCls} onChange={set} />
         <GitHubSection />
 
         <div className="flex justify-end pb-2">
