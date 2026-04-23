@@ -9,8 +9,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import type { DownloadsDayData } from "../../../types";
-import { fmtShortDate } from "../../../utils/formatters";
+import type { DownloadsDayData } from "../../types";
+import { fmtShortDate } from "../../utils/formatters";
 
 interface Props {
   data: DownloadsDayData[];

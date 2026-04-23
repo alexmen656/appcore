@@ -1,6 +1,6 @@
 import { useState } from "react";
-import type { Review } from "../../../types";
-import { fmtMediumDate } from "../../../utils/formatters";
+import type { Review } from "../../types";
+import { fmtMediumDate } from "../../utils/formatters";
 
 interface Props {
   reviews: Review[];

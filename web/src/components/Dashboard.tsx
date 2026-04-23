@@ -2,7 +2,7 @@ import { useApi } from "../hooks/useApi";
 import StatsGrid from "./comps/dashboard/StatsGrid";
 import AppInfoCard from "./comps/dashboard/AppInfoCard";
 import RecentSuggestionsTable from "./comps/dashboard/RecentSuggestionsTable";
-import DownloadsChart from "./comps/analytics/DownloadsChart";
+import DownloadsChart from "./analytics/DownloadsChart";
 import type { DashboardData, DownloadsData } from "../types";
 
 export default function Dashboard() {

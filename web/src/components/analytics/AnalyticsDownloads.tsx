@@ -1,21 +1,21 @@
 import { useState, useMemo } from "react";
-import { useApi, getActiveBundleId } from "../hooks/useApi";
-import MetricsChart from "./comps/analytics/MetricsChart";
-import type { ChartMarker } from "./comps/analytics/MetricsChart";
-import type { DownloadsData } from "../types";
-import { TH, TD } from "../styles";
+import { useApi, getActiveBundleId } from "../../hooks/useApi";
+import MetricsChart from "./MetricsChart";
+import type { ChartMarker } from "./MetricsChart";
+import type { DownloadsData } from "../../types";
+import { TH, TD } from "../../styles";
 import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import {
   fmtNumber,
   fmtRevenue,
   fmtShortDate,
-} from "../utils/formatters";
+} from "../../utils/formatters";
 import {
   type RangeKey,
   RANGE_OPTIONS,
   rangeToParams,
   rangeLabel,
-} from "../utils/analyticsRange";
+} from "../../utils/analyticsRange";
 
 export default function AnalyticsDownloads() {
   const bundleId = getActiveBundleId() ?? "";

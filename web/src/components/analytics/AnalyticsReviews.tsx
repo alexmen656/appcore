@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { useApi, getActiveBundleId } from "../hooks/useApi";
-import ReviewsList from "./comps/analytics/ReviewsList";
-import type { Review } from "../types";
-import { fmtNumber } from "../utils/formatters";
+import { useApi, getActiveBundleId } from "../../hooks/useApi";
+import ReviewsList from "./ReviewsList";
+import type { Review } from "../../types";
 
 export default function AnalyticsReviews() {
   const bundleId = getActiveBundleId() ?? "";

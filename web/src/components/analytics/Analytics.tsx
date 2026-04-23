@@ -11,24 +11,24 @@ import {
   DollarSign,
   TrendingUp,
 } from "lucide-react";
-import { useApi, apiPost, getActiveBundleId } from "../hooks/useApi";
-import MetricsChart from "./comps/analytics/MetricsChart";
-import type { ChartMarker } from "./comps/analytics/MetricsChart";
-import type { AnalyticsSummary, DownloadsData, Review } from "../types";
-import { TH, TD } from "../styles";
+import { useApi, apiPost, getActiveBundleId } from "../../hooks/useApi";
+import MetricsChart from "./MetricsChart";
+import type { ChartMarker } from "./MetricsChart";
+import type { AnalyticsSummary, DownloadsData, Review } from "../../types";
+import { TH, TD } from "../../styles";
 import {
   fmtNumber,
   fmtRevenue,
   fmtDateTime,
   fmtPct,
   countryName,
-} from "../utils/formatters";
+} from "../../utils/formatters";
 import {
   type RangeKey,
   RANGE_OPTIONS,
   rangeToParams,
   rangeLabel,
-} from "../utils/analyticsRange";
+} from "../../utils/analyticsRange";
 
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;

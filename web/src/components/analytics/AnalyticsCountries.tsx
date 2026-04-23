@@ -1,9 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useApi, getActiveBundleId, authHeaders } from "../hooks/useApi";
-import type { DownloadsData, CountryData } from "../types";
-import { TH, TD } from "../styles";
-import { fmtNumber, countryName, fmtLargeNum } from "../utils/formatters";
+import { useApi, getActiveBundleId, authHeaders } from "../../hooks/useApi";
+import type { DownloadsData, CountryData } from "../../types";
+import { TH, TD } from "../../styles";
+import { fmtNumber, countryName, fmtLargeNum } from "../../utils/formatters";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import {
   BarChart,
@@ -23,7 +23,7 @@ import {
   rangeToParams,
   rangeLabel,
   prevPeriodParams,
-} from "../utils/analyticsRange";
+} from "../../utils/analyticsRange";
 
 function TrendBadge({
   current,

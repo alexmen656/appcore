@@ -1,15 +1,15 @@
 import { useState, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Download, Eye, Monitor, Star } from "lucide-react";
-import { useApi, getActiveBundleId } from "../hooks/useApi";
-import type { DownloadsData, Review } from "../types";
-import { fmtNumber, fmtLargeNum, countryName } from "../utils/formatters";
+import { useApi, getActiveBundleId } from "../../hooks/useApi";
+import type { DownloadsData, Review } from "../../types";
+import { fmtNumber, fmtLargeNum, countryName } from "../../utils/formatters";
 import {
   type RangeKey,
   RANGE_OPTIONS,
   rangeToParams,
   rangeLabel,
-} from "../utils/analyticsRange";
+} from "../../utils/analyticsRange";
 import {
   AreaChart,
   Area,
@@ -19,7 +19,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
-import { TD } from "../styles";
+import { TD } from "../../styles";
 
 function StatTile({
   label,

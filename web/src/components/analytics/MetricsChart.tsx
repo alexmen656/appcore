@@ -11,8 +11,8 @@ import {
   ReferenceLine,
   ResponsiveContainer,
 } from "recharts";
-import type { DayData } from "../../../types";
-import { fmtShortDate, fmtLargeNum, fmtRevenueShort } from "../../../utils/formatters";
+import type { DayData } from "../../types";
+import { fmtShortDate, fmtLargeNum, fmtRevenueShort } from "../../utils/formatters";
 export type { DayData };
 
 export interface ChartMarker {
