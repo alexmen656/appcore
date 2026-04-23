@@ -1,5 +1,5 @@
-import { TH, TD, btnSecSm } from "../../../styles";
-import type { Keyword } from "../../../types";
+import { TH, TD, btnSecSm } from "../../styles";
+import type { Keyword } from "../../types";
 import { TrendingUp, TrendingDown, ChevronUp, ChevronDown } from "lucide-react";
 
 export type { Keyword };

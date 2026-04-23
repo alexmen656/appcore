@@ -10,8 +10,8 @@ import {
   Legend,
 } from "recharts";
 import { Keyword } from "./KeywordTable";
-import { btnSecSm } from "../../../styles";
-import type { RankingEntry, KeywordHistoryData } from "../../../types";
+import { btnSecSm } from "../../styles";
+import type { RankingEntry, KeywordHistoryData } from "../../types";
 
 export type { KeywordHistoryData as HistoryData };
 

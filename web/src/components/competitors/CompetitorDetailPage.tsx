@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
-import { authHeaders, getActiveBundleId } from "../hooks/useApi";
-import type { CompetitorDetail } from "../types";
-import AppIcon from "./comps/competitors/AppIcon";
+import { authHeaders, getActiveBundleId } from "../../hooks/useApi";
+import type { CompetitorDetail } from "../../types";
+import AppIcon from "./AppIcon";
 import {
   OverviewTab,
   ReviewsTab,
   ChangesTab,
   KeywordsTab,
-} from "./comps/CompetitorDetailModal";
+} from "./CompetitorDetailModal";
 
 type Tab = "overview" | "reviews" | "changes" | "keywords";
 
@@ -47,7 +47,8 @@ export default function CompetitorDetailPage({ addToast }: Props) {
     {
       key: "keywords",
       label: "Keywords",
-      count: data?.keywordRankings.filter((k) => k.competitorRank != null).length,
+      count: data?.keywordRankings.filter((k) => k.competitorRank != null)
+        .length,
     },
   ];
 
@@ -68,7 +69,9 @@ export default function CompetitorDetailPage({ addToast }: Props) {
           <div className="spinner" /> Loading…
         </div>
       ) : !data ? (
-        <div className="text-center py-20 text-[#9ca3af]">Failed to load competitor data</div>
+        <div className="text-center py-20 text-[#9ca3af]">
+          Failed to load competitor data
+        </div>
       ) : (
         <>
           <div className="flex items-center gap-4 mb-6">
@@ -118,7 +121,9 @@ export default function CompetitorDetailPage({ addToast }: Props) {
           {tab === "overview" && <OverviewTab data={data} />}
           {tab === "reviews" && <ReviewsTab data={data} />}
           {tab === "changes" && <ChangesTab changes={data.metadataChanges} />}
-          {tab === "keywords" && <KeywordsTab rankings={data.keywordRankings} />}
+          {tab === "keywords" && (
+            <KeywordsTab rankings={data.keywordRankings} />
+          )}
         </>
       )}
     </div>

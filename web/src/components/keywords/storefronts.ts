@@ -1,4 +1,4 @@
-import { countryName } from "../../../utils/formatters";
+import { countryName } from "../../utils/formatters";
 
 export interface StorefrontOption {
   code: string;

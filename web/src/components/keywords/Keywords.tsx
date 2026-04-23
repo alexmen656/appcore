@@ -6,13 +6,13 @@ import {
   apiDelete,
   authHeaders,
   getActiveBundleId,
-} from "../hooks/useApi";
-import { useClickOutside } from "../hooks/useClickOutside";
-import KeywordForm, { COUNTRIES } from "./comps/keywords/KeywordForm";
-import KeywordTable, { Keyword, SortKey } from "./comps/keywords/KeywordTable";
+} from "../../hooks/useApi";
+import { useClickOutside } from "../../hooks/useClickOutside";
+import KeywordForm, { COUNTRIES } from "./KeywordForm";
+import KeywordTable, { Keyword, SortKey } from "./KeywordTable";
 import RankingHistoryChart, {
   HistoryData,
-} from "./comps/keywords/RankingHistoryChart";
+} from "./RankingHistoryChart";
 
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;

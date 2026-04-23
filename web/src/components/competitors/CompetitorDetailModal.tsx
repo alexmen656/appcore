@@ -8,7 +8,7 @@ import type {
   CompetitorKeywordRanking,
   MetadataChange,
 } from "../../types";
-import AppIcon from "./competitors/AppIcon";
+import AppIcon from "../competitors/AppIcon";
 
 interface Props {
   appId: string;

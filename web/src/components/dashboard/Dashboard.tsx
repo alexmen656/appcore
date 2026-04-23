@@ -1,9 +1,9 @@
-import { useApi } from "../hooks/useApi";
-import StatsGrid from "./comps/dashboard/StatsGrid";
-import AppInfoCard from "./comps/dashboard/AppInfoCard";
-import RecentSuggestionsTable from "./comps/dashboard/RecentSuggestionsTable";
-import DownloadsChart from "./analytics/DownloadsChart";
-import type { DashboardData, DownloadsData } from "../types";
+import { useApi } from "../../hooks/useApi";
+import StatsGrid from "./StatsGrid";
+import AppInfoCard from "./AppInfoCard";
+import RecentSuggestionsTable from "./RecentSuggestionsTable";
+import DownloadsChart from "../analytics/DownloadsChart";
+import type { DashboardData, DownloadsData } from "../../types";
 
 export default function Dashboard() {
   const { data, loading, error } = useApi<DashboardData>("/dashboard");
@@ -39,7 +39,10 @@ export default function Dashboard() {
       )}
 
       <div className="mb-5">
-        <RecentSuggestionsTable suggestions={recentSuggestions} lastJob={lastJob ?? undefined} />
+        <RecentSuggestionsTable
+          suggestions={recentSuggestions}
+          lastJob={lastJob ?? undefined}
+        />
       </div>
     </div>
   );

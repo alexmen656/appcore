@@ -1,4 +1,4 @@
-import { inputCls, btnPrimSm, btnPrimary } from "../../../styles";
+import { inputCls, btnPrimSm, btnPrimary } from "../../styles";
 import { COUNTRIES } from "./storefronts";
 
 export { COUNTRIES } from "./storefronts";

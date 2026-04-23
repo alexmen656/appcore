@@ -20,11 +20,11 @@ import {
 } from "./hooks/useApi";
 import { useClickOutside } from "./hooks/useClickOutside";
 import { useToast, ToastContainer } from "./hooks/useToast";
-import Dashboard from "./components/Dashboard";
+import Dashboard from "./components/dashboard/Dashboard";
 import Suggestions from "./components/Suggestions";
-import Keywords from "./components/Keywords";
-import Competitors from "./components/Competitors";
-import CompetitorDetailPage from "./components/CompetitorDetailPage";
+import Keywords from "./components/keywords/Keywords";
+import Competitors from "./components/competitors/Competitors";
+import CompetitorDetailPage from "./components/competitors/CompetitorDetailPage";
 import Actions from "./components/Logs";
 import Agents from "./components/Agents";
 import Settings from "./components/Settings";

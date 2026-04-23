@@ -1,10 +1,15 @@
 import { useState, useRef, useCallback } from "react";
 import { ChevronDown, Users } from "lucide-react";
-import { useApi, apiPost, apiDelete, getActiveBundleId } from "../hooks/useApi";
-import { useClickOutside } from "../hooks/useClickOutside";
-import OwnAppCard, { AppItem } from "./comps/competitors/OwnAppCard";
-import CompetitorCard from "./comps/competitors/CompetitorCard";
-import CompetitorDetailModal from "./comps/CompetitorDetailModal";
+import {
+  useApi,
+  apiPost,
+  apiDelete,
+  getActiveBundleId,
+} from "../../hooks/useApi";
+import { useClickOutside } from "../../hooks/useClickOutside";
+import OwnAppCard, { AppItem } from "./OwnAppCard";
+import CompetitorCard from "./CompetitorCard";
+import CompetitorDetailModal from "./CompetitorDetailModal";
 
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
@@ -17,7 +22,10 @@ export default function Competitors({ addToast }: Props) {
   const [detailAppId, setDetailAppId] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  useClickOutside(menuRef, useCallback(() => setMenuOpen(false), []));
+  useClickOutside(
+    menuRef,
+    useCallback(() => setMenuOpen(false), []),
+  );
 
   const discoverCompetitors = async () => {
     setDiscovering(true);
@@ -81,7 +89,13 @@ export default function Competitors({ addToast }: Props) {
             disabled={discovering || intelRunning}
             className="inline-flex items-center gap-1.5 pl-3.5 pr-3 py-2 rounded-l-xl text-sm font-semibold bg-[#D94412] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {discovering ? <><div className="spinner !w-3.5 !h-3.5" /> Discovering…</> : "Discover Competitors"}
+            {discovering ? (
+              <>
+                <div className="spinner !w-3.5 !h-3.5" /> Discovering…
+              </>
+            ) : (
+              "Discover Competitors"
+            )}
           </button>
           <div className="w-px bg-[#c80b24] opacity-40" />
           <button
@@ -90,12 +104,17 @@ export default function Competitors({ addToast }: Props) {
             className="px-2.5 rounded-r-xl bg-[#D94412] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="More actions"
           >
-            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
+            <ChevronDown
+              className={`w-3.5 h-3.5 transition-transform ${menuOpen ? "rotate-180" : ""}`}
+            />
           </button>
           {menuOpen && (
             <div className="absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl shadow-lg py-1 min-w-[160px]">
               <button
-                onClick={() => { setMenuOpen(false); runCompetitorIntel(); }}
+                onClick={() => {
+                  setMenuOpen(false);
+                  runCompetitorIntel();
+                }}
                 className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
               >
                 Gather Intel
@@ -133,7 +152,11 @@ export default function Competitors({ addToast }: Props) {
               key={c.id}
               competitor={c}
               ownAppId={ownApp?.id}
-              onRemove={ownApp ? (competitorId) => removeCompetitor(ownApp.id, competitorId) : undefined}
+              onRemove={
+                ownApp
+                  ? (competitorId) => removeCompetitor(ownApp.id, competitorId)
+                  : undefined
+              }
               onClick={() => setDetailAppId(c.id)}
             />
           ))}

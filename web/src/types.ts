@@ -290,14 +290,6 @@ export interface ScreenshotJob {
   createdAt: string;
 }
 
-export interface ActionCardDef {
-  id: string;
-  label: string;
-  title: string;
-  desc: string;
-  primary?: boolean;
-}
-
 export interface SchedulerStatus {
   running: boolean;
   jobCount: number;
