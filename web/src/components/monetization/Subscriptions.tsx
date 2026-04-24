@@ -14,7 +14,7 @@ import {
   FileText,
   Upload,
 } from "lucide-react";
-import { authHeaders, getActiveBundleId } from "../hooks/useApi";
+import { authHeaders, getActiveBundleId } from "../../hooks/useApi";
 import {
   cardCls,
   inputCls,
@@ -23,7 +23,7 @@ import {
   btnSecSm,
   TH,
   TD,
-} from "../styles";
+} from "../../styles";
 import type {
   SubscriptionGroup,
   SubscriptionItem,
@@ -31,7 +31,7 @@ import type {
   SubscriptionPrice,
   SubscriptionPricePoint,
   SubscriptionReviewScreenshot,
-} from "../types";
+} from "../../types";
 
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
