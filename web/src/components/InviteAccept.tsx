@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { textPrimary } from "../styles";
 import { useParams, useNavigate } from "react-router-dom";
 import { setToken } from "../hooks/useApi";
 import type { AuthUser } from "../types";
@@ -174,7 +175,7 @@ export default function InviteAccept({
                 placeholder="Name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="px-3 py-2.5 text-sm rounded-xl border border-[#e5e7eb] dark:border-[#2a2f3d] bg-[#f7f8fa] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] focus:outline-none focus:border-[#D94412]"
+                className={`px-3 py-2.5 text-sm rounded-xl border border-[#e5e7eb] dark:border-[#2a2f3d] bg-[#f7f8fa] dark:bg-[#252b38] ${textPrimary} focus:outline-none focus:border-[#D94412]`}
               />
             )}
             <input
@@ -183,7 +184,7 @@ export default function InviteAccept({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="px-3 py-2.5 text-sm rounded-xl border border-[#e5e7eb] dark:border-[#2a2f3d] bg-[#f7f8fa] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] focus:outline-none focus:border-[#D94412]"
+              className={`px-3 py-2.5 text-sm rounded-xl border border-[#e5e7eb] dark:border-[#2a2f3d] bg-[#f7f8fa] dark:bg-[#252b38] ${textPrimary} focus:outline-none focus:border-[#D94412]`}
             />
             <input
               type="password"
@@ -192,7 +193,7 @@ export default function InviteAccept({
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={8}
-              className="px-3 py-2.5 text-sm rounded-xl border border-[#e5e7eb] dark:border-[#2a2f3d] bg-[#f7f8fa] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] focus:outline-none focus:border-[#D94412]"
+              className={`px-3 py-2.5 text-sm rounded-xl border border-[#e5e7eb] dark:border-[#2a2f3d] bg-[#f7f8fa] dark:bg-[#252b38] ${textPrimary} focus:outline-none focus:border-[#D94412]`}
             />
             {error && <p className="text-xs text-[#D94412]">{error}</p>}
             <button

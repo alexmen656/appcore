@@ -7,11 +7,15 @@ import {
   authHeaders,
 } from "../hooks/useApi";
 import {
-  cardCls,
-  btnPrimary,
-  btnSecondary,
-  btnSecSm,
   badgeOutline,
+  borderDefault,
+  btnPrimary,
+  btnSecSm,
+  btnSecondary,
+  cardCls,
+  pageTitle,
+  textPrimary,
+  textSecondary,
 } from "../styles";
 import type {
   GitHubRepo,
@@ -92,7 +96,9 @@ function LogsBlock({
 }) {
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-[12px] text-[#6b7280] dark:text-[#8b93a5] py-2">
+      <div
+        className={`flex items-center gap-2 text-[12px] ${textSecondary} py-2`}
+      >
         <div className="spinner !w-3 !h-3" /> Loading logs…
       </div>
     );
@@ -106,14 +112,14 @@ function LogsBlock({
   }
   if (!logs || logs.length === 0) {
     return (
-      <div className="text-[12px] text-[#6b7280] dark:text-[#8b93a5]">
-        No logs captured.
-      </div>
+      <div className={`text-[12px] ${textSecondary}`}>No logs captured.</div>
     );
   }
   return (
     <div>
-      <div className="text-[11px] font-medium text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide mb-1">
+      <div
+        className={`text-[11px] font-medium ${textSecondary} uppercase tracking-wide mb-1`}
+      >
         Logs ({logs.length} lines)
       </div>
       <pre className="text-[11px] bg-[#111827] rounded-lg p-3 overflow-x-auto max-h-[400px] overflow-y-auto font-mono leading-relaxed">
@@ -229,24 +235,26 @@ export function RepoLinker({
 
   return (
     <div className={`${cardCls} mb-5`}>
-      <h2 className="text-[18px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-1">
+      <h2 className={`text-[18px] font-semibold ${textPrimary} mb-1`}>
         GitHub Repository
       </h2>
-      <p className="text-xs text-[#6b7280] dark:text-[#8b93a5] mb-4">
+      <p className={`text-xs ${textSecondary} mb-4`}>
         Link a GitHub repo to this app. On every push, Marteso will
         automatically generate screenshots and binary.
       </p>
 
       {link?.linked ? (
         <div className="flex items-center gap-3">
-          <div className="flex justify-between gap-2 bg-[#f8f9fb] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl px-4 py-2.5 w-full">
+          <div
+            className={`flex justify-between gap-2 bg-[#f8f9fb] dark:bg-[#252b38] border ${borderDefault} rounded-xl px-4 py-2.5 w-full`}
+          >
             <div className="flex items-center gap-3">
-              <GitBranch className="w-5 h-5 text-[#111827] dark:text-[#e8eaf0]" />
+              <GitBranch className={`w-5 h-5 ${textPrimary}`} />
               <div>
-                <div className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0]">
+                <div className={`text-sm font-medium ${textPrimary}`}>
                   {link.repoFullName}
                 </div>
-                <div className="text-[11px] text-[#6b7280] dark:text-[#8b93a5]">
+                <div className={`text-[11px] ${textSecondary}`}>
                   {link.iosDir
                     ? `iOS folder: ${link.iosDir}/`
                     : "Repo connected"}
@@ -273,7 +281,7 @@ export function RepoLinker({
               Link Repository
             </button>
           ) : (
-            <p className="text-sm text-[#6b7280] dark:text-[#8b93a5]">
+            <p className={`text-sm ${textSecondary}`}>
               Connect GitHub in Team Settings to link a repo.
             </p>
           )}
@@ -281,20 +289,24 @@ export function RepoLinker({
       )}
 
       {showPicker && (
-        <div className="mt-4 border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl p-4 bg-[#f8f9fb] dark:bg-[#161920]">
+        <div
+          className={`mt-4 border ${borderDefault} rounded-xl p-4 bg-[#f8f9fb] dark:bg-[#161920]`}
+        >
           {step === "repo" ? (
             <>
-              <h3 className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0] mb-3">
+              <h3 className={`text-sm font-medium ${textPrimary} mb-3`}>
                 Select a repository
               </h3>
               {loadingRepos ? (
-                <div className="flex items-center gap-2 text-sm text-[#6b7280] dark:text-[#8b93a5] py-4">
+                <div
+                  className={`flex items-center gap-2 text-sm ${textSecondary} py-4`}
+                >
                   <div className="spinner !w-4 !h-4" /> Loading repositories…
                 </div>
               ) : (
                 <>
                   <select
-                    className="w-full px-3 py-2 rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-sm text-[#111827] dark:text-[#e8eaf0] mb-3"
+                    className={`w-full px-3 py-2 rounded-xl border ${borderDefault} bg-white dark:bg-[#1c2028] text-sm ${textPrimary} mb-3`}
                     value={selectedRepo}
                     onChange={(e) => setSelectedRepo(e.target.value)}
                   >
@@ -326,22 +338,24 @@ export function RepoLinker({
             </>
           ) : (
             <>
-              <h3 className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0] mb-0.5">
+              <h3 className={`text-sm font-medium ${textPrimary} mb-0.5`}>
                 iOS app folder
               </h3>
-              <p className="text-xs text-[#6b7280] dark:text-[#8b93a5] mb-3">
+              <p className={`text-xs ${textSecondary} mb-3`}>
                 Select the folder that contains the iOS app code (e.g.{" "}
                 <code className="font-mono">ios</code> for React Native). Leave
                 as root if the Xcode project is at the repo root.
               </p>
               {loadingDirs ? (
-                <div className="flex items-center gap-2 text-sm text-[#6b7280] dark:text-[#8b93a5] py-4">
+                <div
+                  className={`flex items-center gap-2 text-sm ${textSecondary} py-4`}
+                >
                   <div className="spinner !w-4 !h-4" /> Scanning folders…
                 </div>
               ) : (
                 <>
                   <select
-                    className="w-full px-3 py-2 rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-sm text-[#111827] dark:text-[#e8eaf0] mb-3"
+                    className={`w-full px-3 py-2 rounded-xl border ${borderDefault} bg-white dark:bg-[#1c2028] text-sm ${textPrimary} mb-3`}
                     value={selectedDir}
                     onChange={(e) => setSelectedDir(e.target.value)}
                   >
@@ -414,7 +428,7 @@ export function ScreenshotJobsTable({
   return (
     <div className={`${cardCls} mb-5`}>
       <div className="flex items-center justify-between mb-1">
-        <h2 className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+        <h2 className={`text-[16px] font-semibold ${textPrimary}`}>
           Screenshot Jobs
         </h2>
         <button
@@ -425,7 +439,7 @@ export function ScreenshotJobsTable({
           {triggering ? "Starting…" : "Run Now"}
         </button>
       </div>
-      <p className="text-xs text-[#6b7280] dark:text-[#8b93a5] mb-4">
+      <p className={`text-xs ${textSecondary} mb-4`}>
         Recent screenshot generation runs triggered by GitHub pushes.
       </p>
 
@@ -477,14 +491,16 @@ function JobRow({
   );
 
   return (
-    <div className="bg-[#fafbfc] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] text-[#111827] dark:text-[#e8eaf0] hover:border-[#d1d5db] dark:hover:border-[#3a4050] rounded-xl overflow-hidden">
+    <div
+      className={`bg-[#fafbfc] dark:bg-[#252b38] border ${borderDefault} ${textPrimary} hover:border-[#d1d5db] dark:hover:border-[#3a4050] rounded-xl overflow-hidden`}
+    >
       <button
         className="w-full flex items-center gap-4 px-4 py-3 hover:bg-[#fafbfc] dark:hover:bg-white/[0.03] transition-colors text-left"
         onClick={onToggle}
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-[13px] font-mono text-[#111827] dark:text-[#e8eaf0]">
+            <span className={`text-[13px] font-mono ${textPrimary}`}>
               {job.commitSha.slice(0, 7)}
             </span>
             <span className="text-[12px] font-mono bg-[#f3f4f6] dark:bg-[#252b38] dark:text-[#8b93a5] px-1.5 py-0.5 rounded">
@@ -493,26 +509,28 @@ function JobRow({
             <span className={badgeOutline(job.status)}>{job.status}</span>
           </div>
           {job.commitMessage && (
-            <div className="text-[12px] text-[#6b7280] dark:text-[#8b93a5] truncate mt-0.5">
+            <div className={`text-[12px] ${textSecondary} truncate mt-0.5`}>
               {job.commitMessage}
             </div>
           )}
         </div>
         <div className="text-right shrink-0">
-          <div className="text-[12px] text-[#6b7280] dark:text-[#8b93a5]">
+          <div className={`text-[12px] ${textSecondary}`}>
             {job.pusher ? `by ${job.pusher}` : ""}
           </div>
-          <div className="text-[11px] text-[#6b7280] dark:text-[#8b93a5]">
+          <div className={`text-[11px] ${textSecondary}`}>
             {new Date(job.createdAt).toLocaleString()}
           </div>
         </div>
         <ChevronDown
-          className={`w-4 h-4 text-[#6b7280] dark:text-[#8b93a5] shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`}
+          className={`w-4 h-4 ${textSecondary} shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`}
         />
       </button>
 
       {expanded && (
-        <div className="border-t border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#161920] px-4 py-3">
+        <div
+          className={`border-t ${borderDefault} bg-[#fafbfc] dark:bg-[#161920] px-4 py-3`}
+        >
           {job.error && (
             <div className="mb-3 p-3 rounded-lg bg-red-50 border border-red-200">
               <div className="text-[11px] font-medium text-red-700 uppercase tracking-wide mb-1">
@@ -536,7 +554,9 @@ function JobRow({
 
           {framedUrls.length > 0 && (
             <div className="mb-4">
-              <div className="text-[11px] font-medium text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide mb-2">
+              <div
+                className={`text-[11px] font-medium ${textSecondary} uppercase tracking-wide mb-2`}
+              >
                 Framed ({framedUrls.length})
               </div>
               <div className="flex gap-3 overflow-x-auto pb-2">
@@ -551,7 +571,7 @@ function JobRow({
                     <img
                       src={url}
                       alt="Framed screenshot"
-                      className="h-48 rounded-lg border border-[#eef0f3] dark:border-[#2a2f3d] object-cover hover:opacity-90 transition-opacity"
+                      className={`h-48 rounded-lg border ${borderDefault} object-cover hover:opacity-90 transition-opacity`}
                     />
                   </a>
                 ))}
@@ -597,7 +617,7 @@ export function BuildJobsTable({
   return (
     <div className={`${cardCls} mb-5`}>
       <div className="flex items-center justify-between mb-1">
-        <h2 className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+        <h2 className={`text-[16px] font-semibold ${textPrimary}`}>
           Build Jobs
         </h2>
         <button
@@ -608,7 +628,7 @@ export function BuildJobsTable({
           {triggering ? "Starting…" : "Run Now"}
         </button>
       </div>
-      <p className="text-xs text-[#6b7280] dark:text-[#8b93a5] mb-4">
+      <p className={`text-xs ${textSecondary} mb-4`}>
         Binary build runs triggered by GitHub pushes.
       </p>
 
@@ -656,7 +676,9 @@ function BuildJobRow({
   );
 
   return (
-    <div className="bg-[#fafbfc] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] text-[#111827] dark:text-[#e8eaf0] hover:border-[#d1d5db] dark:hover:border-[#3a4050] rounded-xl overflow-hidden">
+    <div
+      className={`bg-[#fafbfc] dark:bg-[#252b38] border ${borderDefault} ${textPrimary} hover:border-[#d1d5db] dark:hover:border-[#3a4050] rounded-xl overflow-hidden`}
+    >
       <button
         className="w-full flex items-center gap-4 px-4 py-3 hover:bg-[#fafbfc] dark:hover:bg-white/[0.03] transition-colors text-left"
         onClick={onToggle}
@@ -664,7 +686,7 @@ function BuildJobRow({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             {job.commitSha && (
-              <span className="text-[13px] font-mono text-[#111827] dark:text-[#e8eaf0]">
+              <span className={`text-[13px] font-mono ${textPrimary}`}>
                 {job.commitSha.slice(0, 7)}
               </span>
             )}
@@ -682,17 +704,19 @@ function BuildJobRow({
           </div>
         </div>
         <div className="text-right shrink-0">
-          <div className="text-[11px] text-[#6b7280] dark:text-[#8b93a5]">
+          <div className={`text-[11px] ${textSecondary}`}>
             {new Date(job.createdAt).toLocaleString()}
           </div>
         </div>
         <ChevronDown
-          className={`w-4 h-4 text-[#6b7280] dark:text-[#8b93a5] shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`}
+          className={`w-4 h-4 ${textSecondary} shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`}
         />
       </button>
 
       {expanded && (
-        <div className="border-t border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#161920] px-4 py-3">
+        <div
+          className={`border-t ${borderDefault} bg-[#fafbfc] dark:bg-[#161920] px-4 py-3`}
+        >
           {job.errors.length > 0 && (
             <div className="mb-3 p-3 rounded-lg bg-red-50 border border-red-200">
               <div className="text-[11px] font-medium text-red-700 uppercase tracking-wide mb-1">
@@ -721,9 +745,7 @@ export default function Actions({ addToast }: Props) {
 
   return (
     <div>
-      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-5">
-        Logs
-      </h1>
+      <h1 className={`${pageTitle} mb-5`}>Logs</h1>
 
       {activeApp && (
         <>

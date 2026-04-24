@@ -47,7 +47,11 @@ export default function KeywordForm({
             </option>
           ))}
         </select>
-        <button type="submit" className={`${btnPrimary} w-100`} disabled={adding}>
+        <button
+          type="submit"
+          className={`${btnPrimary} w-100`}
+          disabled={adding}
+        >
           + Add
         </button>
       </form>

@@ -2,7 +2,14 @@ import { useState, useEffect } from "react";
 import { useApi, apiPost, authHeaders } from "../../hooks/useApi";
 import SectionCard from "./SectionCard";
 import type { GitHubStatus } from "../../types";
-import { btnPrimary, btnSecondary } from "../../styles";
+import {
+  borderDefault,
+  btnPrimary,
+  btnSecondary,
+  textMuted,
+  textPrimary,
+  textSecondary,
+} from "../../styles";
 import { GitBranch } from "lucide-react";
 
 export default function GitHubSection() {
@@ -65,14 +72,14 @@ export default function GitHubSection() {
               <img
                 src={status.avatarUrl}
                 alt=""
-                className="w-10 h-10 rounded-full border border-[#eef0f3] dark:border-[#2a2f3d]"
+                className={`w-10 h-10 rounded-full border ${borderDefault}`}
               />
             )}
             <div>
-              <div className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0]">
+              <div className={`text-sm font-medium ${textPrimary}`}>
                 @{status.username}
               </div>
-              <div className="text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
+              <div className={`text-[11px] ${textMuted}`}>
                 Connected{" "}
                 {status.connectedAt
                   ? new Date(status.connectedAt).toLocaleDateString()
@@ -92,7 +99,7 @@ export default function GitHubSection() {
         </div>
       ) : (
         <div className="flex items-center gap-4">
-          <div className="text-sm text-[#6b7280] dark:text-[#8b93a5]">
+          <div className={`text-sm ${textSecondary}`}>
             No GitHub account connected.
           </div>
           <button className={btnPrimary} onClick={handleConnect}>

@@ -1,4 +1,11 @@
 import { useState, useRef, useCallback } from "react";
+import {
+  borderDefault,
+  pageTitle,
+  textMuted,
+  textPrimary,
+  textSecondary,
+} from "../../styles";
 import { ChevronDown, Users } from "lucide-react";
 import {
   useApi,
@@ -80,9 +87,7 @@ export default function Competitors({ addToast }: Props) {
   return (
     <div>
       <div className="flex items-start justify-between mb-1">
-        <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0]">
-          Competitors
-        </h1>
+        <h1 className={`${pageTitle}`}>Competitors</h1>
         <div ref={menuRef} className="relative flex items-stretch">
           <button
             onClick={discoverCompetitors}
@@ -109,13 +114,15 @@ export default function Competitors({ addToast }: Props) {
             />
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl shadow-lg py-1 min-w-[160px]">
+            <div
+              className={`absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-xl shadow-lg py-1 min-w-[160px]`}
+            >
               <button
                 onClick={() => {
                   setMenuOpen(false);
                   runCompetitorIntel();
                 }}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
+                className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left`}
               >
                 Gather Intel
               </button>
@@ -123,14 +130,16 @@ export default function Competitors({ addToast }: Props) {
           )}
         </div>
       </div>
-      <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">
+      <p className={`text-sm ${textMuted} mb-8`}>
         {competitors.length} competitor{competitors.length !== 1 ? "s" : ""}{" "}
         discovered and tracked
       </p>
 
       {ownApp && <OwnAppCard app={ownApp} />}
 
-      <div className="text-xs font-medium uppercase tracking-wide text-[#9ca3af] dark:text-[#5c6478] mb-3">
+      <div
+        className={`text-xs font-medium uppercase tracking-wide ${textMuted} mb-3`}
+      >
         Competitor Apps
       </div>
       {competitors.length === 0 ? (
@@ -138,10 +147,10 @@ export default function Competitors({ addToast }: Props) {
           <div className="flex justify-center mb-3 opacity-20">
             <Users className="w-12 h-12 text-[#9ca3af]" />
           </div>
-          <div className="text-sm font-medium text-[#6b7280] dark:text-[#8b93a5] mb-1">
+          <div className={`text-sm font-medium ${textSecondary} mb-1`}>
             No competitors discovered yet
           </div>
-          <div className="text-xs text-[#9ca3af] dark:text-[#5c6478]">
+          <div className={`text-xs ${textMuted}`}>
             Run a scrape from the Actions page
           </div>
         </div>

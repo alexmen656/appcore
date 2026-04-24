@@ -16,14 +16,19 @@ import {
 } from "lucide-react";
 import { authHeaders, getActiveBundleId } from "../../hooks/useApi";
 import {
+  TD,
+  TH,
+  badgeOutline,
+  borderDefault,
+  btnPrimary,
+  btnSecSm,
+  btnSecondary,
   cardCls,
   inputCls,
-  btnPrimary,
-  btnSecondary,
-  btnSecSm,
-  TH,
-  TD,
-  badgeOutline,
+  pageTitle,
+  textMuted,
+  textPrimary,
+  textSecondary,
 } from "../../styles";
 import type {
   SubscriptionGroup,
@@ -136,13 +141,17 @@ function SubForm({
     setForm((f) => ({ ...f, [k]: v }));
 
   return (
-    <div className="rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#1c2028] p-4 flex flex-col gap-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6b7280] dark:text-[#8b93a5]">
+    <div
+      className={`rounded-xl border ${borderDefault} bg-[#fafbfc] dark:bg-[#1c2028] p-4 flex flex-col gap-3`}
+    >
+      <p
+        className={`text-[11px] font-semibold uppercase tracking-wider ${textSecondary}`}
+      >
         {title}
       </p>
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
-          <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] font-medium">
+          <label className={`text-[11px] ${textSecondary} font-medium`}>
             Display Name
           </label>
           <input
@@ -153,7 +162,7 @@ function SubForm({
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] font-medium">
+          <label className={`text-[11px] ${textSecondary} font-medium`}>
             Product ID
           </label>
           <input
@@ -165,7 +174,7 @@ function SubForm({
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] font-medium">
+          <label className={`text-[11px] ${textSecondary} font-medium`}>
             Period
           </label>
           <select
@@ -181,7 +190,7 @@ function SubForm({
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] font-medium">
+          <label className={`text-[11px] ${textSecondary} font-medium`}>
             Group Level
           </label>
           <input
@@ -195,7 +204,7 @@ function SubForm({
           />
         </div>
         <div className="flex flex-col gap-1 col-span-2">
-          <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] font-medium">
+          <label className={`text-[11px] ${textSecondary} font-medium`}>
             Review Note (optional)
           </label>
           <input
@@ -364,16 +373,20 @@ function LocalizationsPanel({
 
   if (loading && !locs) {
     return (
-      <div className="flex items-center gap-1.5 py-4 text-[12px] text-[#9ca3af] dark:text-[#5c6478]">
+      <div
+        className={`flex items-center gap-1.5 py-4 text-[12px] ${textMuted}`}
+      >
         <div className="spinner !w-3 !h-3" /> Loading…
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#252b38]">
-        <span className="text-[13px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+    <div className={`rounded-xl border ${borderDefault} overflow-hidden`}>
+      <div
+        className={`flex items-center justify-between px-4 py-3 border-b ${borderDefault} bg-[#fafbfc] dark:bg-[#252b38]`}
+      >
+        <span className={`text-[13px] font-semibold ${textPrimary}`}>
           Localizations
         </span>
         <button
@@ -385,7 +398,7 @@ function LocalizationsPanel({
       </div>
 
       {(!locs || locs.length === 0) && !showAdd ? (
-        <p className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] px-4 py-4">
+        <p className={`text-[12px] ${textMuted} px-4 py-4`}>
           No localizations yet.
         </p>
       ) : (
@@ -406,7 +419,9 @@ function LocalizationsPanel({
                   className="border-t border-[#f3f4f6] dark:border-[#2a2f3d]"
                 >
                   <td className={TD}>
-                    <span className="text-[11px] font-mono font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase">
+                    <span
+                      className={`text-[11px] font-mono font-semibold ${textSecondary} uppercase`}
+                    >
                       {loc.locale}
                     </span>
                   </td>
@@ -455,16 +470,16 @@ function LocalizationsPanel({
                   className="group border-t border-[#f3f4f6] dark:border-[#2a2f3d] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors"
                 >
                   <td className={TD}>
-                    <span className="text-[11px] font-mono font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase">
+                    <span
+                      className={`text-[11px] font-mono font-semibold ${textSecondary} uppercase`}
+                    >
                       {loc.locale}
                     </span>
                   </td>
-                  <td
-                    className={`${TD} font-medium text-[#111827] dark:text-[#e8eaf0]`}
-                  >
+                  <td className={`${TD} font-medium ${textPrimary}`}>
                     {loc.name}
                   </td>
-                  <td className={`${TD} text-[#6b7280] dark:text-[#8b93a5]`}>
+                  <td className={`${TD} ${textSecondary}`}>
                     {loc.description || "—"}
                   </td>
                   <td className={`${TD} text-right`}>
@@ -500,10 +515,12 @@ function LocalizationsPanel({
       )}
 
       {showAdd && (
-        <div className="border-t border-[#eef0f3] dark:border-[#2a2f3d] p-3 flex flex-col gap-2 bg-[#fafbfc] dark:bg-[#1c2028]">
+        <div
+          className={`border-t ${borderDefault} p-3 flex flex-col gap-2 bg-[#fafbfc] dark:bg-[#1c2028]`}
+        >
           <div className="grid grid-cols-3 gap-2">
             <div className="flex flex-col gap-1">
-              <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] font-medium">
+              <label className={`text-[11px] ${textSecondary} font-medium`}>
                 Locale
               </label>
               <input
@@ -514,7 +531,7 @@ function LocalizationsPanel({
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] font-medium">
+              <label className={`text-[11px] ${textSecondary} font-medium`}>
                 Display Name
               </label>
               <input
@@ -525,7 +542,7 @@ function LocalizationsPanel({
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] font-medium">
+              <label className={`text-[11px] ${textSecondary} font-medium`}>
                 Description (optional)
               </label>
               <input
@@ -684,16 +701,20 @@ function PricingPanel({
 
   if (loading && !prices) {
     return (
-      <div className="flex items-center gap-1.5 py-4 text-[12px] text-[#9ca3af] dark:text-[#5c6478]">
+      <div
+        className={`flex items-center gap-1.5 py-4 text-[12px] ${textMuted}`}
+      >
         <div className="spinner !w-3 !h-3" /> Loading…
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#252b38]">
-        <span className="text-[13px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+    <div className={`rounded-xl border ${borderDefault} overflow-hidden`}>
+      <div
+        className={`flex items-center justify-between px-4 py-3 border-b ${borderDefault} bg-[#fafbfc] dark:bg-[#252b38]`}
+      >
+        <span className={`text-[13px] font-semibold ${textPrimary}`}>
           Pricing
         </span>
         <button
@@ -705,7 +726,7 @@ function PricingPanel({
       </div>
 
       {(!prices || prices.length === 0) && !showAdd ? (
-        <p className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] px-4 py-4">
+        <p className={`text-[12px] ${textMuted} px-4 py-4`}>
           No prices set yet.
         </p>
       ) : (
@@ -725,22 +746,18 @@ function PricingPanel({
                 key={p.id}
                 className="group border-t border-[#f3f4f6] dark:border-[#2a2f3d] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors"
               >
-                <td
-                  className={`${TD} font-mono font-medium text-[#111827] dark:text-[#e8eaf0]`}
-                >
+                <td className={`${TD} font-mono font-medium ${textPrimary}`}>
                   {p.territory ?? "—"}
                 </td>
-                <td className={`${TD} text-[#6b7280] dark:text-[#8b93a5]`}>
+                <td className={`${TD} ${textSecondary}`}>
                   {p.currency ?? "—"}
                 </td>
-                <td
-                  className={`${TD} font-semibold text-[#111827] dark:text-[#e8eaf0]`}
-                >
+                <td className={`${TD} font-semibold ${textPrimary}`}>
                   {p.customerPrice != null
                     ? `${p.currency ?? ""} ${p.customerPrice}`
                     : "—"}
                 </td>
-                <td className={`${TD} text-[#6b7280] dark:text-[#8b93a5]`}>
+                <td className={`${TD} ${textSecondary}`}>
                   {p.proceeds != null
                     ? `${p.currency ?? ""} ${p.proceeds}`
                     : "—"}
@@ -765,10 +782,12 @@ function PricingPanel({
       )}
 
       {showAdd && (
-        <div className="border-t border-[#eef0f3] dark:border-[#2a2f3d] p-3 flex flex-col gap-2 bg-[#fafbfc] dark:bg-[#1c2028]">
+        <div
+          className={`border-t ${borderDefault} p-3 flex flex-col gap-2 bg-[#fafbfc] dark:bg-[#1c2028]`}
+        >
           <div className="grid grid-cols-2 gap-2">
             <div className="flex flex-col gap-1">
-              <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] font-medium">
+              <label className={`text-[11px] ${textSecondary} font-medium`}>
                 Territory (3-letter code)
               </label>
               <input
@@ -782,7 +801,7 @@ function PricingPanel({
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-[11px] text-[#6b7280] dark:text-[#8b93a5] font-medium">
+              <label className={`text-[11px] ${textSecondary} font-medium`}>
                 Price Tier
                 {loadingPP && (
                   <span className="ml-1 text-[10px] text-[#9ca3af]">
@@ -803,9 +822,7 @@ function PricingPanel({
                   ))}
                 </select>
               ) : (
-                <div
-                  className={`${inputCls} text-[#9ca3af] dark:text-[#5c6478]`}
-                >
+                <div className={`${inputCls} ${textMuted}`}>
                   {loadingPP
                     ? "Loading tiers…"
                     : pricePoints !== null
@@ -966,7 +983,9 @@ function ReviewPanel({
     <div className="flex flex-col gap-6">
       <div>
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[12px] font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide">
+          <span
+            className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide`}
+          >
             Review Note
           </span>
           {!editingNote && (
@@ -1018,11 +1037,13 @@ function ReviewPanel({
             </div>
           </div>
         ) : reviewNote ? (
-          <p className="text-[13px] text-[#374151] dark:text-[#c4c9d6] whitespace-pre-wrap leading-relaxed rounded-xl bg-[#f9fafb] dark:bg-[#1a1f2b] border border-[#eef0f3] dark:border-[#2a2f3d] px-3.5 py-3">
+          <p
+            className={`text-[13px] text-[#374151] dark:text-[#c4c9d6] whitespace-pre-wrap leading-relaxed rounded-xl bg-[#f9fafb] dark:bg-[#1a1f2b] border ${borderDefault} px-3.5 py-3`}
+          >
             {reviewNote}
           </p>
         ) : (
-          <p className="text-[13px] text-[#9ca3af] dark:text-[#5c6478] italic">
+          <p className={`text-[13px] ${textMuted} italic`}>
             No review note added.
           </p>
         )}
@@ -1030,7 +1051,9 @@ function ReviewPanel({
 
       <div>
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[12px] font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide">
+          <span
+            className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide`}
+          >
             Review Screenshot
           </span>
           {!loadingScreenshot && !screenshot && (
@@ -1055,7 +1078,9 @@ function ReviewPanel({
             <div className="spinner !w-3.5 !h-3.5" /> Loading…
           </div>
         ) : screenshot ? (
-          <div className="relative w-fit rounded-xl overflow-hidden border border-[#eef0f3] dark:border-[#2a2f3d] group">
+          <div
+            className={`relative w-fit rounded-xl overflow-hidden border ${borderDefault} group`}
+          >
             {screenshot.imageUrl ? (
               <img
                 src={screenshot.imageUrl}
@@ -1084,7 +1109,9 @@ function ReviewPanel({
               </button>
             </div>
             {screenshot.fileName && (
-              <p className="px-2.5 py-1.5 text-[11px] text-[#6b7280] dark:text-[#8b93a5] border-t border-[#eef0f3] dark:border-[#2a2f3d] truncate">
+              <p
+                className={`px-2.5 py-1.5 text-[11px] ${textSecondary} border-t ${borderDefault} truncate`}
+              >
                 {screenshot.fileName}
               </p>
             )}
@@ -1092,7 +1119,7 @@ function ReviewPanel({
         ) : (
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="flex flex-col items-center justify-center w-48 h-28 rounded-xl border-2 border-dashed border-[#d1d5db] dark:border-[#2a2f3d] text-[#9ca3af] dark:text-[#5c6478] hover:border-[#C4001E] hover:text-[#C4001E] transition-colors cursor-pointer"
+            className={`flex flex-col items-center justify-center w-48 h-28 rounded-xl border-2 border-dashed border-[#d1d5db] dark:border-[#2a2f3d] ${textMuted} hover:border-[#C4001E] hover:text-[#C4001E] transition-colors cursor-pointer`}
           >
             {uploadingScreenshot ? (
               <div className="spinner !w-5 !h-5" />
@@ -1200,7 +1227,7 @@ function DetailView({
     {
       label: "Identifier",
       value: (
-        <span className="font-mono text-[13px] text-[#111827] dark:text-[#e8eaf0]">
+        <span className={`font-mono text-[13px] ${textPrimary}`}>
           {sub.productId}
         </span>
       ),
@@ -1208,7 +1235,9 @@ function DetailView({
     {
       label: "App",
       value: (
-        <span className="flex items-center gap-1.5 text-[13px] text-[#111827] dark:text-[#e8eaf0]">
+        <span
+          className={`flex items-center gap-1.5 text-[13px] ${textPrimary}`}
+        >
           <AppleLogo />
           {bundleId ?? "App Store"}
         </span>
@@ -1216,11 +1245,7 @@ function DetailView({
     },
     {
       label: "Store",
-      value: (
-        <span className="text-[13px] text-[#111827] dark:text-[#e8eaf0]">
-          App Store
-        </span>
-      ),
+      value: <span className={`text-[13px] ${textPrimary}`}>App Store</span>,
     },
     {
       label: "Store Status",
@@ -1228,16 +1253,12 @@ function DetailView({
     },
     {
       label: "Display Name",
-      value: (
-        <span className="text-[13px] text-[#111827] dark:text-[#e8eaf0]">
-          {sub.name}
-        </span>
-      ),
+      value: <span className={`text-[13px] ${textPrimary}`}>{sub.name}</span>,
     },
     {
       label: "Product Type",
       value: (
-        <span className="text-[13px] text-[#111827] dark:text-[#e8eaf0]">
+        <span className={`text-[13px] ${textPrimary}`}>
           Subscription
           {sub.subscriptionPeriod
             ? ` · ${PERIOD_LABELS[sub.subscriptionPeriod] ?? sub.subscriptionPeriod}`
@@ -1248,7 +1269,7 @@ function DetailView({
     {
       label: "Subscription group",
       value: (
-        <span className="text-[13px] text-[#111827] dark:text-[#e8eaf0]">
+        <span className={`text-[13px] ${textPrimary}`}>
           {group.referenceName}
         </span>
       ),
@@ -1256,7 +1277,7 @@ function DetailView({
     {
       label: "Family sharing",
       value: (
-        <span className="text-[13px] text-[#111827] dark:text-[#e8eaf0]">
+        <span className={`text-[13px] ${textPrimary}`}>
           {sub.familySharable ? "Enabled" : "Disabled"}
         </span>
       ),
@@ -1269,18 +1290,20 @@ function DetailView({
         <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={onBack}
-            className="p-2 rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] text-[#6b7280] dark:text-[#8b93a5] hover:text-[#111827] dark:hover:text-[#e8eaf0] hover:border-[#C4001E] transition-all shrink-0"
+            className={`p-2 rounded-xl border ${borderDefault} ${textSecondary} hover:text-[#111827] dark:hover:text-[#e8eaf0] hover:border-[#C4001E] transition-all shrink-0`}
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="min-w-0 flex items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] truncate">
+            <h1
+              className={`text-2xl font-semibold tracking-tight ${textPrimary} truncate`}
+            >
               {sub.name}
             </h1>
             {!editing && (
               <button
                 onClick={() => setEditing(true)}
-                className="p-1.5 rounded-lg text-[#9ca3af] dark:text-[#5c6478] hover:text-[#C4001E] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all"
+                className={`p-1.5 rounded-lg ${textMuted} hover:text-[#C4001E] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all`}
               >
                 <Pencil className="w-4 h-4" />
               </button>
@@ -1295,7 +1318,7 @@ function DetailView({
             <button
               onClick={handleDelete}
               disabled={deleting}
-              className="inline-flex items-center gap-1.5 px-3 py-[7px] rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] text-[13px] font-medium text-red-500 hover:border-red-300 dark:hover:border-red-800 transition-all disabled:opacity-50"
+              className={`inline-flex items-center gap-1.5 px-3 py-[7px] rounded-xl border ${borderDefault} text-[13px] font-medium text-red-500 hover:border-red-300 dark:hover:border-red-800 transition-all disabled:opacity-50`}
             >
               {deleting ? (
                 <div className="spinner !w-3.5 !h-3.5" />
@@ -1334,7 +1357,9 @@ function DetailView({
                   key={label}
                   className="flex items-center gap-4 py-3 first:pt-0 last:pb-0"
                 >
-                  <dt className="w-44 shrink-0 text-[12px] font-medium text-[#6b7280] dark:text-[#8b93a5]">
+                  <dt
+                    className={`w-44 shrink-0 text-[12px] font-medium ${textSecondary}`}
+                  >
                     {label}
                   </dt>
                   <dd className="flex-1 min-w-0">{value}</dd>
@@ -1344,13 +1369,13 @@ function DetailView({
           </div>
 
           <div className={cardCls}>
-            <div className="flex gap-1 mb-4 pb-3 border-b border-[#eef0f3] dark:border-[#2a2f3d]">
+            <div className={`flex gap-1 mb-4 pb-3 border-b ${borderDefault}`}>
               <button
                 onClick={() => setActiveTab("localizations")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${
                   activeTab === "localizations"
-                    ? "bg-[#f3f4f6] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0]"
-                    : "text-[#6b7280] dark:text-[#8b93a5] hover:text-[#111827] dark:hover:text-[#e8eaf0]"
+                    ? "bg-[#f3f4f6] dark:bg-[#252b38] ${textPrimary}"
+                    : "${textSecondary} hover:text-[#111827] dark:hover:text-[#e8eaf0]"
                 }`}
               >
                 <Globe className="w-3.5 h-3.5" /> Localizations
@@ -1359,8 +1384,8 @@ function DetailView({
                 onClick={() => setActiveTab("pricing")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${
                   activeTab === "pricing"
-                    ? "bg-[#f3f4f6] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0]"
-                    : "text-[#6b7280] dark:text-[#8b93a5] hover:text-[#111827] dark:hover:text-[#e8eaf0]"
+                    ? "bg-[#f3f4f6] dark:bg-[#252b38] ${textPrimary}"
+                    : "${textSecondary} hover:text-[#111827] dark:hover:text-[#e8eaf0]"
                 }`}
               >
                 <DollarSign className="w-3.5 h-3.5" /> Pricing
@@ -1369,8 +1394,8 @@ function DetailView({
                 onClick={() => setActiveTab("review")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${
                   activeTab === "review"
-                    ? "bg-[#f3f4f6] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0]"
-                    : "text-[#6b7280] dark:text-[#8b93a5] hover:text-[#111827] dark:hover:text-[#e8eaf0]"
+                    ? "bg-[#f3f4f6] dark:bg-[#252b38] ${textPrimary}"
+                    : "${textSecondary} hover:text-[#111827] dark:hover:text-[#e8eaf0]"
                 }`}
               >
                 <FileText className="w-3.5 h-3.5" /> Review
@@ -1507,7 +1532,7 @@ function GroupTable({
 
   const AppleLogo = () => (
     <svg
-      className="w-3.5 h-3.5 text-[#9ca3af] dark:text-[#5c6478] shrink-0"
+      className={`w-3.5 h-3.5 ${textMuted} shrink-0`}
       viewBox="0 0 24 24"
       fill="currentColor"
     >
@@ -1517,7 +1542,9 @@ function GroupTable({
 
   return (
     <div className={`${cardCls} overflow-hidden !p-0`}>
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef0f3] dark:border-[#2a2f3d]">
+      <div
+        className={`flex items-center justify-between px-5 py-4 border-b ${borderDefault}`}
+      >
         <div className="flex items-center gap-2 min-w-0">
           {editingName ? (
             <div className="flex items-center gap-2">
@@ -1558,7 +1585,9 @@ function GroupTable({
           ) : (
             <>
               <AppleLogo />
-              <span className="text-[14px] font-semibold text-[#111827] dark:text-[#e8eaf0] truncate">
+              <span
+                className={`text-[14px] font-semibold ${textPrimary} truncate`}
+              >
                 {group.referenceName}
                 {bundleId ? ` (${bundleId})` : ""}
               </span>
@@ -1577,12 +1606,14 @@ function GroupTable({
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setShowGroupMenu((v) => !v)}
-                className="p-1.5 rounded-lg text-[#9ca3af] dark:text-[#5c6478] hover:text-[#111827] dark:hover:text-[#e8eaf0] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all"
+                className={`p-1.5 rounded-lg ${textMuted} hover:text-[#111827] dark:hover:text-[#e8eaf0] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all`}
               >
                 <MoreHorizontal className="w-4 h-4" />
               </button>
               {showGroupMenu && (
-                <div className="absolute right-0 top-full mt-1 w-44 rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] shadow-lg z-10 py-1 overflow-hidden">
+                <div
+                  className={`absolute right-0 top-full mt-1 w-44 rounded-xl border ${borderDefault} bg-white dark:bg-[#1c2028] shadow-lg z-10 py-1 overflow-hidden`}
+                >
                   <button
                     onClick={() => {
                       setShowGroupMenu(false);
@@ -1629,7 +1660,7 @@ function GroupTable({
             <tr>
               <td
                 colSpan={5}
-                className="px-5 py-8 text-center text-[13px] text-[#9ca3af] dark:text-[#5c6478]"
+                className={`px-5 py-8 text-center text-[13px] ${textMuted}`}
               >
                 No subscriptions yet — click <strong>+ New</strong> to add one
               </td>
@@ -1643,10 +1674,10 @@ function GroupTable({
             >
               <td className={TD}>
                 <div>
-                  <p className="text-[13px] font-medium text-[#111827] dark:text-[#e8eaf0]">
+                  <p className={`text-[13px] font-medium ${textPrimary}`}>
                     {sub.name}
                   </p>
-                  <p className="text-[11px] font-mono text-[#9ca3af] dark:text-[#5c6478] mt-0.5">
+                  <p className={`text-[11px] font-mono ${textMuted} mt-0.5`}>
                     {sub.productId}
                   </p>
                 </div>
@@ -1654,17 +1685,19 @@ function GroupTable({
               <td className={TD}>
                 <StatusBadge state={sub.state} />
               </td>
-              <td className={`${TD} text-[#6b7280] dark:text-[#8b93a5]`}>
+              <td className={`${TD} ${textSecondary}`}>
                 {sub.subscriptionPeriod
                   ? (PERIOD_LABELS[sub.subscriptionPeriod] ??
                     sub.subscriptionPeriod)
                   : "—"}
               </td>
-              <td className={`${TD} text-[#6b7280] dark:text-[#8b93a5]`}>
+              <td className={`${TD} ${textSecondary}`}>
                 {sub.groupLevel ?? "—"}
               </td>
               <td className={`${TD} text-right`}>
-                <MoreHorizontal className="w-4 h-4 text-[#9ca3af] dark:text-[#5c6478] opacity-0 group-hover:opacity-100 transition-opacity" />
+                <MoreHorizontal
+                  className={`w-4 h-4 ${textMuted} opacity-0 group-hover:opacity-100 transition-opacity`}
+                />
               </td>
             </tr>
           ))}
@@ -1672,7 +1705,7 @@ function GroupTable({
       </table>
 
       {showNewSub && (
-        <div className="border-t border-[#eef0f3] dark:border-[#2a2f3d] p-4">
+        <div className={`border-t ${borderDefault} p-4`}>
           <SubForm
             title="New Subscription"
             onSave={createSub}
@@ -1827,9 +1860,7 @@ export default function MonetizationSubscriptions({ addToast }: Props) {
   return (
     <div className="max-w-[1440px] mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0]">
-          Subscriptions
-        </h1>
+        <h1 className={`${pageTitle}`}>Subscriptions</h1>
         <div className="flex gap-2">
           <button onClick={load} disabled={loading} className={btnSecondary}>
             <RefreshCw
@@ -1848,7 +1879,9 @@ export default function MonetizationSubscriptions({ addToast }: Props) {
 
       {showNewGroupForm && (
         <div className={`${cardCls} mb-4 flex flex-col gap-3`}>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#6b7280] dark:text-[#8b93a5]">
+          <p
+            className={`text-[11px] font-semibold uppercase tracking-wider ${textSecondary}`}
+          >
             New Subscription Group
           </p>
           <div className="flex gap-2">
@@ -1886,7 +1919,9 @@ export default function MonetizationSubscriptions({ addToast }: Props) {
       )}
 
       {loading && !groups && (
-        <div className="flex items-center justify-center py-16 gap-2 text-[#9ca3af] dark:text-[#5c6478] text-sm">
+        <div
+          className={`flex items-center justify-center py-16 gap-2 ${textMuted} text-sm`}
+        >
           <div className="spinner" /> Loading subscriptions…
         </div>
       )}
@@ -1911,10 +1946,10 @@ export default function MonetizationSubscriptions({ addToast }: Props) {
             </svg>
           </div>
           <div>
-            <p className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+            <p className={`text-[15px] font-semibold ${textPrimary}`}>
               No subscription groups
             </p>
-            <p className="text-sm text-[#6b7280] dark:text-[#8b93a5] mt-1">
+            <p className={`text-sm ${textSecondary} mt-1`}>
               Create your first group to start adding subscriptions.
             </p>
           </div>

@@ -2,7 +2,14 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApi, getActiveBundleId, authHeaders } from "../../hooks/useApi";
 import type { DownloadsData, CountryData } from "../../types";
-import { TH, TD } from "../../styles";
+import {
+  TD,
+  TH,
+  borderDefault,
+  pageTitle,
+  textMuted,
+  textPrimary,
+} from "../../styles";
 import { fmtNumber, countryName, fmtLargeNum } from "../../utils/formatters";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import {
@@ -113,9 +120,7 @@ export default function AnalyticsCountries() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
-          Countries
-        </h1>
+        <h1 className={`${pageTitle} mb-1`}>Countries</h1>
       </div>
 
       <div className="flex flex-wrap items-center gap-2 mb-5">
@@ -126,8 +131,8 @@ export default function AnalyticsCountries() {
               onClick={() => setRange(opt.key)}
               className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
                 range === opt.key
-                  ? "bg-white dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
-                  : "text-[#9ca3af] dark:text-[#5c6478] hover:text-[#6b7280] dark:hover:text-[#8b93a5]"
+                  ? "bg-white dark:bg-[#252b38] ${textPrimary} shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
+                  : "${textMuted} hover:text-[#6b7280] dark:hover:text-[#8b93a5]"
               }`}
             >
               {opt.label}
@@ -140,16 +145,14 @@ export default function AnalyticsCountries() {
               type="date"
               value={customStart}
               onChange={(e) => setCustomStart(e.target.value)}
-              className="h-8 px-2.5 text-[12px] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl text-[#111827] dark:text-[#e8eaf0] bg-white dark:bg-[#1c2028] focus:outline-none focus:border-[#c4c9d4] dark:focus:border-[#D94412]"
+              className={`h-8 px-2.5 text-[12px] border ${borderDefault} rounded-xl ${textPrimary} bg-white dark:bg-[#1c2028] focus:outline-none focus:border-[#c4c9d4] dark:focus:border-[#D94412]`}
             />
-            <span className="text-[#9ca3af] dark:text-[#5c6478] text-[12px]">
-              –
-            </span>
+            <span className={`${textMuted} text-[12px]`}>–</span>
             <input
               type="date"
               value={customEnd}
               onChange={(e) => setCustomEnd(e.target.value)}
-              className="h-8 px-2.5 text-[12px] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl text-[#111827] dark:text-[#e8eaf0] bg-white dark:bg-[#1c2028] focus:outline-none focus:border-[#c4c9d4] dark:focus:border-[#D94412]"
+              className={`h-8 px-2.5 text-[12px] border ${borderDefault} rounded-xl ${textPrimary} bg-white dark:bg-[#1c2028] focus:outline-none focus:border-[#c4c9d4] dark:focus:border-[#D94412]`}
             />
           </div>
         )}
@@ -160,11 +163,13 @@ export default function AnalyticsCountries() {
         (() => {
           const byDay = downloads!.byDay;
           return (
-            <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] mb-5">
-              <div className="text-[14px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-1">
+            <div
+              className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] mb-5`}
+            >
+              <div className={`text-[14px] font-semibold ${textPrimary} mb-1`}>
                 Downloads over time
               </div>
-              <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mb-4">
+              <div className={`text-[12px] ${textMuted} mb-4`}>
                 {rangeLabel(range)}
               </div>
               <ResponsiveContainer width="100%" height={160}>
@@ -180,11 +185,7 @@ export default function AnalyticsCountries() {
                       x2="0"
                       y2="1"
                     >
-                      <stop
-                        offset="0%"
-                        stopColor="#D94412"
-                        stopOpacity={0.2}
-                      />
+                      <stop offset="0%" stopColor="#D94412" stopOpacity={0.2} />
                       <stop offset="100%" stopColor="#D94412" stopOpacity={0} />
                     </linearGradient>
                   </defs>
@@ -213,7 +214,11 @@ export default function AnalyticsCountries() {
                     width={36}
                   />
                   <Tooltip
-                    cursor={{ stroke: "#D94412", strokeWidth: 1.5, strokeDasharray: "3 3" }}
+                    cursor={{
+                      stroke: "#D94412",
+                      strokeWidth: 1.5,
+                      strokeDasharray: "3 3",
+                    }}
                     content={({ active, payload, label }) => {
                       if (!active || !payload?.length) return null;
                       const d = new Date(String(label));
@@ -222,11 +227,15 @@ export default function AnalyticsCountries() {
                         day: "numeric",
                       });
                       return (
-                        <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl px-3.5 py-2.5 text-[12px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
-                          <div className="text-[#9ca3af] dark:text-[#5c6478] mb-1 text-[11px]">
+                        <div
+                          className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl px-3.5 py-2.5 text-[12px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]`}
+                        >
+                          <div className={`${textMuted} mb-1 text-[11px]`}>
                             {dateStr}
                           </div>
-                          <div className="font-semibold text-[#111827] dark:text-[#e8eaf0] tabular-nums">
+                          <div
+                            className={`font-semibold ${textPrimary} tabular-nums`}
+                          >
                             {fmtNumber(payload[0].value as number)} downloads
                           </div>
                         </div>
@@ -240,7 +249,12 @@ export default function AnalyticsCountries() {
                     strokeWidth={2.5}
                     fill="url(#countryDlGrad)"
                     dot={false}
-                    activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff", fill: "#D94412" }}
+                    activeDot={{
+                      r: 5,
+                      strokeWidth: 2,
+                      stroke: "#fff",
+                      fill: "#D94412",
+                    }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -258,8 +272,10 @@ export default function AnalyticsCountries() {
             downloads: c.downloads,
           }));
           return (
-            <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] mb-5">
-              <div className="text-[14px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-4">
+            <div
+              className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] mb-5`}
+            >
+              <div className={`text-[14px] font-semibold ${textPrimary} mb-4`}>
                 Top {top.length} Countries
               </div>
               <ResponsiveContainer width="100%" height={top.length * 32 + 8}>
@@ -290,11 +306,13 @@ export default function AnalyticsCountries() {
                       if (!active || !payload?.length) return null;
                       const d = payload[0].payload;
                       return (
-                        <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl px-3.5 py-2.5 text-[12px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
-                          <div className="font-medium text-[#111827] dark:text-[#e8eaf0] mb-0.5">
+                        <div
+                          className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl px-3.5 py-2.5 text-[12px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]`}
+                        >
+                          <div className={`font-medium ${textPrimary} mb-0.5`}>
                             {d.name}
                           </div>
-                          <div className="text-[#9ca3af] dark:text-[#5c6478] tabular-nums">
+                          <div className={`${textMuted} tabular-nums`}>
                             {fmtNumber(d.downloads)} downloads
                           </div>
                         </div>
@@ -318,9 +336,11 @@ export default function AnalyticsCountries() {
           );
         })()}
 
-      <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
+      <div
+        className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]`}
+      >
         <div className="px-5 py-4 border-b border-[#f3f4f6] dark:border-[#2a2f3d] flex items-center justify-between">
-          <div className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+          <div className={`text-[16px] font-semibold ${textPrimary}`}>
             All Countries
           </div>
           <button
@@ -334,18 +354,18 @@ export default function AnalyticsCountries() {
             className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${
               showTrend
                 ? "bg-[#D94412] text-white"
-                : "bg-[#f3f4f6] dark:bg-[#252b38] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#6b7280] dark:hover:text-[#8b93a5]"
+                : "bg-[#f3f4f6] dark:bg-[#252b38] ${textMuted} hover:text-[#6b7280] dark:hover:text-[#8b93a5]"
             } disabled:opacity-40 disabled:cursor-not-allowed`}
           >
             Trend
           </button>
         </div>
         {loading ? (
-          <div className="px-5 py-8 text-center text-[13px] text-[#9ca3af] dark:text-[#5c6478]">
+          <div className={`px-5 py-8 text-center text-[13px] ${textMuted}`}>
             Loading…
           </div>
         ) : (downloads?.byCountry ?? []).length === 0 ? (
-          <div className="px-5 py-8 text-center text-[13px] text-[#9ca3af] dark:text-[#5c6478]">
+          <div className={`px-5 py-8 text-center text-[13px] ${textMuted}`}>
             No data for this period
           </div>
         ) : (
@@ -396,16 +416,16 @@ export default function AnalyticsCountries() {
                                 "none";
                             }}
                           />
-                          <span className="font-medium text-[#111827] dark:text-[#e8eaf0]">
+                          <span className={`font-medium ${textPrimary}`}>
                             {countryName(r.country)}
                           </span>
-                          <span className="text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
+                          <span className={`text-[11px] ${textMuted}`}>
                             {r.country.toUpperCase()}
                           </span>
                         </div>
                       </td>
                       <td
-                        className={`${TD} text-right tabular-nums text-[#111827] dark:text-[#e8eaf0]`}
+                        className={`${TD} text-right tabular-nums ${textPrimary}`}
                       >
                         {fmtNumber(r.downloads)}
                         {showTrend && (
@@ -418,7 +438,7 @@ export default function AnalyticsCountries() {
                       {hasEngagementData && (
                         <>
                           <td
-                            className={`${TD} text-right tabular-nums text-[#9ca3af] dark:text-[#5c6478]`}
+                            className={`${TD} text-right tabular-nums ${textMuted}`}
                           >
                             {r.impressions > 0 ? fmtNumber(r.impressions) : "—"}
                             {showTrend && r.impressions > 0 && (
@@ -429,7 +449,7 @@ export default function AnalyticsCountries() {
                             )}
                           </td>
                           <td
-                            className={`${TD} text-right tabular-nums text-[#9ca3af] dark:text-[#5c6478]`}
+                            className={`${TD} text-right tabular-nums ${textMuted}`}
                           >
                             {r.pageViews > 0 ? fmtNumber(r.pageViews) : "—"}
                             {showTrend && r.pageViews > 0 && (
@@ -440,7 +460,7 @@ export default function AnalyticsCountries() {
                             )}
                           </td>
                           <td
-                            className={`${TD} text-right tabular-nums text-[#9ca3af] dark:text-[#5c6478]`}
+                            className={`${TD} text-right tabular-nums ${textMuted}`}
                           >
                             {conv}
                           </td>
@@ -456,7 +476,9 @@ export default function AnalyticsCountries() {
                               }}
                             />
                           </div>
-                          <span className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] w-9 text-right">
+                          <span
+                            className={`text-[12px] ${textMuted} w-9 text-right`}
+                          >
                             {total > 0
                               ? Math.round((r.downloads / total) * 100)
                               : 0}

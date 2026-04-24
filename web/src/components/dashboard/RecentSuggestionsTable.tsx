@@ -1,4 +1,11 @@
-import { badge } from "../../styles";
+import {
+  TD,
+  badge,
+  borderDefault,
+  textMuted,
+  textPrimary,
+  textSecondary,
+} from "../../styles";
 import type { RecentSuggestion, LastJob } from "../../types";
 export type { RecentSuggestion };
 
@@ -7,19 +14,18 @@ interface Props {
   lastJob?: LastJob;
 }
 
-const TH =
-  "text-left text-[12px] font-medium text-[#6b7280] dark:text-[#8b93a5] px-4 py-3 border-b border-[#f3f4f6] dark:border-[#2a2f3d] whitespace-nowrap";
-const TD =
-  "px-4 py-3.5 border-b border-[#f3f4f6] dark:border-[#2a2f3d] text-[13px] align-middle";
+const TH = `text-left text-[12px] font-medium ${textSecondary} px-4 py-3 border-b border-[#f3f4f6] dark:border-[#2a2f3d] whitespace-nowrap`;
 
 export default function RecentSuggestionsTable({
   suggestions,
   lastJob,
 }: Props) {
   return (
-    <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl overflow-hidden">
+    <div
+      className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl overflow-hidden`}
+    >
       <div className="flex items-center justify-between px-5 pt-4 pb-0">
-        <div className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+        <div className={`text-[15px] font-semibold ${textPrimary}`}>
           Recent suggestions
         </div>
         {lastJob && (
@@ -29,7 +35,7 @@ export default function RecentSuggestionsTable({
         )}
       </div>
       {suggestions.length === 0 ? (
-        <div className="py-10 text-center text-[#9ca3af] dark:text-[#5c6478] text-sm">
+        <div className={`py-10 text-center ${textMuted} text-sm`}>
           No suggestions yet — run an AI analysis first
         </div>
       ) : (
@@ -51,12 +57,10 @@ export default function RecentSuggestionsTable({
                 <td className={TD}>
                   <span className={badge(s.type.toLowerCase())}>{s.type}</span>
                 </td>
-                <td className={`${TD} text-[#6b7280] dark:text-[#8b93a5]`}>
-                  {s.locale}
-                </td>
+                <td className={`${TD} ${textSecondary}`}>{s.locale}</td>
                 <td className={TD}>
                   {s.confidence != null ? (
-                    <span className="flex items-center gap-3 text-[#111827] dark:text-[#e8eaf0]">
+                    <span className={`flex items-center gap-3 ${textPrimary}`}>
                       <span className="w-[52px] text-right tabular-nums">
                         {Math.round(s.confidence * 100)}%
                       </span>

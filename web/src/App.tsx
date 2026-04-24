@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { borderDefault, textMuted, textPrimary, textSecondary } from "./styles";
 import {
   Routes,
   Route,
@@ -223,7 +224,7 @@ function AppSwitcher({
             <div className="text-[15px] font-semibold text-[#1a1a2e] dark:text-[#e8eaf0] truncate leading-tight">
               {activeApp?.name ?? current?.name ?? "No app"}
             </div>
-            <div className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] truncate font-mono">
+            <div className={`text-[11px] ${textMuted} truncate font-mono`}>
               {activeApp?.bundleId ?? current?.bundleId ?? "—"}
             </div>
           </div>
@@ -290,7 +291,7 @@ function AppSwitcher({
           >
             <div className="px-6 pt-5 pb-4 border-b border-gray-100 dark:border-[#2a2f3d] flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold text-[#111827] dark:text-[#e8eaf0]">
+                <h2 className={`text-lg font-bold ${textPrimary}`}>
                   Add project
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-[#8b93a5] mt-0.5">
@@ -334,7 +335,9 @@ function AppSwitcher({
                           accent
                         />
                         <div className="min-w-0">
-                          <div className="text-sm font-semibold text-[#111827] dark:text-[#e8eaf0] truncate">
+                          <div
+                            className={`text-sm font-semibold ${textPrimary} truncate`}
+                          >
                             {app.name}
                           </div>
                           <div className="text-[11px] text-gray-400 dark:text-[#5c6478] font-mono">
@@ -347,7 +350,7 @@ function AppSwitcher({
                         type="button"
                         disabled={importing === app.ascId}
                         onClick={() => importApp(app)}
-                        className="shrink-0 px-3 py-1.5 rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] bg-transparent text-[#111827] dark:text-[#e8eaf0] text-xs font-medium hover:border-[#C4001E] hover:text-[#C4001E] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className={`shrink-0 px-3 py-1.5 rounded-xl border ${borderDefault} bg-transparent ${textPrimary} text-xs font-medium hover:border-[#C4001E] hover:text-[#C4001E] transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
                         {importing === app.ascId ? "Importing…" : "Import"}
                       </button>
@@ -446,7 +449,7 @@ function HeaderProfileMenu({
               {displayName}
             </div>
             {user.email && (
-              <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] truncate">
+              <div className={`text-[12px] ${textMuted} truncate`}>
                 {user.email}
               </div>
             )}
@@ -754,14 +757,18 @@ function VersionsSidebarSection({
         <button
           onClick={openNewForm}
           title="New version"
-          className="p-[7px] rounded-lg text-[#9ca3af] dark:text-[#5c6478] hover:text-[#C4001E] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all"
+          className={`p-[7px] rounded-lg ${textMuted} hover:text-[#C4001E] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all`}
         >
           <Plus className="w-3.5 h-3.5" />
         </button>
       </div>
       {showNewForm && (
-        <div className="ml-3 mb-2 p-3 bg-white dark:bg-[#1c2028] rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] shadow-sm flex flex-col gap-2">
-          <p className="text-[11px] font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide">
+        <div
+          className={`ml-3 mb-2 p-3 bg-white dark:bg-[#1c2028] rounded-xl border ${borderDefault} shadow-sm flex flex-col gap-2`}
+        >
+          <p
+            className={`text-[11px] font-semibold ${textSecondary} uppercase tracking-wide`}
+          >
             New Version
           </p>
           <input
@@ -773,14 +780,14 @@ function VersionsSidebarSection({
               if (e.key === "Escape") setShowNewForm(false);
             }}
             placeholder="e.g. 2.1.0"
-            className="w-full px-3 py-[7px] text-[13px] rounded-lg border border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] focus:outline-none focus:border-[#C4001E]"
+            className={`w-full px-3 py-[7px] text-[13px] rounded-lg border ${borderDefault} bg-[#fafbfc] dark:bg-[#252b38] ${textPrimary} focus:outline-none focus:border-[#C4001E]`}
           />
           <select
             value={newReleaseType}
             onChange={(e) =>
               setNewReleaseType(e.target.value as "MANUAL" | "AFTER_APPROVAL")
             }
-            className="w-full px-3 py-[7px] text-[13px] rounded-lg border border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] focus:outline-none focus:border-[#C4001E]"
+            className={`w-full px-3 py-[7px] text-[13px] rounded-lg border ${borderDefault} bg-[#fafbfc] dark:bg-[#252b38] ${textPrimary} focus:outline-none focus:border-[#C4001E]`}
           >
             <option value="MANUAL">Manual Release</option>
             <option value="AFTER_APPROVAL">After Approval</option>
@@ -802,7 +809,7 @@ function VersionsSidebarSection({
             <button
               onClick={() => setShowNewForm(false)}
               disabled={creating}
-              className="px-3 py-[6px] rounded-lg text-[12px] font-medium border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-[#6b7280] dark:text-[#8b93a5] hover:bg-gray-50 dark:hover:bg-[#252b38] transition-all"
+              className={`px-3 py-[6px] rounded-lg text-[12px] font-medium border ${borderDefault} bg-white dark:bg-[#1c2028] ${textSecondary} hover:bg-gray-50 dark:hover:bg-[#252b38] transition-all`}
             >
               Cancel
             </button>

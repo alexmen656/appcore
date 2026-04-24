@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { borderDefault, textMuted, textPrimary } from "../styles";
 import { useNavigate } from "react-router-dom";
 import { FileText, Tag, UserRound, Clock, Search } from "lucide-react";
 
@@ -206,21 +207,25 @@ export default function SearchModal({ open, onClose }: Props) {
       }}
     >
       <div className="absolute inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm" />
-      <div className="relative w-full max-w-[560px] mx-4 bg-white dark:bg-[#1c2028] rounded-xl shadow-2xl border border-[#eef0f3] dark:border-[#2a2f3d] overflow-hidden">
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-[#eef0f3] dark:border-[#2a2f3d]">
-          <Search className="w-4 h-4 text-[#9ca3af] dark:text-[#5c6478] shrink-0" />
+      <div
+        className={`relative w-full max-w-[560px] mx-4 bg-white dark:bg-[#1c2028] rounded-xl shadow-2xl border ${borderDefault} overflow-hidden`}
+      >
+        <div
+          className={`flex items-center gap-3 px-4 py-3 border-b ${borderDefault}`}
+        >
+          <Search className={`w-4 h-4 ${textMuted} shrink-0`} />
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search…"
-            className="flex-1 text-sm bg-transparent outline-none text-[#111827] dark:text-[#e8eaf0] placeholder-[#9ca3af] dark:placeholder-[#5c6478]"
+            className={`flex-1 text-sm bg-transparent outline-none ${textPrimary} placeholder-[#9ca3af] dark:placeholder-[#5c6478]`}
           />
           {query && (
             <button
               onClick={() => setQuery("")}
-              className="text-[#9ca3af] dark:text-[#5c6478] hover:text-[#6b7280] dark:hover:text-[#8b93a5] text-xs"
+              className={`${textMuted} hover:text-[#6b7280] dark:hover:text-[#8b93a5] text-xs`}
             >
               Clear
             </button>
@@ -231,7 +236,9 @@ export default function SearchModal({ open, onClose }: Props) {
           <div className="max-h-[380px] overflow-y-auto py-2">
             {Object.entries(grouped).map(([category, items]) => (
               <div key={category}>
-                <div className="px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.8px] text-[#9ca3af] dark:text-[#5c6478]">
+                <div
+                  className={`px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.8px] ${textMuted}`}
+                >
                   {category}
                 </div>
                 {items.map((item) => {
@@ -249,22 +256,28 @@ export default function SearchModal({ open, onClose }: Props) {
                       }`}
                     >
                       <span
-                        className={`shrink-0 ${isActive ? "text-[#D94412]" : "text-[#9ca3af] dark:text-[#5c6478]"}`}
+                        className={`shrink-0 ${isActive ? "text-[#D94412]" : "${textMuted}"}`}
                       >
                         <ItemIcon type={item.icon} />
                       </span>
                       <span className="flex-1 min-w-0">
-                        <span className="block text-sm font-medium text-[#111827] dark:text-[#e8eaf0] truncate">
+                        <span
+                          className={`block text-sm font-medium ${textPrimary} truncate`}
+                        >
                           {item.label}
                         </span>
                         {item.sublabel && (
-                          <span className="block text-xs text-[#9ca3af] dark:text-[#5c6478] truncate">
+                          <span
+                            className={`block text-xs ${textMuted} truncate`}
+                          >
                             {item.sublabel}
                           </span>
                         )}
                       </span>
                       {isActive && (
-                        <span className="shrink-0 text-[10px] text-[#9ca3af] dark:text-[#5c6478] font-mono bg-[#eef0f3] dark:bg-[#2a2f3d] px-1.5 py-0.5 rounded">
+                        <span
+                          className={`shrink-0 text-[10px] ${textMuted} font-mono bg-[#eef0f3] dark:bg-[#2a2f3d] px-1.5 py-0.5 rounded`}
+                        >
                           ↵
                         </span>
                       )}
@@ -277,18 +290,20 @@ export default function SearchModal({ open, onClose }: Props) {
         )}
 
         {query.trim() && results.length === 0 && (
-          <div className="py-10 text-center text-sm text-[#9ca3af] dark:text-[#5c6478]">
+          <div className={`py-10 text-center text-sm ${textMuted}`}>
             No results for &ldquo;{query}&rdquo;
           </div>
         )}
 
         {!query && (
-          <div className="py-8 text-center text-sm text-[#9ca3af] dark:text-[#5c6478]">
+          <div className={`py-8 text-center text-sm ${textMuted}`}>
             Type to search pages, keywords, and more…
           </div>
         )}
 
-        <div className="flex items-center gap-4 px-4 py-2.5 border-t border-[#eef0f3] dark:border-[#2a2f3d] text-[11px] text-[#c4c9d4] dark:text-[#3d4556]">
+        <div
+          className={`flex items-center gap-4 px-4 py-2.5 border-t ${borderDefault} text-[11px] text-[#c4c9d4] dark:text-[#3d4556]`}
+        >
           <span>
             <kbd className="font-mono">↑↓</kbd> Navigate
           </span>

@@ -1,4 +1,11 @@
 import { useState } from "react";
+import {
+  borderDefault,
+  pageTitle,
+  textMuted,
+  textPrimary,
+  textSecondary,
+} from "../../styles";
 import { Trash2 } from "lucide-react";
 import {
   useApi,
@@ -25,9 +32,7 @@ export default function AppSettings({ addToast }: Props) {
 
   return (
     <div className="max-w-3xl">
-      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-5">
-        App Settings
-      </h1>
+      <h1 className={`${pageTitle} mb-5`}>App Settings</h1>
 
       {activeApp ? (
         <RepoLinker
@@ -37,7 +42,9 @@ export default function AppSettings({ addToast }: Props) {
           addToast={addToast}
         />
       ) : (
-        <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 mb-5 text-sm text-[#9ca3af] dark:text-[#5c6478]">
+        <div
+          className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl p-5 mb-5 text-sm ${textMuted}`}
+        >
           No app selected. Choose an app from the sidebar to link a GitHub repo.
         </div>
       )}
@@ -80,7 +87,7 @@ function DangerZone({
       <h2 className="text-[13px] font-bold uppercase tracking-widest text-red-500 dark:text-red-400 mb-1">
         Danger Zone
       </h2>
-      <p className="text-[13px] text-[#6b7280] dark:text-[#8b93a5] mb-4">
+      <p className={`text-[13px] ${textSecondary} mb-4`}>
         This app and all associated data (screenshots, builds, keywords,
         analyses) will be permanently deleted.
       </p>
@@ -105,7 +112,7 @@ function DangerZone({
             value={confirmText}
             onChange={(e) => setConfirmText(e.target.value)}
             placeholder={app.bundleId}
-            className="w-full rounded-xl px-3.5 py-[9px] text-[13px] border border-red-300 dark:border-red-800 bg-white dark:bg-[#1c2028] text-[#111827] dark:text-[#e8eaf0] focus:outline-none focus:ring-2 focus:ring-red-400/40"
+            className={`w-full rounded-xl px-3.5 py-[9px] text-[13px] border border-red-300 dark:border-red-800 bg-white dark:bg-[#1c2028] ${textPrimary} focus:outline-none focus:ring-2 focus:ring-red-400/40`}
             disabled={deleting}
           />
           <div className="flex items-center gap-2">
@@ -128,7 +135,7 @@ function DangerZone({
                 setConfirmText("");
               }}
               disabled={deleting}
-              className="px-4 py-[9px] rounded-xl text-[13px] font-medium border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-[#6b7280] dark:text-[#8b93a5] hover:bg-gray-50 dark:hover:bg-[#252b38] transition-all"
+              className={`px-4 py-[9px] rounded-xl text-[13px] font-medium border ${borderDefault} bg-white dark:bg-[#1c2028] ${textSecondary} hover:bg-gray-50 dark:hover:bg-[#252b38] transition-all`}
             >
               Cancel
             </button>

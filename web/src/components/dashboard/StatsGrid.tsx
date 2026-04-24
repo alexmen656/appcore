@@ -1,4 +1,5 @@
 import type { Stats } from "../../types";
+import { borderDefault, textPrimary, textSecondary } from "../../styles";
 export type { Stats };
 
 interface Props {
@@ -24,18 +25,18 @@ export default function StatsGrid({ stats }: Props) {
   ];
 
   return (
-    <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl mb-5 overflow-hidden">
+    <div
+      className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl mb-5 overflow-hidden`}
+    >
       <div className="grid grid-cols-3 lg:grid-cols-6 divide-x divide-[#f3f4f6] dark:divide-[#2a2f3d]">
         {items.map(({ label, value, color }) => (
           <div key={label} className="px-5 py-5">
             <div
-              className={`text-[28px] font-semibold tracking-tight leading-none mb-1.5 ${color || "text-[#111827] dark:text-[#e8eaf0]"}`}
+              className={`text-[28px] font-semibold tracking-tight leading-none mb-1.5 ${color || "${textPrimary}"}`}
             >
               {value.toLocaleString()}
             </div>
-            <div className="text-[12px] text-[#6b7280] dark:text-[#8b93a5]">
-              {label}
-            </div>
+            <div className={`text-[12px] ${textSecondary}`}>{label}</div>
           </div>
         ))}
       </div>

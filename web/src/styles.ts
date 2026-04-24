@@ -1,3 +1,9 @@
+export const textPrimary = "text-[#111827] dark:text-[#e8eaf0]";
+export const textSecondary = "text-[#6b7280] dark:text-[#8b93a5]";
+export const textMuted = "text-[#9ca3af] dark:text-[#5c6478]";
+export const borderDefault = "border-[#eef0f3] dark:border-[#2a2f3d]";
+export const pageTitle = `text-3xl font-semibold tracking-tight ${textPrimary}`;
+
 export const TH =
   "text-left text-[11px] font-medium uppercase tracking-wide text-[#9ca3af] dark:text-[#5c6478] px-4 py-3 border-b border-[#f3f4f6] dark:border-[#2a2f3d] whitespace-nowrap";
 

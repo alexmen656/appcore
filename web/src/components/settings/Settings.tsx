@@ -5,7 +5,7 @@ import AiProviderSection from "./AiProviderSection";
 import GitHubSection from "./GitHubSection";
 import PresetMetadataSection from "./PresetMetadataSection";
 import { SettingsData } from "./types";
-import { inputCls, textareaCls, btnPrimary } from "../../styles";
+import { btnPrimary, inputCls, pageTitle, textareaCls } from "../../styles";
 
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
@@ -46,9 +46,7 @@ export default function Settings({ addToast }: Props) {
 
   return (
     <div className="max-w-3xl">
-      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
-        Team Settings
-      </h1>
+      <h1 className={`${pageTitle} mb-1`}>Team Settings</h1>
 
       <form onSubmit={handleSave} className="flex flex-col gap-0">
         <AscCredentialsSection

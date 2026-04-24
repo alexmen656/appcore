@@ -6,7 +6,17 @@ import {
   authHeaders,
   getActiveBundleId,
 } from "../hooks/useApi";
-import { cardCls, inputCls, textareaCls, badgeOutline } from "../styles";
+import {
+  badgeOutline,
+  borderDefault,
+  cardCls,
+  inputCls,
+  pageTitle,
+  textMuted,
+  textPrimary,
+  textSecondary,
+  textareaCls,
+} from "../styles";
 import type { VersionsData, VersionLocalization } from "../types";
 import {
   Send,
@@ -320,15 +330,17 @@ function ActionButton({
           />
         </button>
         {open && (
-          <div className="absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl shadow-lg py-1 min-w-[180px]">
+          <div
+            className={`absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-xl shadow-lg py-1 min-w-[180px]`}
+          >
             <button
               onClick={() => {
                 setOpen(false);
                 onPushMetadata();
               }}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
+              className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left`}
             >
-              <Upload className="w-4 h-4 text-[#6b7280] dark:text-[#8b93a5]" />
+              <Upload className={`w-4 h-4 ${textSecondary}`} />
               Push Metadata
             </button>
             <button
@@ -336,9 +348,9 @@ function ActionButton({
                 setOpen(false);
                 onRefetch();
               }}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
+              className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left`}
             >
-              <RefreshCw className="w-4 h-4 text-[#6b7280] dark:text-[#8b93a5]" />
+              <RefreshCw className={`w-4 h-4 ${textSecondary}`} />
               Reload
             </button>
             <button
@@ -346,9 +358,9 @@ function ActionButton({
                 setOpen(false);
                 onSync();
               }}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
+              className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left`}
             >
-              <RefreshCcw className="w-4 h-4 text-[#6b7280] dark:text-[#8b93a5]" />
+              <RefreshCcw className={`w-4 h-4 ${textSecondary}`} />
               Sync from App Store
             </button>
           </div>
@@ -362,7 +374,7 @@ function ActionButton({
       <button
         onClick={onPushMetadata}
         disabled={busy}
-        className="inline-flex items-center gap-2 pl-3.5 pr-3 py-[8px] rounded-l-xl text-[13px] font-medium border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-[#111827] dark:text-[#e8eaf0] hover:border-[#D94412] hover:text-[#D94412] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className={`inline-flex items-center gap-2 pl-3.5 pr-3 py-[8px] rounded-l-xl text-[13px] font-medium border ${borderDefault} bg-white dark:bg-[#1c2028] ${textPrimary} hover:border-[#D94412] hover:text-[#D94412] transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
       >
         {submitting === "metadata" ? (
           <>
@@ -379,7 +391,7 @@ function ActionButton({
       <button
         onClick={() => setOpen((v) => !v)}
         disabled={busy}
-        className="px-2.5 rounded-r-xl border border-l-0 border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-[#6b7280] dark:text-[#8b93a5] hover:border-[#D94412] hover:text-[#D94412] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className={`px-2.5 rounded-r-xl border border-l-0 ${borderDefault} bg-white dark:bg-[#1c2028] ${textSecondary} hover:border-[#D94412] hover:text-[#D94412] transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
         aria-label="More actions"
       >
         <ChevronDown
@@ -387,15 +399,17 @@ function ActionButton({
         />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl shadow-lg py-1 min-w-[160px]">
+        <div
+          className={`absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-xl shadow-lg py-1 min-w-[160px]`}
+        >
           <button
             onClick={() => {
               setOpen(false);
               onRefetch();
             }}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
+            className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left`}
           >
-            <RefreshCw className="w-4 h-4 text-[#6b7280] dark:text-[#8b93a5]" />
+            <RefreshCw className={`w-4 h-4 ${textSecondary}`} />
             Reload
           </button>
           <button
@@ -403,9 +417,9 @@ function ActionButton({
               setOpen(false);
               onSync();
             }}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
+            className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left`}
           >
-            <RefreshCcw className="w-4 h-4 text-[#6b7280] dark:text-[#8b93a5]" />
+            <RefreshCcw className={`w-4 h-4 ${textSecondary}`} />
             Sync from App Store
           </button>
         </div>
@@ -490,7 +504,9 @@ function EditableField({
     <div className="group">
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2">
-          <label className="text-[12px] font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide">
+          <label
+            className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide`}
+          >
             {field.label}
           </label>
         </div>
@@ -565,7 +581,7 @@ function EditableField({
                 setEditing(false);
               }}
               disabled={saving}
-              className="px-3 py-[6px] rounded-xl text-xs font-medium border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-[#6b7280] dark:text-[#8b93a5] hover:bg-gray-50 dark:hover:bg-[#252b38] transition-all"
+              className={`px-3 py-[6px] rounded-xl text-xs font-medium border ${borderDefault} bg-white dark:bg-[#1c2028] ${textSecondary} hover:bg-gray-50 dark:hover:bg-[#252b38] transition-all`}
             >
               Cancel
             </button>
@@ -579,7 +595,7 @@ function EditableField({
       ) : (
         <div
           onClick={() => isEditable && setEditing(true)}
-          className={`text-[13px] text-[#111827] dark:text-[#e8eaf0] whitespace-pre-wrap break-words rounded-xl px-3.5 py-[9px] border border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#252b38] min-h-[38px] ${
+          className={`text-[13px] ${textPrimary} whitespace-pre-wrap break-words rounded-xl px-3.5 py-[9px] border ${borderDefault} bg-[#fafbfc] dark:bg-[#252b38] min-h-[38px] ${
             isEditable
               ? "cursor-pointer hover:border-[#d1d5db] dark:hover:border-[#3a4050] hover:bg-white dark:hover:bg-[#1c2028] transition-colors"
               : ""
@@ -637,7 +653,9 @@ function InlineEditField({
   return (
     <div className="group">
       <div className="flex items-center justify-between mb-1.5">
-        <label className="text-[12px] font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide">
+        <label
+          className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide`}
+        >
           {label}
         </label>
         {!editing && isEditable && (
@@ -686,7 +704,7 @@ function InlineEditField({
                 setDraft(value);
                 setEditing(false);
               }}
-              className="px-3 py-[6px] rounded-xl text-xs font-medium border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-[#6b7280] dark:text-[#8b93a5] hover:bg-gray-50 dark:hover:bg-[#252b38] transition-all"
+              className={`px-3 py-[6px] rounded-xl text-xs font-medium border ${borderDefault} bg-white dark:bg-[#1c2028] ${textSecondary} hover:bg-gray-50 dark:hover:bg-[#252b38] transition-all`}
             >
               Cancel
             </button>
@@ -695,7 +713,7 @@ function InlineEditField({
       ) : (
         <div
           onClick={() => isEditable && setEditing(true)}
-          className={`text-[13px] text-[#111827] dark:text-[#e8eaf0] rounded-xl px-3.5 py-[9px] border border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#252b38] min-h-[38px] ${
+          className={`text-[13px] ${textPrimary} rounded-xl px-3.5 py-[9px] border ${borderDefault} bg-[#fafbfc] dark:bg-[#252b38] min-h-[38px] ${
             isEditable
               ? "cursor-pointer hover:border-[#d1d5db] dark:hover:border-[#3a4050] hover:bg-white dark:hover:bg-[#1c2028] transition-colors"
               : ""
@@ -755,10 +773,12 @@ function LatestBuildCard({
             <img
               src={build.iconUrl}
               alt={appName}
-              className="w-16 h-16 rounded-[16px] border border-[#eef0f3] dark:border-[#2a2f3d] shadow-sm object-cover"
+              className={`w-16 h-16 rounded-[16px] border ${borderDefault} shadow-sm object-cover`}
             />
           ) : (
-            <div className="w-16 h-16 rounded-[16px] bg-[#f3f4f6] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] flex items-center justify-center">
+            <div
+              className={`w-16 h-16 rounded-[16px] bg-[#f3f4f6] dark:bg-[#252b38] border ${borderDefault} flex items-center justify-center`}
+            >
               <Store className="w-6 h-6 text-[#9ca3af]" />
             </div>
           )}
@@ -767,10 +787,12 @@ function LatestBuildCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <div className="text-[14px] font-semibold text-[#111827] dark:text-[#e8eaf0] leading-tight">
+              <div
+                className={`text-[14px] font-semibold ${textPrimary} leading-tight`}
+              >
                 {appName}
               </div>
-              <div className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] font-mono mt-0.5">
+              <div className={`text-[11px] ${textMuted} font-mono mt-0.5`}>
                 {build.bundleId}
               </div>
             </div>
@@ -782,11 +804,15 @@ function LatestBuildCard({
           </div>
 
           <div className="flex items-center gap-3 mt-2 flex-wrap">
-            <span className="flex items-center gap-1 text-[12px] text-[#6b7280] dark:text-[#8b93a5]">
+            <span
+              className={`flex items-center gap-1 text-[12px] ${textSecondary}`}
+            >
               <FileText className="w-3.5 h-3.5 shrink-0" />
               {sizeMb} MB
             </span>
-            <span className="flex items-center gap-1 text-[12px] text-[#6b7280] dark:text-[#8b93a5]">
+            <span
+              className={`flex items-center gap-1 text-[12px] ${textSecondary}`}
+            >
               <Calendar className="w-3.5 h-3.5" />
               {builtDate}
             </span>
@@ -880,7 +906,7 @@ function ScreenshotsPanel({
           {/*uppercase tracking-widest text-[#9ca3af] dark:text-[#5c6478]*/}
           Screenshots
         </div>
-        <span className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] font-mono">
+        <span className={`text-[11px] ${textMuted} font-mono`}>
           {job.commitSha.slice(0, 7)}
           {job.branch ? ` · ${job.branch}` : ""}
         </span>
@@ -895,7 +921,9 @@ function ScreenshotsPanel({
           {sortedGroups.map(([label, urls]) => (
             <div key={label}>
               <div className="flex items-center gap-2 mb-2.5">
-                <div className="text-[10px] font-bold uppercase tracking-widest text-[#9ca3af] dark:text-[#5c6478]">
+                <div
+                  className={`text-[10px] font-bold uppercase tracking-widest ${textMuted}`}
+                >
                   {label}
                 </div>
                 <span className="text-[10px] text-[#c8cdd3] dark:text-[#3a4050]">
@@ -1038,15 +1066,15 @@ function ReviewerInfoPanel({
     <div className={`${cardCls} mt-5`}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-[#9ca3af] dark:text-[#5c6478]" />
-          <span className="text-[14px] font-bold text-[#111827] dark:text-[#e8eaf0]">
+          <ShieldCheck className={`w-4 h-4 ${textMuted}`} />
+          <span className={`text-[14px] font-bold ${textPrimary}`}>
             App Review Contact
           </span>
         </div>
         <button
           onClick={handleSync}
           disabled={syncing}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[#eef0f3] dark:border-[#2a2f3d] bg-transparent text-[12px] text-[#6b7280] dark:text-[#8b93a5] hover:border-[#D94412] hover:text-[#D94412] transition-all disabled:opacity-50"
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border ${borderDefault} bg-transparent text-[12px] ${textSecondary} hover:border-[#D94412] hover:text-[#D94412] transition-all disabled:opacity-50`}
         >
           <RefreshCcw
             className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`}
@@ -1057,7 +1085,9 @@ function ReviewerInfoPanel({
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="text-[12px] font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide block mb-1.5">
+          <label
+            className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide block mb-1.5`}
+          >
             First Name
           </label>
           <input
@@ -1069,7 +1099,9 @@ function ReviewerInfoPanel({
           />
         </div>
         <div>
-          <label className="text-[12px] font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide block mb-1.5">
+          <label
+            className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide block mb-1.5`}
+          >
             Last Name
           </label>
           <input
@@ -1081,7 +1113,9 @@ function ReviewerInfoPanel({
           />
         </div>
         <div>
-          <label className="text-[12px] font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide block mb-1.5">
+          <label
+            className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide block mb-1.5`}
+          >
             Phone Number
           </label>
           <input
@@ -1093,7 +1127,9 @@ function ReviewerInfoPanel({
           />
         </div>
         <div>
-          <label className="text-[12px] font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide block mb-1.5">
+          <label
+            className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide block mb-1.5`}
+          >
             E-Mail
           </label>
           <input
@@ -1115,7 +1151,7 @@ function ReviewerInfoPanel({
               }
               className="w-4 h-4 rounded accent-[#D94412]"
             />
-            <span className="text-[13px] text-[#111827] dark:text-[#e8eaf0]">
+            <span className={`text-[13px] ${textPrimary}`}>
               Login required (Demo Account)
             </span>
           </label>
@@ -1124,7 +1160,9 @@ function ReviewerInfoPanel({
         {form.reviewerDemoAccountRequired && (
           <>
             <div>
-              <label className="text-[12px] font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide block mb-1.5">
+              <label
+                className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide block mb-1.5`}
+              >
                 Demo Username
               </label>
               <input
@@ -1136,7 +1174,9 @@ function ReviewerInfoPanel({
               />
             </div>
             <div>
-              <label className="text-[12px] font-semibold text-[#6b7280] dark:text-[#8b93a5] uppercase tracking-wide block mb-1.5">
+              <label
+                className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide block mb-1.5`}
+              >
                 Demo Password
               </label>
               <input
@@ -1536,9 +1576,7 @@ export default function Versions({ addToast }: Props) {
       <div className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-2.5 flex-wrap">
           {data.versionString && (
-            <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0]">
-              Version {data.versionString}
-            </h1>
+            <h1 className={`${pageTitle}`}>Version {data.versionString}</h1>
           )}
           {data.appStoreState && <StateBadge state={data.appStoreState} />}
           {!data.isEditable &&
@@ -1594,7 +1632,7 @@ export default function Versions({ addToast }: Props) {
             </div>
             <button
               onClick={() => setShowLogs((v) => !v)}
-              className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#6b7280] dark:hover:text-[#8b93a5] transition-colors font-medium"
+              className={`text-[11px] ${textMuted} hover:text-[#6b7280] dark:hover:text-[#8b93a5] transition-colors font-medium`}
             >
               {showLogs ? "Hide" : "Show"} logs
             </button>
@@ -1649,7 +1687,7 @@ export default function Versions({ addToast }: Props) {
                         className={`flex items-center gap-2 px-3.5 py-[7px] rounded-xl transition-all whitespace-nowrap ${
                           loc.locale === activeLocale
                             ? "bg-[#111827] dark:bg-[#e8eaf0] text-white dark:text-[#111827] shadow-sm"
-                            : "bg-[#fafbfc] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] text-[#111827] dark:text-[#e8eaf0] hover:border-[#d1d5db] dark:hover:border-[#3a4050]"
+                            : "bg-[#fafbfc] dark:bg-[#252b38] border ${borderDefault} ${textPrimary} hover:border-[#d1d5db] dark:hover:border-[#3a4050]"
                         }`}
                       >
                         <LocaleFlag locale={loc.locale} />
@@ -1694,7 +1732,7 @@ export default function Versions({ addToast }: Props) {
                     <button
                       onClick={() => setShowAddLocale((v) => !v)}
                       disabled={addingLocale}
-                      className="flex items-center gap-1.5 px-3 py-[7px] rounded-xl border border-dashed border-[#d1d5db] dark:border-[#3a4050] text-[#6b7280] dark:text-[#8b93a5] hover:border-[#D94412] hover:text-[#D94412] transition-all text-[13px] font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                      className={`flex items-center gap-1.5 px-3 py-[7px] rounded-xl border border-dashed border-[#d1d5db] dark:border-[#3a4050] ${textSecondary} hover:border-[#D94412] hover:text-[#D94412] transition-all text-[13px] font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       {addingLocale ? (
                         <div className="spinner !w-3.5 !h-3.5" />
@@ -1704,7 +1742,9 @@ export default function Versions({ addToast }: Props) {
                       Add Language
                     </button>
                     {showAddLocale && (
-                      <div className="absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl shadow-lg py-1 min-w-[200px] max-h-64 overflow-y-auto">
+                      <div
+                        className={`absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-xl shadow-lg py-1 min-w-[200px] max-h-64 overflow-y-auto`}
+                      >
                         {ALL_ASC_LOCALES.filter(
                           (l) =>
                             !data.localizations.some((loc) => loc.locale === l),
@@ -1712,13 +1752,15 @@ export default function Versions({ addToast }: Props) {
                           <button
                             key={locale}
                             onClick={() => createLocalization(locale)}
-                            className="w-full flex items-center justify-between gap-2 px-4 py-2 text-[13px] text-[#111827] dark:text-[#e8eaf0] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
+                            className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left`}
                           >
                             <span className="flex items-center gap-2">
                               <LocaleFlag locale={locale} />
                               {getLocaleName(locale)}
                             </span>
-                            <span className="text-[11px] font-mono text-[#9ca3af] dark:text-[#5c6478]">
+                            <span
+                              className={`text-[11px] font-mono ${textMuted}`}
+                            >
                               {locale}
                             </span>
                           </button>
@@ -1739,10 +1781,12 @@ export default function Versions({ addToast }: Props) {
                 className="w-5 h-4 rounded-xs object-cover shrink-0 mt-1"
               />
               <div>
-                <div className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0] leading-tight">
+                <div
+                  className={`text-[16px] font-semibold ${textPrimary} leading-tight`}
+                >
                   {getLocaleName(activeLoc.locale)}
                 </div>
-                <div className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] mt-0.5">
+                <div className={`text-[11px] ${textMuted} mt-0.5`}>
                   Locale: {activeLoc.locale}
                 </div>
               </div>
@@ -1783,7 +1827,9 @@ export default function Versions({ addToast }: Props) {
             />
           ))}
           <div className="pt-4 border-t border-[#f3f4f6]">
-            <div className="text-[11px] font-bold uppercase tracking-widest text-[#9ca3af] dark:text-[#5c6478] mb-4">
+            <div
+              className={`text-[11px] font-bold uppercase tracking-widest ${textMuted} mb-4`}
+            >
               Version Info
             </div>
             <div className="flex flex-col gap-5">
@@ -1816,7 +1862,9 @@ export default function Versions({ addToast }: Props) {
                     Age Rating
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[13px] text-[#111827] dark:text-[#e8eaf0] px-3.5 py-[9px] border border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#252b38] rounded-xl">
+                    <span
+                      className={`text-[13px] ${textPrimary} px-3.5 py-[9px] border ${borderDefault} bg-[#fafbfc] dark:bg-[#252b38] rounded-xl`}
+                    >
                       {data.ageRating || (
                         <span className="text-[#c8cdd3] dark:text-[#3a4050] italic">
                           Not set
@@ -1827,7 +1875,7 @@ export default function Versions({ addToast }: Props) {
                       href="https://appstoreconnect.apple.com"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#D94412] transition-colors"
+                      className={`text-[11px] ${textMuted} hover:text-[#D94412] transition-colors`}
                     >
                       Edit in ASC ↗
                     </a>
@@ -1842,7 +1890,7 @@ export default function Versions({ addToast }: Props) {
           className={`${cardCls} flex flex-col items-center justify-center py-12 text-center`}
         >
           <FileText className="w-10 h-10 text-gray-300 mb-3" />
-          <p className="text-sm text-[#9ca3af] dark:text-[#5c6478]">
+          <p className={`text-sm ${textMuted}`}>
             No localizations found for this version.
           </p>
         </div>

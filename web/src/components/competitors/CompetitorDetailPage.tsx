@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { borderDefault, pageTitle, textMuted } from "../../styles";
 import { ArrowLeft } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authHeaders, getActiveBundleId } from "../../hooks/useApi";
@@ -57,7 +58,7 @@ export default function CompetitorDetailPage({ addToast }: Props) {
       <div className="flex items-center gap-3 mb-6">
         <button
           onClick={() => navigate("/competitors")}
-          className="flex items-center gap-1.5 text-sm text-[#9ca3af] dark:text-[#5c6478] hover:text-[#111827] dark:hover:text-[#e8eaf0] transition-colors"
+          className={`flex items-center gap-1.5 text-sm ${textMuted} hover:text-[#111827] dark:hover:text-[#e8eaf0] transition-colors`}
         >
           <ArrowLeft className="w-4 h-4" />
           Competitors
@@ -77,10 +78,10 @@ export default function CompetitorDetailPage({ addToast }: Props) {
           <div className="flex items-center gap-4 mb-6">
             <AppIcon url={data.iconUrl} name={data.name} />
             <div>
-              <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0]">
-                {data.name}
-              </h1>
-              <div className="flex items-center gap-3 text-sm text-[#9ca3af] dark:text-[#5c6478] mt-1">
+              <h1 className={`${pageTitle}`}>{data.name}</h1>
+              <div
+                className={`flex items-center gap-3 text-sm ${textMuted} mt-1`}
+              >
                 <span className="font-mono">{data.bundleId}</span>
                 {data.rating != null && (
                   <span className="flex items-center gap-1">
@@ -97,7 +98,7 @@ export default function CompetitorDetailPage({ addToast }: Props) {
             </div>
           </div>
 
-          <div className="flex gap-1 border-b border-[#eef0f3] dark:border-[#2a2f3d] mb-6">
+          <div className={`flex gap-1 border-b ${borderDefault} mb-6`}>
             {tabs.map((t) => (
               <button
                 key={t.key}
@@ -105,7 +106,7 @@ export default function CompetitorDetailPage({ addToast }: Props) {
                 className={`px-3.5 py-2 text-[13px] font-medium rounded-t-lg transition-colors ${
                   tab === t.key
                     ? "text-[#D94412] border-b-2 border-[#D94412] -mb-px"
-                    : "text-[#9ca3af] dark:text-[#5c6478] hover:text-[#111827] dark:hover:text-[#e8eaf0]"
+                    : "${textMuted} hover:text-[#111827] dark:hover:text-[#e8eaf0]"
                 }`}
               >
                 {t.label}

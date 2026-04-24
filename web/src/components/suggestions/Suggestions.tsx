@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { pageTitle, textMuted, textSecondary } from "../../styles";
 import { ClipboardList } from "lucide-react";
 import { useApi, apiPost, getActiveBundleId } from "../../hooks/useApi";
 import FilterBar from "./FilterBar";
@@ -93,9 +94,7 @@ export default function Suggestions({ addToast }: Props) {
   return (
     <div>
       <div className="flex items-start justify-between mb-1">
-        <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0]">
-          ASO Suggestions
-        </h1>
+        <h1 className={`${pageTitle}`}>ASO Suggestions</h1>
         <button
           onClick={runAnalyze}
           disabled={analyzing}
@@ -110,7 +109,7 @@ export default function Suggestions({ addToast }: Props) {
           )}
         </button>
       </div>
-      <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">
+      <p className={`text-sm ${textMuted} mb-8`}>
         AI-generated optimization suggestions across locales
       </p>
 
@@ -135,10 +134,10 @@ export default function Suggestions({ addToast }: Props) {
           <div className="flex justify-center mb-3 opacity-20">
             <ClipboardList className="w-12 h-12 text-[#9ca3af]" />
           </div>
-          <div className="text-sm font-medium text-[#6b7280] dark:text-[#8b93a5] mb-1">
+          <div className={`text-sm font-medium ${textSecondary} mb-1`}>
             No suggestions found
           </div>
-          <div className="text-xs text-[#9ca3af] dark:text-[#5c6478]">
+          <div className={`text-xs ${textMuted}`}>
             Run an AI analysis from the Actions page
           </div>
         </div>

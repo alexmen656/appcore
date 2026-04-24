@@ -2,7 +2,15 @@ import { useState } from "react";
 import { useApi, apiPut, apiPost, apiDelete } from "../hooks/useApi";
 import SectionCard from "./settings/SectionCard";
 import type { McpConfig, OAuthClient } from "../types";
-import { btnSecSm, TH, TD } from "../styles";
+import {
+  TD,
+  TH,
+  borderDefault,
+  btnSecSm,
+  pageTitle,
+  textMuted,
+  textPrimary,
+} from "../styles";
 
 interface Props {
   addToast: (msg: string, type?: "success" | "error") => void;
@@ -99,10 +107,8 @@ export default function Agents({ addToast }: Props) {
 
   return (
     <div className="max-w-3xl">
-      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
-        Agents
-      </h1>
-      <p className="text-sm text-[#9ca3af] dark:text-[#5c6478] mb-8">
+      <h1 className={`${pageTitle} mb-1`}>Agents</h1>
+      <p className={`text-sm ${textMuted} mb-8`}>
         Connect AI agents like Claude Desktop via MCP
       </p>
 
@@ -112,10 +118,10 @@ export default function Agents({ addToast }: Props) {
       >
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0]">
+            <div className={`text-sm font-medium ${textPrimary}`}>
               MCP Server Status
             </div>
-            <div className="text-xs text-[#9ca3af] dark:text-[#5c6478] mt-0.5">
+            <div className={`text-xs ${textMuted} mt-0.5`}>
               {config?.mcpEnabled
                 ? `Active — endpoint available at ${mcpUrl}`
                 : "Disabled — no MCP connections are accepted"}
@@ -140,18 +146,22 @@ export default function Agents({ addToast }: Props) {
       </SectionCard>
 
       <SectionCard title="OAuth Clients">
-        <div className="mb-5 p-3.5 rounded-xl bg-[#f8f9fb] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d]">
-          <p className="text-[12px] font-medium text-[#111827] dark:text-[#e8eaf0] mb-1.5">
+        <div
+          className={`mb-5 p-3.5 rounded-xl bg-[#f8f9fb] dark:bg-[#252b38] border ${borderDefault}`}
+        >
+          <p className={`text-[12px] font-medium ${textPrimary} mb-1.5`}>
             How to connect Claude Desktop
           </p>
-          <ol className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] space-y-1 list-decimal list-inside">
+          <ol
+            className={`text-[12px] ${textMuted} space-y-1 list-decimal list-inside`}
+          >
             <li>
               In Claude Desktop → Settings → Connectors → Add custom connector.
             </li>
             <li>
               Enter the MCP Server URL:{" "}
               <code
-                className="font-mono text-[#111827] dark:text-[#e8eaf0] cursor-pointer hover:text-[#D94412]"
+                className={`font-mono ${textPrimary} cursor-pointer hover:text-[#D94412]`}
                 onClick={() => copyToClipboard(mcpUrl)}
                 title="Click to copy"
               >
@@ -160,9 +170,7 @@ export default function Agents({ addToast }: Props) {
             </li>
             <li>
               Leave OAuth Client ID and Secret{" "}
-              <strong className="text-[#111827] dark:text-[#e8eaf0]">
-                empty
-              </strong>
+              <strong className={`${textPrimary}`}>empty</strong>
             </li>
             <li>
               Claude.ai opens an Marteso login page - sign in to authorize.
@@ -172,7 +180,7 @@ export default function Agents({ addToast }: Props) {
         </div>
 
         {oauthClients && oauthClients.length > 0 ? (
-          <div className="rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] overflow-hidden">
+          <div className={`rounded-xl border ${borderDefault} overflow-hidden`}>
             <table className="w-full">
               <thead>
                 <tr className="bg-[#f8f9fb] dark:bg-[#252b38]">
@@ -187,7 +195,7 @@ export default function Agents({ addToast }: Props) {
                   <tr key={client.id}>
                     <td className={TD}>
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-[#111827] dark:text-[#e8eaf0]">
+                        <span className={`font-medium ${textPrimary}`}>
                           {client.name}
                         </span>
                         {client.userId === null && (
@@ -199,19 +207,19 @@ export default function Agents({ addToast }: Props) {
                     </td>
                     <td className={TD}>
                       <div className="flex items-center gap-1.5">
-                        <code className="text-[11px] font-mono text-[#9ca3af] dark:text-[#5c6478]">
+                        <code className={`text-[11px] font-mono ${textMuted}`}>
                           {client.clientId}
                         </code>
                         <button
                           onClick={() => copyToClipboard(client.clientId)}
-                          className="text-[10px] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#D94412] transition-colors"
+                          className={`text-[10px] ${textMuted} hover:text-[#D94412] transition-colors`}
                           title="Copy Client ID"
                         >
                           ⎘
                         </button>
                       </div>
                     </td>
-                    <td className={`${TD} text-[#9ca3af] dark:text-[#5c6478]`}>
+                    <td className={`${TD} ${textMuted}`}>
                       {new Date(client.createdAt).toLocaleDateString()}
                     </td>
                     <td className={TD}>
@@ -229,7 +237,7 @@ export default function Agents({ addToast }: Props) {
             </table>
           </div>
         ) : (
-          <p className="text-[13px] text-[#9ca3af] dark:text-[#5c6478]">
+          <p className={`text-[13px] ${textMuted}`}>
             No clients connected yet.
           </p>
         )}
@@ -243,7 +251,7 @@ export default function Agents({ addToast }: Props) {
           {MCP_TOOLS.map((tool) => (
             <div
               key={tool.name}
-              className="flex items-start gap-3 p-3 bg-[#f8f9fb] dark:bg-[#252b38] rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d]"
+              className={`flex items-start gap-3 p-3 bg-[#f8f9fb] dark:bg-[#252b38] rounded-xl border ${borderDefault}`}
             >
               <code className="text-[12px] font-mono font-semibold text-[#D94412] shrink-0 mt-0.5">
                 {tool.name}

@@ -1,3 +1,4 @@
+import { textPrimary } from "../../styles";
 interface Props {
   mode: "login" | "register";
 }
@@ -13,7 +14,9 @@ export default function AuthHeader({ mode }: Props) {
           </div>
         </div>
       </div>
-      <h2 className="text-[22px] font-bold text-[#111827] dark:text-[#e8eaf0] mb-6 tracking-tight">
+      <h2
+        className={`text-[22px] font-bold ${textPrimary} mb-6 tracking-tight`}
+      >
         {mode === "login" ? "Sign in to your account" : "Create an account"}
       </h2>
     </>

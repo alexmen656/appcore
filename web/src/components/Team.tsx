@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { textPrimary } from "../styles";
 import { authHeaders } from "../hooks/useApi";
 import { Pencil, Plus, X, LayoutGrid, Trash2 } from "lucide-react";
 
@@ -419,12 +420,12 @@ export default function Team({
                 setInviteError(null);
               }}
               required
-              className="flex-1 px-3 py-2.5 text-sm rounded-xl border border-[#e5e7eb] dark:border-[#2a2f3d] bg-[#f7f8fa] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] focus:outline-none focus:border-[#D94412] transition-colors"
+              className={`flex-1 px-3 py-2.5 text-sm rounded-xl border border-[#e5e7eb] dark:border-[#2a2f3d] bg-[#f7f8fa] dark:bg-[#252b38] ${textPrimary} focus:outline-none focus:border-[#D94412] transition-colors`}
             />
             <select
               value={inviteRole}
               onChange={(e) => setInviteRole(e.target.value as TeamRole)}
-              className="px-3 py-2.5 text-sm rounded-xl border border-[#e5e7eb] dark:border-[#2a2f3d] bg-[#f7f8fa] dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] focus:outline-none focus:border-[#D94412] transition-colors"
+              className={`px-3 py-2.5 text-sm rounded-xl border border-[#e5e7eb] dark:border-[#2a2f3d] bg-[#f7f8fa] dark:bg-[#252b38] ${textPrimary} focus:outline-none focus:border-[#D94412] transition-colors`}
             >
               <option value="VIEWER">Viewer</option>
               <option value="MEMBER">Member</option>
@@ -504,7 +505,7 @@ export default function Team({
                           onChange={(e) =>
                             setEditRole(e.target.value as TeamRole)
                           }
-                          className="px-2 py-1.5 text-xs rounded-lg border border-[#e5e7eb] dark:border-[#2a2f3d] bg-white dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] focus:outline-none focus:border-[#D94412]"
+                          className={`px-2 py-1.5 text-xs rounded-lg border border-[#e5e7eb] dark:border-[#2a2f3d] bg-white dark:bg-[#252b38] ${textPrimary} focus:outline-none focus:border-[#D94412]`}
                         >
                           <option value="VIEWER">Viewer</option>
                           <option value="MEMBER">Member</option>

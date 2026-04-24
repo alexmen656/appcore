@@ -1,4 +1,10 @@
 import { useState } from "react";
+import {
+  borderDefault,
+  textMuted,
+  textPrimary,
+  textSecondary,
+} from "../../styles";
 import type { Review } from "../../types";
 import { fmtMediumDate } from "../../utils/formatters";
 
@@ -10,14 +16,16 @@ function Stars({ rating }: { rating: number }) {
   return (
     <span className="text-[13px] leading-none">
       {[1, 2, 3, 4, 5].map((i) => (
-        <span key={i} className={i <= rating ? "text-amber-400" : "text-[#d1d5db]"}>
+        <span
+          key={i}
+          className={i <= rating ? "text-amber-400" : "text-[#d1d5db]"}
+        >
           ★
         </span>
       ))}
     </span>
   );
 }
-
 
 const PAGE_SIZE = 20;
 
@@ -26,9 +34,15 @@ export default function ReviewsList({ reviews }: Props) {
 
   if (reviews.length === 0) {
     return (
-      <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
-        <div className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-1">Customer Reviews</div>
-        <div className="text-[13px] text-[#9ca3af] dark:text-[#5c6478] py-8 text-center">No reviews yet.</div>
+      <div
+        className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]`}
+      >
+        <div className={`text-[15px] font-semibold ${textPrimary} mb-1`}>
+          Customer Reviews
+        </div>
+        <div className={`text-[13px] ${textMuted} py-8 text-center`}>
+          No reviews yet.
+        </div>
       </div>
     );
   }
@@ -36,10 +50,12 @@ export default function ReviewsList({ reviews }: Props) {
   const visible = reviews.slice(0, shown);
 
   return (
-    <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
-      <div className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-4">
+    <div
+      className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]`}
+    >
+      <div className={`text-[15px] font-semibold ${textPrimary} mb-4`}>
         Customer Reviews
-        <span className="ml-2 text-[12px] font-normal text-[#9ca3af] dark:text-[#5c6478]">
+        <span className={`ml-2 text-[12px] font-normal ${textMuted}`}>
           {reviews.length} total
         </span>
       </div>
@@ -50,24 +66,34 @@ export default function ReviewsList({ reviews }: Props) {
             <div className="flex items-center gap-2 mb-1">
               <Stars rating={r.rating} />
               {r.title && (
-                <span className="text-[13px] font-medium text-[#111827] dark:text-[#e8eaf0] truncate max-w-[280px]">
+                <span
+                  className={`text-[13px] font-medium ${textPrimary} truncate max-w-[280px]`}
+                >
                   {r.title}
                 </span>
               )}
               <div className="ml-auto flex items-center gap-1.5 shrink-0">
                 {r.territory && (
-                  <span className="px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-[#f3f4f6] dark:bg-[#252b38] text-[#6b7280] dark:text-[#8b93a5] border border-[#eef0f3] dark:border-[#2a2f3d]">
+                  <span
+                    className={`px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-[#f3f4f6] dark:bg-[#252b38] ${textSecondary} border ${borderDefault}`}
+                  >
                     {r.territory.slice(0, 2)}
                   </span>
                 )}
-                <span className="text-[11px] text-[#9ca3af] dark:text-[#5c6478]">{fmtMediumDate(r.reviewedAt)}</span>
+                <span className={`text-[11px] ${textMuted}`}>
+                  {fmtMediumDate(r.reviewedAt)}
+                </span>
               </div>
             </div>
             {r.body && (
-              <p className="text-[13px] text-[#4b5563] dark:text-[#8b93a5] leading-relaxed line-clamp-3">{r.body}</p>
+              <p className="text-[13px] text-[#4b5563] dark:text-[#8b93a5] leading-relaxed line-clamp-3">
+                {r.body}
+              </p>
             )}
             {r.reviewerNickname && (
-              <div className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] mt-1">— {r.reviewerNickname}</div>
+              <div className={`text-[11px] ${textMuted} mt-1`}>
+                — {r.reviewerNickname}
+              </div>
             )}
           </div>
         ))}
@@ -76,7 +102,7 @@ export default function ReviewsList({ reviews }: Props) {
       {shown < reviews.length && (
         <button
           onClick={() => setShown((s) => s + PAGE_SIZE)}
-          className="mt-4 w-full py-2 rounded-xl text-[13px] font-medium text-[#6b7280] dark:text-[#8b93a5] border border-[#eef0f3] dark:border-[#2a2f3d] hover:bg-[#f8f9fb] dark:hover:bg-white/[0.04] transition-colors"
+          className={`mt-4 w-full py-2 rounded-xl text-[13px] font-medium ${textSecondary} border ${borderDefault} hover:bg-[#f8f9fb] dark:hover:bg-white/[0.04] transition-colors`}
         >
           Load more ({reviews.length - shown} remaining)
         </button>

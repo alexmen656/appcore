@@ -19,7 +19,14 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
-import { TD } from "../../styles";
+import {
+  TD,
+  borderDefault,
+  pageTitle,
+  textMuted,
+  textPrimary,
+  textSecondary,
+} from "../../styles";
 
 function StatTile({
   label,
@@ -33,21 +40,21 @@ function StatTile({
   color: string;
 }) {
   return (
-    <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
+    <div
+      className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]`}
+    >
       <div className="flex items-start justify-between mb-3">
-        <span className="text-[13px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+        <span className={`text-[13px] font-semibold ${textPrimary}`}>
           {label}
         </span>
         <span style={{ color }} className="opacity-60">
           {icon}
         </span>
       </div>
-      <div className="text-[36px] font-bold leading-none text-[#111827] dark:text-[#e8eaf0]">
+      <div className={`text-[36px] font-bold leading-none ${textPrimary}`}>
         {value}
       </div>
-      <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mt-2">
-        {label}
-      </div>
+      <div className={`text-[12px] ${textMuted} mt-2`}>{label}</div>
     </div>
   );
 }
@@ -115,7 +122,7 @@ export default function AnalyticsCountryDetail() {
       <div className="flex items-center gap-3 mb-6">
         <button
           onClick={() => navigate(-1)}
-          className="p-1.5 rounded-lg hover:bg-[#f3f4f6] dark:hover:bg-[#252b38] transition-colors text-[#9ca3af] dark:text-[#5c6478]"
+          className={`p-1.5 rounded-lg hover:bg-[#f3f4f6] dark:hover:bg-[#252b38] transition-colors ${textMuted}`}
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
@@ -128,10 +135,10 @@ export default function AnalyticsCountryDetail() {
           }}
         />
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] leading-tight">
+          <h1 className={`${pageTitle} leading-tight`}>
             {countryName(countryCode)}
           </h1>
-          <p className="text-sm text-[#9ca3af] dark:text-[#5c6478]">
+          <p className={`text-sm ${textMuted}`}>
             {countryCode} · Analytics breakdown
           </p>
         </div>
@@ -146,8 +153,8 @@ export default function AnalyticsCountryDetail() {
               onClick={() => setRange(opt.key)}
               className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
                 range === opt.key
-                  ? "bg-white dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
-                  : "text-[#9ca3af] dark:text-[#5c6478] hover:text-[#6b7280] dark:hover:text-[#8b93a5]"
+                  ? "bg-white dark:bg-[#252b38] ${textPrimary} shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
+                  : "${textMuted} hover:text-[#6b7280] dark:hover:text-[#8b93a5]"
               }`}
             >
               {opt.label}
@@ -160,14 +167,14 @@ export default function AnalyticsCountryDetail() {
               type="date"
               value={customStart}
               onChange={(e) => setCustomStart(e.target.value)}
-              className="h-8 px-2.5 text-[12px] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl text-[#111827] dark:text-[#e8eaf0] bg-white dark:bg-[#1c2028] focus:outline-none"
+              className={`h-8 px-2.5 text-[12px] border ${borderDefault} rounded-xl ${textPrimary} bg-white dark:bg-[#1c2028] focus:outline-none`}
             />
             <span className="text-[#9ca3af] text-[12px]">–</span>
             <input
               type="date"
               value={customEnd}
               onChange={(e) => setCustomEnd(e.target.value)}
-              className="h-8 px-2.5 text-[12px] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl text-[#111827] dark:text-[#e8eaf0] bg-white dark:bg-[#1c2028] focus:outline-none"
+              className={`h-8 px-2.5 text-[12px] border ${borderDefault} rounded-xl ${textPrimary} bg-white dark:bg-[#1c2028] focus:outline-none`}
             />
           </div>
         )}
@@ -215,11 +222,13 @@ export default function AnalyticsCountryDetail() {
 
       {/* Downloads chart */}
       {!loading && (downloads?.byDay ?? []).length > 1 && (
-        <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] mb-5">
-          <div className="text-[14px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-1">
+        <div
+          className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] mb-5`}
+        >
+          <div className={`text-[14px] font-semibold ${textPrimary} mb-1`}>
             Downloads over time
           </div>
-          <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mb-4">
+          <div className={`text-[12px] ${textMuted} mb-4`}>
             {rangeLabel(range)}
           </div>
           <ResponsiveContainer width="100%" height={180}>
@@ -258,7 +267,11 @@ export default function AnalyticsCountryDetail() {
                 width={36}
               />
               <Tooltip
-                cursor={{ stroke: "#6366f1", strokeWidth: 1.5, strokeDasharray: "3 3" }}
+                cursor={{
+                  stroke: "#6366f1",
+                  strokeWidth: 1.5,
+                  strokeDasharray: "3 3",
+                }}
                 content={({ active, payload, label }) => {
                   if (!active || !payload?.length) return null;
                   const d = new Date(String(label));
@@ -267,11 +280,13 @@ export default function AnalyticsCountryDetail() {
                     day: "numeric",
                   });
                   return (
-                    <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl px-3.5 py-2.5 text-[12px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]">
-                      <div className="text-[#9ca3af] dark:text-[#5c6478] mb-1 text-[11px]">
+                    <div
+                      className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl px-3.5 py-2.5 text-[12px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]`}
+                    >
+                      <div className={`${textMuted} mb-1 text-[11px]`}>
                         {dateStr}
                       </div>
-                      <div className="font-semibold text-[#111827] dark:text-[#e8eaf0]">
+                      <div className={`font-semibold ${textPrimary}`}>
                         {fmtNumber(payload[0].value as number)} downloads
                       </div>
                     </div>
@@ -285,7 +300,12 @@ export default function AnalyticsCountryDetail() {
                 strokeWidth={2.5}
                 fill="url(#cdDlGrad)"
                 dot={false}
-                activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff", fill: "#6366f1" }}
+                activeDot={{
+                  r: 5,
+                  strokeWidth: 2,
+                  stroke: "#fff",
+                  fill: "#6366f1",
+                }}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -294,11 +314,13 @@ export default function AnalyticsCountryDetail() {
 
       {/* Impressions chart */}
       {!loading && hasEngagementData && (downloads?.byDay ?? []).length > 1 && (
-        <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] mb-5">
-          <div className="text-[14px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-1">
+        <div
+          className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] mb-5`}
+        >
+          <div className={`text-[14px] font-semibold ${textPrimary} mb-1`}>
             Impressions &amp; Page Views
           </div>
-          <div className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] mb-4">
+          <div className={`text-[12px] ${textMuted} mb-4`}>
             {rangeLabel(range)}
           </div>
           <ResponsiveContainer width="100%" height={180}>
@@ -316,7 +338,12 @@ export default function AnalyticsCountryDetail() {
                   <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="0" stroke="#f0f1f3" vertical={false} strokeWidth={1} />
+              <CartesianGrid
+                strokeDasharray="0"
+                stroke="#f0f1f3"
+                vertical={false}
+                strokeWidth={1}
+              />
               <XAxis
                 dataKey="date"
                 axisLine={false}
@@ -336,7 +363,11 @@ export default function AnalyticsCountryDetail() {
                 width={36}
               />
               <Tooltip
-                cursor={{ stroke: "#0ea5e9", strokeWidth: 1.5, strokeDasharray: "3 3" }}
+                cursor={{
+                  stroke: "#0ea5e9",
+                  strokeWidth: 1.5,
+                  strokeDasharray: "3 3",
+                }}
                 content={({ active, payload, label }) => {
                   if (!active || !payload?.length) return null;
                   const d = new Date(String(label));
@@ -345,8 +376,10 @@ export default function AnalyticsCountryDetail() {
                     day: "numeric",
                   });
                   return (
-                    <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl px-3.5 py-2.5 text-[12px] shadow-[0_4px_16px_rgba(0,0,0,0.1)] space-y-1">
-                      <div className="text-[#9ca3af] dark:text-[#5c6478] mb-1 text-[11px]">
+                    <div
+                      className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl px-3.5 py-2.5 text-[12px] shadow-[0_4px_16px_rgba(0,0,0,0.1)] space-y-1`}
+                    >
+                      <div className={`${textMuted} mb-1 text-[11px]`}>
                         {dateStr}
                       </div>
                       {payload.map((p) => (
@@ -358,10 +391,12 @@ export default function AnalyticsCountryDetail() {
                             className="w-2 h-2 rounded-full shrink-0"
                             style={{ background: p.color }}
                           />
-                          <span className="text-[#6b7280] dark:text-[#8b93a5] capitalize">
+                          <span className={`${textSecondary} capitalize`}>
                             {p.dataKey as string}
                           </span>
-                          <span className="font-semibold text-[#111827] dark:text-[#e8eaf0] ml-auto tabular-nums">
+                          <span
+                            className={`font-semibold ${textPrimary} ml-auto tabular-nums`}
+                          >
                             {fmtNumber(p.value as number)}
                           </span>
                         </div>
@@ -377,7 +412,12 @@ export default function AnalyticsCountryDetail() {
                 strokeWidth={2.5}
                 fill="url(#cdImpGrad)"
                 dot={false}
-                activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff", fill: "#0ea5e9" }}
+                activeDot={{
+                  r: 5,
+                  strokeWidth: 2,
+                  stroke: "#fff",
+                  fill: "#0ea5e9",
+                }}
               />
               <Area
                 type="monotoneX"
@@ -386,7 +426,12 @@ export default function AnalyticsCountryDetail() {
                 strokeWidth={2.5}
                 fill="url(#cdPvGrad)"
                 dot={false}
-                activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff", fill: "#8b5cf6" }}
+                activeDot={{
+                  r: 5,
+                  strokeWidth: 2,
+                  stroke: "#fff",
+                  fill: "#8b5cf6",
+                }}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -394,16 +439,20 @@ export default function AnalyticsCountryDetail() {
       )}
 
       {/* Reviews */}
-      <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
+      <div
+        className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]`}
+      >
         <div className="px-5 py-4 border-b border-[#f3f4f6] dark:border-[#2a2f3d] flex items-center justify-between">
-          <div className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+          <div className={`text-[16px] font-semibold ${textPrimary}`}>
             Reviews from {countryName(countryCode)}
           </div>
           {avgRating && (
-            <div className="flex items-center gap-1.5 text-[13px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+            <div
+              className={`flex items-center gap-1.5 text-[13px] font-semibold ${textPrimary}`}
+            >
               <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
               {avgRating}
-              <span className="text-[#9ca3af] dark:text-[#5c6478] font-normal">
+              <span className={`${textMuted} font-normal`}>
                 ({reviews.length})
               </span>
             </div>
@@ -420,7 +469,9 @@ export default function AnalyticsCountryDetail() {
                   reviews.length > 0 ? (count / reviews.length) * 100 : 0;
                 return (
                   <div key={star} className="flex items-center gap-3">
-                    <span className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] w-3 text-right shrink-0">
+                    <span
+                      className={`text-[12px] ${textMuted} w-3 text-right shrink-0`}
+                    >
                       {star}
                     </span>
                     <div className="flex-1 h-2 bg-[#f3f4f6] dark:bg-[#252b38] rounded-full overflow-hidden">
@@ -429,7 +480,9 @@ export default function AnalyticsCountryDetail() {
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <span className="text-[12px] tabular-nums text-[#9ca3af] dark:text-[#5c6478] w-7 text-right shrink-0">
+                    <span
+                      className={`text-[12px] tabular-nums ${textMuted} w-7 text-right shrink-0`}
+                    >
                       {count}
                     </span>
                   </div>
@@ -440,11 +493,11 @@ export default function AnalyticsCountryDetail() {
         )}
 
         {reviewsLoading ? (
-          <div className="px-5 py-8 text-center text-[13px] text-[#9ca3af] dark:text-[#5c6478]">
+          <div className={`px-5 py-8 text-center text-[13px] ${textMuted}`}>
             Loading…
           </div>
         ) : reviews.length === 0 ? (
-          <div className="px-5 py-8 text-center text-[13px] text-[#9ca3af] dark:text-[#5c6478]">
+          <div className={`px-5 py-8 text-center text-[13px] ${textMuted}`}>
             No reviews from {countryName(countryCode)}
           </div>
         ) : (
@@ -464,7 +517,7 @@ export default function AnalyticsCountryDetail() {
                       />
                     ))}
                   </div>
-                  <span className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] shrink-0">
+                  <span className={`text-[11px] ${textMuted} shrink-0`}>
                     {new Date(r.reviewedAt).toLocaleDateString(undefined, {
                       month: "short",
                       day: "numeric",
@@ -473,12 +526,16 @@ export default function AnalyticsCountryDetail() {
                   </span>
                 </div>
                 {r.title && (
-                  <div className="text-[13px] font-semibold text-[#111827] dark:text-[#e8eaf0] mb-1">
+                  <div
+                    className={`text-[13px] font-semibold ${textPrimary} mb-1`}
+                  >
                     {r.title}
                   </div>
                 )}
                 {r.body && (
-                  <div className="text-[13px] text-[#6b7280] dark:text-[#8b93a5] leading-relaxed line-clamp-4">
+                  <div
+                    className={`text-[13px] ${textSecondary} leading-relaxed line-clamp-4`}
+                  >
                     {r.body}
                   </div>
                 )}
@@ -493,7 +550,7 @@ export default function AnalyticsCountryDetail() {
               <div className="px-5 py-3 text-center">
                 <Link
                   to="/analytics/reviews"
-                  className="text-[12px] text-[#9ca3af] dark:text-[#5c6478] hover:text-[#D94412] transition-colors"
+                  className={`text-[12px] ${textMuted} hover:text-[#D94412] transition-colors`}
                 >
                   +{reviews.length - 30} more reviews
                 </Link>

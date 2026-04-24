@@ -1,7 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import { authHeaders } from "../../hooks/useApi";
 import SectionCard from "./SectionCard";
-import { btnPrimary, btnSecondary, inputCls } from "../../styles";
+import {
+  borderDefault,
+  btnPrimary,
+  btnSecondary,
+  inputCls,
+  textMuted,
+  textPrimary,
+  textSecondary,
+} from "../../styles";
 import { CheckCircle, Paperclip, FileText } from "lucide-react";
 
 interface SigningStatus {
@@ -137,10 +145,10 @@ export default function SigningSection({ appId, addToast }: Props) {
               <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
-              <div className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0]">
+              <div className={`text-sm font-medium ${textPrimary}`}>
                 Credentials configured
               </div>
-              <div className="text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
+              <div className={`text-[11px] ${textMuted}`}>
                 {status?.teamId
                   ? `Team ID: ${status.teamId}`
                   : "Cert + profile stored"}
@@ -164,7 +172,7 @@ export default function SigningSection({ appId, addToast }: Props) {
         <div className="flex flex-col gap-4">
           {!hasAll && !showForm && (
             <div className="flex items-center justify-between">
-              <div className="text-sm text-[#6b7280] dark:text-[#8b93a5]">
+              <div className={`text-sm ${textSecondary}`}>
                 No signing credentials configured — binary builds will be
                 skipped.
               </div>
@@ -178,15 +186,17 @@ export default function SigningSection({ appId, addToast }: Props) {
             <div className="flex flex-col gap-3">
               {/* .p12 */}
               <div>
-                <label className="block text-xs font-medium text-[#6b7280] dark:text-[#8b93a5] mb-1.5">
+                <label
+                  className={`block text-xs font-medium ${textSecondary} mb-1.5`}
+                >
                   Certificate (.p12)
                 </label>
                 <div
-                  className="flex items-center gap-3 px-3.5 py-[9px] rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] cursor-pointer hover:border-[#D94412] transition-colors"
+                  className={`flex items-center gap-3 px-3.5 py-[9px] rounded-xl border ${borderDefault} bg-white dark:bg-[#1c2028] cursor-pointer hover:border-[#D94412] transition-colors`}
                   onClick={() => p12Ref.current?.click()}
                 >
                   <Paperclip className="w-4 h-4 text-[#9ca3af] flex-shrink-0" />
-                  <span className="text-[13px] text-[#9ca3af] dark:text-[#5c6478]">
+                  <span className={`text-[13px] ${textMuted}`}>
                     {p12File ? p12File.name : "Choose .p12 file…"}
                   </span>
                   <input
@@ -201,7 +211,9 @@ export default function SigningSection({ appId, addToast }: Props) {
 
               {/* Password */}
               <div>
-                <label className="block text-xs font-medium text-[#6b7280] dark:text-[#8b93a5] mb-1.5">
+                <label
+                  className={`block text-xs font-medium ${textSecondary} mb-1.5`}
+                >
                   Certificate Password
                 </label>
                 <input
@@ -215,15 +227,17 @@ export default function SigningSection({ appId, addToast }: Props) {
 
               {/* .mobileprovision */}
               <div>
-                <label className="block text-xs font-medium text-[#6b7280] dark:text-[#8b93a5] mb-1.5">
+                <label
+                  className={`block text-xs font-medium ${textSecondary} mb-1.5`}
+                >
                   Provisioning Profile (.mobileprovision)
                 </label>
                 <div
-                  className="flex items-center gap-3 px-3.5 py-[9px] rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] cursor-pointer hover:border-[#D94412] transition-colors"
+                  className={`flex items-center gap-3 px-3.5 py-[9px] rounded-xl border ${borderDefault} bg-white dark:bg-[#1c2028] cursor-pointer hover:border-[#D94412] transition-colors`}
                   onClick={() => profileRef.current?.click()}
                 >
                   <FileText className="w-4 h-4 text-[#9ca3af] flex-shrink-0" />
-                  <span className="text-[13px] text-[#9ca3af] dark:text-[#5c6478]">
+                  <span className={`text-[13px] ${textMuted}`}>
                     {profileFile
                       ? profileFile.name
                       : "Choose .mobileprovision file…"}
@@ -242,7 +256,9 @@ export default function SigningSection({ appId, addToast }: Props) {
 
               {/* Team ID */}
               <div>
-                <label className="block text-xs font-medium text-[#6b7280] dark:text-[#8b93a5] mb-1.5">
+                <label
+                  className={`block text-xs font-medium ${textSecondary} mb-1.5`}
+                >
                   Apple Team ID{" "}
                   <span className="font-normal text-[#9ca3af]">(optional)</span>
                 </label>

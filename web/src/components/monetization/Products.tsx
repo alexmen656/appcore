@@ -1,3 +1,4 @@
+import { textPrimary } from "../../styles";
 export default function MonetizationProducts() {
   return (
     <div className="flex flex-col items-center justify-center h-full min-h-[400px] gap-4 text-center">
@@ -17,7 +18,7 @@ export default function MonetizationProducts() {
         </svg>
       </div>
       <div>
-        <h2 className="text-lg font-semibold text-[#111827] dark:text-[#e8eaf0]">
+        <h2 className={`text-lg font-semibold ${textPrimary}`}>
           In-App Products
         </h2>
         <p className="text-sm text-gray-500 dark:text-[#8b93a5] mt-1 max-w-sm">

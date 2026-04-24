@@ -1,6 +1,13 @@
 import { useState, useEffect } from "react";
 import { getToken, authHeaders } from "../../hooks/useApi";
-import { inputCls, btnPrimary, cardCls } from "../../styles";
+import {
+  btnPrimary,
+  cardCls,
+  inputCls,
+  pageTitle,
+  textMuted,
+  textPrimary,
+} from "../../styles";
 import type { AuthUser } from "../../types";
 
 interface Props {
@@ -46,9 +53,7 @@ export default function ProfileSettings({
 
   return (
     <div className="max-w-xl">
-      <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
-        Profile
-      </h1>
+      <h1 className={`${pageTitle} mb-1`}>Profile</h1>
       <p className="text-sm text-[#6b7280] dark:text-[#5c6478] mb-8">
         Manage your personal account details.
       </p>
@@ -64,10 +69,10 @@ export default function ProfileSettings({
               .toUpperCase()}
           </div>
           <div>
-            <div className="text-[15px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+            <div className={`text-[15px] font-semibold ${textPrimary}`}>
               {user.name || user.email}
             </div>
-            <div className="text-xs text-[#9ca3af] dark:text-[#5c6478] mt-0.5">
+            <div className={`text-xs ${textMuted} mt-0.5`}>
               {user.role === "ADMIN" ? "Admin" : "Member"}
             </div>
           </div>

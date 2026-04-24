@@ -3,13 +3,16 @@ import { useApi, getActiveBundleId } from "../../hooks/useApi";
 import MetricsChart from "./MetricsChart";
 import type { ChartMarker } from "./MetricsChart";
 import type { DownloadsData } from "../../types";
-import { TH, TD } from "../../styles";
-import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import {
-  fmtNumber,
-  fmtRevenue,
-  fmtShortDate,
-} from "../../utils/formatters";
+  TD,
+  TH,
+  borderDefault,
+  pageTitle,
+  textMuted,
+  textPrimary,
+} from "../../styles";
+import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import { fmtNumber, fmtRevenue, fmtShortDate } from "../../utils/formatters";
 import {
   type RangeKey,
   RANGE_OPTIONS,
@@ -91,9 +94,7 @@ export default function AnalyticsDownloads() {
       const av = a[sortCol as keyof typeof a];
       const bv = b[sortCol as keyof typeof b];
       if (typeof av === "string" && typeof bv === "string") {
-        return sortDir === "asc"
-          ? av.localeCompare(bv)
-          : bv.localeCompare(av);
+        return sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
       }
       return sortDir === "asc"
         ? (av as number) - (bv as number)
@@ -128,7 +129,15 @@ export default function AnalyticsDownloads() {
         <span className="inline-flex items-center gap-1">
           {children}
           <span className="opacity-40 [&_svg]:w-3 [&_svg]:h-3">
-            {active ? (sortDir === "asc" ? <ChevronUp /> : <ChevronDown />) : <ChevronsUpDown />}
+            {active ? (
+              sortDir === "asc" ? (
+                <ChevronUp />
+              ) : (
+                <ChevronDown />
+              )
+            ) : (
+              <ChevronsUpDown />
+            )}
           </span>
         </span>
       </th>
@@ -138,9 +147,7 @@ export default function AnalyticsDownloads() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-3xl font-semibold tracking-tight text-[#111827] dark:text-[#e8eaf0] mb-1">
-          Downloads
-        </h1>
+        <h1 className={`${pageTitle} mb-1`}>Downloads</h1>
       </div>
 
       <div className="flex flex-wrap items-center gap-2 mb-5">
@@ -151,8 +158,8 @@ export default function AnalyticsDownloads() {
               onClick={() => setRange(opt.key)}
               className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
                 range === opt.key
-                  ? "bg-white dark:bg-[#252b38] text-[#111827] dark:text-[#e8eaf0] shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
-                  : "text-[#9ca3af] dark:text-[#5c6478] hover:text-[#6b7280] dark:hover:text-[#8b93a5]"
+                  ? "bg-white dark:bg-[#252b38] ${textPrimary} shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
+                  : "${textMuted} hover:text-[#6b7280] dark:hover:text-[#8b93a5]"
               }`}
             >
               {opt.label}
@@ -165,14 +172,14 @@ export default function AnalyticsDownloads() {
               type="date"
               value={customStart}
               onChange={(e) => setCustomStart(e.target.value)}
-              className="h-8 px-2.5 text-[12px] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl text-[#111827] dark:text-[#e8eaf0] bg-white dark:bg-[#1c2028] focus:outline-none focus:border-[#c4c9d4] dark:focus:border-[#D94412]"
+              className={`h-8 px-2.5 text-[12px] border ${borderDefault} rounded-xl ${textPrimary} bg-white dark:bg-[#1c2028] focus:outline-none focus:border-[#c4c9d4] dark:focus:border-[#D94412]`}
             />
-            <span className="text-[#9ca3af] dark:text-[#5c6478] text-[12px]">–</span>
+            <span className={`${textMuted} text-[12px]`}>–</span>
             <input
               type="date"
               value={customEnd}
               onChange={(e) => setCustomEnd(e.target.value)}
-              className="h-8 px-2.5 text-[12px] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl text-[#111827] dark:text-[#e8eaf0] bg-white dark:bg-[#1c2028] focus:outline-none focus:border-[#c4c9d4] dark:focus:border-[#D94412]"
+              className={`h-8 px-2.5 text-[12px] border ${borderDefault} rounded-xl ${textPrimary} bg-white dark:bg-[#1c2028] focus:outline-none focus:border-[#c4c9d4] dark:focus:border-[#D94412]`}
             />
           </div>
         )}
@@ -182,18 +189,20 @@ export default function AnalyticsDownloads() {
         <MetricsChart data={chartData} markers={markers} />
       </div>
 
-      <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
+      <div
+        className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]`}
+      >
         <div className="px-5 py-4 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
-          <div className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0]">
+          <div className={`text-[16px] font-semibold ${textPrimary}`}>
             Daily breakdown
           </div>
         </div>
         {loading ? (
-          <div className="px-5 py-8 text-center text-[13px] text-[#9ca3af] dark:text-[#5c6478]">
+          <div className={`px-5 py-8 text-center text-[13px] ${textMuted}`}>
             Loading…
           </div>
         ) : sortedDays.length === 0 ? (
-          <div className="px-5 py-8 text-center text-[13px] text-[#9ca3af] dark:text-[#5c6478]">
+          <div className={`px-5 py-8 text-center text-[13px] ${textMuted}`}>
             No data for this period
           </div>
         ) : (
@@ -201,14 +210,26 @@ export default function AnalyticsDownloads() {
             <thead>
               <tr>
                 <SortTh col="date">Date</SortTh>
-                <SortTh col="downloads" right>Downloads</SortTh>
-                <SortTh col="updates" right>Updates</SortTh>
-                <SortTh col="proceeds" right>Revenue</SortTh>
+                <SortTh col="downloads" right>
+                  Downloads
+                </SortTh>
+                <SortTh col="updates" right>
+                  Updates
+                </SortTh>
+                <SortTh col="proceeds" right>
+                  Revenue
+                </SortTh>
                 {hasEngagementData && (
                   <>
-                    <SortTh col="impressions" right>Impressions</SortTh>
-                    <SortTh col="pageViews" right>Page Views</SortTh>
-                    <SortTh col="sessions" right>Sessions</SortTh>
+                    <SortTh col="impressions" right>
+                      Impressions
+                    </SortTh>
+                    <SortTh col="pageViews" right>
+                      Page Views
+                    </SortTh>
+                    <SortTh col="sessions" right>
+                      Sessions
+                    </SortTh>
                   </>
                 )}
               </tr>
@@ -222,24 +243,32 @@ export default function AnalyticsDownloads() {
                   <td className={`${TD} font-mono text-[12px]`}>
                     {fmtShortDate(d.date)}
                   </td>
-                  <td className={`${TD} text-right tabular-nums font-medium text-[#111827] dark:text-[#e8eaf0]`}>
+                  <td
+                    className={`${TD} text-right tabular-nums font-medium ${textPrimary}`}
+                  >
                     {fmtNumber(d.downloads)}
                   </td>
-                  <td className={`${TD} text-right tabular-nums text-[#9ca3af] dark:text-[#5c6478]`}>
+                  <td className={`${TD} text-right tabular-nums ${textMuted}`}>
                     {d.updates > 0 ? fmtNumber(d.updates) : "—"}
                   </td>
-                  <td className={`${TD} text-right tabular-nums text-[#9ca3af] dark:text-[#5c6478]`}>
+                  <td className={`${TD} text-right tabular-nums ${textMuted}`}>
                     {d.proceeds > 0 ? fmtRevenue(d.proceeds) : "—"}
                   </td>
                   {hasEngagementData && (
                     <>
-                      <td className={`${TD} text-right tabular-nums text-[#9ca3af] dark:text-[#5c6478]`}>
+                      <td
+                        className={`${TD} text-right tabular-nums ${textMuted}`}
+                      >
                         {d.impressions > 0 ? fmtNumber(d.impressions) : "—"}
                       </td>
-                      <td className={`${TD} text-right tabular-nums text-[#9ca3af] dark:text-[#5c6478]`}>
+                      <td
+                        className={`${TD} text-right tabular-nums ${textMuted}`}
+                      >
                         {d.pageViews > 0 ? fmtNumber(d.pageViews) : "—"}
                       </td>
-                      <td className={`${TD} text-right tabular-nums pr-5 text-[#9ca3af] dark:text-[#5c6478]`}>
+                      <td
+                        className={`${TD} text-right tabular-nums pr-5 ${textMuted}`}
+                      >
                         {d.sessions > 0 ? fmtNumber(d.sessions) : "—"}
                       </td>
                     </>

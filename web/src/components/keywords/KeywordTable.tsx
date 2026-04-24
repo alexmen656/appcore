@@ -1,4 +1,12 @@
-import { TH, TD, btnSecSm } from "../../styles";
+import {
+  TD,
+  TH,
+  borderDefault,
+  btnSecSm,
+  textMuted,
+  textPrimary,
+  textSecondary,
+} from "../../styles";
 import type { Keyword } from "../../types";
 import { TrendingUp, TrendingDown, ChevronUp, ChevronDown } from "lucide-react";
 
@@ -28,8 +36,7 @@ const trendDisplay = (trend: number | null) => {
   if (trend > 0)
     return (
       <span className="inline-flex items-center gap-0.5 text-emerald-600 font-medium text-xs">
-        <TrendingUp className="w-3 h-3" />
-        +{trend}
+        <TrendingUp className="w-3 h-3" />+{trend}
       </span>
     );
   return (
@@ -96,7 +103,9 @@ export default function KeywordTable({
   );
 
   return (
-    <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl overflow-hidden mb-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
+    <div
+      className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl overflow-hidden mb-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]`}
+    >
       <table className="w-full border-collapse">
         <thead>
           <tr>
@@ -119,12 +128,8 @@ export default function KeywordTable({
               onClick={() => onRowClick(k)}
               className={`cursor-pointer hover:bg-gray-50/60 dark:hover:bg-white/[0.03] ${selectedKeyword?.id === k.id ? "!bg-blue-50/60 dark:!bg-blue-900/20" : ""}`}
             >
-              <td
-                className={`${TD} font-medium text-[#111827] dark:text-[#e8eaf0]`}
-              >
-                {k.term}
-              </td>
-              <td className={`${TD} text-[#6b7280] dark:text-[#8b93a5]`}>
+              <td className={`${TD} font-medium ${textPrimary}`}>{k.term}</td>
+              <td className={`${TD} ${textSecondary}`}>
                 <span className="inline-flex items-center gap-1.5">
                   <img
                     src={`/app/country-flags/${k.country.toLowerCase()}.svg`}
@@ -136,7 +141,7 @@ export default function KeywordTable({
               </td>
               <td className={TD}>
                 {k.popularity != null ? (
-                  <span className="flex items-center gap-1.5 text-[#111827] dark:text-[#e8eaf0]">
+                  <span className={`flex items-center gap-1.5 ${textPrimary}`}>
                     {k.popularity.toFixed(0)}
                     <span className="inline-block h-1 w-8 bg-[#e5e7eb] dark:bg-[#2a2f3d] rounded-sm overflow-hidden align-middle ml-1.5">
                       <span
@@ -166,20 +171,18 @@ export default function KeywordTable({
                   )}
                 </span>
               </td>
-              <td className={`${TD} text-[#6b7280] dark:text-[#8b93a5]`}>
+              <td className={`${TD} ${textSecondary}`}>
                 {k.searchVolume != null ? (
                   k.searchVolume
                 ) : (
-                  <span className="text-[#9ca3af] dark:text-[#5c6478]">--</span>
+                  <span className={`${textMuted}`}>--</span>
                 )}
               </td>
               <td className={TD}>
                 {k.ourRank != null ? (
                   <span className={rankColor(k.ourRank)}>#{k.ourRank}</span>
                 ) : (
-                  <span className="text-[#9ca3af] dark:text-[#5c6478] text-xs">
-                    not ranked
-                  </span>
+                  <span className={`${textMuted} text-xs`}>not ranked</span>
                 )}
               </td>
               <td className={TD}>{trendDisplay(k.rankTrend)}</td>
@@ -198,7 +201,7 @@ export default function KeywordTable({
                 )}
               </td>
               {/* <td
-                className={`${TD} text-[#9ca3af] dark:text-[#5c6478] text-xs`}
+                className={`${TD} ${textMuted} text-xs`}
               >
                 {k.trackingCount}×
               </td> */}

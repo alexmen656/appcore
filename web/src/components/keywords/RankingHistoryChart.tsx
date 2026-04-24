@@ -10,7 +10,7 @@ import {
   Legend,
 } from "recharts";
 import { Keyword } from "./KeywordTable";
-import { btnSecSm } from "../../styles";
+import { btnSecSm, textMuted, textPrimary } from "../../styles";
 import type { RankingEntry, KeywordHistoryData } from "../../types";
 
 export type { KeywordHistoryData as HistoryData };
@@ -105,12 +105,13 @@ export default function RankingHistoryChart({
       <div className="relative w-full max-w-5xl max-h-[calc(100vh-2rem)] overflow-hidden rounded-2xl border border-[#eef0f3] bg-white shadow-2xl dark:border-[#2a2f3d] dark:bg-[#1c2028]">
         <div className="flex items-start justify-between gap-4 border-b border-[#eef0f3] px-6 py-5 dark:border-[#2a2f3d]">
           <div>
-            <h3 className="text-base font-semibold text-[#111827] dark:text-[#e8eaf0]">
+            <h3 className={`text-base font-semibold ${textPrimary}`}>
               Ranking History:{" "}
               <span className="text-[#D94412]">{keyword.term}</span>
             </h3>
-            <div className="mt-1 text-xs text-[#9ca3af] dark:text-[#5c6478]">
-              {keyword.country.toUpperCase()} · Popularity {keyword.popularity ?? "—"} · Difficulty{" "}
+            <div className={`mt-1 text-xs ${textMuted}`}>
+              {keyword.country.toUpperCase()} · Popularity{" "}
+              {keyword.popularity ?? "—"} · Difficulty{" "}
               {keyword.difficulty ?? "—"}
             </div>
           </div>
@@ -121,11 +122,11 @@ export default function RankingHistoryChart({
 
         <div className="max-h-[calc(100vh-9rem)] overflow-y-auto p-6">
           {loading ? (
-            <div className="flex justify-center gap-2 py-16 text-[#9ca3af] dark:text-[#5c6478]">
+            <div className={`flex justify-center gap-2 py-16 ${textMuted}`}>
               <div className="spinner" /> Loading history…
             </div>
           ) : chartData.length === 0 ? (
-            <div className="py-16 text-center text-sm text-[#9ca3af] dark:text-[#5c6478]">
+            <div className={`py-16 text-center text-sm ${textMuted}`}>
               No ranking history yet. Run tracking first.
             </div>
           ) : (

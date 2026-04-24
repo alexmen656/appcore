@@ -1,5 +1,11 @@
 import { useState } from "react";
 import {
+  borderDefault,
+  textMuted,
+  textPrimary,
+  textSecondary,
+} from "../../styles";
+import {
   ComposedChart,
   Line,
   Bar,
@@ -12,7 +18,11 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import type { DayData } from "../../types";
-import { fmtShortDate, fmtLargeNum, fmtRevenueShort } from "../../utils/formatters";
+import {
+  fmtShortDate,
+  fmtLargeNum,
+  fmtRevenueShort,
+} from "../../utils/formatters";
 export type { DayData };
 
 export interface ChartMarker {
@@ -41,20 +51,25 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
     <div
-      className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl px-4 py-3"
+      className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl px-4 py-3`}
       style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.08)", minWidth: 160 }}
     >
-      <div className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] mb-2 font-medium">{fmtShortDate(String(label))}</div>
+      <div className={`text-[11px] ${textMuted} mb-2 font-medium`}>
+        {fmtShortDate(String(label))}
+      </div>
       {payload.map((p: any) => (
-        <div key={p.dataKey} className="flex items-center justify-between gap-3 text-[12px] mb-1">
-          <span className="flex items-center gap-1.5 text-[#6b7280] dark:text-[#8b93a5]">
+        <div
+          key={p.dataKey}
+          className="flex items-center justify-between gap-3 text-[12px] mb-1"
+        >
+          <span className={`flex items-center gap-1.5 ${textSecondary}`}>
             <span
               className="inline-block w-2 h-2 rounded-full"
               style={{ background: p.color }}
             />
             {p.name}
           </span>
-          <span className="font-semibold text-[#111827] dark:text-[#e8eaf0] tabular-nums">
+          <span className={`font-semibold ${textPrimary} tabular-nums`}>
             {p.dataKey === "proceeds"
               ? `$${Number(p.value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
               : Number(p.value).toLocaleString()}
@@ -88,16 +103,22 @@ export default function MetricsChart({ data, markers = [] }: Props) {
   }
 
   return (
-    <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]">
+    <div
+      className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]`}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
         <div>
-          <div className="text-[16px] font-semibold text-[#111827] dark:text-[#e8eaf0]">Metrics over time</div>
+          <div className={`text-[16px] font-semibold ${textPrimary}`}>
+            Metrics over time
+          </div>
         </div>
         <div className="flex flex-wrap gap-1.5">
           {METRICS.map((m) => {
             const active = activeMetrics.has(m.key);
             const noData =
-              (m.key === "impressions" || m.key === "pageViews" || m.key === "sessions") &&
+              (m.key === "impressions" ||
+                m.key === "pageViews" ||
+                m.key === "sessions") &&
               !hasEngagement;
             const revenueNoData = m.key === "proceeds" && !hasRevenue;
             return (
@@ -114,13 +135,19 @@ export default function MetricsChart({ data, markers = [] }: Props) {
                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12px] font-medium border transition-colors ${
                   active
                     ? "border-transparent text-white"
-                    : "bg-white dark:bg-[#252b38] border-[#eef0f3] dark:border-[#2a2f3d] text-[#9ca3af] dark:text-[#5c6478] hover:border-[#d1d5db] dark:hover:border-[#5c6478] hover:text-[#6b7280] dark:hover:text-[#8b93a5]"
+                    : "bg-white dark:bg-[#252b38] ${borderDefault} ${textMuted} hover:border-[#d1d5db] dark:hover:border-[#5c6478] hover:text-[#6b7280] dark:hover:text-[#8b93a5]"
                 } ${noData || revenueNoData ? "opacity-40 cursor-default" : "cursor-pointer"}`}
-                style={active ? { background: m.color, borderColor: m.color } : undefined}
+                style={
+                  active
+                    ? { background: m.color, borderColor: m.color }
+                    : undefined
+                }
               >
                 <span
                   className="w-1.5 h-1.5 rounded-full"
-                  style={{ background: active ? "rgba(255,255,255,0.8)" : m.color }}
+                  style={{
+                    background: active ? "rgba(255,255,255,0.8)" : m.color,
+                  }}
                 />
                 {m.label}
               </button>
@@ -129,21 +156,43 @@ export default function MetricsChart({ data, markers = [] }: Props) {
         </div>
       </div>
 
-      {!hasEngagement && (activeMetrics.has("impressions") || activeMetrics.has("pageViews") || activeMetrics.has("sessions")) && (
-        <div className="mb-3 px-3.5 py-2.5 rounded-xl bg-[#f8f9fb] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] text-[12px] text-[#6b7280] dark:text-[#8b93a5]">
-          Impressions, page views and sessions come from Apple's Analytics Reports API.
-          On the first <strong>Sync</strong>, Apple creates the data request — run a second sync after a few minutes for the data to appear.
-        </div>
-      )}
+      {!hasEngagement &&
+        (activeMetrics.has("impressions") ||
+          activeMetrics.has("pageViews") ||
+          activeMetrics.has("sessions")) && (
+          <div
+            className={`mb-3 px-3.5 py-2.5 rounded-xl bg-[#f8f9fb] dark:bg-[#252b38] border ${borderDefault} text-[12px] ${textSecondary}`}
+          >
+            Impressions, page views and sessions come from Apple's Analytics
+            Reports API. On the first <strong>Sync</strong>, Apple creates the
+            data request — run a second sync after a few minutes for the data to
+            appear.
+          </div>
+        )}
 
       {data.length === 0 ? (
-        <div className="flex items-center justify-center h-52 text-[13px] text-[#9ca3af] dark:text-[#5c6478]">
+        <div
+          className={`flex items-center justify-center h-52 text-[13px] ${textMuted}`}
+        >
           No data yet — sync to fetch metrics.
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={260}>
-          <ComposedChart data={data} margin={{ top: 4, right: showRightAxis ? 48 : 16, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="0" stroke="#f0f1f3" vertical={false} strokeWidth={1} />
+          <ComposedChart
+            data={data}
+            margin={{
+              top: 4,
+              right: showRightAxis ? 48 : 16,
+              left: 0,
+              bottom: 0,
+            }}
+          >
+            <CartesianGrid
+              strokeDasharray="0"
+              stroke="#f0f1f3"
+              vertical={false}
+              strokeWidth={1}
+            />
             <XAxis
               dataKey="date"
               tickFormatter={fmtShortDate}
@@ -237,7 +286,12 @@ export default function MetricsChart({ data, markers = [] }: Props) {
                   stroke={m.color}
                   strokeWidth={2}
                   dot={false}
-                  activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff", fill: m.color }}
+                  activeDot={{
+                    r: 5,
+                    strokeWidth: 2,
+                    stroke: "#fff",
+                    fill: m.color,
+                  }}
                 />
               ),
             )}

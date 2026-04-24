@@ -3,7 +3,13 @@ import { KeyRound } from "lucide-react";
 import { setToken } from "../../hooks/useApi";
 import AuthHeader from "./AuthHeader";
 import type { AuthUser } from "../../types";
-import { inputCls, btnPrimary } from "../../styles";
+import {
+  borderDefault,
+  btnPrimary,
+  inputCls,
+  textMuted,
+  textPrimary,
+} from "../../styles";
 
 export type { AuthUser };
 
@@ -149,12 +155,14 @@ export default function Login({ onAuth }: Props) {
   if (pendingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#f8f9fb] dark:bg-[#0f1117]">
-        <div className="w-[400px] bg-white dark:bg-[#1c2028] rounded-2xl shadow-xl border border-[#eef0f3] dark:border-[#2a2f3d] p-10">
+        <div
+          className={`w-[400px] bg-white dark:bg-[#1c2028] rounded-2xl shadow-xl border ${borderDefault} p-10`}
+        >
           <div className="flex flex-col items-center text-center gap-3 mb-6">
             <div className="w-12 h-12 rounded-full bg-[#fff0f2] dark:bg-[#2a1520] flex items-center justify-center">
               <PasskeyIcon className="text-[#D94412]" size={24} />
             </div>
-            <h2 className="text-lg font-semibold text-[#111827] dark:text-[#e8eaf0]">
+            <h2 className={`text-lg font-semibold ${textPrimary}`}>
               Add a Passkey?
             </h2>
             <p className="text-sm text-[#6b7280] dark:text-[#8b9ab0] leading-relaxed">
@@ -192,14 +200,14 @@ export default function Login({ onAuth }: Props) {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f8f9fb] dark:bg-[#0f1117]">
-      <div className="w-[400px] bg-white dark:bg-[#1c2028] rounded-2xl shadow-xl border border-[#eef0f3] dark:border-[#2a2f3d] p-10">
+      <div
+        className={`w-[400px] bg-white dark:bg-[#1c2028] rounded-2xl shadow-xl border ${borderDefault} p-10`}
+      >
         <AuthHeader mode={mode} />
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {mode === "register" && (
             <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0]">
-                Name
-              </span>
+              <span className={`text-sm font-medium ${textPrimary}`}>Name</span>
               <input
                 className={inputCls}
                 type="text"
@@ -211,9 +219,7 @@ export default function Login({ onAuth }: Props) {
             </label>
           )}
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0]">
-              Email
-            </span>
+            <span className={`text-sm font-medium ${textPrimary}`}>Email</span>
             <input
               className={inputCls}
               type="email"
@@ -225,7 +231,7 @@ export default function Login({ onAuth }: Props) {
             />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0]">
+            <span className={`text-sm font-medium ${textPrimary}`}>
               Password
             </span>
             <input
@@ -263,16 +269,14 @@ export default function Login({ onAuth }: Props) {
           <>
             <div className="flex items-center gap-3 my-4">
               <div className="flex-1 h-px bg-[#eef0f3] dark:bg-[#2a2f3d]" />
-              <span className="text-xs text-[#9ca3af] dark:text-[#5c6478]">
-                or
-              </span>
+              <span className={`text-xs ${textMuted}`}>or</span>
               <div className="flex-1 h-px bg-[#eef0f3] dark:bg-[#2a2f3d]" />
             </div>
             <button
               type="button"
               disabled={loading}
               onClick={handlePasskeyLogin}
-              className="w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] bg-white dark:bg-[#1c2028] text-sm font-medium text-[#111827] dark:text-[#e8eaf0] hover:bg-[#f8f9fb] dark:hover:bg-[#252b38] transition-colors disabled:opacity-50"
+              className={`w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border ${borderDefault} bg-white dark:bg-[#1c2028] text-sm font-medium ${textPrimary} hover:bg-[#f8f9fb] dark:hover:bg-[#252b38] transition-colors disabled:opacity-50`}
             >
               <PasskeyIcon />
               Sign in with Passkey
@@ -280,7 +284,7 @@ export default function Login({ onAuth }: Props) {
           </>
         )}
 
-        <div className="mt-5 text-center text-sm text-[#9ca3af] dark:text-[#5c6478]">
+        <div className={`mt-5 text-center text-sm ${textMuted}`}>
           {mode === "login" ? (
             <>
               No account yet?{" "}

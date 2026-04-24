@@ -1,7 +1,15 @@
 import { useState, useEffect } from "react";
 import { Check } from "lucide-react";
 import { authHeaders, setActiveBundleId } from "../hooks/useApi";
-import { inputCls, textareaCls, btnPrimary } from "../styles";
+import {
+  borderDefault,
+  btnPrimary,
+  inputCls,
+  textMuted,
+  textPrimary,
+  textSecondary,
+  textareaCls,
+} from "../styles";
 import type { AscApp } from "../types";
 
 interface Props {
@@ -26,14 +34,10 @@ function StepIndicator({ step }: { step: 1 | 2 }) {
               : "bg-[#eef0f3] dark:bg-[#2a2f3d] text-[#9ca3af]"
           }`}
         >
-          {step > 1 ? (
-            <Check className="w-3 h-3" />
-          ) : (
-            "1"
-          )}
+          {step > 1 ? <Check className="w-3 h-3" /> : "1"}
         </div>
         <span
-          className={`text-sm font-medium ${step >= 1 ? "text-[#111827] dark:text-[#e8eaf0]" : "text-[#9ca3af]"}`}
+          className={`text-sm font-medium ${step >= 1 ? "${textPrimary}" : "text-[#9ca3af]"}`}
         >
           App Store Connect
         </span>
@@ -50,7 +54,7 @@ function StepIndicator({ step }: { step: 1 | 2 }) {
           2
         </div>
         <span
-          className={`text-sm font-medium ${step >= 2 ? "text-[#111827] dark:text-[#e8eaf0]" : "text-[#9ca3af]"}`}
+          className={`text-sm font-medium ${step >= 2 ? "${textPrimary}" : "text-[#9ca3af]"}`}
         >
           Import App
         </span>
@@ -164,16 +168,18 @@ export default function Onboarding({ onComplete }: Props) {
           </span>
         </div>
 
-        <div className="bg-white dark:bg-[#1c2028] rounded-2xl shadow-xl border border-[#eef0f3] dark:border-[#2a2f3d] p-8">
+        <div
+          className={`bg-white dark:bg-[#1c2028] rounded-2xl shadow-xl border ${borderDefault} p-8`}
+        >
           <StepIndicator step={step} />
 
           {step === 1 && (
             <>
               <div className="mb-6">
-                <h1 className="text-xl font-bold text-[#111827] dark:text-[#e8eaf0]">
+                <h1 className={`text-xl font-bold ${textPrimary}`}>
                   Connect App Store Connect
                 </h1>
-                <p className="text-sm text-[#6b7280] dark:text-[#8b93a5] mt-1">
+                <p className={`text-sm ${textSecondary} mt-1`}>
                   Enter your API credentials to sync your apps and metadata.
                   You'll find these in{" "}
                   <span className="font-medium text-[#374151] dark:text-[#c5cad6]">
@@ -189,7 +195,7 @@ export default function Onboarding({ onComplete }: Props) {
               >
                 <div className="grid grid-cols-2 gap-4">
                   <label className="flex flex-col gap-1.5">
-                    <span className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0]">
+                    <span className={`text-sm font-medium ${textPrimary}`}>
                       Issuer ID
                     </span>
                     <input
@@ -203,7 +209,7 @@ export default function Onboarding({ onComplete }: Props) {
                     />
                   </label>
                   <label className="flex flex-col gap-1.5">
-                    <span className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0]">
+                    <span className={`text-sm font-medium ${textPrimary}`}>
                       Key ID
                     </span>
                     <input
@@ -219,7 +225,7 @@ export default function Onboarding({ onComplete }: Props) {
                 </div>
 
                 <label className="flex flex-col gap-1.5">
-                  <span className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0]">
+                  <span className={`text-sm font-medium ${textPrimary}`}>
                     Vendor Number
                     <span className="ml-1 text-[11px] font-normal text-[#9ca3af]">
                       (Payments &amp; Financial Reports)
@@ -240,10 +246,10 @@ export default function Onboarding({ onComplete }: Props) {
                 </label>
 
                 <label className="flex flex-col gap-1.5">
-                  <span className="text-sm font-medium text-[#111827] dark:text-[#e8eaf0]">
+                  <span className={`text-sm font-medium ${textPrimary}`}>
                     Private Key (.p8)
                   </span>
-                  <p className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] -mt-0.5">
+                  <p className={`text-[11px] ${textMuted} -mt-0.5`}>
                     Paste the full contents of your AuthKey_XXXXXX.p8 file.
                   </p>
                   <textarea
@@ -279,17 +285,19 @@ export default function Onboarding({ onComplete }: Props) {
           {step === 2 && (
             <>
               <div className="mb-6">
-                <h1 className="text-xl font-bold text-[#111827] dark:text-[#e8eaf0]">
+                <h1 className={`text-xl font-bold ${textPrimary}`}>
                   Import your first app
                 </h1>
-                <p className="text-sm text-[#6b7280] dark:text-[#8b93a5] mt-1">
+                <p className={`text-sm ${textSecondary} mt-1`}>
                   Select an app from your App Store Connect account to get
                   started.
                 </p>
               </div>
 
               {appsLoading && (
-                <div className="flex items-center justify-center py-10 gap-2 text-[#9ca3af] dark:text-[#5c6478] text-sm">
+                <div
+                  className={`flex items-center justify-center py-10 gap-2 ${textMuted} text-sm`}
+                >
                   <div className="spinner" /> Loading your apps…
                 </div>
               )}
@@ -310,7 +318,7 @@ export default function Onboarding({ onComplete }: Props) {
                 !appsError &&
                 apps !== null &&
                 apps.length === 0 && (
-                  <div className="text-center py-10 text-sm text-[#9ca3af] dark:text-[#5c6478]">
+                  <div className={`text-center py-10 text-sm ${textMuted}`}>
                     No apps found in your App Store Connect account.
                   </div>
                 )}
@@ -320,15 +328,19 @@ export default function Onboarding({ onComplete }: Props) {
                   {apps.map((app) => (
                     <div
                       key={app.ascId}
-                      className="flex items-center justify-between gap-3 px-4 py-3 bg-[#f7f8fa] dark:bg-[#252b38] rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d]"
+                      className={`flex items-center justify-between gap-3 px-4 py-3 bg-[#f7f8fa] dark:bg-[#252b38] rounded-xl border ${borderDefault}`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <AppAvatar url={app.iconUrl} name={app.name} />
                         <div className="min-w-0">
-                          <div className="text-sm font-semibold text-[#111827] dark:text-[#e8eaf0] truncate">
+                          <div
+                            className={`text-sm font-semibold ${textPrimary} truncate`}
+                          >
                             {app.name}
                           </div>
-                          <div className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] font-mono truncate">
+                          <div
+                            className={`text-[11px] ${textMuted} font-mono truncate`}
+                          >
                             {app.bundleId}
                             {app.primaryLocale ? ` · ${app.primaryLocale}` : ""}
                           </div>
@@ -350,7 +362,7 @@ export default function Onboarding({ onComplete }: Props) {
               <button
                 type="button"
                 onClick={onComplete}
-                className="mt-5 w-full text-center text-xs text-[#9ca3af] dark:text-[#5c6478] hover:text-[#6b7280] dark:hover:text-[#8b93a5] transition-colors"
+                className={`mt-5 w-full text-center text-xs ${textMuted} hover:text-[#6b7280] dark:hover:text-[#8b93a5] transition-colors`}
               >
                 Skip for now
               </button>

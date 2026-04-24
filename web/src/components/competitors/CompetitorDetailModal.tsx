@@ -1,7 +1,20 @@
 import { useState, useEffect } from "react";
+import {
+  borderDefault,
+  textMuted,
+  textPrimary,
+  textSecondary,
+} from "../../styles";
 import { useNavigate } from "react-router-dom";
 import { authHeaders, getActiveBundleId } from "../../hooks/useApi";
-import { Maximize2, X, ArrowRight, MessageSquare, RefreshCw, BarChart2 } from "lucide-react";
+import {
+  Maximize2,
+  X,
+  ArrowRight,
+  MessageSquare,
+  RefreshCw,
+  BarChart2,
+} from "lucide-react";
 import type {
   CompetitorDetail,
   CompetitorReview,
@@ -61,16 +74,20 @@ export default function CompetitorDetailModal({
         className="absolute inset-0 bg-black/40 dark:bg-black/60"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-4xl max-h-[calc(100vh-5rem)] flex flex-col bg-white dark:bg-[#161920] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#eef0f3] dark:border-[#2a2f3d] shrink-0">
+      <div
+        className={`relative w-full max-w-4xl max-h-[calc(100vh-5rem)] flex flex-col bg-white dark:bg-[#161920] border ${borderDefault} rounded-2xl shadow-2xl overflow-hidden`}
+      >
+        <div
+          className={`flex items-center justify-between px-6 py-4 border-b ${borderDefault} shrink-0`}
+        >
           {data ? (
             <div className="flex items-center gap-3">
               <AppIcon url={data.iconUrl} name={data.name} />
               <div>
-                <h2 className="text-lg font-semibold text-[#111827] dark:text-[#e8eaf0]">
+                <h2 className={`text-lg font-semibold ${textPrimary}`}>
                   {data.name}
                 </h2>
-                <div className="flex items-center gap-3 text-xs text-[#9ca3af] dark:text-[#5c6478]">
+                <div className={`flex items-center gap-3 text-xs ${textMuted}`}>
                   <span>{data.bundleId}</span>
                   {data.rating != null && (
                     <span className="flex items-center gap-1">
@@ -91,7 +108,10 @@ export default function CompetitorDetailModal({
           )}
           <div className="flex items-center gap-1.5">
             <button
-              onClick={() => { onClose(); navigate(`/competitors/${appId}`); }}
+              onClick={() => {
+                onClose();
+                navigate(`/competitors/${appId}`);
+              }}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#9ca3af] hover:text-[#111827] dark:hover:text-[#e8eaf0] hover:bg-gray-100 dark:hover:bg-[#252b38] transition-colors"
             >
               <Maximize2 className="w-3.5 h-3.5" />
@@ -105,7 +125,9 @@ export default function CompetitorDetailModal({
             </button>
           </div>
         </div>
-        <div className="flex gap-1 px-6 pt-3 border-b border-[#eef0f3] dark:border-[#2a2f3d] shrink-0">
+        <div
+          className={`flex gap-1 px-6 pt-3 border-b ${borderDefault} shrink-0`}
+        >
           {tabs.map((t) => (
             <button
               key={t.key}
@@ -113,7 +135,7 @@ export default function CompetitorDetailModal({
               className={`px-3.5 py-2 text-[13px] font-medium rounded-t-lg transition-colors ${
                 tab === t.key
                   ? "text-[#D94412] border-b-2 border-[#D94412] -mb-px"
-                  : "text-[#9ca3af] dark:text-[#5c6478] hover:text-[#111827] dark:hover:text-[#e8eaf0]"
+                  : "${textMuted} hover:text-[#111827] dark:hover:text-[#e8eaf0]"
               }`}
             >
               {t.label}
@@ -165,7 +187,9 @@ export function OverviewTab({ data }: { data: CompetitorDetail }) {
       </div>
       {data.description && (
         <div>
-          <div className="text-xs font-medium uppercase tracking-wide text-[#9ca3af] dark:text-[#5c6478] mb-2">
+          <div
+            className={`text-xs font-medium uppercase tracking-wide ${textMuted} mb-2`}
+          >
             Description
           </div>
           <div className="text-[13px] text-[#374151] dark:text-[#c0c5d0] bg-gray-50 dark:bg-[#1c2028] rounded-xl p-4 whitespace-pre-wrap max-h-48 overflow-y-auto leading-relaxed">
@@ -175,7 +199,9 @@ export function OverviewTab({ data }: { data: CompetitorDetail }) {
       )}
       {data.reviewSummary && (
         <div>
-          <div className="text-xs font-medium uppercase tracking-wide text-[#9ca3af] dark:text-[#5c6478] mb-2">
+          <div
+            className={`text-xs font-medium uppercase tracking-wide ${textMuted} mb-2`}
+          >
             Review Summary ({data.reviewSummary.reviewCount} reviews, avg{" "}
             {data.reviewSummary.averageRating.toFixed(1)}★)
           </div>
@@ -280,13 +306,13 @@ export function ReviewsTab({ data }: { data: CompetitorDetail }) {
   return (
     <div className="space-y-4">
       <div className="bg-gray-50 dark:bg-[#1c2028] rounded-xl p-4">
-        <div className="text-xs font-medium text-[#9ca3af] dark:text-[#5c6478] mb-2">
+        <div className={`text-xs font-medium ${textMuted} mb-2`}>
           Rating Distribution
         </div>
         <div className="space-y-1.5">
           {ratingDist.map((d) => (
             <div key={d.stars} className="flex items-center gap-2 text-xs">
-              <span className="w-4 text-right text-[#6b7280] dark:text-[#8b93a5]">
+              <span className={`w-4 text-right ${textSecondary}`}>
                 {d.stars}★
               </span>
               <div className="flex-1 h-3 bg-gray-200 dark:bg-[#252b38] rounded-full overflow-hidden">
@@ -295,9 +321,7 @@ export function ReviewsTab({ data }: { data: CompetitorDetail }) {
                   style={{ width: `${(d.count / maxCount) * 100}%` }}
                 />
               </div>
-              <span className="w-6 text-right text-[#9ca3af] dark:text-[#5c6478]">
-                {d.count}
-              </span>
+              <span className={`w-6 text-right ${textMuted}`}>{d.count}</span>
             </div>
           ))}
         </div>
@@ -314,27 +338,29 @@ export function ReviewsTab({ data }: { data: CompetitorDetail }) {
 function ReviewCard({ review }: { review: CompetitorReview }) {
   const stars = "★".repeat(review.rating) + "☆".repeat(5 - review.rating);
   return (
-    <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl p-4">
+    <div
+      className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-xl p-4`}
+    >
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           <span className="text-amber-400 text-xs tracking-wide">{stars}</span>
           {review.author && (
-            <span className="text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
-              {review.author}
-            </span>
+            <span className={`text-[11px] ${textMuted}`}>{review.author}</span>
           )}
         </div>
-        <span className="text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
+        <span className={`text-[11px] ${textMuted}`}>
           {new Date(review.reviewedAt).toLocaleDateString()}
         </span>
       </div>
       {review.title && (
-        <div className="text-[13px] font-medium text-[#111827] dark:text-[#e8eaf0] mb-0.5">
+        <div className={`text-[13px] font-medium ${textPrimary} mb-0.5`}>
           {review.title}
         </div>
       )}
       {review.body && (
-        <div className="text-xs text-[#6b7280] dark:text-[#8b93a5] leading-relaxed line-clamp-4">
+        <div
+          className={`text-xs ${textSecondary} leading-relaxed line-clamp-4`}
+        >
           {review.body}
         </div>
       )}
@@ -372,7 +398,7 @@ export function ChangesTab({ changes }: { changes: MetadataChange[] }) {
       {changes.map((change) => (
         <div
           key={change.id}
-          className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-xl p-4"
+          className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-xl p-4`}
         >
           <div className="flex items-center justify-between mb-2">
             <span
@@ -383,7 +409,7 @@ export function ChangesTab({ changes }: { changes: MetadataChange[] }) {
             >
               {change.field}
             </span>
-            <span className="text-[11px] text-[#9ca3af] dark:text-[#5c6478]">
+            <span className={`text-[11px] ${textMuted}`}>
               {new Date(change.detectedAt).toLocaleDateString()}{" "}
               {new Date(change.detectedAt).toLocaleTimeString([], {
                 hour: "2-digit",
@@ -423,7 +449,11 @@ export function ChangesTab({ changes }: { changes: MetadataChange[] }) {
   );
 }
 
-export function KeywordsTab({ rankings }: { rankings: CompetitorKeywordRanking[] }) {
+export function KeywordsTab({
+  rankings,
+}: {
+  rankings: CompetitorKeywordRanking[];
+}) {
   const [sortBy, setSortBy] = useState<
     "keyword" | "competitor" | "ours" | "popularity"
   >("popularity");
@@ -461,15 +491,14 @@ export function KeywordsTab({ rankings }: { rankings: CompetitorKeywordRanking[]
     );
   }
 
-  const thCls =
-    "text-left text-[11px] font-medium uppercase tracking-wide text-[#9ca3af] dark:text-[#5c6478] px-3 py-2.5 cursor-pointer select-none hover:text-[#6b7280] dark:hover:text-[#8b93a5] transition-colors";
+  const thCls = `text-left text-[11px] font-medium uppercase tracking-wide ${textMuted} px-3 py-2.5 cursor-pointer select-none hover:text-[#6b7280] dark:hover:text-[#8b93a5] transition-colors`;
   const tdCls = "px-3 py-2.5 text-[13px]";
 
   return (
     <div className="overflow-x-auto -mx-2">
       <table className="w-full">
         <thead>
-          <tr className="border-b border-[#eef0f3] dark:border-[#2a2f3d]">
+          <tr className={`border-b ${borderDefault}`}>
             <th className={thCls} onClick={() => toggleSort("keyword")}>
               Keyword {sortBy === "keyword" && (sortDir === "asc" ? "↑" : "↓")}
             </th>
@@ -506,9 +535,7 @@ export function KeywordsTab({ rankings }: { rankings: CompetitorKeywordRanking[]
                 key={r.keywordId}
                 className="border-b border-[#f3f4f6] dark:border-[#2a2f3d] hover:bg-gray-50 dark:hover:bg-[#1c2028] transition-colors"
               >
-                <td
-                  className={`${tdCls} font-medium text-[#111827] dark:text-[#e8eaf0]`}
-                >
+                <td className={`${tdCls} font-medium ${textPrimary}`}>
                   {r.keyword}
                 </td>
                 <td className={`${tdCls} text-center`}>
@@ -525,9 +552,7 @@ export function KeywordsTab({ rankings }: { rankings: CompetitorKeywordRanking[]
                       {Math.round(r.popularity)}
                     </span>
                   ) : (
-                    <span className="text-[#9ca3af] dark:text-[#5c6478]">
-                      —
-                    </span>
+                    <span className={`${textMuted}`}>—</span>
                   )}
                 </td>
                 <td className={`${tdCls} text-center font-mono`}>
@@ -536,9 +561,7 @@ export function KeywordsTab({ rankings }: { rankings: CompetitorKeywordRanking[]
                       #{r.competitorRank}
                     </span>
                   ) : (
-                    <span className="text-[#9ca3af] dark:text-[#5c6478]">
-                      —
-                    </span>
+                    <span className={`${textMuted}`}>—</span>
                   )}
                 </td>
                 <td className={`${tdCls} text-center font-mono`}>
@@ -547,9 +570,7 @@ export function KeywordsTab({ rankings }: { rankings: CompetitorKeywordRanking[]
                       #{r.ourRank}
                     </span>
                   ) : (
-                    <span className="text-[#9ca3af] dark:text-[#5c6478]">
-                      —
-                    </span>
+                    <span className={`${textMuted}`}>—</span>
                   )}
                 </td>
                 <td className={`${tdCls} text-center`}>
@@ -566,9 +587,7 @@ export function KeywordsTab({ rankings }: { rankings: CompetitorKeywordRanking[]
                       {diff > 0 ? `+${diff}` : diff === 0 ? "=" : diff}
                     </span>
                   ) : (
-                    <span className="text-[#9ca3af] dark:text-[#5c6478]">
-                      —
-                    </span>
+                    <span className={`${textMuted}`}>—</span>
                   )}
                 </td>
               </tr>
@@ -583,10 +602,8 @@ export function KeywordsTab({ rankings }: { rankings: CompetitorKeywordRanking[]
 function InfoCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-gray-50 dark:bg-[#1c2028] rounded-xl p-3">
-      <div className="text-[11px] text-[#9ca3af] dark:text-[#5c6478] mb-0.5">
-        {label}
-      </div>
-      <div className="text-[13px] font-medium text-[#111827] dark:text-[#e8eaf0] truncate">
+      <div className={`text-[11px] ${textMuted} mb-0.5`}>{label}</div>
+      <div className={`text-[13px] font-medium ${textPrimary} truncate`}>
         {value}
       </div>
     </div>
@@ -604,10 +621,8 @@ function StatCard({
 }) {
   return (
     <div className="bg-gray-50 dark:bg-[#1c2028] rounded-xl p-4 text-center">
-      <div className="text-2xl font-semibold text-[#111827] dark:text-[#e8eaf0]">
-        {value}
-      </div>
-      <div className="text-xs text-[#9ca3af] dark:text-[#5c6478]">
+      <div className={`text-2xl font-semibold ${textPrimary}`}>{value}</div>
+      <div className={`text-xs ${textMuted}`}>
         {label} {sub}
       </div>
     </div>
@@ -643,16 +658,18 @@ function EmptyState({
   return (
     <div className="py-16 text-center">
       <div className="flex justify-center mb-3 opacity-20">
-        {icon === "reviews" && <MessageSquare className="w-12 h-12 text-[#9ca3af]" />}
-        {icon === "changes" && <RefreshCw className="w-12 h-12 text-[#9ca3af]" />}
-        {icon === "keywords" && <BarChart2 className="w-12 h-12 text-[#9ca3af]" />}
+        {icon === "reviews" && (
+          <MessageSquare className="w-12 h-12 text-[#9ca3af]" />
+        )}
+        {icon === "changes" && (
+          <RefreshCw className="w-12 h-12 text-[#9ca3af]" />
+        )}
+        {icon === "keywords" && (
+          <BarChart2 className="w-12 h-12 text-[#9ca3af]" />
+        )}
       </div>
-      <div className="text-sm font-medium text-[#6b7280] dark:text-[#8b93a5] mb-1">
-        {title}
-      </div>
-      <div className="text-xs text-[#9ca3af] dark:text-[#5c6478]">
-        {subtitle}
-      </div>
+      <div className={`text-sm font-medium ${textSecondary} mb-1`}>{title}</div>
+      <div className={`text-xs ${textMuted}`}>{subtitle}</div>
     </div>
   );
 }
