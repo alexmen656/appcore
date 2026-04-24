@@ -6,7 +6,13 @@ import {
   getActiveBundleId,
   authHeaders,
 } from "../hooks/useApi";
-import { cardCls, btnPrimary, btnSecondary, btnSecSm } from "../styles";
+import {
+  cardCls,
+  btnPrimary,
+  btnSecondary,
+  btnSecSm,
+  badgeOutline,
+} from "../styles";
 import type {
   GitHubRepo,
   AppRepoLink,
@@ -392,19 +398,6 @@ export function ScreenshotJobsTable({
   const [expandedJob, setExpandedJob] = useState<string | null>(null);
   const [triggering, setTriggering] = useState(false);
 
-  const statusBadge = (s: string) => {
-    const colors: Record<string, string> = {
-      PENDING:
-        "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
-      RUNNING:
-        "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
-      COMPLETED:
-        "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/40",
-      FAILED: "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400",
-    };
-    return `inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium ${colors[s] ?? "bg-gray-50 text-gray-600 dark:bg-[#252b38] dark:text-[#8b93a5]"}`;
-  };
-
   async function handleTrigger() {
     setTriggering(true);
     try {
@@ -454,7 +447,6 @@ export function ScreenshotJobsTable({
               onToggle={() =>
                 setExpandedJob(expandedJob === j.id ? null : j.id)
               }
-              statusBadge={statusBadge}
               addToast={addToast}
             />
           ))}
@@ -468,13 +460,11 @@ function JobRow({
   job,
   expanded,
   onToggle,
-  statusBadge,
   addToast,
 }: {
   job: ScreenshotJob;
   expanded: boolean;
   onToggle: () => void;
-  statusBadge: (s: string) => string;
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }) {
   const [framedUrls] = useState<string[]>([]);
@@ -500,7 +490,7 @@ function JobRow({
             <span className="text-[12px] font-mono bg-[#f3f4f6] dark:bg-[#252b38] dark:text-[#8b93a5] px-1.5 py-0.5 rounded">
               {job.branch ?? "—"}
             </span>
-            <span className={statusBadge(job.status)}>{job.status}</span>
+            <span className={badgeOutline(job.status)}>{job.status}</span>
           </div>
           {job.commitMessage && (
             <div className="text-[12px] text-[#6b7280] dark:text-[#8b93a5] truncate mt-0.5">
@@ -591,19 +581,6 @@ export function BuildJobsTable({
   const [expandedJob, setExpandedJob] = useState<string | null>(null);
   const [triggering, setTriggering] = useState(false);
 
-  const statusBadge = (s: string) => {
-    const colors: Record<string, string> = {
-      PENDING:
-        "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
-      RUNNING:
-        "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
-      COMPLETED:
-        "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/40",
-      FAILED: "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400",
-    };
-    return `inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium ${colors[s] ?? "bg-gray-50 text-gray-600 dark:bg-[#252b38] dark:text-[#8b93a5]"}`;
-  };
-
   async function handleTrigger() {
     setTriggering(true);
     try {
@@ -653,7 +630,6 @@ export function BuildJobsTable({
               onToggle={() =>
                 setExpandedJob(expandedJob === j.id ? null : j.id)
               }
-              statusBadge={statusBadge}
             />
           ))}
         </div>
@@ -666,12 +642,10 @@ function BuildJobRow({
   job,
   expanded,
   onToggle,
-  statusBadge,
 }: {
   job: BuildJob;
   expanded: boolean;
   onToggle: () => void;
-  statusBadge: (s: string) => string;
 }) {
   const {
     logs,
@@ -699,7 +673,7 @@ function BuildJobRow({
                 {job.branch}
               </span>
             )}
-            <span className={statusBadge(job.status)}>{job.status}</span>
+            <span className={badgeOutline(job.status)}>{job.status}</span>
             {job.ipaPath && (
               <span className="text-[11px] text-emerald-600 dark:text-emerald-400">
                 IPA ready

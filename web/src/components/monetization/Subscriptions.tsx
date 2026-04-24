@@ -23,6 +23,7 @@ import {
   btnSecSm,
   TH,
   TD,
+  badgeOutline,
 } from "../../styles";
 import type {
   SubscriptionGroup,
@@ -79,15 +80,13 @@ function StatusBadge({ state }: { state: string }) {
   const label = STATE_SHORT[state] ?? state;
   const isApproved = state === "APPROVED";
   const isError = state === "REJECTED" || state === "DEVELOPER_ACTION_NEEDED";
-  const containerCls = isApproved
-    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+  const variant = isApproved
+    ? "success_tonal"
     : isError
-      ? "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20"
-      : "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20";
+      ? "danger_tonal"
+      : "info_tonal";
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${containerCls}`}
-    >
+    <span className={`${badgeOutline(variant)} gap-1.5`}>
       <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
       {label}
     </span>

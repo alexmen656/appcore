@@ -23,15 +23,7 @@ export default function RecentSuggestionsTable({
           Recent suggestions
         </div>
         {lastJob && (
-          <span
-            className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
-              lastJob.status === "COMPLETED"
-                ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400"
-                : lastJob.status === "FAILED"
-                  ? "bg-red-50 text-red-500 dark:bg-red-900/20 dark:text-red-400"
-                  : "bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-400"
-            }`}
-          >
+          <span className={badge(lastJob.status)}>
             Last scan: {lastJob.status.toLowerCase()}
           </span>
         )}

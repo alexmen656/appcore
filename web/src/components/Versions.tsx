@@ -6,7 +6,7 @@ import {
   authHeaders,
   getActiveBundleId,
 } from "../hooks/useApi";
-import { cardCls, inputCls, textareaCls } from "../styles";
+import { cardCls, inputCls, textareaCls, badgeOutline } from "../styles";
 import type { VersionsData, VersionLocalization } from "../types";
 import {
   Send,
@@ -251,37 +251,11 @@ function getDeviceLabel(url: string): string {
   return "Other";
 }
 
-const stateColors: Record<string, string> = {
-  READY_FOR_SALE:
-    "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/40",
-  REPLACED_WITH_NEW_VERSION:
-    "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/40",
-  PREPARE_FOR_SUBMISSION:
-    "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/40",
-  WAITING_FOR_REVIEW:
-    "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900/40",
-  IN_REVIEW:
-    "bg-violet-50 text-violet-700 border-violet-100 dark:bg-violet-900/20 dark:text-violet-400 dark:border-violet-900/40",
-  REJECTED:
-    "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/40",
-  DEVELOPER_REJECTED:
-    "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/40",
-  METADATA_REJECTED:
-    "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/40",
-};
-
 function StateBadge({ state }: { state: string }) {
-  const cls = stateColors[state] ?? "bg-gray-50 text-gray-600 border-gray-100";
   const label = state
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
-  return (
-    <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${cls}`}
-    >
-      {label}
-    </span>
-  );
+  return <span className={badgeOutline(state)}>{label}</span>;
 }
 
 function ActionButton({
@@ -800,7 +774,9 @@ function LatestBuildCard({
                 {build.bundleId}
               </div>
             </div>
-            <span className="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border bg-sky-50 text-sky-600 border-sky-100 dark:bg-sky-900/20 dark:text-sky-400 dark:border-sky-900/40 uppercase tracking-wide">
+            <span
+              className={`${badgeOutline("sandbox")} shrink-0 uppercase tracking-wide`}
+            >
               {build.exportMethod}
             </span>
           </div>
@@ -1568,9 +1544,7 @@ export default function Versions({ addToast }: Props) {
           {!data.isEditable &&
             (data.appStoreState === "READY_FOR_SALE" ||
               data.appStoreState === "REPLACED_WITH_NEW_VERSION") && (
-              <span className="text-[11px] text-amber-600 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full font-medium">
-                Read-only
-              </span>
+              <span className={badgeOutline("readonly")}>Read-only</span>
             )}
         </div>
 
@@ -1774,11 +1748,13 @@ export default function Versions({ addToast }: Props) {
               </div>
             </div>
             {data.isEditable ? (
-              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/40 px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide">
+              <span
+                className={`${badgeOutline("editable")} uppercase tracking-wide`}
+              >
                 Editable
               </span>
             ) : (
-              <span className="text-[10px] text-[#9ca3af] dark:text-[#5c6478] bg-[#f3f4f6] dark:bg-[#252b38] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide">
+              <span className={`${badgeOutline("")} uppercase tracking-wide`}>
                 Read-only
               </span>
             )}

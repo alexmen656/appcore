@@ -1,3 +1,4 @@
+import { badge } from "../../styles";
 import type { Suggestion } from "../../types";
 export type { Suggestion };
 
@@ -6,28 +7,6 @@ interface Props {
   acting: string | null;
   onAction: (id: string, action: "approve" | "reject" | "apply") => void;
 }
-
-const typeBadge: Record<string, string> = {
-  title:
-    "bg-violet-50 text-violet-700 dark:bg-violet-900/20 dark:text-violet-400",
-  subtitle: "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
-  keywords:
-    "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
-  description:
-    "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400",
-};
-
-const statusBadge: Record<string, string> = {
-  pending:
-    "bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400",
-  approved:
-    "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
-  applied: "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
-  rejected: "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400",
-};
-
-const badgeBase =
-  "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium";
 
 const btnBase =
   "inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
@@ -41,16 +20,8 @@ export default function SuggestionCard({
     <div className="bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_2px_8px_rgba(0,0,0,0.3)] transition-shadow">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-2 flex-wrap">
-          <span
-            className={`${badgeBase} ${typeBadge[s.type.toLowerCase()] ?? "bg-gray-100 text-gray-600 dark:bg-[#252b38] dark:text-[#8b93a5]"}`}
-          >
-            {s.type}
-          </span>
-          <span
-            className={`${badgeBase} ${statusBadge[s.status.toLowerCase()] ?? "bg-gray-100 text-gray-600 dark:bg-[#252b38] dark:text-[#8b93a5]"}`}
-          >
-            {s.status}
-          </span>
+          <span className={badge(s.type)}>{s.type}</span>
+          <span className={badge(s.status)}>{s.status}</span>
           {s.confidenceScore != null && (
             <span className="flex items-center gap-1 text-xs text-[#9ca3af] dark:text-[#5c6478]">
               {Math.round(s.confidenceScore * 100)}% confidence

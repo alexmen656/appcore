@@ -24,6 +24,9 @@ export const inputCls =
 
 export const textareaCls = `${inputCls} resize-y font-mono text-xs`;
 
+const BADGE_FALLBACK =
+  "bg-gray-50 text-gray-600 dark:bg-[#252b38] dark:text-[#8b93a5]";
+
 export const badgeVariants: Record<string, string> = {
   pending:
     "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
@@ -48,4 +51,48 @@ export const badgeVariants: Record<string, string> = {
 };
 
 export const badge = (v: string) =>
-  `inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium ${badgeVariants[v.toLowerCase()] ?? "bg-gray-50 text-gray-600 dark:bg-[#252b38] dark:text-[#8b93a5]"}`;
+  `inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium ${badgeVariants[v.toLowerCase()] ?? BADGE_FALLBACK}`;
+
+const BADGE_OUTLINE_FALLBACK =
+  "bg-gray-50 text-gray-600 border-gray-100 dark:bg-[#252b38] dark:text-[#8b93a5] dark:border-[#2a2f3d]";
+
+export const badgeOutlineVariants: Record<string, string> = {
+  pending:
+    "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/40",
+  running:
+    "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900/40",
+  completed:
+    "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/40",
+  failed:
+    "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/40",
+  ready_for_sale:
+    "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/40",
+  replaced_with_new_version:
+    "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/40",
+  prepare_for_submission:
+    "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/40",
+  waiting_for_review:
+    "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900/40",
+  in_review:
+    "bg-violet-50 text-violet-700 border-violet-100 dark:bg-violet-900/20 dark:text-violet-400 dark:border-violet-900/40",
+  rejected:
+    "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/40",
+  developer_rejected:
+    "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/40",
+  metadata_rejected:
+    "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/40",
+  editable:
+    "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/40",
+  readonly:
+    "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/40",
+  sandbox:
+    "bg-sky-50 text-sky-600 border-sky-100 dark:bg-sky-900/20 dark:text-sky-400 dark:border-sky-900/40",
+  success_tonal:
+    "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+  danger_tonal:
+    "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+  info_tonal: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
+};
+
+export const badgeOutline = (v: string) =>
+  `inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${badgeOutlineVariants[v.toLowerCase()] ?? BADGE_OUTLINE_FALLBACK}`;
