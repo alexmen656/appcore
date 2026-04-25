@@ -1,6 +1,70 @@
 import { useState } from "react";
-import { textMuted, textPrimary, textSecondary, borderDefault, btnPrimary } from "../../styles";
+import { textMuted, textPrimary, borderDefault, btnPrimary } from "../../styles";
 import { ClipboardList, ChevronDown } from "lucide-react";
+
+const _localeNames = new Intl.DisplayNames(["en"], { type: "language" });
+function getLocaleName(locale: string): string {
+  try {
+    const full = _localeNames.of(locale) ?? locale;
+    return full.replace(/\s*\(.*\)$/, "");
+  } catch {
+    return locale;
+  }
+}
+const LOCALE_FLAG_OVERRIDES: Record<string, string> = {
+  ar: "sa",
+  ca: "es",
+  cs: "cz",
+  da: "dk",
+  el: "gr",
+  en: "us",
+  he: "il",
+  hi: "in",
+  ja: "jp",
+  ko: "kr",
+  ms: "my",
+  no: "no",
+  sl: "si",
+  sv: "se",
+  uk: "ua",
+  vi: "vn",
+  zh: "cn",
+  "zh-Hant": "tw",
+  "pt-PT": "pt",
+  "pt-BR": "br",
+  "es-MX": "mx",
+  "es-ES": "es",
+  "fr-CA": "ca",
+  "fr-FR": "fr",
+  "en-AU": "au",
+  "en-CA": "ca",
+  "en-GB": "gb",
+  "en-US": "us",
+  "de-DE": "de",
+  "nl-NL": "nl",
+  "ar-SA": "sa",
+  "zh-Hans": "cn",
+};
+function getLocaleFlag(locale: string): string {
+  if (LOCALE_FLAG_OVERRIDES[locale]) return LOCALE_FLAG_OVERRIDES[locale];
+  const parts = locale.split("-");
+  if (parts.length > 1) return parts[1].toLowerCase();
+  const lang = parts[0];
+  if (LOCALE_FLAG_OVERRIDES[lang]) return LOCALE_FLAG_OVERRIDES[lang];
+  return lang.toLowerCase();
+}
+function LocaleFlag({ locale }: { locale: string }) {
+  return (
+    <img
+      src={`/app/country-flags/${getLocaleFlag(locale)}.svg`}
+      alt=""
+      className="w-4 h-3 rounded-xs object-cover shrink-0"
+      onError={(e) => {
+        (e.currentTarget as HTMLImageElement).style.display = "none";
+      }}
+    />
+  );
+}
 import { useApi, apiPost, getActiveBundleId } from "../../hooks/useApi";
 import SuggestionCard from "./SuggestionCard";
 import SuggestionDetail from "./SuggestionDetail";
@@ -45,7 +109,7 @@ export default function Suggestions({ addToast }: Props) {
   const groups = data?.suggestions || {};
   const locales = Object.keys(groups);
   const currentLocale = activeLocale || locales[0] || "en-US";
-  const items = groups[currentLocale] || [];
+  const items = (groups[currentLocale] || []).filter((s) => s.status !== "APPLIED");
 
   const selectedItem =
     items.length > 0 ? (selectedId ? (items.find((i) => i.id === selectedId) ?? items[0]) : items[0]) : null;
@@ -64,16 +128,6 @@ export default function Suggestions({ addToast }: Props) {
       addToast(e.message, "error");
     } finally {
       setActing(null);
-    }
-  };
-
-  const handleBulkApprove = async () => {
-    try {
-      await apiPost("/suggestions/bulk-approve", { locale: currentLocale });
-      addToast(`All pending for ${currentLocale} approved`, "success");
-      refetch();
-    } catch (e: any) {
-      addToast(e.message, "error");
     }
   };
 
@@ -99,7 +153,7 @@ export default function Suggestions({ addToast }: Props) {
           </button>
         </div>
 
-        {locales.length > 1 && (
+        {locales.length > 0 && (
           <div className={`flex items-center gap-1.5 px-3 py-2.5 border-b ${borderDefault} shrink-0 flex-wrap`}>
             {locales.map((loc) => (
               <button
@@ -108,14 +162,14 @@ export default function Suggestions({ addToast }: Props) {
                   setActiveLocale(loc);
                   setSelectedId(null);
                 }}
-                className={`px-3 py-1 rounded-full text-[12px] font-medium border transition-colors cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-[6px] rounded-xl text-[13px] font-medium transition-all whitespace-nowrap cursor-pointer ${
                   currentLocale === loc
-                    ? `bg-[#111827] dark:bg-[#e8eaf0] border-[#111827] dark:border-[#e8eaf0] text-white dark:text-[#111827]`
-                    : `border-[#eef0f3] dark:border-[#2a2f3d] ${textSecondary} bg-white dark:bg-[#1c2028] hover:border-[#d1d5db] dark:hover:border-[#5c6478]`
+                    ? "bg-[#111827] dark:bg-[#e8eaf0] text-white dark:text-[#111827] shadow-sm"
+                    : `bg-[#fafbfc] dark:bg-[#252b38] border ${borderDefault} ${textPrimary} hover:border-[#d1d5db] dark:hover:border-[#3a4050]`
                 }`}
               >
-                {loc}
-                <span className="ml-1 opacity-60">({groups[loc]?.length ?? 0})</span>
+                <LocaleFlag locale={loc} />
+                {getLocaleName(loc)}
               </button>
             ))}
           </div>
@@ -131,7 +185,6 @@ export default function Suggestions({ addToast }: Props) {
               <option value="">All statuses</option>
               <option value="PENDING">Pending</option>
               <option value="APPROVED">Approved</option>
-              <option value="APPLIED">Applied</option>
               <option value="REJECTED">Rejected</option>
             </select>
             <ChevronDown
@@ -154,12 +207,6 @@ export default function Suggestions({ addToast }: Props) {
               className={`absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 ${textMuted} pointer-events-none`}
             />
           </div>
-          <button
-            onClick={handleBulkApprove}
-            className="shrink-0 px-2.5 py-1.5 text-[12px] font-semibold rounded-lg text-[#C4001E] hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors cursor-pointer"
-          >
-            Approve all
-          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto">

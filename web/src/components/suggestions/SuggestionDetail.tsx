@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, Upload } from "lucide-react";
-import { badge, badgeOutline, borderDefault, btnPrimary, textMuted, textSecondary, textPrimary } from "../../styles";
+import { badgeOutline, borderDefault, btnPrimary, textMuted, textSecondary, textPrimary } from "../../styles";
 import type { Suggestion } from "../../types";
 
 interface Props {
@@ -16,7 +16,7 @@ export default function SuggestionDetail({ suggestion: s, index, total, acting, 
     <div className="flex flex-col h-full">
       <div className={`flex items-center justify-between gap-4 px-6 py-4 border-b ${borderDefault} shrink-0`}>
         <div className="flex items-center gap-2 flex-wrap">
-          <span className={badge(s.type)}>{s.type.charAt(0) + s.type.slice(1).toLowerCase()}</span>
+          <span className={badgeOutline(s.type.toLowerCase())}>{s.type.charAt(0) + s.type.slice(1).toLowerCase()}</span>
           <span className={badgeOutline(s.status.toLowerCase())}>
             {s.status.charAt(0) + s.status.slice(1).toLowerCase()}
           </span>
