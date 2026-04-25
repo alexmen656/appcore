@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { borderDefault, textMuted, textPrimary, textSecondary } from "../../styles";
 import { useNavigate } from "react-router-dom";
 import { authHeaders, getActiveBundleId } from "../../hooks/useApi";
@@ -46,8 +47,8 @@ export default function CompetitorDetailModal({ appId, onClose, addToast }: Prop
     },
   ];
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-10 pb-10">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-start justify-center pt-10 pb-10">
       <div className="absolute inset-0 bg-black/40 dark:bg-black/60" onClick={onClose} />
       <div
         className={`relative w-full max-w-4xl max-h-[calc(100vh-5rem)] flex flex-col bg-white dark:bg-[#161920] border ${borderDefault} rounded-2xl shadow-2xl overflow-hidden`}
@@ -131,7 +132,8 @@ export default function CompetitorDetailModal({ appId, onClose, addToast }: Prop
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
