@@ -22,13 +22,7 @@ oauthRouter.use("/authorize", oauthLimiter);
 oauthRouter.post("/register", async (req: Request, res: Response) => {
   res.setHeader("Cache-Control", "no-store");
 
-  const {
-    client_name,
-    redirect_uris,
-    grant_types,
-    response_types,
-    token_endpoint_auth_method,
-  } = req.body as {
+  const { client_name, redirect_uris, grant_types, response_types, token_endpoint_auth_method } = req.body as {
     client_name?: string;
     redirect_uris?: string[];
     grant_types?: string[];
@@ -47,11 +41,7 @@ oauthRouter.post("/register", async (req: Request, res: Response) => {
   for (const uri of redirect_uris) {
     try {
       const u = new URL(uri);
-      if (
-        u.protocol !== "https:" &&
-        u.hostname !== "localhost" &&
-        u.hostname !== "127.0.0.1"
-      ) {
+      if (u.protocol !== "https:" && u.hostname !== "localhost" && u.hostname !== "127.0.0.1") {
         res.status(400).json({
           error: "invalid_redirect_uri",
           error_description: `Redirect URI must use https or localhost: ${uri}`,
@@ -90,8 +80,7 @@ oauthRouter.post("/register", async (req: Request, res: Response) => {
       redirect_uris,
       grant_types: grant_types ?? ["authorization_code"],
       response_types: response_types ?? ["code"],
-      token_endpoint_auth_method:
-        token_endpoint_auth_method ?? "client_secret_post",
+      token_endpoint_auth_method: token_endpoint_auth_method ?? "client_secret_post",
     });
   } catch (err) {
     logger.error("DCR error", err);
@@ -128,18 +117,19 @@ oauthRouter.get("/authorize", async (req: Request, res: Response) => {
     return;
   }
 
-  const client = await prisma.oAuthClient.findUnique({
-    where: { clientId: client_id },
-  });
+  let client: Awaited<ReturnType<typeof prisma.oAuthClient.findUnique>>;
+  try {
+    client = await prisma.oAuthClient.findUnique({ where: { clientId: client_id } });
+  } catch (err) {
+    logger.error("OAuth authorize DB error", err);
+    res.status(500).send("Internal server error");
+    return;
+  }
   if (!client) {
     res.status(400).send("Unknown client_id");
     return;
   }
-  if (
-    client.redirectUris.length > 0 &&
-    redirect_uri &&
-    !client.redirectUris.includes(redirect_uri)
-  ) {
+  if (client.redirectUris.length > 0 && redirect_uri && !client.redirectUris.includes(redirect_uri)) {
     res.status(400).send("Invalid redirect_uri");
     return;
   }
@@ -151,10 +141,7 @@ oauthRouter.get("/authorize", async (req: Request, res: Response) => {
     ["code_challenge", code_challenge || ""],
     ["code_challenge_method", code_challenge_method || ""],
   ]
-    .map(
-      ([name, value]) =>
-        `<input type="hidden" name="${escapeHtml(name)}" value="${escapeHtml(value)}">`,
-    )
+    .map(([name, value]) => `<input type="hidden" name="${escapeHtml(name)}" value="${escapeHtml(value)}">`)
     .join("\n      ");
 
   const errorHtml = qError ? `<p class="error">${escapeHtml(qError)}</p>` : "";
@@ -308,124 +295,135 @@ oauthRouter.get("/authorize", async (req: Request, res: Response) => {
 </html>`);
 });
 
-oauthRouter.post(
-  "/authorize",
-  express.urlencoded({ extended: false }),
-  async (req: Request, res: Response) => {
-    const {
-      client_id,
-      redirect_uri,
-      state,
-      code_challenge,
-      code_challenge_method,
-      email,
-      password,
-    } = req.body as Record<string, string>;
+oauthRouter.post("/authorize", express.urlencoded({ extended: false }), async (req: Request, res: Response) => {
+  const { client_id, redirect_uri, state, code_challenge, code_challenge_method, email, password } = req.body as Record<
+    string,
+    string
+  >;
 
-    const formParams = new URLSearchParams({
-      client_id: client_id || "",
-      redirect_uri: redirect_uri || "",
-      state: state || "",
-      code_challenge: code_challenge || "",
-      code_challenge_method: code_challenge_method || "",
-      response_type: "code",
+  const formParams = new URLSearchParams({
+    client_id: client_id || "",
+    redirect_uri: redirect_uri || "",
+    state: state || "",
+    code_challenge: code_challenge || "",
+    code_challenge_method: code_challenge_method || "",
+    response_type: "code",
+  });
+
+  const redirectToForm = (error: string) => {
+    formParams.set("error", error);
+    res.redirect(`/oauth/authorize?${formParams}`);
+  };
+
+  try {
+    const client = await prisma.oAuthClient.findUnique({
+      where: { clientId: client_id },
+    });
+    if (!client) {
+      redirectToForm("Invalid client");
+      return;
+    }
+
+    if (redirect_uri && !client.redirectUris.includes(redirect_uri)) {
+      redirectToForm("Invalid redirect_uri");
+      return;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: {
+        teamMembers: {
+          include: { team: { include: { settings: true } } },
+        },
+      },
+    });
+    if (!user || !user.passwordHash) {
+      redirectToForm("Invalid email or password");
+      return;
+    }
+
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) {
+      redirectToForm("Invalid email or password");
+      return;
+    }
+
+    const mcpEnabled = user.teamMembers.some((m) => m.team.settings?.mcpEnabled);
+    if (!mcpEnabled) {
+      redirectToForm("MCP access is not enabled. Enable it in AppCore settings first.");
+      return;
+    }
+
+    const code = randomBytes(32).toString("hex");
+    await prisma.oAuthCode.create({
+      data: {
+        code,
+        clientId: client_id,
+        userId: user.id,
+        redirectUri: redirect_uri || "",
+        codeChallenge: code_challenge || null,
+        codeChallengeMethod: code_challenge_method || null,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      },
     });
 
-    const redirectToForm = (error: string) => {
-      formParams.set("error", error);
-      res.redirect(`/oauth/authorize?${formParams}`);
-    };
-
-    try {
-      const client = await prisma.oAuthClient.findUnique({
-        where: { clientId: client_id },
-      });
-      if (!client) {
-        redirectToForm("Invalid client");
-        return;
-      }
-
-      if (redirect_uri && !client.redirectUris.includes(redirect_uri)) {
-        redirectToForm("Invalid redirect_uri");
-        return;
-      }
-
-      const user = await prisma.user.findUnique({
-        where: { email },
-        include: {
-          teamMembers: {
-            include: { team: { include: { settings: true } } },
-          },
-        },
-      });
-      if (!user || !user.passwordHash) {
-        redirectToForm("Invalid email or password");
-        return;
-      }
-
-      const valid = await bcrypt.compare(password, user.passwordHash);
-      if (!valid) {
-        redirectToForm("Invalid email or password");
-        return;
-      }
-
-      const mcpEnabled = user.teamMembers.some(
-        (m) => m.team.settings?.mcpEnabled,
-      );
-      if (!mcpEnabled) {
-        redirectToForm(
-          "MCP access is not enabled. Enable it in AppCore settings first.",
-        );
-        return;
-      }
-
-      const code = randomBytes(32).toString("hex");
-      await prisma.oAuthCode.create({
-        data: {
-          code,
-          clientId: client_id,
-          userId: user.id,
-          redirectUri: redirect_uri || "",
-          codeChallenge: code_challenge || null,
-          codeChallengeMethod: code_challenge_method || null,
-          expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-        },
-      });
-
-      const target = redirect_uri || client.redirectUris[0];
-      const params = new URLSearchParams({ code });
-      if (state) params.set("state", state);
-      res.redirect(`${target}?${params}`);
-    } catch (err) {
-      logger.error("OAuth authorize error", err);
-      redirectToForm("Internal error, please try again");
-    }
-  },
-);
+    const target = redirect_uri || client.redirectUris[0];
+    const params = new URLSearchParams({ code });
+    if (state) params.set("state", state);
+    res.redirect(`${target}?${params}`);
+  } catch (err) {
+    logger.error("OAuth authorize error", err);
+    redirectToForm("Internal error, please try again");
+  }
+});
 
 oauthRouter.post(
   "/token",
-  express.urlencoded({ extended: false }),
+  (req, res, next) => {
+    const ct = req.headers["content-type"] ?? "";
+    if (ct.includes("application/json")) {
+      express.json()(req, res, next);
+    } else {
+      express.urlencoded({ extended: false })(req, res, next);
+    }
+  },
   async (req: Request, res: Response) => {
     res.setHeader("Cache-Control", "no-store");
 
-    const {
-      grant_type,
-      code,
-      redirect_uri,
-      client_id,
-      client_secret,
-      code_verifier,
-    } = req.body as Record<string, string>;
+    const { grant_type, code, redirect_uri, code_verifier } = req.body as Record<string, string>;
+
+    let client_id: string | undefined = (req.body as Record<string, string>).client_id;
+    let client_secret: string | undefined = (req.body as Record<string, string>).client_secret;
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith("Basic ")) {
+      const decoded = Buffer.from(authHeader.slice(6), "base64").toString("utf8");
+      const colonIdx = decoded.indexOf(":");
+      if (colonIdx !== -1) {
+        client_id = decodeURIComponent(decoded.slice(0, colonIdx));
+        client_secret = decodeURIComponent(decoded.slice(colonIdx + 1));
+      }
+    }
 
     if (grant_type !== "authorization_code") {
       res.status(400).json({ error: "unsupported_grant_type" });
       return;
     }
 
-    const client = await prisma.oAuthClient.findUnique({
-      where: { clientId: client_id },
-    });
+    if (!client_id) {
+      res.status(401).json({ error: "invalid_client" });
+      return;
+    }
+
+    let client: Awaited<ReturnType<typeof prisma.oAuthClient.findUnique>>;
+    try {
+      client = await prisma.oAuthClient.findUnique({
+        where: { clientId: client_id },
+      });
+    } catch (err) {
+      logger.error("OAuth token DB error", err);
+      res.status(500).json({ error: "server_error" });
+      return;
+    }
     if (!client) {
       res.status(401).json({ error: "invalid_client" });
       return;
@@ -441,20 +439,11 @@ oauthRouter.post(
     try {
       const accessToken = await prisma.$transaction(async (tx) => {
         const authCode = await tx.oAuthCode.findUnique({ where: { code } });
-        if (
-          !authCode ||
-          authCode.used ||
-          authCode.expiresAt < new Date() ||
-          authCode.clientId !== client_id
-        ) {
+        if (!authCode || authCode.used || authCode.expiresAt < new Date() || authCode.clientId !== client_id) {
           throw new Error("invalid_grant");
         }
 
-        if (
-          authCode.redirectUri &&
-          redirect_uri &&
-          authCode.redirectUri !== redirect_uri
-        ) {
+        if (authCode.redirectUri && redirect_uri && authCode.redirectUri !== redirect_uri) {
           throw new Error("invalid_grant");
         }
 
@@ -462,9 +451,7 @@ oauthRouter.post(
           if (!code_verifier) {
             throw new Error("code_verifier_required");
           }
-          const expected = createHash("sha256")
-            .update(code_verifier)
-            .digest("base64url");
+          const expected = createHash("sha256").update(code_verifier).digest("base64url");
           if (expected !== authCode.codeChallenge) {
             throw new Error("pkce_failed");
           }

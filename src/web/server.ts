@@ -43,7 +43,26 @@ app.use(
 const allowedOrigins = env.CORS_ORIGIN
   ? env.CORS_ORIGIN.split(",").map((o) => o.trim())
   : ["http://localhost:5173", "http://localhost:5174"];
-app.use(
+
+app.use((req, res, next) => {
+  const p = req.path;
+  if (
+    p.startsWith("/oauth") ||
+    p.startsWith("/mcp") ||
+    p.startsWith("/.well-known")
+  ) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type,Authorization,MCP-Protocol-Version",
+    );
+    if (req.method === "OPTIONS") {
+      res.sendStatus(204);
+      return;
+    }
+    return next();
+  }
   cors({
     origin: (origin, callback) => {
       if (!origin || allowedOrigins.includes(origin))
@@ -51,8 +70,8 @@ app.use(
       callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
-  }),
-);
+  })(req, res, next);
+});
 app.use(express.json());
 
 app.use("/api/auth", authRouter);

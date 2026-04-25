@@ -45,6 +45,38 @@ const MCP_TOOLS = [
     name: "trigger_job",
     desc: "Trigger a background job: scrape, analyze, sync, track-keywords, discover-keywords",
   },
+  {
+    name: "list_asc_leaderboards",
+    desc: "List all Game Center leaderboards for an app with IDs, vendor identifiers, score format, and archived status",
+  },
+  {
+    name: "create_asc_leaderboard",
+    desc: "Create a new Game Center leaderboard with score format, sort order, and submission type",
+  },
+  {
+    name: "update_asc_leaderboard",
+    desc: "Update a leaderboard's reference name or archive/unarchive it",
+  },
+  {
+    name: "delete_asc_leaderboard",
+    desc: "Delete a Game Center leaderboard (only if it has never been live)",
+  },
+  {
+    name: "list_asc_leaderboard_localizations",
+    desc: "List all locale translations for a leaderboard including display names and score suffixes",
+  },
+  {
+    name: "create_asc_leaderboard_localization",
+    desc: "Add a new locale translation to a leaderboard",
+  },
+  {
+    name: "update_asc_leaderboard_localization",
+    desc: "Update the display name or score suffixes for a leaderboard localization",
+  },
+  {
+    name: "delete_asc_leaderboard_localization",
+    desc: "Delete a localization from a leaderboard",
+  },
 ];
 
 export default function Agents({ addToast }: Props) {
