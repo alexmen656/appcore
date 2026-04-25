@@ -1,10 +1,5 @@
 import { useState } from "react";
-import {
-  borderDefault,
-  textMuted,
-  textPrimary,
-  textSecondary,
-} from "../../styles";
+import { borderDefault, textMuted, textPrimary, textSecondary } from "../../styles";
 import {
   ComposedChart,
   Line,
@@ -18,11 +13,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import type { DayData } from "../../types";
-import {
-  fmtShortDate,
-  fmtLargeNum,
-  fmtRevenueShort,
-} from "../../utils/formatters";
+import { fmtShortDate, fmtLargeNum, fmtRevenueShort } from "../../utils/formatters";
 export type { DayData };
 
 export interface ChartMarker {
@@ -54,19 +45,11 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl px-4 py-3`}
       style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.08)", minWidth: 160 }}
     >
-      <div className={`text-[11px] ${textMuted} mb-2 font-medium`}>
-        {fmtShortDate(String(label))}
-      </div>
+      <div className={`text-[11px] ${textMuted} mb-2 font-medium`}>{fmtShortDate(String(label))}</div>
       {payload.map((p: any) => (
-        <div
-          key={p.dataKey}
-          className="flex items-center justify-between gap-3 text-[12px] mb-1"
-        >
+        <div key={p.dataKey} className="flex items-center justify-between gap-3 text-[12px] mb-1">
           <span className={`flex items-center gap-1.5 ${textSecondary}`}>
-            <span
-              className="inline-block w-2 h-2 rounded-full"
-              style={{ background: p.color }}
-            />
+            <span className="inline-block w-2 h-2 rounded-full" style={{ background: p.color }} />
             {p.name}
           </span>
           <span className={`font-semibold ${textPrimary} tabular-nums`}>
@@ -108,18 +91,12 @@ export default function MetricsChart({ data, markers = [] }: Props) {
     >
       <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
         <div>
-          <div className={`text-[16px] font-semibold ${textPrimary}`}>
-            Metrics over time
-          </div>
+          <div className={`text-[16px] font-semibold ${textPrimary}`}>Metrics over time</div>
         </div>
         <div className="flex flex-wrap gap-1.5">
           {METRICS.map((m) => {
             const active = activeMetrics.has(m.key);
-            const noData =
-              (m.key === "impressions" ||
-                m.key === "pageViews" ||
-                m.key === "sessions") &&
-              !hasEngagement;
+            const noData = (m.key === "impressions" || m.key === "pageViews" || m.key === "sessions") && !hasEngagement;
             const revenueNoData = m.key === "proceeds" && !hasRevenue;
             return (
               <button
@@ -137,11 +114,7 @@ export default function MetricsChart({ data, markers = [] }: Props) {
                     ? "border-transparent text-white"
                     : "bg-white dark:bg-[#252b38] ${borderDefault} ${textMuted} hover:border-[#d1d5db] dark:hover:border-[#5c6478] hover:text-[#6b7280] dark:hover:text-[#8b93a5]"
                 } ${noData || revenueNoData ? "opacity-40 cursor-default" : "cursor-pointer"}`}
-                style={
-                  active
-                    ? { background: m.color, borderColor: m.color }
-                    : undefined
-                }
+                style={active ? { background: m.color, borderColor: m.color } : undefined}
               >
                 <span
                   className="w-1.5 h-1.5 rounded-full"
@@ -157,23 +130,18 @@ export default function MetricsChart({ data, markers = [] }: Props) {
       </div>
 
       {!hasEngagement &&
-        (activeMetrics.has("impressions") ||
-          activeMetrics.has("pageViews") ||
-          activeMetrics.has("sessions")) && (
+        (activeMetrics.has("impressions") || activeMetrics.has("pageViews") || activeMetrics.has("sessions")) && (
           <div
             className={`mb-3 px-3.5 py-2.5 rounded-xl bg-[#f8f9fb] dark:bg-[#252b38] border ${borderDefault} text-[12px] ${textSecondary}`}
           >
-            Impressions, page views and sessions come from Apple's Analytics
-            Reports API. On the first <strong>Sync</strong>, Apple creates the
-            data request — run a second sync after a few minutes for the data to
-            appear.
+            Impressions, page views and sessions come from Apple's Analytics Reports API. On the first{" "}
+            <strong>Sync</strong>, Apple creates the data request — run a second sync after a few minutes for the data
+            to appear.
           </div>
         )}
 
       {data.length === 0 ? (
-        <div
-          className={`flex items-center justify-center h-52 text-[13px] ${textMuted}`}
-        >
+        <div className={`flex items-center justify-center h-52 text-[13px] ${textMuted}`}>
           No data yet — sync to fetch metrics.
         </div>
       ) : (
@@ -187,12 +155,7 @@ export default function MetricsChart({ data, markers = [] }: Props) {
               bottom: 0,
             }}
           >
-            <CartesianGrid
-              strokeDasharray="0"
-              stroke="#f0f1f3"
-              vertical={false}
-              strokeWidth={1}
-            />
+            <CartesianGrid strokeDasharray="0" stroke="#f0f1f3" vertical={false} strokeWidth={1} />
             <XAxis
               dataKey="date"
               tickFormatter={fmtShortDate}
@@ -221,11 +184,7 @@ export default function MetricsChart({ data, markers = [] }: Props) {
               />
             )}
             <Tooltip content={<CustomTooltip />} />
-            <Legend
-              wrapperStyle={{ fontSize: 11, paddingTop: 10, color: "#6b7280" }}
-              iconType="circle"
-              iconSize={7}
-            />
+            <Legend wrapperStyle={{ fontSize: 11, paddingTop: 10, color: "#6b7280" }} iconType="circle" iconSize={7} />
             {markers
               .filter((m) => m.type === "activation")
               .map((m) => (

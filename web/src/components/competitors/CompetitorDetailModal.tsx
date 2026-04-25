@@ -1,26 +1,9 @@
 import { useState, useEffect } from "react";
-import {
-  borderDefault,
-  textMuted,
-  textPrimary,
-  textSecondary,
-} from "../../styles";
+import { borderDefault, textMuted, textPrimary, textSecondary } from "../../styles";
 import { useNavigate } from "react-router-dom";
 import { authHeaders, getActiveBundleId } from "../../hooks/useApi";
-import {
-  Maximize2,
-  X,
-  ArrowRight,
-  MessageSquare,
-  RefreshCw,
-  BarChart2,
-} from "lucide-react";
-import type {
-  CompetitorDetail,
-  CompetitorReview,
-  CompetitorKeywordRanking,
-  MetadataChange,
-} from "../../types";
+import { Maximize2, X, ArrowRight, MessageSquare, RefreshCw, BarChart2 } from "lucide-react";
+import type { CompetitorDetail, CompetitorReview, CompetitorKeywordRanking, MetadataChange } from "../../types";
 import AppIcon from "../competitors/AppIcon";
 
 interface Props {
@@ -31,11 +14,7 @@ interface Props {
 
 type Tab = "overview" | "reviews" | "changes" | "keywords";
 
-export default function CompetitorDetailModal({
-  appId,
-  onClose,
-  addToast,
-}: Props) {
+export default function CompetitorDetailModal({ appId, onClose, addToast }: Props) {
   const [data, setData] = useState<CompetitorDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("overview");
@@ -63,39 +42,29 @@ export default function CompetitorDetailModal({
     {
       key: "keywords",
       label: "Keywords",
-      count: data?.keywordRankings.filter((k) => k.competitorRank != null)
-        .length,
+      count: data?.keywordRankings.filter((k) => k.competitorRank != null).length,
     },
   ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-10 pb-10">
-      <div
-        className="absolute inset-0 bg-black/40 dark:bg-black/60"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/40 dark:bg-black/60" onClick={onClose} />
       <div
         className={`relative w-full max-w-4xl max-h-[calc(100vh-5rem)] flex flex-col bg-white dark:bg-[#161920] border ${borderDefault} rounded-2xl shadow-2xl overflow-hidden`}
       >
-        <div
-          className={`flex items-center justify-between px-6 py-4 border-b ${borderDefault} shrink-0`}
-        >
+        <div className={`flex items-center justify-between px-6 py-4 border-b ${borderDefault} shrink-0`}>
           {data ? (
             <div className="flex items-center gap-3">
               <AppIcon url={data.iconUrl} name={data.name} />
               <div>
-                <h2 className={`text-lg font-semibold ${textPrimary}`}>
-                  {data.name}
-                </h2>
+                <h2 className={`text-lg font-semibold ${textPrimary}`}>{data.name}</h2>
                 <div className={`flex items-center gap-3 text-xs ${textMuted}`}>
                   <span>{data.bundleId}</span>
                   {data.rating != null && (
                     <span className="flex items-center gap-1">
                       <span className="text-amber-400">&#9733;</span>
                       {data.rating.toFixed(1)}
-                      {data.ratingsCount != null && (
-                        <span>({data.ratingsCount.toLocaleString()})</span>
-                      )}
+                      {data.ratingsCount != null && <span>({data.ratingsCount.toLocaleString()})</span>}
                     </span>
                   )}
                   {data.version && <span>v{data.version}</span>}
@@ -125,9 +94,7 @@ export default function CompetitorDetailModal({
             </button>
           </div>
         </div>
-        <div
-          className={`flex gap-1 px-6 pt-3 border-b ${borderDefault} shrink-0`}
-        >
+        <div className={`flex gap-1 px-6 pt-3 border-b ${borderDefault} shrink-0`}>
           {tabs.map((t) => (
             <button
               key={t.key}
@@ -153,19 +120,13 @@ export default function CompetitorDetailModal({
               <div className="spinner" /> Loading…
             </div>
           ) : !data ? (
-            <div className="text-center py-20 text-[#9ca3af]">
-              Failed to load competitor data
-            </div>
+            <div className="text-center py-20 text-[#9ca3af]">Failed to load competitor data</div>
           ) : (
             <>
               {tab === "overview" && <OverviewTab data={data} />}
               {tab === "reviews" && <ReviewsTab data={data} />}
-              {tab === "changes" && (
-                <ChangesTab changes={data.metadataChanges} />
-              )}
-              {tab === "keywords" && (
-                <KeywordsTab rankings={data.keywordRankings} />
-              )}
+              {tab === "changes" && <ChangesTab changes={data.metadataChanges} />}
+              {tab === "keywords" && <KeywordsTab rankings={data.keywordRankings} />}
             </>
           )}
         </div>
@@ -179,19 +140,13 @@ export function OverviewTab({ data }: { data: CompetitorDetail }) {
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
         {data.subtitle && <InfoCard label="Subtitle" value={data.subtitle} />}
-        {data.developerName && (
-          <InfoCard label="Developer" value={data.developerName} />
-        )}
+        {data.developerName && <InfoCard label="Developer" value={data.developerName} />}
         {data.category && <InfoCard label="Category" value={data.category} />}
         {data.version && <InfoCard label="Version" value={data.version} />}
       </div>
       {data.description && (
         <div>
-          <div
-            className={`text-xs font-medium uppercase tracking-wide ${textMuted} mb-2`}
-          >
-            Description
-          </div>
+          <div className={`text-xs font-medium uppercase tracking-wide ${textMuted} mb-2`}>Description</div>
           <div className="text-[13px] text-[#374151] dark:text-[#c0c5d0] bg-gray-50 dark:bg-[#1c2028] rounded-xl p-4 whitespace-pre-wrap max-h-48 overflow-y-auto leading-relaxed">
             {data.description}
           </div>
@@ -199,31 +154,22 @@ export function OverviewTab({ data }: { data: CompetitorDetail }) {
       )}
       {data.reviewSummary && (
         <div>
-          <div
-            className={`text-xs font-medium uppercase tracking-wide ${textMuted} mb-2`}
-          >
-            Review Summary ({data.reviewSummary.reviewCount} reviews, avg{" "}
-            {data.reviewSummary.averageRating.toFixed(1)}★)
+          <div className={`text-xs font-medium uppercase tracking-wide ${textMuted} mb-2`}>
+            Review Summary ({data.reviewSummary.reviewCount} reviews, avg {data.reviewSummary.averageRating.toFixed(1)}
+            ★)
           </div>
           <div className="bg-gray-50 dark:bg-[#1c2028] rounded-xl p-4 space-y-3">
-            {data.reviewSummary.sentiment && (
-              <SentimentBadge sentiment={data.reviewSummary.sentiment} />
-            )}
+            {data.reviewSummary.sentiment && <SentimentBadge sentiment={data.reviewSummary.sentiment} />}
             <p className="text-[13px] text-[#374151] dark:text-[#c0c5d0] leading-relaxed">
               {data.reviewSummary.summary}
             </p>
             <div className="grid grid-cols-2 gap-4 mt-3">
               {data.reviewSummary.strengths.length > 0 && (
                 <div>
-                  <div className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 mb-1">
-                    Strengths
-                  </div>
+                  <div className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 mb-1">Strengths</div>
                   <ul className="space-y-1">
                     {data.reviewSummary.strengths.map((s, i) => (
-                      <li
-                        key={i}
-                        className="text-xs text-[#374151] dark:text-[#c0c5d0] flex items-start gap-1.5"
-                      >
+                      <li key={i} className="text-xs text-[#374151] dark:text-[#c0c5d0] flex items-start gap-1.5">
                         <span className="text-emerald-500 mt-0.5">+</span> {s}
                       </li>
                     ))}
@@ -232,15 +178,10 @@ export function OverviewTab({ data }: { data: CompetitorDetail }) {
               )}
               {data.reviewSummary.weaknesses.length > 0 && (
                 <div>
-                  <div className="text-[11px] font-medium text-red-500 dark:text-red-400 mb-1">
-                    Weaknesses
-                  </div>
+                  <div className="text-[11px] font-medium text-red-500 dark:text-red-400 mb-1">Weaknesses</div>
                   <ul className="space-y-1">
                     {data.reviewSummary.weaknesses.map((w, i) => (
-                      <li
-                        key={i}
-                        className="text-xs text-[#374151] dark:text-[#c0c5d0] flex items-start gap-1.5"
-                      >
+                      <li key={i} className="text-xs text-[#374151] dark:text-[#c0c5d0] flex items-start gap-1.5">
                         <span className="text-red-400 mt-0.5">−</span> {w}
                       </li>
                     ))}
@@ -264,21 +205,11 @@ export function OverviewTab({ data }: { data: CompetitorDetail }) {
         </div>
       )}
       <div className="grid grid-cols-3 gap-3">
-        <StatCard
-          label="Reviews"
-          value={data.reviews.length.toString()}
-          sub="scraped"
-        />
-        <StatCard
-          label="Changes"
-          value={data.metadataChanges.length.toString()}
-          sub="detected"
-        />
+        <StatCard label="Reviews" value={data.reviews.length.toString()} sub="scraped" />
+        <StatCard label="Changes" value={data.metadataChanges.length.toString()} sub="detected" />
         <StatCard
           label="Keywords"
-          value={data.keywordRankings
-            .filter((k) => k.competitorRank != null)
-            .length.toString()}
+          value={data.keywordRankings.filter((k) => k.competitorRank != null).length.toString()}
           sub="ranked"
         />
       </div>
@@ -306,15 +237,11 @@ export function ReviewsTab({ data }: { data: CompetitorDetail }) {
   return (
     <div className="space-y-4">
       <div className="bg-gray-50 dark:bg-[#1c2028] rounded-xl p-4">
-        <div className={`text-xs font-medium ${textMuted} mb-2`}>
-          Rating Distribution
-        </div>
+        <div className={`text-xs font-medium ${textMuted} mb-2`}>Rating Distribution</div>
         <div className="space-y-1.5">
           {ratingDist.map((d) => (
             <div key={d.stars} className="flex items-center gap-2 text-xs">
-              <span className={`w-4 text-right ${textSecondary}`}>
-                {d.stars}★
-              </span>
+              <span className={`w-4 text-right ${textSecondary}`}>{d.stars}★</span>
               <div className="flex-1 h-3 bg-gray-200 dark:bg-[#252b38] rounded-full overflow-hidden">
                 <div
                   className="h-full bg-amber-400 rounded-full transition-all"
@@ -338,32 +265,16 @@ export function ReviewsTab({ data }: { data: CompetitorDetail }) {
 function ReviewCard({ review }: { review: CompetitorReview }) {
   const stars = "★".repeat(review.rating) + "☆".repeat(5 - review.rating);
   return (
-    <div
-      className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-xl p-4`}
-    >
+    <div className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-xl p-4`}>
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           <span className="text-amber-400 text-xs tracking-wide">{stars}</span>
-          {review.author && (
-            <span className={`text-[11px] ${textMuted}`}>{review.author}</span>
-          )}
+          {review.author && <span className={`text-[11px] ${textMuted}`}>{review.author}</span>}
         </div>
-        <span className={`text-[11px] ${textMuted}`}>
-          {new Date(review.reviewedAt).toLocaleDateString()}
-        </span>
+        <span className={`text-[11px] ${textMuted}`}>{new Date(review.reviewedAt).toLocaleDateString()}</span>
       </div>
-      {review.title && (
-        <div className={`text-[13px] font-medium ${textPrimary} mb-0.5`}>
-          {review.title}
-        </div>
-      )}
-      {review.body && (
-        <div
-          className={`text-xs ${textSecondary} leading-relaxed line-clamp-4`}
-        >
-          {review.body}
-        </div>
-      )}
+      {review.title && <div className={`text-[13px] font-medium ${textPrimary} mb-0.5`}>{review.title}</div>}
+      {review.body && <div className={`text-xs ${textSecondary} leading-relaxed line-clamp-4`}>{review.body}</div>}
     </div>
   );
 }
@@ -380,31 +291,23 @@ export function ChangesTab({ changes }: { changes: MetadataChange[] }) {
   }
 
   const fieldColors: Record<string, string> = {
-    title:
-      "bg-violet-50 text-violet-700 dark:bg-violet-900/20 dark:text-violet-400",
+    title: "bg-violet-50 text-violet-700 dark:bg-violet-900/20 dark:text-violet-400",
     subtitle: "bg-sky-50 text-sky-700 dark:bg-sky-900/20 dark:text-sky-400",
-    description:
-      "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
+    description: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
     version: "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
-    rating:
-      "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
+    rating: "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
     price: "bg-pink-50 text-pink-700 dark:bg-pink-900/20 dark:text-pink-400",
-    releaseNotes:
-      "bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
+    releaseNotes: "bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
   };
 
   return (
     <div className="space-y-2">
       {changes.map((change) => (
-        <div
-          key={change.id}
-          className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-xl p-4`}
-        >
+        <div key={change.id} className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-xl p-4`}>
           <div className="flex items-center justify-between mb-2">
             <span
               className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-medium ${
-                fieldColors[change.field] ??
-                "bg-gray-100 text-gray-600 dark:bg-[#252b38] dark:text-[#8b93a5]"
+                fieldColors[change.field] ?? "bg-gray-100 text-gray-600 dark:bg-[#252b38] dark:text-[#8b93a5]"
               }`}
             >
               {change.field}
@@ -449,14 +352,8 @@ export function ChangesTab({ changes }: { changes: MetadataChange[] }) {
   );
 }
 
-export function KeywordsTab({
-  rankings,
-}: {
-  rankings: CompetitorKeywordRanking[];
-}) {
-  const [sortBy, setSortBy] = useState<
-    "keyword" | "competitor" | "ours" | "popularity"
-  >("popularity");
+export function KeywordsTab({ rankings }: { rankings: CompetitorKeywordRanking[] }) {
+  const [sortBy, setSortBy] = useState<"keyword" | "competitor" | "ours" | "popularity">("popularity");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const toggleSort = (col: typeof sortBy) => {
@@ -502,23 +399,13 @@ export function KeywordsTab({
             <th className={thCls} onClick={() => toggleSort("keyword")}>
               Keyword {sortBy === "keyword" && (sortDir === "asc" ? "↑" : "↓")}
             </th>
-            <th
-              className={`${thCls} text-center`}
-              onClick={() => toggleSort("popularity")}
-            >
+            <th className={`${thCls} text-center`} onClick={() => toggleSort("popularity")}>
               Pop. {sortBy === "popularity" && (sortDir === "asc" ? "↑" : "↓")}
             </th>
-            <th
-              className={`${thCls} text-center`}
-              onClick={() => toggleSort("competitor")}
-            >
-              Their Rank{" "}
-              {sortBy === "competitor" && (sortDir === "asc" ? "↑" : "↓")}
+            <th className={`${thCls} text-center`} onClick={() => toggleSort("competitor")}>
+              Their Rank {sortBy === "competitor" && (sortDir === "asc" ? "↑" : "↓")}
             </th>
-            <th
-              className={`${thCls} text-center`}
-              onClick={() => toggleSort("ours")}
-            >
+            <th className={`${thCls} text-center`} onClick={() => toggleSort("ours")}>
               Our Rank {sortBy === "ours" && (sortDir === "asc" ? "↑" : "↓")}
             </th>
             <th className={`${thCls} text-center`}>Diff</th>
@@ -526,18 +413,13 @@ export function KeywordsTab({
         </thead>
         <tbody>
           {sorted.map((r) => {
-            const diff =
-              r.competitorRank != null && r.ourRank != null
-                ? r.competitorRank - r.ourRank
-                : null;
+            const diff = r.competitorRank != null && r.ourRank != null ? r.competitorRank - r.ourRank : null;
             return (
               <tr
                 key={r.keywordId}
                 className="border-b border-[#f3f4f6] dark:border-[#2a2f3d] hover:bg-gray-50 dark:hover:bg-[#1c2028] transition-colors"
               >
-                <td className={`${tdCls} font-medium ${textPrimary}`}>
-                  {r.keyword}
-                </td>
+                <td className={`${tdCls} font-medium ${textPrimary}`}>{r.keyword}</td>
                 <td className={`${tdCls} text-center`}>
                   {r.popularity != null ? (
                     <span
@@ -557,18 +439,14 @@ export function KeywordsTab({
                 </td>
                 <td className={`${tdCls} text-center font-mono`}>
                   {r.competitorRank != null ? (
-                    <span className="text-[#374151] dark:text-[#c0c5d0]">
-                      #{r.competitorRank}
-                    </span>
+                    <span className="text-[#374151] dark:text-[#c0c5d0]">#{r.competitorRank}</span>
                   ) : (
                     <span className={`${textMuted}`}>—</span>
                   )}
                 </td>
                 <td className={`${tdCls} text-center font-mono`}>
                   {r.ourRank != null ? (
-                    <span className="text-[#374151] dark:text-[#c0c5d0]">
-                      #{r.ourRank}
-                    </span>
+                    <span className="text-[#374151] dark:text-[#c0c5d0]">#{r.ourRank}</span>
                   ) : (
                     <span className={`${textMuted}`}>—</span>
                   )}
@@ -603,22 +481,12 @@ function InfoCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-gray-50 dark:bg-[#1c2028] rounded-xl p-3">
       <div className={`text-[11px] ${textMuted} mb-0.5`}>{label}</div>
-      <div className={`text-[13px] font-medium ${textPrimary} truncate`}>
-        {value}
-      </div>
+      <div className={`text-[13px] font-medium ${textPrimary} truncate`}>{value}</div>
     </div>
   );
 }
 
-function StatCard({
-  label,
-  value,
-  sub,
-}: {
-  label: string;
-  value: string;
-  sub: string;
-}) {
+function StatCard({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
     <div className="bg-gray-50 dark:bg-[#1c2028] rounded-xl p-4 text-center">
       <div className={`text-2xl font-semibold ${textPrimary}`}>{value}</div>
@@ -638,35 +506,19 @@ function SentimentBadge({ sentiment }: { sentiment: string }) {
         : "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400";
 
   return (
-    <span
-      className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium capitalize ${cls}`}
-    >
+    <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-medium capitalize ${cls}`}>
       {sentiment}
     </span>
   );
 }
 
-function EmptyState({
-  icon,
-  title,
-  subtitle,
-}: {
-  icon: string;
-  title: string;
-  subtitle: string;
-}) {
+function EmptyState({ icon, title, subtitle }: { icon: string; title: string; subtitle: string }) {
   return (
     <div className="py-16 text-center">
       <div className="flex justify-center mb-3 opacity-20">
-        {icon === "reviews" && (
-          <MessageSquare className="w-12 h-12 text-[#9ca3af]" />
-        )}
-        {icon === "changes" && (
-          <RefreshCw className="w-12 h-12 text-[#9ca3af]" />
-        )}
-        {icon === "keywords" && (
-          <BarChart2 className="w-12 h-12 text-[#9ca3af]" />
-        )}
+        {icon === "reviews" && <MessageSquare className="w-12 h-12 text-[#9ca3af]" />}
+        {icon === "changes" && <RefreshCw className="w-12 h-12 text-[#9ca3af]" />}
+        {icon === "keywords" && <BarChart2 className="w-12 h-12 text-[#9ca3af]" />}
       </div>
       <div className={`text-sm font-medium ${textSecondary} mb-1`}>{title}</div>
       <div className={`text-xs ${textMuted}`}>{subtitle}</div>

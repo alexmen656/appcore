@@ -1,18 +1,7 @@
 import { useState, useRef, useCallback } from "react";
-import {
-  borderDefault,
-  pageTitle,
-  textMuted,
-  textPrimary,
-  textSecondary,
-} from "../../styles";
+import { borderDefault, pageTitle, textMuted, textPrimary, textSecondary } from "../../styles";
 import { ChevronDown, Users } from "lucide-react";
-import {
-  useApi,
-  apiPost,
-  apiDelete,
-  getActiveBundleId,
-} from "../../hooks/useApi";
+import { useApi, apiPost, apiDelete, getActiveBundleId } from "../../hooks/useApi";
 import { useClickOutside } from "../../hooks/useClickOutside";
 import OwnAppCard, { AppItem } from "./OwnAppCard";
 import CompetitorCard from "./CompetitorCard";
@@ -109,9 +98,7 @@ export default function Competitors({ addToast }: Props) {
             className="px-2.5 rounded-r-xl bg-[#D94412] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="More actions"
           >
-            <ChevronDown
-              className={`w-3.5 h-3.5 transition-transform ${menuOpen ? "rotate-180" : ""}`}
-            />
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
           </button>
           {menuOpen && (
             <div
@@ -131,28 +118,19 @@ export default function Competitors({ addToast }: Props) {
         </div>
       </div>
       <p className={`text-sm ${textMuted} mb-8`}>
-        {competitors.length} competitor{competitors.length !== 1 ? "s" : ""}{" "}
-        discovered and tracked
+        {competitors.length} competitor{competitors.length !== 1 ? "s" : ""} discovered and tracked
       </p>
 
       {ownApp && <OwnAppCard app={ownApp} />}
 
-      <div
-        className={`text-xs font-medium uppercase tracking-wide ${textMuted} mb-3`}
-      >
-        Competitor Apps
-      </div>
+      <div className={`text-xs font-medium uppercase tracking-wide ${textMuted} mb-3`}>Competitor Apps</div>
       {competitors.length === 0 ? (
         <div className="py-16 text-center">
           <div className="flex justify-center mb-3 opacity-20">
             <Users className="w-12 h-12 text-[#9ca3af]" />
           </div>
-          <div className={`text-sm font-medium ${textSecondary} mb-1`}>
-            No competitors discovered yet
-          </div>
-          <div className={`text-xs ${textMuted}`}>
-            Run a scrape from the Actions page
-          </div>
+          <div className={`text-sm font-medium ${textSecondary} mb-1`}>No competitors discovered yet</div>
+          <div className={`text-xs ${textMuted}`}>Run a scrape from the Actions page</div>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
@@ -161,11 +139,7 @@ export default function Competitors({ addToast }: Props) {
               key={c.id}
               competitor={c}
               ownAppId={ownApp?.id}
-              onRemove={
-                ownApp
-                  ? (competitorId) => removeCompetitor(ownApp.id, competitorId)
-                  : undefined
-              }
+              onRemove={ownApp ? (competitorId) => removeCompetitor(ownApp.id, competitorId) : undefined}
               onClick={() => setDetailAppId(c.id)}
             />
           ))}
@@ -173,11 +147,7 @@ export default function Competitors({ addToast }: Props) {
       )}
 
       {detailAppId && (
-        <CompetitorDetailModal
-          appId={detailAppId}
-          onClose={() => setDetailAppId(null)}
-          addToast={addToast}
-        />
+        <CompetitorDetailModal appId={detailAppId} onClose={() => setDetailAppId(null)} addToast={addToast} />
       )}
     </div>
   );

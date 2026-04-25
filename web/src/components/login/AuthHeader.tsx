@@ -14,9 +14,7 @@ export default function AuthHeader({ mode }: Props) {
           </div>
         </div>
       </div>
-      <h2
-        className={`text-[22px] font-bold ${textPrimary} mb-6 tracking-tight`}
-      >
+      <h2 className={`text-[22px] font-bold ${textPrimary} mb-6 tracking-tight`}>
         {mode === "login" ? "Sign in to your account" : "Create an account"}
       </h2>
     </>

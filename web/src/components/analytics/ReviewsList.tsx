@@ -1,10 +1,5 @@
 import { useState } from "react";
-import {
-  borderDefault,
-  textMuted,
-  textPrimary,
-  textSecondary,
-} from "../../styles";
+import { borderDefault, textMuted, textPrimary, textSecondary } from "../../styles";
 import type { Review } from "../../types";
 import { fmtMediumDate } from "../../utils/formatters";
 
@@ -16,10 +11,7 @@ function Stars({ rating }: { rating: number }) {
   return (
     <span className="text-[13px] leading-none">
       {[1, 2, 3, 4, 5].map((i) => (
-        <span
-          key={i}
-          className={i <= rating ? "text-amber-400" : "text-[#d1d5db]"}
-        >
+        <span key={i} className={i <= rating ? "text-amber-400" : "text-[#d1d5db]"}>
           ★
         </span>
       ))}
@@ -37,12 +29,8 @@ export default function ReviewsList({ reviews }: Props) {
       <div
         className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]`}
       >
-        <div className={`text-[15px] font-semibold ${textPrimary} mb-1`}>
-          Customer Reviews
-        </div>
-        <div className={`text-[13px] ${textMuted} py-8 text-center`}>
-          No reviews yet.
-        </div>
+        <div className={`text-[15px] font-semibold ${textPrimary} mb-1`}>Customer Reviews</div>
+        <div className={`text-[13px] ${textMuted} py-8 text-center`}>No reviews yet.</div>
       </div>
     );
   }
@@ -55,9 +43,7 @@ export default function ReviewsList({ reviews }: Props) {
     >
       <div className={`text-[15px] font-semibold ${textPrimary} mb-4`}>
         Customer Reviews
-        <span className={`ml-2 text-[12px] font-normal ${textMuted}`}>
-          {reviews.length} total
-        </span>
+        <span className={`ml-2 text-[12px] font-normal ${textMuted}`}>{reviews.length} total</span>
       </div>
 
       <div className="divide-y divide-[#f3f4f6] dark:divide-[#2a2f3d]">
@@ -66,11 +52,7 @@ export default function ReviewsList({ reviews }: Props) {
             <div className="flex items-center gap-2 mb-1">
               <Stars rating={r.rating} />
               {r.title && (
-                <span
-                  className={`text-[13px] font-medium ${textPrimary} truncate max-w-[280px]`}
-                >
-                  {r.title}
-                </span>
+                <span className={`text-[13px] font-medium ${textPrimary} truncate max-w-[280px]`}>{r.title}</span>
               )}
               <div className="ml-auto flex items-center gap-1.5 shrink-0">
                 {r.territory && (
@@ -80,21 +62,13 @@ export default function ReviewsList({ reviews }: Props) {
                     {r.territory.slice(0, 2)}
                   </span>
                 )}
-                <span className={`text-[11px] ${textMuted}`}>
-                  {fmtMediumDate(r.reviewedAt)}
-                </span>
+                <span className={`text-[11px] ${textMuted}`}>{fmtMediumDate(r.reviewedAt)}</span>
               </div>
             </div>
             {r.body && (
-              <p className="text-[13px] text-[#4b5563] dark:text-[#8b93a5] leading-relaxed line-clamp-3">
-                {r.body}
-              </p>
+              <p className="text-[13px] text-[#4b5563] dark:text-[#8b93a5] leading-relaxed line-clamp-3">{r.body}</p>
             )}
-            {r.reviewerNickname && (
-              <div className={`text-[11px] ${textMuted} mt-1`}>
-                — {r.reviewerNickname}
-              </div>
-            )}
+            {r.reviewerNickname && <div className={`text-[11px] ${textMuted} mt-1`}>— {r.reviewerNickname}</div>}
           </div>
         ))}
       </div>

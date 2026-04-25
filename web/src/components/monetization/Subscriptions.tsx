@@ -85,11 +85,7 @@ function StatusBadge({ state }: { state: string }) {
   const label = STATE_SHORT[state] ?? state;
   const isApproved = state === "APPROVED";
   const isError = state === "REJECTED" || state === "DEVELOPER_ACTION_NEEDED";
-  const variant = isApproved
-    ? "success_tonal"
-    : isError
-      ? "danger_tonal"
-      : "info_tonal";
+  const variant = isApproved ? "success_tonal" : isError ? "danger_tonal" : "info_tonal";
   return (
     <span className={`${badgeOutline(variant)} gap-1.5`}>
       <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
@@ -125,35 +121,19 @@ interface SubFormProps {
   lockProductId?: boolean;
 }
 
-function SubForm({
-  initial,
-  onSave,
-  onCancel,
-  saving,
-  title,
-  lockProductId,
-}: SubFormProps) {
+function SubForm({ initial, onSave, onCancel, saving, title, lockProductId }: SubFormProps) {
   const [form, setForm] = useState<SubFormState>({
     ...emptySubForm(),
     ...initial,
   });
-  const set = (k: keyof SubFormState, v: string | boolean) =>
-    setForm((f) => ({ ...f, [k]: v }));
+  const set = (k: keyof SubFormState, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
 
   return (
-    <div
-      className={`rounded-xl border ${borderDefault} bg-[#fafbfc] dark:bg-[#1c2028] p-4 flex flex-col gap-3`}
-    >
-      <p
-        className={`text-[11px] font-semibold uppercase tracking-wider ${textSecondary}`}
-      >
-        {title}
-      </p>
+    <div className={`rounded-xl border ${borderDefault} bg-[#fafbfc] dark:bg-[#1c2028] p-4 flex flex-col gap-3`}>
+      <p className={`text-[11px] font-semibold uppercase tracking-wider ${textSecondary}`}>{title}</p>
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
-          <label className={`text-[11px] ${textSecondary} font-medium`}>
-            Display Name
-          </label>
+          <label className={`text-[11px] ${textSecondary} font-medium`}>Display Name</label>
           <input
             className={inputCls}
             value={form.name}
@@ -162,9 +142,7 @@ function SubForm({
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className={`text-[11px] ${textSecondary} font-medium`}>
-            Product ID
-          </label>
+          <label className={`text-[11px] ${textSecondary} font-medium`}>Product ID</label>
           <input
             className={inputCls}
             value={form.productId}
@@ -174,9 +152,7 @@ function SubForm({
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className={`text-[11px] ${textSecondary} font-medium`}>
-            Period
-          </label>
+          <label className={`text-[11px] ${textSecondary} font-medium`}>Period</label>
           <select
             className={inputCls}
             value={form.subscriptionPeriod}
@@ -190,9 +166,7 @@ function SubForm({
           </select>
         </div>
         <div className="flex flex-col gap-1">
-          <label className={`text-[11px] ${textSecondary} font-medium`}>
-            Group Level
-          </label>
+          <label className={`text-[11px] ${textSecondary} font-medium`}>Group Level</label>
           <input
             className={inputCls}
             type="number"
@@ -204,9 +178,7 @@ function SubForm({
           />
         </div>
         <div className="flex flex-col gap-1 col-span-2">
-          <label className={`text-[11px] ${textSecondary} font-medium`}>
-            Review Note (optional)
-          </label>
+          <label className={`text-[11px] ${textSecondary} font-medium`}>Review Note (optional)</label>
           <input
             className={inputCls}
             value={form.reviewNote}
@@ -223,10 +195,7 @@ function SubForm({
           onChange={(e) => set("familySharable", e.target.checked)}
           className="w-4 h-4 accent-[#C4001E]"
         />
-        <label
-          htmlFor="familySharable"
-          className="text-[12px] text-[#374151] dark:text-[#c4cad8]"
-        >
+        <label htmlFor="familySharable" className="text-[12px] text-[#374151] dark:text-[#c4cad8]">
           Family sharing enabled
         </label>
       </div>
@@ -254,13 +223,7 @@ function SubForm({
   );
 }
 
-function LocalizationsPanel({
-  subscriptionId,
-  addToast,
-}: {
-  subscriptionId: string;
-  addToast: Props["addToast"];
-}) {
+function LocalizationsPanel({ subscriptionId, addToast }: { subscriptionId: string; addToast: Props["addToast"] }) {
   const [locs, setLocs] = useState<SubscriptionLocalization[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
@@ -277,12 +240,8 @@ function LocalizationsPanel({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(
-        `/api/asc/subscriptions/${subscriptionId}/localizations`,
-        { headers: authHeaders() },
-      );
-      if (!res.ok)
-        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      const res = await fetch(`/api/asc/subscriptions/${subscriptionId}/localizations`, { headers: authHeaders() });
+      if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
       setLocs(await res.json());
     } catch (err: any) {
       addToast(err.message, "error");
@@ -333,15 +292,9 @@ function LocalizationsPanel({
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ name: editName, description: editDesc }),
       });
-      if (!res.ok)
-        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
       setLocs(
-        (l) =>
-          l?.map((loc) =>
-            loc.id === id
-              ? { ...loc, name: editName, description: editDesc }
-              : loc,
-          ) ?? null,
+        (l) => l?.map((loc) => (loc.id === id ? { ...loc, name: editName, description: editDesc } : loc)) ?? null,
       );
       setEditingId(null);
       addToast("Localization updated", "success");
@@ -360,8 +313,7 @@ function LocalizationsPanel({
         method: "DELETE",
         headers: authHeaders(),
       });
-      if (!res.ok)
-        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
       setLocs((l) => l?.filter((loc) => loc.id !== id) ?? null);
       addToast("Localization deleted", "success");
     } catch (err: any) {
@@ -373,9 +325,7 @@ function LocalizationsPanel({
 
   if (loading && !locs) {
     return (
-      <div
-        className={`flex items-center gap-1.5 py-4 text-[12px] ${textMuted}`}
-      >
+      <div className={`flex items-center gap-1.5 py-4 text-[12px] ${textMuted}`}>
         <div className="spinner !w-3 !h-3" /> Loading…
       </div>
     );
@@ -386,9 +336,7 @@ function LocalizationsPanel({
       <div
         className={`flex items-center justify-between px-4 py-3 border-b ${borderDefault} bg-[#fafbfc] dark:bg-[#252b38]`}
       >
-        <span className={`text-[13px] font-semibold ${textPrimary}`}>
-          Localizations
-        </span>
+        <span className={`text-[13px] font-semibold ${textPrimary}`}>Localizations</span>
         <button
           onClick={() => setShowAdd(true)}
           className="inline-flex items-center gap-1 text-[12px] text-[#C4001E] hover:opacity-80 transition-opacity font-medium"
@@ -398,9 +346,7 @@ function LocalizationsPanel({
       </div>
 
       {(!locs || locs.length === 0) && !showAdd ? (
-        <p className={`text-[12px] ${textMuted} px-4 py-4`}>
-          No localizations yet.
-        </p>
+        <p className={`text-[12px] ${textMuted} px-4 py-4`}>No localizations yet.</p>
       ) : (
         <table className="w-full">
           <thead>
@@ -414,14 +360,9 @@ function LocalizationsPanel({
           <tbody>
             {locs?.map((loc) =>
               editingId === loc.id ? (
-                <tr
-                  key={loc.id}
-                  className="border-t border-[#f3f4f6] dark:border-[#2a2f3d]"
-                >
+                <tr key={loc.id} className="border-t border-[#f3f4f6] dark:border-[#2a2f3d]">
                   <td className={TD}>
-                    <span
-                      className={`text-[11px] font-mono font-semibold ${textSecondary} uppercase`}
-                    >
+                    <span className={`text-[11px] font-mono font-semibold ${textSecondary} uppercase`}>
                       {loc.locale}
                     </span>
                   </td>
@@ -443,10 +384,7 @@ function LocalizationsPanel({
                   </td>
                   <td className={`${TD} text-right`}>
                     <div className="flex gap-1 justify-end">
-                      <button
-                        onClick={() => setEditingId(null)}
-                        className={btnSecSm}
-                      >
+                      <button onClick={() => setEditingId(null)} className={btnSecSm}>
                         <X className="w-3 h-3" />
                       </button>
                       <button
@@ -454,11 +392,7 @@ function LocalizationsPanel({
                         disabled={savingEdit || !editName.trim()}
                         className={btnSecSm}
                       >
-                        {savingEdit ? (
-                          <div className="spinner !w-3 !h-3" />
-                        ) : (
-                          <Check className="w-3 h-3" />
-                        )}
+                        {savingEdit ? <div className="spinner !w-3 !h-3" /> : <Check className="w-3 h-3" />}
                         Save
                       </button>
                     </div>
@@ -470,18 +404,12 @@ function LocalizationsPanel({
                   className="group border-t border-[#f3f4f6] dark:border-[#2a2f3d] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors"
                 >
                   <td className={TD}>
-                    <span
-                      className={`text-[11px] font-mono font-semibold ${textSecondary} uppercase`}
-                    >
+                    <span className={`text-[11px] font-mono font-semibold ${textSecondary} uppercase`}>
                       {loc.locale}
                     </span>
                   </td>
-                  <td className={`${TD} font-medium ${textPrimary}`}>
-                    {loc.name}
-                  </td>
-                  <td className={`${TD} ${textSecondary}`}>
-                    {loc.description || "—"}
-                  </td>
+                  <td className={`${TD} font-medium ${textPrimary}`}>{loc.name}</td>
+                  <td className={`${TD} ${textSecondary}`}>{loc.description || "—"}</td>
                   <td className={`${TD} text-right`}>
                     <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
@@ -499,11 +427,7 @@ function LocalizationsPanel({
                         disabled={deletingId === loc.id}
                         className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all disabled:opacity-50"
                       >
-                        {deletingId === loc.id ? (
-                          <div className="spinner !w-3 !h-3" />
-                        ) : (
-                          <Trash2 className="w-3 h-3" />
-                        )}
+                        {deletingId === loc.id ? <div className="spinner !w-3 !h-3" /> : <Trash2 className="w-3 h-3" />}
                       </button>
                     </div>
                   </td>
@@ -515,14 +439,10 @@ function LocalizationsPanel({
       )}
 
       {showAdd && (
-        <div
-          className={`border-t ${borderDefault} p-3 flex flex-col gap-2 bg-[#fafbfc] dark:bg-[#1c2028]`}
-        >
+        <div className={`border-t ${borderDefault} p-3 flex flex-col gap-2 bg-[#fafbfc] dark:bg-[#1c2028]`}>
           <div className="grid grid-cols-3 gap-2">
             <div className="flex flex-col gap-1">
-              <label className={`text-[11px] ${textSecondary} font-medium`}>
-                Locale
-              </label>
+              <label className={`text-[11px] ${textSecondary} font-medium`}>Locale</label>
               <input
                 className={inputCls}
                 value={newLocale}
@@ -531,9 +451,7 @@ function LocalizationsPanel({
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className={`text-[11px] ${textSecondary} font-medium`}>
-                Display Name
-              </label>
+              <label className={`text-[11px] ${textSecondary} font-medium`}>Display Name</label>
               <input
                 className={inputCls}
                 value={newName}
@@ -542,9 +460,7 @@ function LocalizationsPanel({
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className={`text-[11px] ${textSecondary} font-medium`}>
-                Description (optional)
-              </label>
+              <label className={`text-[11px] ${textSecondary} font-medium`}>Description (optional)</label>
               <input
                 className={inputCls}
                 value={newDesc}
@@ -557,16 +473,8 @@ function LocalizationsPanel({
             <button onClick={() => setShowAdd(false)} className={btnSecSm}>
               Cancel
             </button>
-            <button
-              onClick={addLoc}
-              disabled={saving || !newLocale.trim() || !newName.trim()}
-              className={btnSecSm}
-            >
-              {saving ? (
-                <div className="spinner !w-3 !h-3" />
-              ) : (
-                <Plus className="w-3 h-3" />
-              )}
+            <button onClick={addLoc} disabled={saving || !newLocale.trim() || !newName.trim()} className={btnSecSm}>
+              {saving ? <div className="spinner !w-3 !h-3" /> : <Plus className="w-3 h-3" />}
               Add
             </button>
           </div>
@@ -576,20 +484,12 @@ function LocalizationsPanel({
   );
 }
 
-function PricingPanel({
-  subscriptionId,
-  addToast,
-}: {
-  subscriptionId: string;
-  addToast: Props["addToast"];
-}) {
+function PricingPanel({ subscriptionId, addToast }: { subscriptionId: string; addToast: Props["addToast"] }) {
   const [prices, setPrices] = useState<SubscriptionPrice[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [territory, setTerritory] = useState("USA");
-  const [pricePoints, setPricePoints] = useState<
-    SubscriptionPricePoint[] | null
-  >(null);
+  const [pricePoints, setPricePoints] = useState<SubscriptionPricePoint[] | null>(null);
   const [loadingPP, setLoadingPP] = useState(false);
   const [selectedPP, setSelectedPP] = useState("");
   const [saving, setSaving] = useState(false);
@@ -599,12 +499,8 @@ function PricingPanel({
   const loadPrices = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(
-        `/api/asc/subscriptions/${subscriptionId}/prices`,
-        { headers: authHeaders() },
-      );
-      if (!res.ok)
-        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      const res = await fetch(`/api/asc/subscriptions/${subscriptionId}/prices`, { headers: authHeaders() });
+      if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
       setPrices(await res.json());
     } catch (err: any) {
       addToast(err.message, "error");
@@ -629,8 +525,7 @@ function PricingPanel({
           `/api/asc/subscriptions/${subscriptionId}/price-points?territory=${encodeURIComponent(terr.trim())}`,
           { headers: authHeaders() },
         );
-        if (!res.ok)
-          throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+        if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
         const data: SubscriptionPricePoint[] = await res.json();
         setPricePoints(data);
         if (data.length > 0) setSelectedPP(data[0].id);
@@ -688,8 +583,7 @@ function PricingPanel({
         method: "DELETE",
         headers: authHeaders(),
       });
-      if (!res.ok)
-        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
       setPrices((p) => p?.filter((pr) => pr.id !== id) ?? null);
       addToast("Price removed", "success");
     } catch (err: any) {
@@ -701,9 +595,7 @@ function PricingPanel({
 
   if (loading && !prices) {
     return (
-      <div
-        className={`flex items-center gap-1.5 py-4 text-[12px] ${textMuted}`}
-      >
+      <div className={`flex items-center gap-1.5 py-4 text-[12px] ${textMuted}`}>
         <div className="spinner !w-3 !h-3" /> Loading…
       </div>
     );
@@ -714,9 +606,7 @@ function PricingPanel({
       <div
         className={`flex items-center justify-between px-4 py-3 border-b ${borderDefault} bg-[#fafbfc] dark:bg-[#252b38]`}
       >
-        <span className={`text-[13px] font-semibold ${textPrimary}`}>
-          Pricing
-        </span>
+        <span className={`text-[13px] font-semibold ${textPrimary}`}>Pricing</span>
         <button
           onClick={openAdd}
           className="inline-flex items-center gap-1 text-[12px] text-[#C4001E] hover:opacity-80 transition-opacity font-medium"
@@ -726,9 +616,7 @@ function PricingPanel({
       </div>
 
       {(!prices || prices.length === 0) && !showAdd ? (
-        <p className={`text-[12px] ${textMuted} px-4 py-4`}>
-          No prices set yet.
-        </p>
+        <p className={`text-[12px] ${textMuted} px-4 py-4`}>No prices set yet.</p>
       ) : (
         <table className="w-full">
           <thead>
@@ -746,21 +634,13 @@ function PricingPanel({
                 key={p.id}
                 className="group border-t border-[#f3f4f6] dark:border-[#2a2f3d] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors"
               >
-                <td className={`${TD} font-mono font-medium ${textPrimary}`}>
-                  {p.territory ?? "—"}
-                </td>
-                <td className={`${TD} ${textSecondary}`}>
-                  {p.currency ?? "—"}
-                </td>
+                <td className={`${TD} font-mono font-medium ${textPrimary}`}>{p.territory ?? "—"}</td>
+                <td className={`${TD} ${textSecondary}`}>{p.currency ?? "—"}</td>
                 <td className={`${TD} font-semibold ${textPrimary}`}>
-                  {p.customerPrice != null
-                    ? `${p.currency ?? ""} ${p.customerPrice}`
-                    : "—"}
+                  {p.customerPrice != null ? `${p.currency ?? ""} ${p.customerPrice}` : "—"}
                 </td>
                 <td className={`${TD} ${textSecondary}`}>
-                  {p.proceeds != null
-                    ? `${p.currency ?? ""} ${p.proceeds}`
-                    : "—"}
+                  {p.proceeds != null ? `${p.currency ?? ""} ${p.proceeds}` : "—"}
                 </td>
                 <td className={`${TD} text-right`}>
                   <button
@@ -768,11 +648,7 @@ function PricingPanel({
                     disabled={deletingId === p.id}
                     className="p-1.5 opacity-0 group-hover:opacity-100 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all disabled:opacity-50"
                   >
-                    {deletingId === p.id ? (
-                      <div className="spinner !w-3 !h-3" />
-                    ) : (
-                      <Trash2 className="w-3 h-3" />
-                    )}
+                    {deletingId === p.id ? <div className="spinner !w-3 !h-3" /> : <Trash2 className="w-3 h-3" />}
                   </button>
                 </td>
               </tr>
@@ -782,20 +658,14 @@ function PricingPanel({
       )}
 
       {showAdd && (
-        <div
-          className={`border-t ${borderDefault} p-3 flex flex-col gap-2 bg-[#fafbfc] dark:bg-[#1c2028]`}
-        >
+        <div className={`border-t ${borderDefault} p-3 flex flex-col gap-2 bg-[#fafbfc] dark:bg-[#1c2028]`}>
           <div className="grid grid-cols-2 gap-2">
             <div className="flex flex-col gap-1">
-              <label className={`text-[11px] ${textSecondary} font-medium`}>
-                Territory (3-letter code)
-              </label>
+              <label className={`text-[11px] ${textSecondary} font-medium`}>Territory (3-letter code)</label>
               <input
                 className={inputCls}
                 value={territory}
-                onChange={(e) =>
-                  handleTerritoryChange(e.target.value.toUpperCase())
-                }
+                onChange={(e) => handleTerritoryChange(e.target.value.toUpperCase())}
                 placeholder="USA"
                 maxLength={3}
               />
@@ -803,18 +673,10 @@ function PricingPanel({
             <div className="flex flex-col gap-1">
               <label className={`text-[11px] ${textSecondary} font-medium`}>
                 Price Tier
-                {loadingPP && (
-                  <span className="ml-1 text-[10px] text-[#9ca3af]">
-                    loading…
-                  </span>
-                )}
+                {loadingPP && <span className="ml-1 text-[10px] text-[#9ca3af]">loading…</span>}
               </label>
               {pricePoints && pricePoints.length > 0 ? (
-                <select
-                  className={inputCls}
-                  value={selectedPP}
-                  onChange={(e) => setSelectedPP(e.target.value)}
-                >
+                <select className={inputCls} value={selectedPP} onChange={(e) => setSelectedPP(e.target.value)}>
                   {pricePoints.map((pp) => (
                     <option key={pp.id} value={pp.id}>
                       {pp.currency} {pp.customerPrice} (proceeds: {pp.proceeds})
@@ -823,11 +685,7 @@ function PricingPanel({
                 </select>
               ) : (
                 <div className={`${inputCls} ${textMuted}`}>
-                  {loadingPP
-                    ? "Loading tiers…"
-                    : pricePoints !== null
-                      ? "No tiers found"
-                      : "Enter territory first"}
+                  {loadingPP ? "Loading tiers…" : pricePoints !== null ? "No tiers found" : "Enter territory first"}
                 </div>
               )}
             </div>
@@ -836,16 +694,8 @@ function PricingPanel({
             <button onClick={() => setShowAdd(false)} className={btnSecSm}>
               Cancel
             </button>
-            <button
-              onClick={addPrice}
-              disabled={saving || !selectedPP}
-              className={btnSecSm}
-            >
-              {saving ? (
-                <div className="spinner !w-3 !h-3" />
-              ) : (
-                <Check className="w-3 h-3" />
-              )}
+            <button onClick={addPrice} disabled={saving || !selectedPP} className={btnSecSm}>
+              {saving ? <div className="spinner !w-3 !h-3" /> : <Check className="w-3 h-3" />}
               Set Price
             </button>
           </div>
@@ -862,17 +712,11 @@ interface ReviewPanelProps {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }
 
-function ReviewPanel({
-  subscriptionId,
-  reviewNote,
-  onReviewNoteUpdated,
-  addToast,
-}: ReviewPanelProps) {
+function ReviewPanel({ subscriptionId, reviewNote, onReviewNoteUpdated, addToast }: ReviewPanelProps) {
   const [editingNote, setEditingNote] = useState(false);
   const [noteText, setNoteText] = useState(reviewNote ?? "");
   const [savingNote, setSavingNote] = useState(false);
-  const [screenshot, setScreenshot] =
-    useState<SubscriptionReviewScreenshot | null>(null);
+  const [screenshot, setScreenshot] = useState<SubscriptionReviewScreenshot | null>(null);
   const [loadingScreenshot, setLoadingScreenshot] = useState(true);
   const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
   const [deletingScreenshot, setDeletingScreenshot] = useState(false);
@@ -908,8 +752,7 @@ function ReviewPanel({
         body: JSON.stringify({ reviewNote: noteText || null }),
       });
 
-      if (!res.ok)
-        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
 
       onReviewNoteUpdated(noteText || null);
       setEditingNote(false);
@@ -930,26 +773,21 @@ function ReviewPanel({
     try {
       const arrayBuffer = await file.arrayBuffer();
       const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-      const res = await fetch(
-        `/api/asc/subscriptions/${subscriptionId}/review-screenshot`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...authHeaders() },
-          body: JSON.stringify({
-            fileName: file.name,
-            fileSize: file.size,
-            fileData: base64,
-          }),
-        },
-      );
-      if (!res.ok)
-        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      const res = await fetch(`/api/asc/subscriptions/${subscriptionId}/review-screenshot`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileSize: file.size,
+          fileData: base64,
+        }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
       addToast("Screenshot uploaded — may take a moment to process", "success");
 
-      const refresh = await fetch(
-        `/api/asc/subscriptions/${subscriptionId}/review-screenshot`,
-        { headers: authHeaders() },
-      );
+      const refresh = await fetch(`/api/asc/subscriptions/${subscriptionId}/review-screenshot`, {
+        headers: authHeaders(),
+      });
       if (refresh.ok) setScreenshot(await refresh.json());
     } catch (err: any) {
       addToast(err.message, "error");
@@ -964,12 +802,11 @@ function ReviewPanel({
     if (!confirm("Delete this review screenshot?")) return;
     setDeletingScreenshot(true);
     try {
-      const res = await fetch(
-        `/api/asc/subscriptions/review-screenshots/${screenshot.id}`,
-        { method: "DELETE", headers: authHeaders() },
-      );
-      if (!res.ok)
-        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      const res = await fetch(`/api/asc/subscriptions/review-screenshots/${screenshot.id}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
       setScreenshot(null);
       addToast("Screenshot deleted", "success");
     } catch (err: any) {
@@ -983,11 +820,7 @@ function ReviewPanel({
     <div className="flex flex-col gap-6">
       <div>
         <div className="flex items-center justify-between mb-2">
-          <span
-            className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide`}
-          >
-            Review Note
-          </span>
+          <span className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide`}>Review Note</span>
           {!editingNote && (
             <button
               onClick={() => {
@@ -1011,26 +844,13 @@ function ReviewPanel({
               className={`${inputCls} resize-none`}
             />
             <div className="flex items-center justify-between">
-              <span className="text-[11px] text-[#9ca3af]">
-                {noteText.length}/4000
-              </span>
+              <span className="text-[11px] text-[#9ca3af]">{noteText.length}/4000</span>
               <div className="flex gap-2">
-                <button
-                  onClick={() => setEditingNote(false)}
-                  className={btnSecondary}
-                >
+                <button onClick={() => setEditingNote(false)} className={btnSecondary}>
                   Cancel
                 </button>
-                <button
-                  onClick={handleSaveNote}
-                  disabled={savingNote}
-                  className={btnPrimary}
-                >
-                  {savingNote ? (
-                    <div className="spinner !w-3.5 !h-3.5" />
-                  ) : (
-                    <Check className="w-3.5 h-3.5" />
-                  )}
+                <button onClick={handleSaveNote} disabled={savingNote} className={btnPrimary}>
+                  {savingNote ? <div className="spinner !w-3.5 !h-3.5" /> : <Check className="w-3.5 h-3.5" />}
                   Save
                 </button>
               </div>
@@ -1043,17 +863,13 @@ function ReviewPanel({
             {reviewNote}
           </p>
         ) : (
-          <p className={`text-[13px] ${textMuted} italic`}>
-            No review note added.
-          </p>
+          <p className={`text-[13px] ${textMuted} italic`}>No review note added.</p>
         )}
       </div>
 
       <div>
         <div className="flex items-center justify-between mb-2">
-          <span
-            className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide`}
-          >
+          <span className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide`}>
             Review Screenshot
           </span>
           {!loadingScreenshot && !screenshot && (
@@ -1078,9 +894,7 @@ function ReviewPanel({
             <div className="spinner !w-3.5 !h-3.5" /> Loading…
           </div>
         ) : screenshot ? (
-          <div
-            className={`relative w-fit rounded-xl overflow-hidden border ${borderDefault} group`}
-          >
+          <div className={`relative w-fit rounded-xl overflow-hidden border ${borderDefault} group`}>
             {screenshot.imageUrl ? (
               <img
                 src={screenshot.imageUrl}
@@ -1109,9 +923,7 @@ function ReviewPanel({
               </button>
             </div>
             {screenshot.fileName && (
-              <p
-                className={`px-2.5 py-1.5 text-[11px] ${textSecondary} border-t ${borderDefault} truncate`}
-              >
+              <p className={`px-2.5 py-1.5 text-[11px] ${textSecondary} border-t ${borderDefault} truncate`}>
                 {screenshot.fileName}
               </p>
             )}
@@ -1146,21 +958,11 @@ interface DetailViewProps {
   addToast: Props["addToast"];
 }
 
-function DetailView({
-  sub,
-  group,
-  bundleId,
-  onBack,
-  onUpdated,
-  onDeleted,
-  addToast,
-}: DetailViewProps) {
+function DetailView({ sub, group, bundleId, onBack, onUpdated, onDeleted, addToast }: DetailViewProps) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [activeTab, setActiveTab] = useState<
-    "localizations" | "pricing" | "review"
-  >("localizations");
+  const [activeTab, setActiveTab] = useState<"localizations" | "pricing" | "review">("localizations");
 
   const handleUpdate = async (form: SubFormState) => {
     setSaving(true);
@@ -1176,8 +978,7 @@ function DetailView({
           groupLevel: parseInt(form.groupLevel) || undefined,
         }),
       });
-      if (!res.ok)
-        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
       onUpdated({
         ...sub,
         name: form.name,
@@ -1203,8 +1004,7 @@ function DetailView({
         method: "DELETE",
         headers: authHeaders(),
       });
-      if (!res.ok)
-        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
       onDeleted();
       addToast("Subscription deleted", "success");
     } catch (err: any) {
@@ -1214,11 +1014,7 @@ function DetailView({
   };
 
   const AppleLogo = () => (
-    <svg
-      className="w-3.5 h-3.5 text-[#555] dark:text-[#aaa] shrink-0"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-    >
+    <svg className="w-3.5 h-3.5 text-[#555] dark:text-[#aaa] shrink-0" viewBox="0 0 24 24" fill="currentColor">
       <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
     </svg>
   );
@@ -1226,18 +1022,12 @@ function DetailView({
   const fields: { label: string; value: React.ReactNode }[] = [
     {
       label: "Identifier",
-      value: (
-        <span className={`font-mono text-[13px] ${textPrimary}`}>
-          {sub.productId}
-        </span>
-      ),
+      value: <span className={`font-mono text-[13px] ${textPrimary}`}>{sub.productId}</span>,
     },
     {
       label: "App",
       value: (
-        <span
-          className={`flex items-center gap-1.5 text-[13px] ${textPrimary}`}
-        >
+        <span className={`flex items-center gap-1.5 text-[13px] ${textPrimary}`}>
           <AppleLogo />
           {bundleId ?? "App Store"}
         </span>
@@ -1260,27 +1050,17 @@ function DetailView({
       value: (
         <span className={`text-[13px] ${textPrimary}`}>
           Subscription
-          {sub.subscriptionPeriod
-            ? ` · ${PERIOD_LABELS[sub.subscriptionPeriod] ?? sub.subscriptionPeriod}`
-            : ""}
+          {sub.subscriptionPeriod ? ` · ${PERIOD_LABELS[sub.subscriptionPeriod] ?? sub.subscriptionPeriod}` : ""}
         </span>
       ),
     },
     {
       label: "Subscription group",
-      value: (
-        <span className={`text-[13px] ${textPrimary}`}>
-          {group.referenceName}
-        </span>
-      ),
+      value: <span className={`text-[13px] ${textPrimary}`}>{group.referenceName}</span>,
     },
     {
       label: "Family sharing",
-      value: (
-        <span className={`text-[13px] ${textPrimary}`}>
-          {sub.familySharable ? "Enabled" : "Disabled"}
-        </span>
-      ),
+      value: <span className={`text-[13px] ${textPrimary}`}>{sub.familySharable ? "Enabled" : "Disabled"}</span>,
     },
   ];
 
@@ -1295,11 +1075,7 @@ function DetailView({
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="min-w-0 flex items-center gap-2">
-            <h1
-              className={`text-2xl font-semibold tracking-tight ${textPrimary} truncate`}
-            >
-              {sub.name}
-            </h1>
+            <h1 className={`text-2xl font-semibold tracking-tight ${textPrimary} truncate`}>{sub.name}</h1>
             {!editing && (
               <button
                 onClick={() => setEditing(true)}
@@ -1320,11 +1096,7 @@ function DetailView({
               disabled={deleting}
               className={`inline-flex items-center gap-1.5 px-3 py-[7px] rounded-xl border ${borderDefault} text-[13px] font-medium text-red-500 hover:border-red-300 dark:hover:border-red-800 transition-all disabled:opacity-50`}
             >
-              {deleting ? (
-                <div className="spinner !w-3.5 !h-3.5" />
-              ) : (
-                <Trash2 className="w-3.5 h-3.5" />
-              )}
+              {deleting ? <div className="spinner !w-3.5 !h-3.5" /> : <Trash2 className="w-3.5 h-3.5" />}
             </button>
           </div>
         )}
@@ -1353,15 +1125,8 @@ function DetailView({
           <div className={cardCls}>
             <dl className="divide-y divide-[#f3f4f6] dark:divide-[#2a2f3d]">
               {fields.map(({ label, value }) => (
-                <div
-                  key={label}
-                  className="flex items-center gap-4 py-3 first:pt-0 last:pb-0"
-                >
-                  <dt
-                    className={`w-44 shrink-0 text-[12px] font-medium ${textSecondary}`}
-                  >
-                    {label}
-                  </dt>
+                <div key={label} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
+                  <dt className={`w-44 shrink-0 text-[12px] font-medium ${textSecondary}`}>{label}</dt>
                   <dd className="flex-1 min-w-0">{value}</dd>
                 </div>
               ))}
@@ -1409,9 +1174,7 @@ function DetailView({
               <ReviewPanel
                 subscriptionId={sub.id}
                 reviewNote={sub.reviewNote}
-                onReviewNoteUpdated={(note) =>
-                  onUpdated({ ...sub, reviewNote: note })
-                }
+                onReviewNoteUpdated={(note) => onUpdated({ ...sub, reviewNote: note })}
                 addToast={addToast}
               />
             )}
@@ -1469,8 +1232,7 @@ function GroupTable({
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ referenceName: nameVal.trim() }),
       });
-      if (!res.ok)
-        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
       onGroupUpdated(group.id, nameVal.trim());
       setEditingName(false);
       addToast("Group name updated", "success");
@@ -1482,18 +1244,14 @@ function GroupTable({
   };
 
   const deleteGroup = async () => {
-    if (
-      !confirm(`Delete group "${group.referenceName}"? This cannot be undone.`)
-    )
-      return;
+    if (!confirm(`Delete group "${group.referenceName}"? This cannot be undone.`)) return;
     setDeletingGroup(true);
     try {
       const res = await fetch(`/api/asc/subscriptions/groups/${group.id}`, {
         method: "DELETE",
         headers: authHeaders(),
       });
-      if (!res.ok)
-        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
       onGroupDeleted(group.id);
       addToast("Group deleted", "success");
     } catch (err: any) {
@@ -1531,20 +1289,14 @@ function GroupTable({
   };
 
   const AppleLogo = () => (
-    <svg
-      className={`w-3.5 h-3.5 ${textMuted} shrink-0`}
-      viewBox="0 0 24 24"
-      fill="currentColor"
-    >
+    <svg className={`w-3.5 h-3.5 ${textMuted} shrink-0`} viewBox="0 0 24 24" fill="currentColor">
       <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
     </svg>
   );
 
   return (
     <div className={`${cardCls} overflow-hidden !p-0`}>
-      <div
-        className={`flex items-center justify-between px-5 py-4 border-b ${borderDefault}`}
-      >
+      <div className={`flex items-center justify-between px-5 py-4 border-b ${borderDefault}`}>
         <div className="flex items-center gap-2 min-w-0">
           {editingName ? (
             <div className="flex items-center gap-2">
@@ -1561,16 +1313,8 @@ function GroupTable({
                 }}
                 autoFocus
               />
-              <button
-                onClick={saveName}
-                disabled={savingName}
-                className={btnSecSm}
-              >
-                {savingName ? (
-                  <div className="spinner !w-3 !h-3" />
-                ) : (
-                  <Check className="w-3 h-3" />
-                )}
+              <button onClick={saveName} disabled={savingName} className={btnSecSm}>
+                {savingName ? <div className="spinner !w-3 !h-3" /> : <Check className="w-3 h-3" />}
               </button>
               <button
                 onClick={() => {
@@ -1585,9 +1329,7 @@ function GroupTable({
           ) : (
             <>
               <AppleLogo />
-              <span
-                className={`text-[14px] font-semibold ${textPrimary} truncate`}
-              >
+              <span className={`text-[14px] font-semibold ${textPrimary} truncate`}>
                 {group.referenceName}
                 {bundleId ? ` (${bundleId})` : ""}
               </span>
@@ -1631,11 +1373,7 @@ function GroupTable({
                     disabled={deletingGroup}
                     className="w-full text-left px-3 py-2 text-[13px] text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors disabled:opacity-50"
                   >
-                    {deletingGroup ? (
-                      <div className="spinner !w-3.5 !h-3.5" />
-                    ) : (
-                      <Trash2 className="w-3.5 h-3.5" />
-                    )}
+                    {deletingGroup ? <div className="spinner !w-3.5 !h-3.5" /> : <Trash2 className="w-3.5 h-3.5" />}
                     Delete group
                   </button>
                 </div>
@@ -1658,10 +1396,7 @@ function GroupTable({
         <tbody>
           {group.subscriptions.length === 0 && !showNewSub && (
             <tr>
-              <td
-                colSpan={5}
-                className={`px-5 py-8 text-center text-[13px] ${textMuted}`}
-              >
+              <td colSpan={5} className={`px-5 py-8 text-center text-[13px] ${textMuted}`}>
                 No subscriptions yet — click <strong>+ New</strong> to add one
               </td>
             </tr>
@@ -1674,26 +1409,17 @@ function GroupTable({
             >
               <td className={TD}>
                 <div>
-                  <p className={`text-[13px] font-medium ${textPrimary}`}>
-                    {sub.name}
-                  </p>
-                  <p className={`text-[11px] font-mono ${textMuted} mt-0.5`}>
-                    {sub.productId}
-                  </p>
+                  <p className={`text-[13px] font-medium ${textPrimary}`}>{sub.name}</p>
+                  <p className={`text-[11px] font-mono ${textMuted} mt-0.5`}>{sub.productId}</p>
                 </div>
               </td>
               <td className={TD}>
                 <StatusBadge state={sub.state} />
               </td>
               <td className={`${TD} ${textSecondary}`}>
-                {sub.subscriptionPeriod
-                  ? (PERIOD_LABELS[sub.subscriptionPeriod] ??
-                    sub.subscriptionPeriod)
-                  : "—"}
+                {sub.subscriptionPeriod ? (PERIOD_LABELS[sub.subscriptionPeriod] ?? sub.subscriptionPeriod) : "—"}
               </td>
-              <td className={`${TD} ${textSecondary}`}>
-                {sub.groupLevel ?? "—"}
-              </td>
+              <td className={`${TD} ${textSecondary}`}>{sub.groupLevel ?? "—"}</td>
               <td className={`${TD} text-right`}>
                 <MoreHorizontal
                   className={`w-4 h-4 ${textMuted} opacity-0 group-hover:opacity-100 transition-opacity`}
@@ -1738,8 +1464,7 @@ export default function MonetizationSubscriptions({ addToast }: Props) {
         ? `/api/asc/subscriptions/groups?bundleId=${encodeURIComponent(bundleId)}`
         : "/api/asc/subscriptions/groups";
       const res = await fetch(url, { headers: authHeaders() });
-      if (!res.ok)
-        throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
       setGroups(await res.json());
     } catch (err: any) {
       addToast(err.message, "error");
@@ -1786,23 +1511,15 @@ export default function MonetizationSubscriptions({ addToast }: Props) {
   };
 
   const handleGroupUpdated = (id: string, referenceName: string) =>
-    setGroups(
-      (g) =>
-        g?.map((group) =>
-          group.id === id ? { ...group, referenceName } : group,
-        ) ?? null,
-    );
+    setGroups((g) => g?.map((group) => (group.id === id ? { ...group, referenceName } : group)) ?? null);
 
-  const handleGroupDeleted = (id: string) =>
-    setGroups((g) => g?.filter((group) => group.id !== id) ?? null);
+  const handleGroupDeleted = (id: string) => setGroups((g) => g?.filter((group) => group.id !== id) ?? null);
 
   const handleSubCreated = (groupId: string, sub: SubscriptionItem) =>
     setGroups(
       (g) =>
         g?.map((group) =>
-          group.id === groupId
-            ? { ...group, subscriptions: [...group.subscriptions, sub] }
-            : group,
+          group.id === groupId ? { ...group, subscriptions: [...group.subscriptions, sub] } : group,
         ) ?? null,
     );
 
@@ -1811,14 +1528,10 @@ export default function MonetizationSubscriptions({ addToast }: Props) {
       (g) =>
         g?.map((group) => ({
           ...group,
-          subscriptions: group.subscriptions.map((s) =>
-            s.id === updated.id ? updated : s,
-          ),
+          subscriptions: group.subscriptions.map((s) => (s.id === updated.id ? updated : s)),
         })) ?? null,
     );
-    setSelectedSub((prev) =>
-      prev && prev.sub.id === updated.id ? { ...prev, sub: updated } : prev,
-    );
+    setSelectedSub((prev) => (prev && prev.sub.id === updated.id ? { ...prev, sub: updated } : prev));
   };
 
   const handleSubDeleted = () => {
@@ -1833,9 +1546,7 @@ export default function MonetizationSubscriptions({ addToast }: Props) {
           group.id === groupId
             ? {
                 ...group,
-                subscriptions: group.subscriptions.filter(
-                  (s) => s.id !== subId,
-                ),
+                subscriptions: group.subscriptions.filter((s) => s.id !== subId),
               }
             : group,
         ) ?? null,
@@ -1863,15 +1574,10 @@ export default function MonetizationSubscriptions({ addToast }: Props) {
         <h1 className={`${pageTitle}`}>Subscriptions</h1>
         <div className="flex gap-2">
           <button onClick={load} disabled={loading} className={btnSecondary}>
-            <RefreshCw
-              className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`}
-            />
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </button>
-          <button
-            onClick={() => setShowNewGroupForm(true)}
-            className={btnPrimary}
-          >
+          <button onClick={() => setShowNewGroupForm(true)} className={btnPrimary}>
             <Plus className="w-3.5 h-3.5" /> New Group
           </button>
         </div>
@@ -1879,9 +1585,7 @@ export default function MonetizationSubscriptions({ addToast }: Props) {
 
       {showNewGroupForm && (
         <div className={`${cardCls} mb-4 flex flex-col gap-3`}>
-          <p
-            className={`text-[11px] font-semibold uppercase tracking-wider ${textSecondary}`}
-          >
+          <p className={`text-[11px] font-semibold uppercase tracking-wider ${textSecondary}`}>
             New Subscription Group
           </p>
           <div className="flex gap-2">
@@ -1896,22 +1600,11 @@ export default function MonetizationSubscriptions({ addToast }: Props) {
               placeholder="e.g. Pro Access"
               autoFocus
             />
-            <button
-              onClick={createGroup}
-              disabled={creatingGroup || !newGroupName.trim()}
-              className={btnPrimary}
-            >
-              {creatingGroup ? (
-                <div className="spinner !w-3.5 !h-3.5" />
-              ) : (
-                <Check className="w-3.5 h-3.5" />
-              )}
+            <button onClick={createGroup} disabled={creatingGroup || !newGroupName.trim()} className={btnPrimary}>
+              {creatingGroup ? <div className="spinner !w-3.5 !h-3.5" /> : <Check className="w-3.5 h-3.5" />}
               Create
             </button>
-            <button
-              onClick={() => setShowNewGroupForm(false)}
-              className={btnSecondary}
-            >
+            <button onClick={() => setShowNewGroupForm(false)} className={btnSecondary}>
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -1919,17 +1612,13 @@ export default function MonetizationSubscriptions({ addToast }: Props) {
       )}
 
       {loading && !groups && (
-        <div
-          className={`flex items-center justify-center py-16 gap-2 ${textMuted} text-sm`}
-        >
+        <div className={`flex items-center justify-center py-16 gap-2 ${textMuted} text-sm`}>
           <div className="spinner" /> Loading subscriptions…
         </div>
       )}
 
       {groups && groups.length === 0 && (
-        <div
-          className={`${cardCls} flex flex-col items-center justify-center py-16 gap-4 text-center`}
-        >
+        <div className={`${cardCls} flex flex-col items-center justify-center py-16 gap-4 text-center`}>
           <div className="w-12 h-12 rounded-2xl bg-[#fef2f3] dark:bg-[#2a1f23] flex items-center justify-center">
             <svg
               className="w-6 h-6 text-[#C4001E]"
@@ -1946,17 +1635,10 @@ export default function MonetizationSubscriptions({ addToast }: Props) {
             </svg>
           </div>
           <div>
-            <p className={`text-[15px] font-semibold ${textPrimary}`}>
-              No subscription groups
-            </p>
-            <p className={`text-sm ${textSecondary} mt-1`}>
-              Create your first group to start adding subscriptions.
-            </p>
+            <p className={`text-[15px] font-semibold ${textPrimary}`}>No subscription groups</p>
+            <p className={`text-sm ${textSecondary} mt-1`}>Create your first group to start adding subscriptions.</p>
           </div>
-          <button
-            onClick={() => setShowNewGroupForm(true)}
-            className={btnPrimary}
-          >
+          <button onClick={() => setShowNewGroupForm(true)} className={btnPrimary}>
             <Plus className="w-3.5 h-3.5" /> New Group
           </button>
         </div>

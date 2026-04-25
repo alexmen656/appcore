@@ -20,8 +20,7 @@ export default function Settings({ addToast }: Props) {
     if (data) setForm(data);
   }, [data]);
 
-  const set = (key: keyof SettingsData, value: any) =>
-    setForm((f: Partial<SettingsData>) => ({ ...f, [key]: value }));
+  const set = (key: keyof SettingsData, value: any) => setForm((f: Partial<SettingsData>) => ({ ...f, [key]: value }));
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,12 +55,7 @@ export default function Settings({ addToast }: Props) {
           textareaCls={textareaCls}
           onChange={set}
         />
-        <AiProviderSection
-          form={form}
-          data={data ?? null}
-          inputCls={inputCls}
-          onChange={set}
-        />
+        <AiProviderSection form={form} data={data ?? null} inputCls={inputCls} onChange={set} />
         <PresetMetadataSection form={form} inputCls={inputCls} onChange={set} />
         <GitHubSection />
 

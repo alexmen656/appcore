@@ -1,15 +1,7 @@
 import { useState, useEffect } from "react";
 import { Check } from "lucide-react";
 import { authHeaders, setActiveBundleId } from "../hooks/useApi";
-import {
-  borderDefault,
-  btnPrimary,
-  inputCls,
-  textMuted,
-  textPrimary,
-  textSecondary,
-  textareaCls,
-} from "../styles";
+import { borderDefault, btnPrimary, inputCls, textMuted, textPrimary, textSecondary, textareaCls } from "../styles";
 import type { AscApp } from "../types";
 
 interface Props {
@@ -36,9 +28,7 @@ function StepIndicator({ step }: { step: 1 | 2 }) {
         >
           {step > 1 ? <Check className="w-3 h-3" /> : "1"}
         </div>
-        <span
-          className={`text-sm font-medium ${step >= 1 ? "${textPrimary}" : "text-[#9ca3af]"}`}
-        >
+        <span className={`text-sm font-medium ${step >= 1 ? "${textPrimary}" : "text-[#9ca3af]"}`}>
           App Store Connect
         </span>
       </div>
@@ -53,11 +43,7 @@ function StepIndicator({ step }: { step: 1 | 2 }) {
         >
           2
         </div>
-        <span
-          className={`text-sm font-medium ${step >= 2 ? "${textPrimary}" : "text-[#9ca3af]"}`}
-        >
-          Import App
-        </span>
+        <span className={`text-sm font-medium ${step >= 2 ? "${textPrimary}" : "text-[#9ca3af]"}`}>Import App</span>
       </div>
     </div>
   );
@@ -65,11 +51,7 @@ function StepIndicator({ step }: { step: 1 | 2 }) {
 
 function AppAvatar({ url, name }: { url?: string | null; name: string }) {
   return url ? (
-    <img
-      src={url}
-      alt=""
-      className="w-10 h-10 rounded-xl object-cover shrink-0"
-    />
+    <img src={url} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0" />
   ) : (
     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#D94412] to-[#C4001E] flex items-center justify-center text-white font-bold text-sm shrink-0">
       {name.charAt(0).toUpperCase()}
@@ -168,20 +150,15 @@ export default function Onboarding({ onComplete }: Props) {
           </span>
         </div>
 
-        <div
-          className={`bg-white dark:bg-[#1c2028] rounded-2xl shadow-xl border ${borderDefault} p-8`}
-        >
+        <div className={`bg-white dark:bg-[#1c2028] rounded-2xl shadow-xl border ${borderDefault} p-8`}>
           <StepIndicator step={step} />
 
           {step === 1 && (
             <>
               <div className="mb-6">
-                <h1 className={`text-xl font-bold ${textPrimary}`}>
-                  Connect App Store Connect
-                </h1>
+                <h1 className={`text-xl font-bold ${textPrimary}`}>Connect App Store Connect</h1>
                 <p className={`text-sm ${textSecondary} mt-1`}>
-                  Enter your API credentials to sync your apps and metadata.
-                  You'll find these in{" "}
+                  Enter your API credentials to sync your apps and metadata. You'll find these in{" "}
                   <span className="font-medium text-[#374151] dark:text-[#c5cad6]">
                     App Store Connect → Users & Access → Integrations
                   </span>
@@ -189,37 +166,26 @@ export default function Onboarding({ onComplete }: Props) {
                 </p>
               </div>
 
-              <form
-                onSubmit={handleSaveCredentials}
-                className="flex flex-col gap-4"
-              >
+              <form onSubmit={handleSaveCredentials} className="flex flex-col gap-4">
                 <div className="grid grid-cols-2 gap-4">
                   <label className="flex flex-col gap-1.5">
-                    <span className={`text-sm font-medium ${textPrimary}`}>
-                      Issuer ID
-                    </span>
+                    <span className={`text-sm font-medium ${textPrimary}`}>Issuer ID</span>
                     <input
                       className={inputCls}
                       type="text"
                       placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                       value={form.ascIssuerId}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, ascIssuerId: e.target.value }))
-                      }
+                      onChange={(e) => setForm((f) => ({ ...f, ascIssuerId: e.target.value }))}
                     />
                   </label>
                   <label className="flex flex-col gap-1.5">
-                    <span className={`text-sm font-medium ${textPrimary}`}>
-                      Key ID
-                    </span>
+                    <span className={`text-sm font-medium ${textPrimary}`}>Key ID</span>
                     <input
                       className={inputCls}
                       type="text"
                       placeholder="XXXXXXXXXX"
                       value={form.ascKeyId}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, ascKeyId: e.target.value }))
-                      }
+                      onChange={(e) => setForm((f) => ({ ...f, ascKeyId: e.target.value }))}
                     />
                   </label>
                 </div>
@@ -246,22 +212,16 @@ export default function Onboarding({ onComplete }: Props) {
                 </label>
 
                 <label className="flex flex-col gap-1.5">
-                  <span className={`text-sm font-medium ${textPrimary}`}>
-                    Private Key (.p8)
-                  </span>
+                  <span className={`text-sm font-medium ${textPrimary}`}>Private Key (.p8)</span>
                   <p className={`text-[11px] ${textMuted} -mt-0.5`}>
                     Paste the full contents of your AuthKey_XXXXXX.p8 file.
                   </p>
                   <textarea
                     className={textareaCls}
                     rows={5}
-                    placeholder={
-                      "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
-                    }
+                    placeholder={"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"}
                     value={form.ascPrivateKey}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, ascPrivateKey: e.target.value }))
-                    }
+                    onChange={(e) => setForm((f) => ({ ...f, ascPrivateKey: e.target.value }))}
                   />
                 </label>
 
@@ -271,11 +231,7 @@ export default function Onboarding({ onComplete }: Props) {
                   </div>
                 )}
 
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className={`${btnPrimary} w-full justify-center mt-1`}
-                >
+                <button type="submit" disabled={saving} className={`${btnPrimary} w-full justify-center mt-1`}>
                   {saving ? "Saving…" : "Continue →"}
                 </button>
               </form>
@@ -285,19 +241,14 @@ export default function Onboarding({ onComplete }: Props) {
           {step === 2 && (
             <>
               <div className="mb-6">
-                <h1 className={`text-xl font-bold ${textPrimary}`}>
-                  Import your first app
-                </h1>
+                <h1 className={`text-xl font-bold ${textPrimary}`}>Import your first app</h1>
                 <p className={`text-sm ${textSecondary} mt-1`}>
-                  Select an app from your App Store Connect account to get
-                  started.
+                  Select an app from your App Store Connect account to get started.
                 </p>
               </div>
 
               {appsLoading && (
-                <div
-                  className={`flex items-center justify-center py-10 gap-2 ${textMuted} text-sm`}
-                >
+                <div className={`flex items-center justify-center py-10 gap-2 ${textMuted} text-sm`}>
                   <div className="spinner" /> Loading your apps…
                 </div>
               )}
@@ -305,23 +256,17 @@ export default function Onboarding({ onComplete }: Props) {
               {appsError && (
                 <div className="bg-red-50 border border-red-100 text-red-700 text-sm rounded-xl px-4 py-3 flex flex-col gap-2">
                   <span>{appsError}</span>
-                  <button
-                    onClick={loadApps}
-                    className="text-red-600 font-medium text-xs underline self-start"
-                  >
+                  <button onClick={loadApps} className="text-red-600 font-medium text-xs underline self-start">
                     Try again
                   </button>
                 </div>
               )}
 
-              {!appsLoading &&
-                !appsError &&
-                apps !== null &&
-                apps.length === 0 && (
-                  <div className={`text-center py-10 text-sm ${textMuted}`}>
-                    No apps found in your App Store Connect account.
-                  </div>
-                )}
+              {!appsLoading && !appsError && apps !== null && apps.length === 0 && (
+                <div className={`text-center py-10 text-sm ${textMuted}`}>
+                  No apps found in your App Store Connect account.
+                </div>
+              )}
 
               {!appsLoading && apps && apps.length > 0 && (
                 <div className="flex flex-col gap-2">
@@ -333,14 +278,8 @@ export default function Onboarding({ onComplete }: Props) {
                       <div className="flex items-center gap-3 min-w-0">
                         <AppAvatar url={app.iconUrl} name={app.name} />
                         <div className="min-w-0">
-                          <div
-                            className={`text-sm font-semibold ${textPrimary} truncate`}
-                          >
-                            {app.name}
-                          </div>
-                          <div
-                            className={`text-[11px] ${textMuted} font-mono truncate`}
-                          >
+                          <div className={`text-sm font-semibold ${textPrimary} truncate`}>{app.name}</div>
+                          <div className={`text-[11px] ${textMuted} font-mono truncate`}>
                             {app.bundleId}
                             {app.primaryLocale ? ` · ${app.primaryLocale}` : ""}
                           </div>

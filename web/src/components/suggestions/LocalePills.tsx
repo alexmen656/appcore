@@ -6,12 +6,7 @@ interface Props {
   onSelect: (loc: string) => void;
 }
 
-export default function LocalePills({
-  locales,
-  groups,
-  currentLocale,
-  onSelect,
-}: Props) {
+export default function LocalePills({ locales, groups, currentLocale, onSelect }: Props) {
   if (locales.length === 0) return null;
   return (
     <div className="flex gap-2 flex-wrap mb-5">

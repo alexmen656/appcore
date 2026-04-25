@@ -7,9 +7,7 @@ import type { DashboardData, DownloadsData } from "../../types";
 
 export default function Dashboard() {
   const { data, loading, error } = useApi<DashboardData>("/dashboard");
-  const { data: downloads } = useApi<DownloadsData>(
-    "/analytics/downloads?days=90",
-  );
+  const { data: downloads } = useApi<DownloadsData>("/analytics/downloads?days=90");
 
   if (loading)
     return (
@@ -17,12 +15,7 @@ export default function Dashboard() {
         <div className="spinner" /> Loading dashboard…
       </div>
     );
-  if (error)
-    return (
-      <div className="py-20 text-center text-gray-400 dark:text-[#5c6478]">
-        {error}
-      </div>
-    );
+  if (error) return <div className="py-20 text-center text-gray-400 dark:text-[#5c6478]">{error}</div>;
   if (!data) return null;
   const { app, stats, lastJob, recentSuggestions } = data;
 
@@ -39,10 +32,7 @@ export default function Dashboard() {
       )}
 
       <div className="mb-5">
-        <RecentSuggestionsTable
-          suggestions={recentSuggestions}
-          lastJob={lastJob ?? undefined}
-        />
+        <RecentSuggestionsTable suggestions={recentSuggestions} lastJob={lastJob ?? undefined} />
       </div>
     </div>
   );

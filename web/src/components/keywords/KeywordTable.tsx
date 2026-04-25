@@ -1,23 +1,9 @@
-import {
-  TD,
-  TH,
-  borderDefault,
-  btnSecSm,
-  textMuted,
-  textPrimary,
-  textSecondary,
-} from "../../styles";
+import { TD, TH, borderDefault, btnSecSm, textMuted, textPrimary, textSecondary } from "../../styles";
 import type { Keyword } from "../../types";
 import { TrendingUp, TrendingDown, ChevronUp, ChevronDown } from "lucide-react";
 
 export type { Keyword };
-export type SortKey =
-  | "term"
-  | "country"
-  | "popularity"
-  | "difficulty"
-  | "rank"
-  | "tracked";
+export type SortKey = "term" | "country" | "popularity" | "difficulty" | "rank" | "tracked";
 
 const rankColor = (rank: number | null) => {
   if (rank == null) return "text-gray-400 dark:text-[#5c6478]";
@@ -27,12 +13,8 @@ const rankColor = (rank: number | null) => {
 };
 
 const trendDisplay = (trend: number | null) => {
-  if (trend == null)
-    return <span className="text-gray-400 dark:text-[#5c6478]">—</span>;
-  if (trend === 0)
-    return (
-      <span className="text-gray-400 dark:text-[#5c6478] text-xs">±0</span>
-    );
+  if (trend == null) return <span className="text-gray-400 dark:text-[#5c6478]">—</span>;
+  if (trend === 0) return <span className="text-gray-400 dark:text-[#5c6478] text-xs">±0</span>;
   if (trend > 0)
     return (
       <span className="inline-flex items-center gap-0.5 text-emerald-600 font-medium text-xs">
@@ -68,15 +50,9 @@ interface Props {
 
 function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
   return (
-    <span
-      className={`inline-flex flex-col ml-1 leading-none ${active ? "opacity-100" : "opacity-25"}`}
-    >
-      <ChevronUp
-        className={`w-3 h-3 -mb-1 ${active && dir === "asc" ? "text-[#D94412]" : "text-current"}`}
-      />
-      <ChevronDown
-        className={`w-3 h-3 -mt-1 ${active && dir === "desc" ? "text-[#D94412]" : "text-current"}`}
-      />
+    <span className={`inline-flex flex-col ml-1 leading-none ${active ? "opacity-100" : "opacity-25"}`}>
+      <ChevronUp className={`w-3 h-3 -mb-1 ${active && dir === "asc" ? "text-[#D94412]" : "text-current"}`} />
+      <ChevronDown className={`w-3 h-3 -mt-1 ${active && dir === "desc" ? "text-[#D94412]" : "text-current"}`} />
     </span>
   );
 }
@@ -148,12 +124,7 @@ export default function KeywordTable({
                         className="block h-full rounded-sm"
                         style={{
                           width: `${Math.min(k.popularity, 100)}%`,
-                          background:
-                            k.popularity > 60
-                              ? "#10b981"
-                              : k.popularity > 30
-                                ? "#f59e0b"
-                                : "#ef4444",
+                          background: k.popularity > 60 ? "#10b981" : k.popularity > 30 ? "#f59e0b" : "#ef4444",
                         }}
                       />
                     </span>
@@ -172,11 +143,7 @@ export default function KeywordTable({
                 </span>
               </td>
               <td className={`${TD} ${textSecondary}`}>
-                {k.searchVolume != null ? (
-                  k.searchVolume
-                ) : (
-                  <span className={`${textMuted}`}>--</span>
-                )}
+                {k.searchVolume != null ? k.searchVolume : <span className={`${textMuted}`}>--</span>}
               </td>
               <td className={TD}>
                 {k.ourRank != null ? (

@@ -7,8 +7,7 @@ export const pageTitle = `text-3xl font-semibold tracking-tight ${textPrimary}`;
 export const TH =
   "text-left text-[11px] font-medium uppercase tracking-wide text-[#9ca3af] dark:text-[#5c6478] px-4 py-3 border-b border-[#f3f4f6] dark:border-[#2a2f3d] whitespace-nowrap";
 
-export const TD =
-  "px-4 py-3.5 border-b border-[#f3f4f6] dark:border-[#2a2f3d] text-[13px] align-middle";
+export const TD = "px-4 py-3.5 border-b border-[#f3f4f6] dark:border-[#2a2f3d] text-[13px] align-middle";
 
 export const cardCls =
   "bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]";
@@ -30,27 +29,21 @@ export const inputCls =
 
 export const textareaCls = `${inputCls} resize-y font-mono text-xs`;
 
-const BADGE_FALLBACK =
-  "bg-gray-50 text-gray-600 dark:bg-[#252b38] dark:text-[#8b93a5]";
+const BADGE_FALLBACK = "bg-gray-50 text-gray-600 dark:bg-[#252b38] dark:text-[#8b93a5]";
 
 export const badgeVariants: Record<string, string> = {
-  pending:
-    "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
-  approved:
-    "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
+  pending: "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
+  approved: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
   applied: "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
   rejected: "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400",
   running: "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
-  title:
-    "bg-violet-50 text-violet-700 dark:bg-violet-900/20 dark:text-violet-400",
+  title: "bg-violet-50 text-violet-700 dark:bg-violet-900/20 dark:text-violet-400",
   subtitle: "bg-sky-50 text-sky-700 dark:bg-sky-900/20 dark:text-sky-400",
   keywords: "bg-pink-50 text-pink-700 dark:bg-pink-900/20 dark:text-pink-400",
-  description:
-    "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
+  description: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
   created: "bg-gray-50 text-gray-600 dark:bg-[#252b38] dark:text-[#8b93a5]",
   active: "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
-  completed:
-    "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
+  completed: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400",
   retry: "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400",
   failed: "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400",
   cancelled: "bg-gray-50 text-gray-500 dark:bg-[#252b38] dark:text-[#5c6478]",
@@ -65,12 +58,10 @@ const BADGE_OUTLINE_FALLBACK =
 export const badgeOutlineVariants: Record<string, string> = {
   pending:
     "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/40",
-  running:
-    "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900/40",
+  running: "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900/40",
   completed:
     "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/40",
-  failed:
-    "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/40",
+  failed: "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/40",
   ready_for_sale:
     "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/40",
   replaced_with_new_version:
@@ -81,8 +72,7 @@ export const badgeOutlineVariants: Record<string, string> = {
     "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900/40",
   in_review:
     "bg-violet-50 text-violet-700 border-violet-100 dark:bg-violet-900/20 dark:text-violet-400 dark:border-violet-900/40",
-  rejected:
-    "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/40",
+  rejected: "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/40",
   developer_rejected:
     "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/40",
   metadata_rejected:
@@ -91,12 +81,9 @@ export const badgeOutlineVariants: Record<string, string> = {
     "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/40",
   readonly:
     "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/40",
-  sandbox:
-    "bg-sky-50 text-sky-600 border-sky-100 dark:bg-sky-900/20 dark:text-sky-400 dark:border-sky-900/40",
-  success_tonal:
-    "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-  danger_tonal:
-    "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
+  sandbox: "bg-sky-50 text-sky-600 border-sky-100 dark:bg-sky-900/20 dark:text-sky-400 dark:border-sky-900/40",
+  success_tonal: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+  danger_tonal: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
   info_tonal: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
 };
 

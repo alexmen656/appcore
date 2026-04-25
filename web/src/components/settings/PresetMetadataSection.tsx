@@ -10,14 +10,8 @@ interface Props {
   onChange: (key: keyof SettingsData, value: any) => void;
 }
 
-export default function PresetMetadataSection({
-  form,
-  inputCls,
-  onChange,
-}: Props) {
-  const [showDemoCredentials, setShowDemoCredentials] = useState(
-    form.reviewerDemoAccountRequired ?? false,
-  );
+export default function PresetMetadataSection({ form, inputCls, onChange }: Props) {
+  const [showDemoCredentials, setShowDemoCredentials] = useState(form.reviewerDemoAccountRequired ?? false);
 
   const handleDemoRequired = (val: boolean) => {
     setShowDemoCredentials(val);
@@ -41,9 +35,7 @@ export default function PresetMetadataSection({
         </Field>
 
         <div className="col-span-2 border-t border-[#f3f4f6] dark:border-[#2a2f3d] pt-4 mt-1">
-          <p className={`text-[13px] font-semibold ${textPrimary} mb-3`}>
-            App Review Contact
-          </p>
+          <p className={`text-[13px] font-semibold ${textPrimary} mb-3`}>App Review Contact</p>
         </div>
 
         <Field label="First Name">
@@ -64,10 +56,7 @@ export default function PresetMetadataSection({
             placeholder="Mustermann"
           />
         </Field>
-        <Field
-          label="Phone Number"
-          hint="Include country code, e.g. +49 151 12345678"
-        >
+        <Field label="Phone Number" hint="Include country code, e.g. +49 151 12345678">
           <input
             type="tel"
             className={inputCls}
@@ -94,9 +83,7 @@ export default function PresetMetadataSection({
               onChange={(e) => handleDemoRequired(e.target.checked)}
               className="w-4 h-4 rounded accent-[#D94412]"
             />
-            <span className={`text-[13px] ${textPrimary}`}>
-              Login required (Demo Account)
-            </span>
+            <span className={`text-[13px] ${textPrimary}`}>Login required (Demo Account)</span>
           </label>
         </div>
 
@@ -107,9 +94,7 @@ export default function PresetMetadataSection({
                 type="text"
                 className={inputCls}
                 value={form.reviewerDemoUsername ?? ""}
-                onChange={(e) =>
-                  onChange("reviewerDemoUsername", e.target.value)
-                }
+                onChange={(e) => onChange("reviewerDemoUsername", e.target.value)}
                 placeholder="demo@example.com"
               />
             </Field>
@@ -119,9 +104,7 @@ export default function PresetMetadataSection({
                 autoComplete="off"
                 className={inputCls}
                 value={form.reviewerDemoPassword ?? ""}
-                onChange={(e) =>
-                  onChange("reviewerDemoPassword", e.target.value)
-                }
+                onChange={(e) => onChange("reviewerDemoPassword", e.target.value)}
                 placeholder="••••••••"
               />
             </Field>

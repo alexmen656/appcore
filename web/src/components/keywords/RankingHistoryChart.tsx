@@ -1,30 +1,12 @@
 import { useEffect } from "react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { Keyword } from "./KeywordTable";
 import { btnSecSm, textMuted, textPrimary } from "../../styles";
 import type { RankingEntry, KeywordHistoryData } from "../../types";
 
 export type { KeywordHistoryData as HistoryData };
 
-const CHART_COLORS = [
-  "#D94412",
-  "#3b82f6",
-  "#10b981",
-  "#f59e0b",
-  "#8b5cf6",
-  "#ec4899",
-  "#06b6d4",
-  "#84cc16",
-];
+const CHART_COLORS = ["#D94412", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"];
 
 interface Props {
   keyword: Keyword;
@@ -34,13 +16,7 @@ interface Props {
   onClose: () => void;
 }
 
-export default function RankingHistoryChart({
-  keyword,
-  history,
-  loading,
-  ownBundleId,
-  onClose,
-}: Props) {
+export default function RankingHistoryChart({ keyword, history, loading, ownBundleId, onClose }: Props) {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -98,20 +74,15 @@ export default function RankingHistoryChart({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-      <div
-        className="absolute inset-0 bg-black/40 dark:bg-black/60"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/40 dark:bg-black/60" onClick={onClose} />
       <div className="relative w-full max-w-5xl max-h-[calc(100vh-2rem)] overflow-hidden rounded-2xl border border-[#eef0f3] bg-white shadow-2xl dark:border-[#2a2f3d] dark:bg-[#1c2028]">
         <div className="flex items-start justify-between gap-4 border-b border-[#eef0f3] px-6 py-5 dark:border-[#2a2f3d]">
           <div>
             <h3 className={`text-base font-semibold ${textPrimary}`}>
-              Ranking History:{" "}
-              <span className="text-[#D94412]">{keyword.term}</span>
+              Ranking History: <span className="text-[#D94412]">{keyword.term}</span>
             </h3>
             <div className={`mt-1 text-xs ${textMuted}`}>
-              {keyword.country.toUpperCase()} · Popularity{" "}
-              {keyword.popularity ?? "—"} · Difficulty{" "}
+              {keyword.country.toUpperCase()} · Popularity {keyword.popularity ?? "—"} · Difficulty{" "}
               {keyword.difficulty ?? "—"}
             </div>
           </div>
@@ -126,21 +97,12 @@ export default function RankingHistoryChart({
               <div className="spinner" /> Loading history…
             </div>
           ) : chartData.length === 0 ? (
-            <div className={`py-16 text-center text-sm ${textMuted}`}>
-              No ranking history yet. Run tracking first.
-            </div>
+            <div className={`py-16 text-center text-sm ${textMuted}`}>No ranking history yet. Run tracking first.</div>
           ) : (
             <ResponsiveContainer width="100%" height={420}>
-              <LineChart
-                data={chartData}
-                margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
-              >
+              <LineChart data={chartData} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 11, fill: "#9ca3af" }}
-                  tickLine={false}
-                />
+                <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#9ca3af" }} tickLine={false} />
                 <YAxis
                   reversed
                   domain={[1, "auto"]}
@@ -164,12 +126,7 @@ export default function RankingHistoryChart({
                   }}
                   labelStyle={{ fontWeight: 600, marginBottom: 4 }}
                 />
-                <Legend
-                  verticalAlign="top"
-                  height={36}
-                  iconType="circle"
-                  wrapperStyle={{ fontSize: 12 }}
-                />
+                <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: 12 }} />
                 {appNames.map((name, i) => (
                   <Line
                     key={name}

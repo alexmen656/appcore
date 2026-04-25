@@ -1,55 +1,19 @@
 import { useState, useMemo, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  RefreshCw,
-  ArrowRight,
-  Clock,
-  Download,
-  Eye,
-  Monitor,
-  Activity,
-  DollarSign,
-  TrendingUp,
-} from "lucide-react";
+import { RefreshCw, ArrowRight, Clock, Download, Eye, Monitor, Activity, DollarSign, TrendingUp } from "lucide-react";
 import { useApi, apiPost, getActiveBundleId } from "../../hooks/useApi";
 import MetricsChart from "./MetricsChart";
 import type { ChartMarker } from "./MetricsChart";
 import type { AnalyticsSummary, DownloadsData, Review } from "../../types";
-import {
-  TD,
-  TH,
-  borderDefault,
-  pageTitle,
-  textMuted,
-  textPrimary,
-} from "../../styles";
-import {
-  fmtNumber,
-  fmtRevenue,
-  fmtDateTime,
-  fmtPct,
-  countryName,
-} from "../../utils/formatters";
-import {
-  type RangeKey,
-  RANGE_OPTIONS,
-  rangeToParams,
-  rangeLabel,
-} from "../../utils/analyticsRange";
+import { TD, TH, borderDefault, pageTitle, textMuted, textPrimary } from "../../styles";
+import { fmtNumber, fmtRevenue, fmtDateTime, fmtPct, countryName } from "../../utils/formatters";
+import { type RangeKey, RANGE_OPTIONS, rangeToParams, rangeLabel } from "../../utils/analyticsRange";
 
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }
 
-function Sparkline({
-  data,
-  color,
-  id,
-}: {
-  data: number[];
-  color: string;
-  id: string;
-}) {
+function Sparkline({ data, color, id }: { data: number[]; color: string; id: string }) {
   if (!data || data.length < 2) return null;
   const w = 200;
   const h = 60;
@@ -64,12 +28,7 @@ function Sparkline({
   const linePoints = pts.map((p) => `${p.x},${p.y}`).join(" ");
   const areaPath = `M0,${h} ${pts.map((p) => `L${p.x},${p.y}`).join(" ")} L${w},${h} Z`;
   return (
-    <svg
-      width="100%"
-      height="100%"
-      viewBox={`0 0 ${w} ${h}`}
-      preserveAspectRatio="none"
-    >
+    <svg width="100%" height="100%" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity={allZero ? 0 : 0.2} />
@@ -119,16 +78,10 @@ function StatCard({
     >
       <div className="px-5 pt-5 pb-3">
         <div className="flex items-start justify-between mb-3">
-          <span className={`text-[13px] font-semibold ${textPrimary}`}>
-            {label}
-          </span>
+          <span className={`text-[13px] font-semibold ${textPrimary}`}>{label}</span>
           {icon && <span className={`${textMuted}`}>{icon}</span>}
         </div>
-        <div
-          className={`text-[40px] font-bold leading-none mb-2 ${
-            dim ? "${textMuted}" : "${textPrimary}"
-          }`}
-        >
+        <div className={`text-[40px] font-bold leading-none mb-2 ${dim ? "${textMuted}" : "${textPrimary}"}`}>
           {value}
         </div>
         {sub && (
@@ -137,17 +90,9 @@ function StatCard({
             {sub}
           </div>
         )}
-        {note && (
-          <div className="text-[11px] text-[#c4c9d4] dark:text-[#3a4050] mt-1 leading-tight">
-            {note}
-          </div>
-        )}
+        {note && <div className="text-[11px] text-[#c4c9d4] dark:text-[#3a4050] mt-1 leading-tight">{note}</div>}
       </div>
-      <div className="h-16">
-        {hasSparkline && (
-          <Sparkline data={sparkline!} color={color} id={gradId} />
-        )}
-      </div>
+      <div className="h-16">{hasSparkline && <Sparkline data={sparkline!} color={color} id={gradId} />}</div>
     </div>
   );
 }
@@ -171,25 +116,12 @@ function FunnelStep({
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span
-            className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
-            style={{ background: color }}
-          />
-          <span className={`text-[13px] font-medium ${textPrimary}`}>
-            {label}
-          </span>
+          <span className="inline-block w-2.5 h-2.5 rounded-full shrink-0" style={{ background: color }} />
+          <span className={`text-[13px] font-medium ${textPrimary}`}>{label}</span>
         </div>
         <div className="flex items-center gap-3">
-          <span
-            className={`text-[13px] tabular-nums font-semibold ${textPrimary}`}
-          >
-            {fmtNumber(value)}
-          </span>
-          <span
-            className={`text-[12px] tabular-nums ${textMuted} w-12 text-right`}
-          >
-            {pct.toFixed(1)}%
-          </span>
+          <span className={`text-[13px] tabular-nums font-semibold ${textPrimary}`}>{fmtNumber(value)}</span>
+          <span className={`text-[12px] tabular-nums ${textMuted} w-12 text-right`}>{pct.toFixed(1)}%</span>
         </div>
       </div>
       <div className="h-2.5 w-full bg-[#f3f4f6] dark:bg-[#252b38] rounded-full overflow-hidden">
@@ -201,9 +133,7 @@ function FunnelStep({
       {!isLast && dropOff !== undefined && (
         <div className="flex items-center gap-1.5 pl-1 pb-1">
           <div className="w-px h-3 bg-[#e5e7eb] dark:bg-[#2a2f3d] ml-[4px]" />
-          <span className={`text-[11px] ${textMuted}`}>
-            {dropOff.toFixed(1)}% drop-off
-          </span>
+          <span className={`text-[11px] ${textMuted}`}>{dropOff.toFixed(1)}% drop-off</span>
         </div>
       )}
     </div>
@@ -217,30 +147,21 @@ export default function Analytics({ addToast }: Props) {
   const [range, setRange] = useState<RangeKey>("30d");
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
-  const [countryMetric, setCountryMetric] = useState<
-    "downloads" | "impressions" | "pageViews"
-  >("downloads");
+  const [countryMetric, setCountryMetric] = useState<"downloads" | "impressions" | "pageViews">("downloads");
 
-  const params = useMemo(
-    () => rangeToParams(range, customStart, customEnd),
-    [range, customStart, customEnd],
-  );
+  const params = useMemo(() => rangeToParams(range, customStart, customEnd), [range, customStart, customEnd]);
 
   const {
     data: summary,
     loading: sumLoading,
     refetch: refetchSummary,
-  } = useApi<AnalyticsSummary>(
-    `/analytics/summary?bundleId=${bundleId}${params}`,
-  );
+  } = useApi<AnalyticsSummary>(`/analytics/summary?bundleId=${bundleId}${params}`);
 
   const {
     data: downloads,
     loading: dlLoading,
     refetch: refetchDownloads,
-  } = useApi<DownloadsData>(
-    `/analytics/downloads?bundleId=${bundleId}${params}`,
-  );
+  } = useApi<DownloadsData>(`/analytics/downloads?bundleId=${bundleId}${params}`);
 
   const { data: reviews, refetch: refetchReviews } = useApi<Review[]>(
     `/analytics/reviews?bundleId=${bundleId}&limit=200`,
@@ -253,10 +174,8 @@ export default function Analytics({ addToast }: Props) {
 
   const markers: ChartMarker[] = useMemo(() => {
     const result: ChartMarker[] = [];
-    if (markersData?.activatedAt)
-      result.push({ date: markersData.activatedAt, type: "activation" });
-    for (const v of markersData?.versionUpdates ?? [])
-      result.push({ date: v.date, type: "version", label: v.version });
+    if (markersData?.activatedAt) result.push({ date: markersData.activatedAt, type: "activation" });
+    for (const v of markersData?.versionUpdates ?? []) result.push({ date: v.date, type: "version", label: v.version });
     return result;
   }, [markersData]);
 
@@ -267,9 +186,7 @@ export default function Analytics({ addToast }: Props) {
     const minDate = byDay[0].date;
     const maxDate = byDay[byDay.length - 1].date;
     const existing = new Set(byDay.map((d) => d.date));
-    const toInject = markerDates.filter(
-      (d) => !existing.has(d) && d >= minDate && d <= maxDate,
-    );
+    const toInject = markerDates.filter((d) => !existing.has(d) && d >= minDate && d <= maxDate);
     if (!toInject.length) return byDay;
     const injected = toInject.map((d) => ({
       date: d,
@@ -300,8 +217,7 @@ export default function Analytics({ addToast }: Props) {
     }
   };
 
-  const hasEngagementData =
-    (summary?.totalImpressions ?? 0) > 0 || (summary?.totalPageViews ?? 0) > 0;
+  const hasEngagementData = (summary?.totalImpressions ?? 0) > 0 || (summary?.totalPageViews ?? 0) > 0;
 
   const loading = sumLoading || dlLoading;
 
@@ -314,9 +230,7 @@ export default function Analytics({ addToast }: Props) {
         <div className="flex">
           <p className={`text-sm ${textMuted} mr-3`}>
             {summary?.lastSyncAt && (
-              <span className="block h-full content-center">
-                Last synced {fmtDateTime(summary.lastSyncAt)}
-              </span>
+              <span className="block h-full content-center">Last synced {fmtDateTime(summary.lastSyncAt)}</span>
             )}
           </p>
           <button
@@ -395,40 +309,20 @@ export default function Analytics({ addToast }: Props) {
         />
         <StatCard
           label="Impressions"
-          value={
-            sumLoading
-              ? "—"
-              : hasEngagementData
-                ? fmtNumber(summary?.totalImpressions ?? 0)
-                : "—"
-          }
+          value={sumLoading ? "—" : hasEngagementData ? fmtNumber(summary?.totalImpressions ?? 0) : "—"}
           sub={rangeLabel(range)}
           dim={!hasEngagementData}
-          note={
-            !hasEngagementData
-              ? "Run a 2nd sync once Apple processes the request"
-              : undefined
-          }
+          note={!hasEngagementData ? "Run a 2nd sync once Apple processes the request" : undefined}
           sparkline={downloads?.byDay.map((d) => d.impressions)}
           icon={<Eye className="w-4 h-4" />}
           color="#0ea5e9"
         />
         <StatCard
           label="Product Page Views"
-          value={
-            sumLoading
-              ? "—"
-              : hasEngagementData
-                ? fmtNumber(summary?.totalPageViews ?? 0)
-                : "—"
-          }
+          value={sumLoading ? "—" : hasEngagementData ? fmtNumber(summary?.totalPageViews ?? 0) : "—"}
           sub={rangeLabel(range)}
           dim={!hasEngagementData}
-          note={
-            !hasEngagementData
-              ? "Run a 2nd sync once Apple processes the request"
-              : undefined
-          }
+          note={!hasEngagementData ? "Run a 2nd sync once Apple processes the request" : undefined}
           sparkline={downloads?.byDay.map((d) => d.pageViews)}
           icon={<Monitor className="w-4 h-4" />}
           color="#8b5cf6"
@@ -438,20 +332,10 @@ export default function Analytics({ addToast }: Props) {
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
         <StatCard
           label="Sessions"
-          value={
-            sumLoading
-              ? "—"
-              : hasEngagementData
-                ? fmtNumber(summary?.totalSessions ?? 0)
-                : "—"
-          }
+          value={sumLoading ? "—" : hasEngagementData ? fmtNumber(summary?.totalSessions ?? 0) : "—"}
           sub={rangeLabel(range)}
           dim={!hasEngagementData}
-          note={
-            !hasEngagementData
-              ? "Run a 2nd sync once Apple processes the request"
-              : undefined
-          }
+          note={!hasEngagementData ? "Run a 2nd sync once Apple processes the request" : undefined}
           sparkline={downloads?.byDay.map((d) => d.sessions)}
           icon={<Activity className="w-4 h-4" />}
           color="#10b981"
@@ -466,19 +350,11 @@ export default function Analytics({ addToast }: Props) {
         />
         <StatCard
           label="Conversion Rate"
-          value={
-            sumLoading
-              ? "—"
-              : summary?.conversionRate != null
-                ? fmtPct(summary.conversionRate)
-                : "—"
-          }
+          value={sumLoading ? "—" : summary?.conversionRate != null ? fmtPct(summary.conversionRate) : "—"}
           sub="Downloads / Impressions"
           dim={!hasEngagementData}
           note={!hasEngagementData ? "Requires impressions data" : undefined}
-          sparkline={downloads?.byDay.map((d) =>
-            d.impressions > 0 ? (d.downloads / d.impressions) * 100 : 0,
-          )}
+          sparkline={downloads?.byDay.map((d) => (d.impressions > 0 ? (d.downloads / d.impressions) * 100 : 0))}
           icon={<TrendingUp className="w-4 h-4" />}
           color="#D94412"
         />
@@ -498,35 +374,13 @@ export default function Analytics({ addToast }: Props) {
               className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] mb-5`}
             >
               <div className="flex items-center justify-between mb-4">
-                <div className={`text-[16px] font-semibold ${textPrimary}`}>
-                  Conversion Funnel
-                </div>
-                <span className={`text-[12px] ${textMuted}`}>
-                  {rangeLabel(range)}
-                </span>
+                <div className={`text-[16px] font-semibold ${textPrimary}`}>Conversion Funnel</div>
+                <span className={`text-[12px] ${textMuted}`}>{rangeLabel(range)}</span>
               </div>
               <div className="flex flex-col gap-0">
-                <FunnelStep
-                  label="Impressions"
-                  value={imp}
-                  pct={100}
-                  color="#6366f1"
-                  dropOff={dropImpToPv}
-                />
-                <FunnelStep
-                  label="Page Views"
-                  value={pv}
-                  pct={pvPct}
-                  color="#0ea5e9"
-                  dropOff={dropPvToDl}
-                />
-                <FunnelStep
-                  label="Downloads"
-                  value={dl}
-                  pct={dlPct}
-                  color="#D94412"
-                  isLast
-                />
+                <FunnelStep label="Impressions" value={imp} pct={100} color="#6366f1" dropOff={dropImpToPv} />
+                <FunnelStep label="Page Views" value={pv} pct={pvPct} color="#0ea5e9" dropOff={dropPvToDl} />
+                <FunnelStep label="Downloads" value={dl} pct={dlPct} color="#D94412" isLast />
               </div>
             </div>
           );
@@ -549,31 +403,23 @@ export default function Analytics({ addToast }: Props) {
           className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]`}
         >
           <div className="px-5 py-4 border-b border-[#f3f4f6] dark:border-[#2a2f3d] flex items-center justify-between">
-            <div className={`text-[16px] font-semibold ${textPrimary}`}>
-              Top Countries
-            </div>
+            <div className={`text-[16px] font-semibold ${textPrimary}`}>Top Countries</div>
             <div className="flex items-center gap-3">
               {hasEngagementData && (
                 <div className="flex gap-1 p-0.5 bg-[#f3f4f6] dark:bg-[#252b38] rounded-lg">
-                  {(["downloads", "impressions", "pageViews"] as const).map(
-                    (m) => (
-                      <button
-                        key={m}
-                        onClick={() => setCountryMetric(m)}
-                        className={`px-2 py-1 rounded-md text-[11px] font-medium transition-colors ${
-                          countryMetric === m
-                            ? "bg-white dark:bg-[#1c2028] ${textPrimary} shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
-                            : "${textMuted} hover:text-[#6b7280] dark:hover:text-[#8b93a5]"
-                        }`}
-                      >
-                        {m === "downloads"
-                          ? "DL"
-                          : m === "impressions"
-                            ? "Imp."
-                            : "Views"}
-                      </button>
-                    ),
-                  )}
+                  {(["downloads", "impressions", "pageViews"] as const).map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setCountryMetric(m)}
+                      className={`px-2 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                        countryMetric === m
+                          ? "bg-white dark:bg-[#1c2028] ${textPrimary} shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
+                          : "${textMuted} hover:text-[#6b7280] dark:hover:text-[#8b93a5]"
+                      }`}
+                    >
+                      {m === "downloads" ? "DL" : m === "impressions" ? "Imp." : "Views"}
+                    </button>
+                  ))}
                 </div>
               )}
               <Link
@@ -585,9 +431,7 @@ export default function Analytics({ addToast }: Props) {
             </div>
           </div>
           {(downloads?.byCountry ?? []).length === 0 ? (
-            <div className={`px-5 py-8 text-center text-[13px] ${textMuted}`}>
-              No data yet
-            </div>
+            <div className={`px-5 py-8 text-center text-[13px] ${textMuted}`}>No data yet</div>
           ) : (
             <table className="w-full">
               <thead>
@@ -608,20 +452,13 @@ export default function Analytics({ addToast }: Props) {
                   const sorted = [...(downloads?.byCountry ?? [])].sort(
                     (a, b) => (b[countryMetric] ?? 0) - (a[countryMetric] ?? 0),
                   );
-                  const total = sorted.reduce(
-                    (s, r) => s + (r[countryMetric] ?? 0),
-                    0,
-                  );
+                  const total = sorted.reduce((s, r) => s + (r[countryMetric] ?? 0), 0);
                   return sorted.slice(0, 10).map((r) => {
                     const val = r[countryMetric] ?? 0;
                     return (
                       <tr
                         key={r.country}
-                        onClick={() =>
-                          navigate(
-                            `/analytics/countries/${r.country.toLowerCase()}`,
-                          )
-                        }
+                        onClick={() => navigate(`/analytics/countries/${r.country.toLowerCase()}`)}
                         className="hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors cursor-pointer"
                       >
                         <td className={TD}>
@@ -631,23 +468,14 @@ export default function Analytics({ addToast }: Props) {
                               alt={r.country}
                               className="w-5 h-4 rounded-xs object-cover shrink-0"
                               onError={(e) => {
-                                (e.target as HTMLImageElement).style.display =
-                                  "none";
+                                (e.target as HTMLImageElement).style.display = "none";
                               }}
                             />
-                            <span className={`font-medium ${textPrimary}`}>
-                              {countryName(r.country)}
-                            </span>
-                            <span className={`text-[11px] ${textMuted}`}>
-                              {r.country.toUpperCase()}
-                            </span>
+                            <span className={`font-medium ${textPrimary}`}>{countryName(r.country)}</span>
+                            <span className={`text-[11px] ${textMuted}`}>{r.country.toUpperCase()}</span>
                           </div>
                         </td>
-                        <td
-                          className={`${TD} text-right tabular-nums ${textPrimary}`}
-                        >
-                          {fmtNumber(val)}
-                        </td>
+                        <td className={`${TD} text-right tabular-nums ${textPrimary}`}>{fmtNumber(val)}</td>
                         <td className={`${TD} text-right pr-5`}>
                           <div className="flex items-center justify-end gap-2">
                             <div className="w-16 h-1.5 bg-[#f3f4f6] dark:bg-[#252b38] rounded-full overflow-hidden">
@@ -658,9 +486,7 @@ export default function Analytics({ addToast }: Props) {
                                 }}
                               />
                             </div>
-                            <span
-                              className={`text-[12px] ${textMuted} w-9 text-right`}
-                            >
+                            <span className={`text-[12px] ${textMuted} w-9 text-right`}>
                               {total > 0 ? Math.round((val / total) * 100) : 0}%
                             </span>
                           </div>
@@ -678,9 +504,7 @@ export default function Analytics({ addToast }: Props) {
           className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]`}
         >
           <div className="flex items-center justify-between mb-4">
-            <div className={`text-[16px] font-semibold ${textPrimary}`}>
-              Rating Distribution
-            </div>
+            <div className={`text-[16px] font-semibold ${textPrimary}`}>Rating Distribution</div>
             <Link
               to="/analytics/reviews"
               className={`flex items-center gap-1 text-[12px] ${textMuted} hover:text-[#D94412] transition-colors`}
@@ -689,40 +513,20 @@ export default function Analytics({ addToast }: Props) {
             </Link>
           </div>
           {(reviews ?? []).length === 0 ? (
-            <div className={`py-8 text-center text-[13px] ${textMuted}`}>
-              No reviews yet
-            </div>
+            <div className={`py-8 text-center text-[13px] ${textMuted}`}>No reviews yet</div>
           ) : (
             <div className="space-y-2.5">
               {[5, 4, 3, 2, 1].map((star) => {
-                const count = (reviews ?? []).filter(
-                  (r) => r.rating === star,
-                ).length;
-                const pct =
-                  (reviews ?? []).length > 0
-                    ? (count / (reviews ?? []).length) * 100
-                    : 0;
+                const count = (reviews ?? []).filter((r) => r.rating === star).length;
+                const pct = (reviews ?? []).length > 0 ? (count / (reviews ?? []).length) * 100 : 0;
                 return (
                   <div key={star} className="flex items-center gap-3">
-                    <span
-                      className={`text-[13px] ${textPrimary} w-3 text-right`}
-                    >
-                      {star}
-                    </span>
-                    <span className={`text-[13px] ${textPrimary} font-medium`}>
-                      {star}
-                    </span>
+                    <span className={`text-[13px] ${textPrimary} w-3 text-right`}>{star}</span>
+                    <span className={`text-[13px] ${textPrimary} font-medium`}>{star}</span>
                     <div className="flex-1 h-2 bg-[#f3f4f6] dark:bg-[#252b38] rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-amber-400 rounded-full transition-all"
-                        style={{ width: `${pct}%` }}
-                      />
+                      <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${pct}%` }} />
                     </div>
-                    <span
-                      className={`text-[12px] ${textMuted} w-8 text-right tabular-nums`}
-                    >
-                      {count}
-                    </span>
+                    <span className={`text-[12px] ${textMuted} w-8 text-right tabular-nums`}>{count}</span>
                     <span className="text-[11px] text-[#c4c9d4] dark:text-[#3a4050] w-10 text-right tabular-nums">
                       {pct.toFixed(0)}%
                     </span>

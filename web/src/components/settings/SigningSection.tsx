@@ -1,15 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { authHeaders } from "../../hooks/useApi";
 import SectionCard from "./SectionCard";
-import {
-  borderDefault,
-  btnPrimary,
-  btnSecondary,
-  inputCls,
-  textMuted,
-  textPrimary,
-  textSecondary,
-} from "../../styles";
+import { borderDefault, btnPrimary, btnSecondary, inputCls, textMuted, textPrimary, textSecondary } from "../../styles";
 import { CheckCircle, Paperclip, FileText } from "lucide-react";
 
 interface SigningStatus {
@@ -69,10 +61,7 @@ export default function SigningSection({ appId, addToast }: Props) {
 
   const handleSave = async () => {
     if (!p12File || !profileFile || !password) {
-      addToast(
-        "Certificate (.p12), provisioning profile, and password are required",
-        "error",
-      );
+      addToast("Certificate (.p12), provisioning profile, and password are required", "error");
       return;
     }
     setSaving(true);
@@ -89,8 +78,7 @@ export default function SigningSection({ appId, addToast }: Props) {
           teamId: teamId || undefined,
         }),
       });
-      if (!res.ok)
-        throw new Error((await res.json()).error ?? "Failed to save");
+      if (!res.ok) throw new Error((await res.json()).error ?? "Failed to save");
       addToast("Signing credentials saved", "success");
       setShowForm(false);
       setP12File(null);
@@ -106,20 +94,14 @@ export default function SigningSection({ appId, addToast }: Props) {
   };
 
   const handleRemove = async () => {
-    if (
-      !confirm(
-        "Remove signing credentials? Binary builds will fail until new credentials are added.",
-      )
-    )
-      return;
+    if (!confirm("Remove signing credentials? Binary builds will fail until new credentials are added.")) return;
     setRemoving(true);
     try {
       const res = await fetch(`/api/apps/${appId}/signing`, {
         method: "DELETE",
         headers: authHeaders(),
       });
-      if (!res.ok)
-        throw new Error((await res.json()).error ?? "Failed to remove");
+      if (!res.ok) throw new Error((await res.json()).error ?? "Failed to remove");
       addToast("Signing credentials removed", "success");
       fetchStatus();
     } catch (err: any) {
@@ -145,13 +127,9 @@ export default function SigningSection({ appId, addToast }: Props) {
               <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
-              <div className={`text-sm font-medium ${textPrimary}`}>
-                Credentials configured
-              </div>
+              <div className={`text-sm font-medium ${textPrimary}`}>Credentials configured</div>
               <div className={`text-[11px] ${textMuted}`}>
-                {status?.teamId
-                  ? `Team ID: ${status.teamId}`
-                  : "Cert + profile stored"}
+                {status?.teamId ? `Team ID: ${status.teamId}` : "Cert + profile stored"}
               </div>
             </div>
           </div>
@@ -159,11 +137,7 @@ export default function SigningSection({ appId, addToast }: Props) {
             <button className={btnSecondary} onClick={() => setShowForm(true)}>
               Update
             </button>
-            <button
-              className={btnSecondary}
-              onClick={handleRemove}
-              disabled={removing}
-            >
+            <button className={btnSecondary} onClick={handleRemove} disabled={removing}>
               {removing ? "Removing…" : "Remove"}
             </button>
           </div>
@@ -173,8 +147,7 @@ export default function SigningSection({ appId, addToast }: Props) {
           {!hasAll && !showForm && (
             <div className="flex items-center justify-between">
               <div className={`text-sm ${textSecondary}`}>
-                No signing credentials configured — binary builds will be
-                skipped.
+                No signing credentials configured — binary builds will be skipped.
               </div>
               <button className={btnPrimary} onClick={() => setShowForm(true)}>
                 Add Credentials
@@ -186,19 +159,13 @@ export default function SigningSection({ appId, addToast }: Props) {
             <div className="flex flex-col gap-3">
               {/* .p12 */}
               <div>
-                <label
-                  className={`block text-xs font-medium ${textSecondary} mb-1.5`}
-                >
-                  Certificate (.p12)
-                </label>
+                <label className={`block text-xs font-medium ${textSecondary} mb-1.5`}>Certificate (.p12)</label>
                 <div
                   className={`flex items-center gap-3 px-3.5 py-[9px] rounded-xl border ${borderDefault} bg-white dark:bg-[#1c2028] cursor-pointer hover:border-[#D94412] transition-colors`}
                   onClick={() => p12Ref.current?.click()}
                 >
                   <Paperclip className="w-4 h-4 text-[#9ca3af] flex-shrink-0" />
-                  <span className={`text-[13px] ${textMuted}`}>
-                    {p12File ? p12File.name : "Choose .p12 file…"}
-                  </span>
+                  <span className={`text-[13px] ${textMuted}`}>{p12File ? p12File.name : "Choose .p12 file…"}</span>
                   <input
                     ref={p12Ref}
                     type="file"
@@ -211,11 +178,7 @@ export default function SigningSection({ appId, addToast }: Props) {
 
               {/* Password */}
               <div>
-                <label
-                  className={`block text-xs font-medium ${textSecondary} mb-1.5`}
-                >
-                  Certificate Password
-                </label>
+                <label className={`block text-xs font-medium ${textSecondary} mb-1.5`}>Certificate Password</label>
                 <input
                   type="password"
                   className={inputCls}
@@ -227,9 +190,7 @@ export default function SigningSection({ appId, addToast }: Props) {
 
               {/* .mobileprovision */}
               <div>
-                <label
-                  className={`block text-xs font-medium ${textSecondary} mb-1.5`}
-                >
+                <label className={`block text-xs font-medium ${textSecondary} mb-1.5`}>
                   Provisioning Profile (.mobileprovision)
                 </label>
                 <div
@@ -238,29 +199,22 @@ export default function SigningSection({ appId, addToast }: Props) {
                 >
                   <FileText className="w-4 h-4 text-[#9ca3af] flex-shrink-0" />
                   <span className={`text-[13px] ${textMuted}`}>
-                    {profileFile
-                      ? profileFile.name
-                      : "Choose .mobileprovision file…"}
+                    {profileFile ? profileFile.name : "Choose .mobileprovision file…"}
                   </span>
                   <input
                     ref={profileRef}
                     type="file"
                     accept=".mobileprovision"
                     className="hidden"
-                    onChange={(e) =>
-                      setProfileFile(e.target.files?.[0] ?? null)
-                    }
+                    onChange={(e) => setProfileFile(e.target.files?.[0] ?? null)}
                   />
                 </div>
               </div>
 
               {/* Team ID */}
               <div>
-                <label
-                  className={`block text-xs font-medium ${textSecondary} mb-1.5`}
-                >
-                  Apple Team ID{" "}
-                  <span className="font-normal text-[#9ca3af]">(optional)</span>
+                <label className={`block text-xs font-medium ${textSecondary} mb-1.5`}>
+                  Apple Team ID <span className="font-normal text-[#9ca3af]">(optional)</span>
                 </label>
                 <input
                   type="text"
@@ -272,11 +226,7 @@ export default function SigningSection({ appId, addToast }: Props) {
               </div>
 
               <div className="flex gap-2 pt-1">
-                <button
-                  className={btnPrimary}
-                  onClick={handleSave}
-                  disabled={saving}
-                >
+                <button className={btnPrimary} onClick={handleSave} disabled={saving}>
                   {saving ? "Saving…" : "Save Credentials"}
                 </button>
                 <button

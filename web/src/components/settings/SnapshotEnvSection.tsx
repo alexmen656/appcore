@@ -1,12 +1,7 @@
 import { useState, useEffect } from "react";
 import { authHeaders } from "../../hooks/useApi";
 import SectionCard from "./SectionCard";
-import {
-  btnPrimary,
-  btnSecondary,
-  inputCls,
-  textSecondary,
-} from "../../styles";
+import { btnPrimary, btnSecondary, inputCls, textSecondary } from "../../styles";
 import { X } from "lucide-react";
 
 interface EnvVar {
@@ -46,9 +41,7 @@ export default function SnapshotEnvSection({ appId, addToast }: Props) {
   }, [appId]);
 
   const update = (index: number, field: "key" | "value", val: string) => {
-    setEnvVars((prev) =>
-      prev.map((e, i) => (i === index ? { ...e, [field]: val } : e)),
-    );
+    setEnvVars((prev) => prev.map((e, i) => (i === index ? { ...e, [field]: val } : e)));
     setDirty(true);
   };
 
@@ -71,8 +64,7 @@ export default function SnapshotEnvSection({ appId, addToast }: Props) {
         headers: { ...authHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify({ envVars: valid }),
       });
-      if (!res.ok)
-        throw new Error((await res.json()).error ?? "Failed to save");
+      if (!res.ok) throw new Error((await res.json()).error ?? "Failed to save");
       setEnvVars(valid);
       setDirty(false);
       addToast("Environment variables saved", "success");
@@ -93,8 +85,7 @@ export default function SnapshotEnvSection({ appId, addToast }: Props) {
       <div className="flex flex-col gap-2">
         {envVars.length === 0 && !dirty && (
           <p className={`text-sm ${textSecondary} mb-2`}>
-            No variables configured. Add key-value pairs for credentials your UI
-            tests need.
+            No variables configured. Add key-value pairs for credentials your UI tests need.
           </p>
         )}
 
@@ -130,11 +121,7 @@ export default function SnapshotEnvSection({ appId, addToast }: Props) {
             + Add Variable
           </button>
           {dirty && (
-            <button
-              className={btnPrimary}
-              onClick={handleSave}
-              disabled={saving}
-            >
+            <button className={btnPrimary} onClick={handleSave} disabled={saving}>
               {saving ? "Saving…" : "Save"}
             </button>
           )}

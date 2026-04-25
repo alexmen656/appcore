@@ -12,9 +12,7 @@ export default function Field({
 }) {
   return (
     <div className={fullWidth ? "col-span-2" : ""}>
-      <label className={`text-sm font-medium ${textPrimary} block mb-1`}>
-        {label}
-      </label>
+      <label className={`text-sm font-medium ${textPrimary} block mb-1`}>{label}</label>
       {children}
       {hint && <p className={`text-[11px] ${textMuted} mb-1.5`}>{hint}</p>}
     </div>

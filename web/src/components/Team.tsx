@@ -20,8 +20,7 @@ const ROLE_LABELS: Record<TeamRole, string> = {
 
 const ROLE_COLORS: Record<TeamRole, string> = {
   OWNER: "bg-[#fef2f3] text-[#D94412] dark:bg-[#2a1f23] dark:text-[#f87171]",
-  ADMIN:
-    "bg-violet-50 text-violet-700 dark:bg-violet-900/20 dark:text-violet-400",
+  ADMIN: "bg-violet-50 text-violet-700 dark:bg-violet-900/20 dark:text-violet-400",
   MEMBER: "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400",
   VIEWER: "bg-gray-100 text-gray-500 dark:bg-[#252b38] dark:text-[#8b93a5]",
 };
@@ -57,21 +56,9 @@ interface TeamData {
   pendingInvites: PendingInvite[];
 }
 
-function AppIconStack({
-  apps,
-  selectedIds,
-  max = 4,
-}: {
-  apps: AppOption[];
-  selectedIds: string[];
-  max?: number;
-}) {
+function AppIconStack({ apps, selectedIds, max = 4 }: { apps: AppOption[]; selectedIds: string[]; max?: number }) {
   if (selectedIds.length === 0) {
-    return (
-      <span className="text-xs text-gray-400 dark:text-[#5c6478] italic">
-        All apps
-      </span>
-    );
+    return <span className="text-xs text-gray-400 dark:text-[#5c6478] italic">All apps</span>;
   }
   const selected = apps.filter((a) => selectedIds.includes(a.id));
   const visible = selected.slice(0, max);
@@ -88,11 +75,7 @@ function AppIconStack({
             className="w-7 h-7 rounded-[7px] overflow-hidden border-2 border-white dark:border-[#1c2028] bg-gray-100 dark:bg-[#252b38] shrink-0"
           >
             {app.iconUrl ? (
-              <img
-                src={app.iconUrl}
-                alt={app.name}
-                className="w-full h-full object-cover"
-              />
+              <img src={app.iconUrl} alt={app.name} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-gray-400">
                 {app.name.charAt(0)}
@@ -102,9 +85,7 @@ function AppIconStack({
         ))}
       </div>
       {overflow > 0 && (
-        <span className="text-[11px] font-medium text-gray-400 dark:text-[#5c6478]">
-          +{overflow} more
-        </span>
+        <span className="text-[11px] font-medium text-gray-400 dark:text-[#5c6478]">+{overflow} more</span>
       )}
     </div>
   );
@@ -130,15 +111,11 @@ export default function Team({
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState("");
   const [savingName, setSavingName] = useState(false);
-  const [appAccessMemberId, setAppAccessMemberId] = useState<string | null>(
-    null,
-  );
+  const [appAccessMemberId, setAppAccessMemberId] = useState<string | null>(null);
   const [allApps, setAllApps] = useState<AppOption[]>([]);
   const [selectedAppIds, setSelectedAppIds] = useState<string[]>([]);
   const [savingAppAccess, setSavingAppAccess] = useState(false);
-  const [memberAppIds, setMemberAppIds] = useState<Record<string, string[]>>(
-    {},
-  );
+  const [memberAppIds, setMemberAppIds] = useState<Record<string, string[]>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -162,18 +139,14 @@ export default function Team({
 
   useEffect(() => {
     if (!data) return;
-    const membersNeedingAccess = data.members.filter(
-      (m) => m.role === "MEMBER" || m.role === "VIEWER",
-    );
+    const membersNeedingAccess = data.members.filter((m) => m.role === "MEMBER" || m.role === "VIEWER");
     membersNeedingAccess.forEach(async (m) => {
       try {
         const [appsRes, accessRes] = await Promise.all([
           fetch("/api/apps", { headers: authHeaders() }),
           fetch(`/api/team/members/${m.id}/apps`, { headers: authHeaders() }),
         ]);
-        const apps: AppOption[] = (await appsRes.json()).filter(
-          (a: any) => a.isOwnApp,
-        );
+        const apps: AppOption[] = (await appsRes.json()).filter((a: any) => a.isOwnApp);
         const { appIds } = await accessRes.json();
         setAllApps(apps);
         setMemberAppIds((prev) => ({ ...prev, [m.id]: appIds }));
@@ -263,9 +236,7 @@ export default function Team({
         fetch("/api/apps", { headers: authHeaders() }),
         fetch(`/api/team/members/${memberId}/apps`, { headers: authHeaders() }),
       ]);
-      const apps: AppOption[] = (await appsRes.json()).filter(
-        (a: any) => a.isOwnApp,
-      );
+      const apps: AppOption[] = (await appsRes.json()).filter((a: any) => a.isOwnApp);
       const { appIds } = await accessRes.json();
       setAllApps(apps);
       setSelectedAppIds(appIds);
@@ -353,9 +324,7 @@ export default function Team({
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-[#1a1a2e] dark:text-[#e8eaf0]">
-                {data?.team.name ?? "Team"}
-              </h1>
+              <h1 className="text-2xl font-bold text-[#1a1a2e] dark:text-[#e8eaf0]">{data?.team.name ?? "Team"}</h1>
               {canManage && (
                 <button
                   onClick={() => {
@@ -395,9 +364,7 @@ export default function Team({
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-[#1a1a2e] dark:text-[#e8eaf0]">
-                Invite a new member
-              </p>
+              <p className="text-sm font-semibold text-[#1a1a2e] dark:text-[#e8eaf0]">Invite a new member</p>
               <p className="text-xs text-gray-400 dark:text-[#5c6478] mt-0.5">
                 They'll receive an email with a link to join the team.
               </p>
@@ -440,9 +407,7 @@ export default function Team({
               {inviting ? "…" : "Send invite"}
             </button>
           </div>
-          {inviteError && (
-            <p className="text-xs text-[#D94412]">{inviteError}</p>
-          )}
+          {inviteError && <p className="text-xs text-[#D94412]">{inviteError}</p>}
         </form>
       )}
 
@@ -490,9 +455,7 @@ export default function Team({
                         )}
                       </div>
                       {m.name && (
-                        <div className="text-[11px] text-gray-400 dark:text-[#5c6478] truncate">
-                          {m.email}
-                        </div>
+                        <div className="text-[11px] text-gray-400 dark:text-[#5c6478] truncate">{m.email}</div>
                       )}
                     </div>
                   </div>
@@ -502,9 +465,7 @@ export default function Team({
                       <div className="flex items-center gap-1.5">
                         <select
                           value={editRole}
-                          onChange={(e) =>
-                            setEditRole(e.target.value as TeamRole)
-                          }
+                          onChange={(e) => setEditRole(e.target.value as TeamRole)}
                           className={`px-2 py-1.5 text-xs rounded-lg border border-[#e5e7eb] dark:border-[#2a2f3d] bg-white dark:bg-[#252b38] ${textPrimary} focus:outline-none focus:border-[#D94412]`}
                         >
                           <option value="VIEWER">Viewer</option>
@@ -536,14 +497,9 @@ export default function Team({
 
                   <div>
                     {showAppAccess ? (
-                      <AppIconStack
-                        apps={allApps}
-                        selectedIds={memberAppIds[m.id] ?? []}
-                      />
+                      <AppIconStack apps={allApps} selectedIds={memberAppIds[m.id] ?? []} />
                     ) : (
-                      <span className="text-xs text-gray-400 dark:text-[#5c6478] italic">
-                        Full access
-                      </span>
+                      <span className="text-xs text-gray-400 dark:text-[#5c6478] italic">Full access</span>
                     )}
                   </div>
 
@@ -563,9 +519,7 @@ export default function Team({
                         {showAppAccess && (
                           <button
                             onClick={() =>
-                              appAccessMemberId === m.id
-                                ? setAppAccessMemberId(null)
-                                : handleOpenAppAccess(m.id)
+                              appAccessMemberId === m.id ? setAppAccessMemberId(null) : handleOpenAppAccess(m.id)
                             }
                             className={`p-1.5 rounded-lg transition-all ${appAccessMemberId === m.id ? "text-[#D94412] bg-[#fef2f3] dark:bg-[#2a1f23]" : "text-gray-400 dark:text-[#5c6478] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] hover:bg-gray-100 dark:hover:bg-[#252b38]"}`}
                             title="Manage app access"
@@ -600,9 +554,7 @@ export default function Team({
                       </div>
                     </div>
                     {allApps.length === 0 ? (
-                      <p className="text-xs text-gray-400 dark:text-[#5c6478]">
-                        No own apps available
-                      </p>
+                      <p className="text-xs text-gray-400 dark:text-[#5c6478]">No own apps available</p>
                     ) : (
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mb-4 max-h-48 overflow-y-auto">
                         {allApps.map((app) => (
@@ -612,11 +564,7 @@ export default function Team({
                           >
                             <div className="w-8 h-8 rounded-[8px] overflow-hidden bg-gray-100 dark:bg-[#252b38] shrink-0">
                               {app.iconUrl ? (
-                                <img
-                                  src={app.iconUrl}
-                                  alt={app.name}
-                                  className="w-full h-full object-cover"
-                                />
+                                <img src={app.iconUrl} alt={app.name} className="w-full h-full object-cover" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-gray-400">
                                   {app.name.charAt(0)}
@@ -627,23 +575,16 @@ export default function Team({
                               <p className="text-xs font-medium text-[#1a1a2e] dark:text-[#e8eaf0] truncate">
                                 {app.name}
                               </p>
-                              <p className="text-[10px] text-gray-400 dark:text-[#5c6478] truncate">
-                                {app.bundleId}
-                              </p>
+                              <p className="text-[10px] text-gray-400 dark:text-[#5c6478] truncate">{app.bundleId}</p>
                             </div>
                             <input
                               type="checkbox"
                               checked={selectedAppIds.includes(app.id)}
                               onChange={(e) => {
                                 if (e.target.checked) {
-                                  setSelectedAppIds((prev) => [
-                                    ...prev,
-                                    app.id,
-                                  ]);
+                                  setSelectedAppIds((prev) => [...prev, app.id]);
                                 } else {
-                                  setSelectedAppIds((prev) =>
-                                    prev.filter((id) => id !== app.id),
-                                  );
+                                  setSelectedAppIds((prev) => prev.filter((id) => id !== app.id));
                                 }
                               }}
                               className="accent-[#D94412] w-3.5 h-3.5 shrink-0"
@@ -699,12 +640,9 @@ export default function Team({
                   {inv.email.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-[#1a1a2e] dark:text-[#e8eaf0] truncate">
-                    {inv.email}
-                  </div>
+                  <div className="text-sm font-medium text-[#1a1a2e] dark:text-[#e8eaf0] truncate">{inv.email}</div>
                   <div className="text-[11px] text-gray-400 dark:text-[#5c6478]">
-                    Invited by {inv.invitedBy} · expires{" "}
-                    {new Date(inv.expiresAt).toLocaleDateString("en")}
+                    Invited by {inv.invitedBy} · expires {new Date(inv.expiresAt).toLocaleDateString("en")}
                   </div>
                 </div>
                 <span
@@ -733,14 +671,10 @@ export default function Team({
             key={r}
             className="p-3.5 bg-white dark:bg-[#1c2028] border border-[#e5e7eb] dark:border-[#2a2f3d] rounded-xl shadow-sm"
           >
-            <span
-              className={`inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-full ${ROLE_COLORS[r]}`}
-            >
+            <span className={`inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-full ${ROLE_COLORS[r]}`}>
               {ROLE_LABELS[r]}
             </span>
-            <p className="mt-2 text-[11px] text-gray-400 dark:text-[#5c6478] leading-snug">
-              {ROLE_DESCRIPTIONS[r]}
-            </p>
+            <p className="mt-2 text-[11px] text-gray-400 dark:text-[#5c6478] leading-snug">{ROLE_DESCRIPTIONS[r]}</p>
           </div>
         ))}
       </div>

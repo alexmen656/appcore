@@ -10,23 +10,14 @@ interface Props {
   onChange: (key: keyof SettingsData, value: any) => void;
 }
 
-export default function AscCredentialsSection({
-  form,
-  data,
-  inputCls,
-  textareaCls,
-  onChange,
-}: Props) {
+export default function AscCredentialsSection({ form, data, inputCls, textareaCls, onChange }: Props) {
   return (
     <SectionCard
       title="App Store Connect"
       desc="Required for syncing your app metadata, current keywords, and submitting ASO changes."
     >
       <div className="grid grid-cols-2 gap-4">
-        <Field
-          label="Issuer ID"
-          hint="Found in App Store Connect → Users & Access → Integrations"
-        >
+        <Field label="Issuer ID" hint="Found in App Store Connect → Users & Access → Integrations">
           <input
             className={inputCls}
             type="text"
@@ -44,10 +35,7 @@ export default function AscCredentialsSection({
             placeholder="XXXXXXXXXX"
           />
         </Field>
-        <Field
-          label="Vendor Number"
-          hint="Found in App Store Connect → Payments & Financial Reports"
-        >
+        <Field label="Vendor Number" hint="Found in App Store Connect → Payments & Financial Reports">
           <input
             className={inputCls}
             type="text"
@@ -68,11 +56,7 @@ export default function AscCredentialsSection({
           <textarea
             className={textareaCls}
             rows={5}
-            value={
-              form.ascPrivateKey === "••••••••"
-                ? ""
-                : (form.ascPrivateKey ?? "")
-            }
+            value={form.ascPrivateKey === "••••••••" ? "" : (form.ascPrivateKey ?? "")}
             onChange={(e) => onChange("ascPrivateKey", e.target.value)}
           />
         </Field>

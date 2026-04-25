@@ -47,11 +47,7 @@ export default function KeywordForm({
             </option>
           ))}
         </select>
-        <button
-          type="submit"
-          className={`${btnPrimary} w-100`}
-          disabled={adding}
-        >
+        <button type="submit" className={`${btnPrimary} w-100`} disabled={adding}>
           + Add
         </button>
       </form>
@@ -64,9 +60,7 @@ export default function KeywordForm({
         >
           <option value="">All Markets</option>
           {availableCountries.map((code) => {
-            const label =
-              COUNTRIES.find((c) => c.code === code)?.label ??
-              code.toUpperCase();
+            const label = COUNTRIES.find((c) => c.code === code)?.label ?? code.toUpperCase();
             return (
               <option key={code} value={code}>
                 {label}

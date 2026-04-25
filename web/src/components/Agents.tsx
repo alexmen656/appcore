@@ -2,15 +2,7 @@ import { useState } from "react";
 import { useApi, apiPut, apiPost, apiDelete } from "../hooks/useApi";
 import SectionCard from "./settings/SectionCard";
 import type { McpConfig, OAuthClient } from "../types";
-import {
-  TD,
-  TH,
-  borderDefault,
-  btnSecSm,
-  pageTitle,
-  textMuted,
-  textPrimary,
-} from "../styles";
+import { TD, TH, borderDefault, btnSecSm, pageTitle, textMuted, textPrimary } from "../styles";
 
 interface Props {
   addToast: (msg: string, type?: "success" | "error") => void;
@@ -57,17 +49,12 @@ const MCP_TOOLS = [
 
 export default function Agents({ addToast }: Props) {
   const { data: config, refetch } = useApi<McpConfig>("/mcp/config", [], true);
-  const { data: oauthClients, refetch: refetchClients } = useApi<OAuthClient[]>(
-    "/mcp/oauth-clients",
-    [],
-    true,
-  );
+  const { data: oauthClients, refetch: refetchClients } = useApi<OAuthClient[]>("/mcp/oauth-clients", [], true);
 
   const [toggling, setToggling] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const mcpUrl =
-    typeof window !== "undefined" ? `${window.location.origin}/mcp` : "/mcp";
+  const mcpUrl = typeof window !== "undefined" ? `${window.location.origin}/mcp` : "/mcp";
 
   const handleToggle = async () => {
     if (!config) return;
@@ -75,10 +62,7 @@ export default function Agents({ addToast }: Props) {
     try {
       await apiPut("/mcp/config", { mcpEnabled: !config.mcpEnabled });
       await refetch();
-      addToast(
-        config.mcpEnabled ? "MCP server disabled" : "MCP server enabled",
-        "success",
-      );
+      addToast(config.mcpEnabled ? "MCP server disabled" : "MCP server enabled", "success");
     } catch {
       addToast("Failed to update MCP status", "error");
     } finally {
@@ -108,9 +92,7 @@ export default function Agents({ addToast }: Props) {
   return (
     <div className="max-w-3xl">
       <h1 className={`${pageTitle} mb-1`}>Agents</h1>
-      <p className={`text-sm ${textMuted} mb-8`}>
-        Connect AI agents like Claude Desktop via MCP
-      </p>
+      <p className={`text-sm ${textMuted} mb-8`}>Connect AI agents like Claude Desktop via MCP</p>
 
       <SectionCard
         title="MCP Server"
@@ -118,9 +100,7 @@ export default function Agents({ addToast }: Props) {
       >
         <div className="flex items-center justify-between">
           <div>
-            <div className={`text-sm font-medium ${textPrimary}`}>
-              MCP Server Status
-            </div>
+            <div className={`text-sm font-medium ${textPrimary}`}>MCP Server Status</div>
             <div className={`text-xs ${textMuted} mt-0.5`}>
               {config?.mcpEnabled
                 ? `Active — endpoint available at ${mcpUrl}`
@@ -131,9 +111,7 @@ export default function Agents({ addToast }: Props) {
             onClick={handleToggle}
             disabled={toggling || !config}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
-              config?.mcpEnabled
-                ? "bg-[#D94412]"
-                : "bg-gray-200 dark:bg-[#2a2f3d]"
+              config?.mcpEnabled ? "bg-[#D94412]" : "bg-gray-200 dark:bg-[#2a2f3d]"
             }`}
           >
             <span
@@ -146,18 +124,10 @@ export default function Agents({ addToast }: Props) {
       </SectionCard>
 
       <SectionCard title="OAuth Clients">
-        <div
-          className={`mb-5 p-3.5 rounded-xl bg-[#f8f9fb] dark:bg-[#252b38] border ${borderDefault}`}
-        >
-          <p className={`text-[12px] font-medium ${textPrimary} mb-1.5`}>
-            How to connect Claude Desktop
-          </p>
-          <ol
-            className={`text-[12px] ${textMuted} space-y-1 list-decimal list-inside`}
-          >
-            <li>
-              In Claude Desktop → Settings → Connectors → Add custom connector.
-            </li>
+        <div className={`mb-5 p-3.5 rounded-xl bg-[#f8f9fb] dark:bg-[#252b38] border ${borderDefault}`}>
+          <p className={`text-[12px] font-medium ${textPrimary} mb-1.5`}>How to connect Claude Desktop</p>
+          <ol className={`text-[12px] ${textMuted} space-y-1 list-decimal list-inside`}>
+            <li>In Claude Desktop → Settings → Connectors → Add custom connector.</li>
             <li>
               Enter the MCP Server URL:{" "}
               <code
@@ -169,12 +139,9 @@ export default function Agents({ addToast }: Props) {
               </code>
             </li>
             <li>
-              Leave OAuth Client ID and Secret{" "}
-              <strong className={`${textPrimary}`}>empty</strong>
+              Leave OAuth Client ID and Secret <strong className={`${textPrimary}`}>empty</strong>
             </li>
-            <li>
-              Claude.ai opens an Marteso login page - sign in to authorize.
-            </li>
+            <li>Claude.ai opens an Marteso login page - sign in to authorize.</li>
             <li>Done. The client appears in the table below.</li>
           </ol>
         </div>
@@ -195,9 +162,7 @@ export default function Agents({ addToast }: Props) {
                   <tr key={client.id}>
                     <td className={TD}>
                       <div className="flex items-center gap-2">
-                        <span className={`font-medium ${textPrimary}`}>
-                          {client.name}
-                        </span>
+                        <span className={`font-medium ${textPrimary}`}>{client.name}</span>
                         {client.userId === null && (
                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium">
                             auto
@@ -207,9 +172,7 @@ export default function Agents({ addToast }: Props) {
                     </td>
                     <td className={TD}>
                       <div className="flex items-center gap-1.5">
-                        <code className={`text-[11px] font-mono ${textMuted}`}>
-                          {client.clientId}
-                        </code>
+                        <code className={`text-[11px] font-mono ${textMuted}`}>{client.clientId}</code>
                         <button
                           onClick={() => copyToClipboard(client.clientId)}
                           className={`text-[10px] ${textMuted} hover:text-[#D94412] transition-colors`}
@@ -219,9 +182,7 @@ export default function Agents({ addToast }: Props) {
                         </button>
                       </div>
                     </td>
-                    <td className={`${TD} ${textMuted}`}>
-                      {new Date(client.createdAt).toLocaleDateString()}
-                    </td>
+                    <td className={`${TD} ${textMuted}`}>{new Date(client.createdAt).toLocaleDateString()}</td>
                     <td className={TD}>
                       <button
                         onClick={() => handleDeleteClient(client.id)}
@@ -237,9 +198,7 @@ export default function Agents({ addToast }: Props) {
             </table>
           </div>
         ) : (
-          <p className={`text-[13px] ${textMuted}`}>
-            No clients connected yet.
-          </p>
+          <p className={`text-[13px] ${textMuted}`}>No clients connected yet.</p>
         )}
       </SectionCard>
 
@@ -253,12 +212,8 @@ export default function Agents({ addToast }: Props) {
               key={tool.name}
               className={`flex items-start gap-3 p-3 bg-[#f8f9fb] dark:bg-[#252b38] rounded-xl border ${borderDefault}`}
             >
-              <code className="text-[12px] font-mono font-semibold text-[#D94412] shrink-0 mt-0.5">
-                {tool.name}
-              </code>
-              <span className="text-xs text-gray-500 dark:text-[#8b93a5] mt-0.5">
-                {tool.desc}
-              </span>
+              <code className="text-[12px] font-mono font-semibold text-[#D94412] shrink-0 mt-0.5">{tool.name}</code>
+              <span className="text-xs text-gray-500 dark:text-[#8b93a5] mt-0.5">{tool.desc}</span>
             </div>
           ))}
         </div>

@@ -4,29 +4,9 @@ import { ArrowLeft, Download, Eye, Monitor, Star } from "lucide-react";
 import { useApi, getActiveBundleId } from "../../hooks/useApi";
 import type { DownloadsData, Review } from "../../types";
 import { fmtNumber, fmtLargeNum, countryName } from "../../utils/formatters";
-import {
-  type RangeKey,
-  RANGE_OPTIONS,
-  rangeToParams,
-  rangeLabel,
-} from "../../utils/analyticsRange";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts";
-import {
-  TD,
-  borderDefault,
-  pageTitle,
-  textMuted,
-  textPrimary,
-  textSecondary,
-} from "../../styles";
+import { type RangeKey, RANGE_OPTIONS, rangeToParams, rangeLabel } from "../../utils/analyticsRange";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { TD, borderDefault, pageTitle, textMuted, textPrimary, textSecondary } from "../../styles";
 
 function StatTile({
   label,
@@ -44,16 +24,12 @@ function StatTile({
       className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]`}
     >
       <div className="flex items-start justify-between mb-3">
-        <span className={`text-[13px] font-semibold ${textPrimary}`}>
-          {label}
-        </span>
+        <span className={`text-[13px] font-semibold ${textPrimary}`}>{label}</span>
         <span style={{ color }} className="opacity-60">
           {icon}
         </span>
       </div>
-      <div className={`text-[36px] font-bold leading-none ${textPrimary}`}>
-        {value}
-      </div>
+      <div className={`text-[36px] font-bold leading-none ${textPrimary}`}>{value}</div>
       <div className={`text-[12px] ${textMuted} mt-2`}>{label}</div>
     </div>
   );
@@ -69,10 +45,7 @@ export default function AnalyticsCountryDetail() {
 
   const countryCode = (country ?? "").toUpperCase();
 
-  const params = useMemo(
-    () => rangeToParams(range, customStart, customEnd),
-    [range, customStart, customEnd],
-  );
+  const params = useMemo(() => rangeToParams(range, customStart, customEnd), [range, customStart, customEnd]);
 
   const { data: downloads, loading } = useApi<DownloadsData>(
     `/analytics/downloads?bundleId=${bundleId}${params}&country=${countryCode}`,
@@ -83,10 +56,7 @@ export default function AnalyticsCountryDetail() {
   );
 
   const reviews = useMemo(
-    () =>
-      (allReviews ?? []).filter(
-        (r) => (r.territory ?? "").toUpperCase() === countryCode,
-      ),
+    () => (allReviews ?? []).filter((r) => (r.territory ?? "").toUpperCase() === countryCode),
     [allReviews, countryCode],
   );
 
@@ -101,9 +71,7 @@ export default function AnalyticsCountryDetail() {
 
   const hasEngagementData = totals.impressions > 0 || totals.pageViews > 0;
   const conversionRate =
-    totals.impressions > 0
-      ? ((totals.downloads / totals.impressions) * 100).toFixed(1) + "%"
-      : "—";
+    totals.impressions > 0 ? ((totals.downloads / totals.impressions) * 100).toFixed(1) + "%" : "—";
 
   const ratingCounts = useMemo(() => {
     const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
@@ -111,14 +79,10 @@ export default function AnalyticsCountryDetail() {
     return counts;
   }, [reviews]);
 
-  const avgRating =
-    reviews.length > 0
-      ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
-      : null;
+  const avgRating = reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : null;
 
   return (
     <div className="max-w-[1440px] mx-auto">
-      {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <button
           onClick={() => navigate(-1)}
@@ -135,16 +99,11 @@ export default function AnalyticsCountryDetail() {
           }}
         />
         <div>
-          <h1 className={`${pageTitle} leading-tight`}>
-            {countryName(countryCode)}
-          </h1>
-          <p className={`text-sm ${textMuted}`}>
-            {countryCode} · Analytics breakdown
-          </p>
+          <h1 className={`${pageTitle} leading-tight`}>{countryName(countryCode)}</h1>
+          <p className={`text-sm ${textMuted}`}>{countryCode} · Analytics breakdown</p>
         </div>
       </div>
 
-      {/* Range picker */}
       <div className="flex flex-wrap items-center gap-2 mb-5">
         <div className="flex gap-1 p-1 bg-[#f3f4f6] dark:bg-[#1c2028] rounded-xl">
           {RANGE_OPTIONS.map((opt) => (
@@ -180,7 +139,6 @@ export default function AnalyticsCountryDetail() {
         )}
       </div>
 
-      {/* Stat tiles */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
         <StatTile
           label="Downloads"
@@ -190,25 +148,13 @@ export default function AnalyticsCountryDetail() {
         />
         <StatTile
           label="Impressions"
-          value={
-            loading
-              ? "—"
-              : hasEngagementData
-                ? fmtNumber(totals.impressions)
-                : "—"
-          }
+          value={loading ? "—" : hasEngagementData ? fmtNumber(totals.impressions) : "—"}
           icon={<Eye className="w-4 h-4" />}
           color="#0ea5e9"
         />
         <StatTile
           label="Page Views"
-          value={
-            loading
-              ? "—"
-              : hasEngagementData
-                ? fmtNumber(totals.pageViews)
-                : "—"
-          }
+          value={loading ? "—" : hasEngagementData ? fmtNumber(totals.pageViews) : "—"}
           icon={<Monitor className="w-4 h-4" />}
           color="#8b5cf6"
         />
@@ -220,34 +166,21 @@ export default function AnalyticsCountryDetail() {
         />
       </div>
 
-      {/* Downloads chart */}
       {!loading && (downloads?.byDay ?? []).length > 1 && (
         <div
           className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] mb-5`}
         >
-          <div className={`text-[14px] font-semibold ${textPrimary} mb-1`}>
-            Downloads over time
-          </div>
-          <div className={`text-[12px] ${textMuted} mb-4`}>
-            {rangeLabel(range)}
-          </div>
+          <div className={`text-[14px] font-semibold ${textPrimary} mb-1`}>Downloads over time</div>
+          <div className={`text-[12px] ${textMuted} mb-4`}>{rangeLabel(range)}</div>
           <ResponsiveContainer width="100%" height={180}>
-            <AreaChart
-              data={downloads!.byDay}
-              margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
-            >
+            <AreaChart data={downloads!.byDay} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
               <defs>
                 <linearGradient id="cdDlGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#6366f1" stopOpacity={0.2} />
                   <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid
-                strokeDasharray="0"
-                stroke="#f0f1f3"
-                vertical={false}
-                strokeWidth={1}
-              />
+              <CartesianGrid strokeDasharray="0" stroke="#f0f1f3" vertical={false} strokeWidth={1} />
               <XAxis
                 dataKey="date"
                 axisLine={false}
@@ -274,8 +207,7 @@ export default function AnalyticsCountryDetail() {
                 }}
                 content={({ active, payload, label }) => {
                   if (!active || !payload?.length) return null;
-                  const d = new Date(String(label));
-                  const dateStr = d.toLocaleDateString(undefined, {
+                  const dateStr = new Date(String(label)).toLocaleDateString(undefined, {
                     month: "short",
                     day: "numeric",
                   });
@@ -283,9 +215,7 @@ export default function AnalyticsCountryDetail() {
                     <div
                       className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl px-3.5 py-2.5 text-[12px] shadow-[0_4px_16px_rgba(0,0,0,0.1)]`}
                     >
-                      <div className={`${textMuted} mb-1 text-[11px]`}>
-                        {dateStr}
-                      </div>
+                      <div className={`${textMuted} mb-1 text-[11px]`}>{dateStr}</div>
                       <div className={`font-semibold ${textPrimary}`}>
                         {fmtNumber(payload[0].value as number)} downloads
                       </div>
@@ -312,22 +242,14 @@ export default function AnalyticsCountryDetail() {
         </div>
       )}
 
-      {/* Impressions chart */}
       {!loading && hasEngagementData && (downloads?.byDay ?? []).length > 1 && (
         <div
           className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] mb-5`}
         >
-          <div className={`text-[14px] font-semibold ${textPrimary} mb-1`}>
-            Impressions &amp; Page Views
-          </div>
-          <div className={`text-[12px] ${textMuted} mb-4`}>
-            {rangeLabel(range)}
-          </div>
+          <div className={`text-[14px] font-semibold ${textPrimary} mb-1`}>Impressions &amp; Page Views</div>
+          <div className={`text-[12px] ${textMuted} mb-4`}>{rangeLabel(range)}</div>
           <ResponsiveContainer width="100%" height={180}>
-            <AreaChart
-              data={downloads!.byDay}
-              margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
-            >
+            <AreaChart data={downloads!.byDay} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
               <defs>
                 <linearGradient id="cdImpGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.2} />
@@ -338,12 +260,7 @@ export default function AnalyticsCountryDetail() {
                   <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid
-                strokeDasharray="0"
-                stroke="#f0f1f3"
-                vertical={false}
-                strokeWidth={1}
-              />
+              <CartesianGrid strokeDasharray="0" stroke="#f0f1f3" vertical={false} strokeWidth={1} />
               <XAxis
                 dataKey="date"
                 axisLine={false}
@@ -379,24 +296,12 @@ export default function AnalyticsCountryDetail() {
                     <div
                       className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl px-3.5 py-2.5 text-[12px] shadow-[0_4px_16px_rgba(0,0,0,0.1)] space-y-1`}
                     >
-                      <div className={`${textMuted} mb-1 text-[11px]`}>
-                        {dateStr}
-                      </div>
+                      <div className={`${textMuted} mb-1 text-[11px]`}>{dateStr}</div>
                       {payload.map((p) => (
-                        <div
-                          key={p.dataKey as string}
-                          className="flex items-center gap-2"
-                        >
-                          <span
-                            className="w-2 h-2 rounded-full shrink-0"
-                            style={{ background: p.color }}
-                          />
-                          <span className={`${textSecondary} capitalize`}>
-                            {p.dataKey as string}
-                          </span>
-                          <span
-                            className={`font-semibold ${textPrimary} ml-auto tabular-nums`}
-                          >
+                        <div key={p.dataKey as string} className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ background: p.color }} />
+                          <span className={`${textSecondary} capitalize`}>{p.dataKey as string}</span>
+                          <span className={`font-semibold ${textPrimary} ml-auto tabular-nums`}>
                             {fmtNumber(p.value as number)}
                           </span>
                         </div>
@@ -438,53 +343,33 @@ export default function AnalyticsCountryDetail() {
         </div>
       )}
 
-      {/* Reviews */}
       <div
         className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]`}
       >
         <div className="px-5 py-4 border-b border-[#f3f4f6] dark:border-[#2a2f3d] flex items-center justify-between">
-          <div className={`text-[16px] font-semibold ${textPrimary}`}>
-            Reviews from {countryName(countryCode)}
-          </div>
+          <div className={`text-[16px] font-semibold ${textPrimary}`}>Reviews from {countryName(countryCode)}</div>
           {avgRating && (
-            <div
-              className={`flex items-center gap-1.5 text-[13px] font-semibold ${textPrimary}`}
-            >
+            <div className={`flex items-center gap-1.5 text-[13px] font-semibold ${textPrimary}`}>
               <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
               {avgRating}
-              <span className={`${textMuted} font-normal`}>
-                ({reviews.length})
-              </span>
+              <span className={`${textMuted} font-normal`}>({reviews.length})</span>
             </div>
           )}
         </div>
 
-        {/* Rating bar */}
         {reviews.length > 0 && (
           <div className="px-5 py-4 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
             <div className="flex flex-col gap-1.5">
               {[5, 4, 3, 2, 1].map((star) => {
                 const count = ratingCounts[star] ?? 0;
-                const pct =
-                  reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+                const pct = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
                 return (
                   <div key={star} className="flex items-center gap-3">
-                    <span
-                      className={`text-[12px] ${textMuted} w-3 text-right shrink-0`}
-                    >
-                      {star}
-                    </span>
+                    <span className={`text-[12px] ${textMuted} w-3 text-right shrink-0`}>{star}</span>
                     <div className="flex-1 h-2 bg-[#f3f4f6] dark:bg-[#252b38] rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-amber-400 rounded-full transition-all"
-                        style={{ width: `${pct}%` }}
-                      />
+                      <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${pct}%` }} />
                     </div>
-                    <span
-                      className={`text-[12px] tabular-nums ${textMuted} w-7 text-right shrink-0`}
-                    >
-                      {count}
-                    </span>
+                    <span className={`text-[12px] tabular-nums ${textMuted} w-7 text-right shrink-0`}>{count}</span>
                   </div>
                 );
               })}
@@ -493,9 +378,7 @@ export default function AnalyticsCountryDetail() {
         )}
 
         {reviewsLoading ? (
-          <div className={`px-5 py-8 text-center text-[13px] ${textMuted}`}>
-            Loading…
-          </div>
+          <div className={`px-5 py-8 text-center text-[13px] ${textMuted}`}>Loading…</div>
         ) : reviews.length === 0 ? (
           <div className={`px-5 py-8 text-center text-[13px] ${textMuted}`}>
             No reviews from {countryName(countryCode)}
@@ -510,9 +393,7 @@ export default function AnalyticsCountryDetail() {
                       <Star
                         key={s}
                         className={`w-3.5 h-3.5 ${
-                          s <= r.rating
-                            ? "fill-amber-400 text-amber-400"
-                            : "text-[#e5e7eb] dark:text-[#2a2f3d]"
+                          s <= r.rating ? "fill-amber-400 text-amber-400" : "text-[#e5e7eb] dark:text-[#2a2f3d]"
                         }`}
                       />
                     ))}
@@ -525,24 +406,10 @@ export default function AnalyticsCountryDetail() {
                     })}
                   </span>
                 </div>
-                {r.title && (
-                  <div
-                    className={`text-[13px] font-semibold ${textPrimary} mb-1`}
-                  >
-                    {r.title}
-                  </div>
-                )}
-                {r.body && (
-                  <div
-                    className={`text-[13px] ${textSecondary} leading-relaxed line-clamp-4`}
-                  >
-                    {r.body}
-                  </div>
-                )}
+                {r.title && <div className={`text-[13px] font-semibold ${textPrimary} mb-1`}>{r.title}</div>}
+                {r.body && <div className={`text-[13px] ${textSecondary} leading-relaxed line-clamp-4`}>{r.body}</div>}
                 {r.reviewerNickname && (
-                  <div className="text-[11px] text-[#c4c9d4] dark:text-[#3a4050] mt-1.5">
-                    — {r.reviewerNickname}
-                  </div>
+                  <div className="text-[11px] text-[#c4c9d4] dark:text-[#3a4050] mt-1.5">— {r.reviewerNickname}</div>
                 )}
               </div>
             ))}

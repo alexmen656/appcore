@@ -8,10 +8,7 @@ export interface DayData {
   sessions: number;
 }
 
-export type DownloadsDayData = Pick<
-  DayData,
-  "date" | "downloads" | "updates" | "proceeds"
->;
+export type DownloadsDayData = Pick<DayData, "date" | "downloads" | "updates" | "proceeds">;
 
 export interface CountryData {
   country: string;

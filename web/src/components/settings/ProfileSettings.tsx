@@ -1,13 +1,6 @@
 import { useState, useEffect } from "react";
 import { getToken, authHeaders } from "../../hooks/useApi";
-import {
-  btnPrimary,
-  cardCls,
-  inputCls,
-  pageTitle,
-  textMuted,
-  textPrimary,
-} from "../../styles";
+import { btnPrimary, cardCls, inputCls, pageTitle, textMuted, textPrimary } from "../../styles";
 import type { AuthUser } from "../../types";
 
 interface Props {
@@ -16,11 +9,7 @@ interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }
 
-export default function ProfileSettings({
-  user,
-  onUserUpdate,
-  addToast,
-}: Props) {
+export default function ProfileSettings({ user, onUserUpdate, addToast }: Props) {
   const [name, setName] = useState(user.name ?? "");
   const [email, setEmail] = useState(user.email ?? "");
   const [saving, setSaving] = useState(false);
@@ -54,9 +43,7 @@ export default function ProfileSettings({
   return (
     <div className="max-w-xl">
       <h1 className={`${pageTitle} mb-1`}>Profile</h1>
-      <p className="text-sm text-[#6b7280] dark:text-[#5c6478] mb-8">
-        Manage your personal account details.
-      </p>
+      <p className="text-sm text-[#6b7280] dark:text-[#5c6478] mb-8">Manage your personal account details.</p>
 
       <div className={`${cardCls} mb-6`}>
         <div className="flex items-center gap-4 mb-6">
@@ -69,20 +56,14 @@ export default function ProfileSettings({
               .toUpperCase()}
           </div>
           <div>
-            <div className={`text-[15px] font-semibold ${textPrimary}`}>
-              {user.name || user.email}
-            </div>
-            <div className={`text-xs ${textMuted} mt-0.5`}>
-              {user.role === "ADMIN" ? "Admin" : "Member"}
-            </div>
+            <div className={`text-[15px] font-semibold ${textPrimary}`}>{user.name || user.email}</div>
+            <div className={`text-xs ${textMuted} mt-0.5`}>{user.role === "ADMIN" ? "Admin" : "Member"}</div>
           </div>
         </div>
 
         <form onSubmit={handleSave} className="flex flex-col gap-4">
           <div>
-            <label className="block text-[12px] font-medium text-[#374151] dark:text-[#c4cad8] mb-1.5">
-              Full Name
-            </label>
+            <label className="block text-[12px] font-medium text-[#374151] dark:text-[#c4cad8] mb-1.5">Full Name</label>
             <input
               className={inputCls}
               value={name}
@@ -92,9 +73,7 @@ export default function ProfileSettings({
             />
           </div>
           <div>
-            <label className="block text-[12px] font-medium text-[#374151] dark:text-[#c4cad8] mb-1.5">
-              Email
-            </label>
+            <label className="block text-[12px] font-medium text-[#374151] dark:text-[#c4cad8] mb-1.5">Email</label>
             <input
               className={inputCls}
               type="email"

@@ -1,19 +1,7 @@
 import { useState, useRef, useCallback } from "react";
-import {
-  borderDefault,
-  pageTitle,
-  textMuted,
-  textPrimary,
-  textSecondary,
-} from "../../styles";
+import { borderDefault, pageTitle, textMuted, textPrimary, textSecondary } from "../../styles";
 import { ChevronDown, Search } from "lucide-react";
-import {
-  useApi,
-  apiPost,
-  apiDelete,
-  authHeaders,
-  getActiveBundleId,
-} from "../../hooks/useApi";
+import { useApi, apiPost, apiDelete, authHeaders, getActiveBundleId } from "../../hooks/useApi";
 import { useClickOutside } from "../../hooks/useClickOutside";
 import KeywordForm, { COUNTRIES } from "./KeywordForm";
 import KeywordTable, { Keyword, SortKey } from "./KeywordTable";
@@ -73,21 +61,14 @@ export default function Keywords({ addToast }: Props) {
   };
 
   const keywords = data || [];
-  const availableCountries = [
-    ...new Set(keywords.map((k) => k.country)),
-  ].sort();
-  const filtered = filterCountry
-    ? keywords.filter((k) => k.country === filterCountry)
-    : keywords;
+  const availableCountries = [...new Set(keywords.map((k) => k.country))].sort();
+  const filtered = filterCountry ? keywords.filter((k) => k.country === filterCountry) : keywords;
   const sorted = [...filtered].sort((a, b) => {
     let cmp = 0;
-    if (sortBy === "popularity")
-      cmp = (a.popularity ?? -1) - (b.popularity ?? -1);
+    if (sortBy === "popularity") cmp = (a.popularity ?? -1) - (b.popularity ?? -1);
     else if (sortBy === "rank") cmp = (a.ourRank ?? 999) - (b.ourRank ?? 999);
-    else if (sortBy === "difficulty")
-      cmp = (a.difficulty ?? -1) - (b.difficulty ?? -1);
-    else if (sortBy === "tracked")
-      cmp = (a.trackingCount ?? 0) - (b.trackingCount ?? 0);
+    else if (sortBy === "difficulty") cmp = (a.difficulty ?? -1) - (b.difficulty ?? -1);
+    else if (sortBy === "tracked") cmp = (a.trackingCount ?? 0) - (b.trackingCount ?? 0);
     else if (sortBy === "country") cmp = a.country.localeCompare(b.country);
     else cmp = a.term.localeCompare(b.term);
     return sortDir === "asc" ? cmp : -cmp;
@@ -97,8 +78,7 @@ export default function Keywords({ addToast }: Props) {
     e.preventDefault();
     if (!newTerm.trim()) return;
     setAdding(true);
-    const country =
-      COUNTRIES.find((c) => c.code === newCountry) ?? COUNTRIES[0];
+    const country = COUNTRIES.find((c) => c.code === newCountry) ?? COUNTRIES[0];
     try {
       await apiPost("/keywords", {
         term: newTerm.trim(),
@@ -106,10 +86,7 @@ export default function Keywords({ addToast }: Props) {
         language: country.lang,
         bundleId: getActiveBundleId(),
       });
-      addToast(
-        `Keyword "${newTerm.trim()}" (${country.code.toUpperCase()}) added`,
-        "success",
-      );
+      addToast(`Keyword "${newTerm.trim()}" (${country.code.toUpperCase()}) added`, "success");
       setNewTerm("");
       refetch();
     } catch (e: any) {
@@ -156,9 +133,7 @@ export default function Keywords({ addToast }: Props) {
         <h1 className={`${pageTitle}`}>Keywords</h1>
         <div ref={menuRef} className="relative flex items-stretch">
           <button
-            onClick={() =>
-              triggerAction("discover-keywords", "Discover Keywords")
-            }
+            onClick={() => triggerAction("discover-keywords", "Discover Keywords")}
             disabled={!!running}
             className="inline-flex items-center gap-1.5 pl-3.5 pr-3 py-2 rounded-l-xl text-sm font-semibold bg-[#D94412] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -177,9 +152,7 @@ export default function Keywords({ addToast }: Props) {
             className="px-2.5 rounded-r-xl bg-[#D94412] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="More actions"
           >
-            <ChevronDown
-              className={`w-3.5 h-3.5 transition-transform ${menuOpen ? "rotate-180" : ""}`}
-            />
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
           </button>
           {menuOpen && (
             <div
@@ -198,9 +171,7 @@ export default function Keywords({ addToast }: Props) {
           )}
         </div>
       </div>
-      <p className={`text-sm ${textMuted} mb-8`}>
-        Track keyword rankings and discover new opportunities
-      </p>
+      <p className={`text-sm ${textMuted} mb-8`}>Track keyword rankings and discover new opportunities</p>
 
       <KeywordForm
         newTerm={newTerm}
@@ -219,12 +190,8 @@ export default function Keywords({ addToast }: Props) {
           <div className="flex justify-center mb-3 opacity-20">
             <Search className="w-12 h-12 text-[#9ca3af]" />
           </div>
-          <div className={`text-sm font-medium ${textSecondary} mb-1`}>
-            No keywords tracked yet
-          </div>
-          <div className={`text-xs ${textMuted}`}>
-            Add keywords above or run a competitor keyword extraction
-          </div>
+          <div className={`text-sm font-medium ${textSecondary} mb-1`}>No keywords tracked yet</div>
+          <div className={`text-xs ${textMuted}`}>Add keywords above or run a competitor keyword extraction</div>
         </div>
       ) : (
         <KeywordTable

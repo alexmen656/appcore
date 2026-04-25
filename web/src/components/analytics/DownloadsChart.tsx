@@ -1,20 +1,6 @@
 import { useState } from "react";
-import {
-  borderDefault,
-  textMuted,
-  textPrimary,
-  textSecondary,
-} from "../../styles";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import { borderDefault, textMuted, textPrimary, textSecondary } from "../../styles";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import type { DownloadsDayData } from "../../types";
 import { fmtShortDate } from "../../utils/formatters";
 
@@ -39,12 +25,8 @@ export default function DownloadsChart({ data }: Props) {
     >
       <div className="flex items-center justify-between mb-4">
         <div>
-          <div className={`text-[15px] font-semibold ${textPrimary}`}>
-            Downloads over time
-          </div>
-          <div className={`text-[12px] ${textMuted} mt-0.5`}>
-            Daily installs and updates
-          </div>
+          <div className={`text-[15px] font-semibold ${textPrimary}`}>Downloads over time</div>
+          <div className={`text-[12px] ${textMuted} mt-0.5`}>Daily installs and updates</div>
         </div>
         <div className="flex gap-1">
           {RANGES.map((r) => (
@@ -64,17 +46,12 @@ export default function DownloadsChart({ data }: Props) {
       </div>
 
       {filtered.length === 0 ? (
-        <div
-          className={`flex items-center justify-center h-48 text-[13px] ${textMuted}`}
-        >
+        <div className={`flex items-center justify-center h-48 text-[13px] ${textMuted}`}>
           No data yet — sync to fetch download stats.
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={220}>
-          <LineChart
-            data={filtered}
-            margin={{ top: 4, right: 16, left: 0, bottom: 0 }}
-          >
+          <LineChart data={filtered} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
             <XAxis
               dataKey="date"
@@ -83,12 +60,7 @@ export default function DownloadsChart({ data }: Props) {
               tickLine={false}
               axisLine={false}
             />
-            <YAxis
-              tick={{ fontSize: 11, fill: "#9ca3af" }}
-              tickLine={false}
-              axisLine={false}
-              width={36}
-            />
+            <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} tickLine={false} axisLine={false} width={36} />
             <Tooltip
               contentStyle={{
                 fontSize: 12,
@@ -98,11 +70,7 @@ export default function DownloadsChart({ data }: Props) {
               }}
               labelFormatter={(label) => fmtShortDate(String(label))}
             />
-            <Legend
-              wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
-              iconType="circle"
-              iconSize={8}
-            />
+            <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} iconType="circle" iconSize={8} />
             <Line
               type="monotone"
               dataKey="downloads"

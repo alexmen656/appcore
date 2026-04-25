@@ -1,13 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { borderDefault, textMuted, textPrimary, textSecondary } from "./styles";
-import {
-  Routes,
-  Route,
-  NavLink,
-  Navigate,
-  useNavigate,
-  useLocation,
-} from "react-router-dom";
+import { Routes, Route, NavLink, Navigate, useNavigate, useLocation } from "react-router-dom";
 import {
   useApi,
   apiPost,
@@ -44,13 +37,7 @@ import Team from "./components/Team";
 import InviteAccept from "./components/InviteAccept";
 import Onboarding from "./components/Onboarding";
 import SearchModal from "./components/SearchModal";
-import type {
-  AuthUser,
-  DashboardData,
-  AppItem,
-  AscApp,
-  VersionSummary,
-} from "./types";
+import type { AuthUser, DashboardData, AppItem, AscApp, VersionSummary } from "./types";
 import {
   LayoutDashboard,
   Layers,
@@ -103,9 +90,7 @@ function AppAvatar({
   return url ? (
     <img src={url} alt="" className={`${px} ${cls}`} />
   ) : (
-    <div
-      className={`${px} ${cls} ${accent ? "bg-[#C4001E]" : "bg-[#c8cdd3]"} text-sm`}
-    >
+    <div className={`${px} ${cls} ${accent ? "bg-[#C4001E]" : "bg-[#c8cdd3]"} text-sm`}>
       {name.charAt(0).toUpperCase()}
     </div>
   );
@@ -118,11 +103,7 @@ function AppSwitcher({
   current: DashboardData["app"];
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }) {
-  const { data: apps, refetch: refetchApps } = useApi<AppItem[]>(
-    "/apps",
-    [],
-    true,
-  );
+  const { data: apps, refetch: refetchApps } = useApi<AppItem[]>("/apps", [], true);
   const [open, setOpen] = useState(false);
   const [activeBundleId, setLocalBundle] = useState(getActiveBundleId);
   const [importOpen, setImportOpen] = useState(false);
@@ -135,12 +116,9 @@ function AppSwitcher({
 
   const ownApps = apps?.filter((a) => a.isOwnApp) ?? [];
   const activeBundleResolved = activeBundleId ?? current?.bundleId ?? null;
-  const activeApp =
-    ownApps.find((a) => a.bundleId === activeBundleResolved) ??
-    (ownApps[0] || null);
+  const activeApp = ownApps.find((a) => a.bundleId === activeBundleResolved) ?? (ownApps[0] || null);
   const importedBundleIds = new Set(ownApps.map((a) => a.bundleId));
-  const unimportedAscApps =
-    ascApps?.filter((a) => !importedBundleIds.has(a.bundleId)) ?? null;
+  const unimportedAscApps = ascApps?.filter((a) => !importedBundleIds.has(a.bundleId)) ?? null;
 
   const handleSelect = (a: AppItem) => {
     setActiveBundleId(a.bundleId);
@@ -211,12 +189,7 @@ function AppSwitcher({
           className="w-full px-3 py-2.5 bg-white dark:bg-[#1c2028] border border-[#e5e7eb] dark:border-[#2a2f3d] rounded-xl flex items-center gap-2.5 hover:border-[#d1d5db] dark:hover:border-[#3a4050] transition-colors group"
         >
           {activeApp ? (
-            <AppAvatar
-              url={activeApp.iconUrl}
-              name={activeApp.name}
-              size={9}
-              accent
-            />
+            <AppAvatar url={activeApp.iconUrl} name={activeApp.name} size={9} accent />
           ) : (
             <div className="w-9 h-9 rounded-lg bg-gray-200 dark:bg-[#2a2f3d] shrink-0" />
           )}
@@ -239,9 +212,7 @@ function AppSwitcher({
               Your Apps
             </div>
             {ownApps.length === 0 && (
-              <div className="px-3 py-2 text-xs text-gray-400 dark:text-[#5c6478]">
-                No apps found
-              </div>
+              <div className="px-3 py-2 text-xs text-gray-400 dark:text-[#5c6478]">No apps found</div>
             )}
             {ownApps.map((a) => (
               <button
@@ -251,12 +222,8 @@ function AppSwitcher({
               >
                 <AppAvatar url={a.iconUrl} name={a.name} size={8} accent />
                 <div className="overflow-hidden">
-                  <div className="text-[13px] font-medium text-[#1a1a2e] dark:text-[#e8eaf0] truncate">
-                    {a.name}
-                  </div>
-                  <div className="text-[10px] text-gray-400 dark:text-[#5c6478] font-mono truncate">
-                    {a.bundleId}
-                  </div>
+                  <div className="text-[13px] font-medium text-[#1a1a2e] dark:text-[#e8eaf0] truncate">{a.name}</div>
+                  <div className="text-[10px] text-gray-400 dark:text-[#5c6478] font-mono truncate">{a.bundleId}</div>
                 </div>
                 {a.bundleId === activeBundleResolved && (
                   <Check className="w-3.5 h-3.5 shrink-0 text-[#C4001E] ml-auto" />
@@ -271,9 +238,7 @@ function AppSwitcher({
                 <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-[#252b38] flex items-center justify-center shrink-0">
                   <Plus className="w-4 h-4 text-gray-400 dark:text-[#5c6478]" />
                 </div>
-                <span className="text-[13px] font-medium text-gray-500 dark:text-[#8b93a5]">
-                  Add project
-                </span>
+                <span className="text-[13px] font-medium text-gray-500 dark:text-[#8b93a5]">Add project</span>
               </button>
             </div>
           </div>
@@ -291,9 +256,7 @@ function AppSwitcher({
           >
             <div className="px-6 pt-5 pb-4 border-b border-gray-100 dark:border-[#2a2f3d] flex items-center justify-between">
               <div>
-                <h2 className={`text-lg font-bold ${textPrimary}`}>
-                  Add project
-                </h2>
+                <h2 className={`text-lg font-bold ${textPrimary}`}>Add project</h2>
                 <p className="text-sm text-gray-500 dark:text-[#8b93a5] mt-0.5">
                   Import an app from App Store Connect.
                 </p>
@@ -311,15 +274,13 @@ function AppSwitcher({
                   <div className="spinner" /> Loading…
                 </div>
               )}
-              {ascApps !== null &&
-                unimportedAscApps !== null &&
-                unimportedAscApps.length === 0 && (
-                  <p className="text-xs text-gray-400 dark:text-[#5c6478] text-center py-6">
-                    {ascApps.length === 0
-                      ? "No apps found. Check your ASC credentials in Settings."
-                      : "All apps are already imported."}
-                  </p>
-                )}
+              {ascApps !== null && unimportedAscApps !== null && unimportedAscApps.length === 0 && (
+                <p className="text-xs text-gray-400 dark:text-[#5c6478] text-center py-6">
+                  {ascApps.length === 0
+                    ? "No apps found. Check your ASC credentials in Settings."
+                    : "All apps are already imported."}
+                </p>
+              )}
               {unimportedAscApps !== null && unimportedAscApps.length > 0 && (
                 <div className="flex flex-col gap-2">
                   {unimportedAscApps.map((app) => (
@@ -328,18 +289,9 @@ function AppSwitcher({
                       className="flex items-center justify-between gap-3 px-4 py-3 bg-[#f7f8fa] dark:bg-[#252b38] rounded-xl border border-gray-200 dark:border-[#2a2f3d]"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <AppAvatar
-                          url={app.iconUrl}
-                          name={app.name}
-                          size={9}
-                          accent
-                        />
+                        <AppAvatar url={app.iconUrl} name={app.name} size={9} accent />
                         <div className="min-w-0">
-                          <div
-                            className={`text-sm font-semibold ${textPrimary} truncate`}
-                          >
-                            {app.name}
-                          </div>
+                          <div className={`text-sm font-semibold ${textPrimary} truncate`}>{app.name}</div>
                           <div className="text-[11px] text-gray-400 dark:text-[#5c6478] font-mono">
                             {app.bundleId}
                             {app.primaryLocale ? ` · ${app.primaryLocale}` : ""}
@@ -445,14 +397,8 @@ function HeaderProfileMenu({
       {open && (
         <div className="absolute right-0 top-[calc(100%+6px)] w-52 bg-white dark:bg-[#1c2028] border border-[#e5e7eb] dark:border-[#2a2f3d] rounded-xl shadow-lg z-50 overflow-hidden">
           <div className="px-3 pt-2.5 pb-1">
-            <div className="text-[16px] font-semibold text-[#1a1a2e] dark:text-[#e8eaf0] truncate">
-              {displayName}
-            </div>
-            {user.email && (
-              <div className={`text-[12px] ${textMuted} truncate`}>
-                {user.email}
-              </div>
-            )}
+            <div className="text-[16px] font-semibold text-[#1a1a2e] dark:text-[#e8eaf0] truncate">{displayName}</div>
+            {user.email && <div className={`text-[12px] ${textMuted} truncate`}>{user.email}</div>}
           </div>
           <div className="h-px bg-[#e5e7eb] dark:bg-[#2a2f3d] mx-3 my-1" />
           <NavLink
@@ -512,23 +458,15 @@ function HeaderProfileMenu({
 }
 
 const VERSION_STATE_COLORS: Record<string, string> = {
-  READY_FOR_SALE:
-    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-  REPLACED_WITH_NEW_VERSION:
-    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-  PREPARE_FOR_SUBMISSION:
-    "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  WAITING_FOR_REVIEW:
-    "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  IN_REVIEW:
-    "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
-  PENDING_DEVELOPER_RELEASE:
-    "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400",
+  READY_FOR_SALE: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  REPLACED_WITH_NEW_VERSION: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  PREPARE_FOR_SUBMISSION: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+  WAITING_FOR_REVIEW: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  IN_REVIEW: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400",
+  PENDING_DEVELOPER_RELEASE: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400",
   REJECTED: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
-  DEVELOPER_REJECTED:
-    "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
-  METADATA_REJECTED:
-    "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
+  DEVELOPER_REJECTED: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
+  METADATA_REJECTED: "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400",
 };
 
 const VERSION_STATE_SHORT: Record<string, string> = {
@@ -552,11 +490,7 @@ function suggestNextVersion(versions: VersionSummary[] | null): string {
   return parts.join(".");
 }
 
-function AnalyticsSidebarSection({
-  navLinkClass,
-}: {
-  navLinkClass: (p: { isActive: boolean }) => string;
-}) {
+function AnalyticsSidebarSection({ navLinkClass }: { navLinkClass: (p: { isActive: boolean }) => string }) {
   const [expanded, setExpanded] = useState(false);
   const location = useLocation();
   const isAnyAnalyticsActive = location.pathname.startsWith("/analytics");
@@ -614,19 +548,13 @@ function AnalyticsSidebarSection({
   );
 }
 
-function VersionsSidebarSection({
-  navLinkClass,
-}: {
-  navLinkClass: (p: { isActive: boolean }) => string;
-}) {
+function VersionsSidebarSection({ navLinkClass }: { navLinkClass: (p: { isActive: boolean }) => string }) {
   const [expanded, setExpanded] = useState(false);
   const [versions, setVersions] = useState<VersionSummary[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [showNewForm, setShowNewForm] = useState(false);
   const [newVersionStr, setNewVersionStr] = useState("");
-  const [newReleaseType, setNewReleaseType] = useState<
-    "MANUAL" | "AFTER_APPROVAL"
-  >("MANUAL");
+  const [newReleaseType, setNewReleaseType] = useState<"MANUAL" | "AFTER_APPROVAL">("MANUAL");
   const [creating, setCreating] = useState(false);
   const newVersionInputRef = useRef<HTMLInputElement>(null);
   const location = useLocation();
@@ -662,13 +590,7 @@ function VersionsSidebarSection({
         const best = data.find((v) => v.isEditable) ?? data[0];
         navigate(`/versions/${best.versionId}`, { replace: true });
       }
-      data
-        .slice(0, 5)
-        .forEach((v) =>
-          preloadApi(
-            `/asc/versions?versionId=${encodeURIComponent(v.versionId)}`,
-          ),
-        );
+      data.slice(0, 5).forEach((v) => preloadApi(`/asc/versions?versionId=${encodeURIComponent(v.versionId)}`));
     } catch {
       setVersions([]);
     } finally {
@@ -766,11 +688,7 @@ function VersionsSidebarSection({
         <div
           className={`ml-3 mb-2 p-3 bg-white dark:bg-[#1c2028] rounded-xl border ${borderDefault} shadow-sm flex flex-col gap-2`}
         >
-          <p
-            className={`text-[11px] font-semibold ${textSecondary} uppercase tracking-wide`}
-          >
-            New Version
-          </p>
+          <p className={`text-[11px] font-semibold ${textSecondary} uppercase tracking-wide`}>New Version</p>
           <input
             ref={newVersionInputRef}
             value={newVersionStr}
@@ -784,9 +702,7 @@ function VersionsSidebarSection({
           />
           <select
             value={newReleaseType}
-            onChange={(e) =>
-              setNewReleaseType(e.target.value as "MANUAL" | "AFTER_APPROVAL")
-            }
+            onChange={(e) => setNewReleaseType(e.target.value as "MANUAL" | "AFTER_APPROVAL")}
             className={`w-full px-3 py-[7px] text-[13px] rounded-lg border ${borderDefault} bg-[#fafbfc] dark:bg-[#252b38] ${textPrimary} focus:outline-none focus:border-[#C4001E]`}
           >
             <option value="MANUAL">Manual Release</option>
@@ -824,17 +740,14 @@ function VersionsSidebarSection({
             </div>
           )}
           {versions?.length === 0 && (
-            <div className="px-2 py-1.5 text-[12px] text-gray-400 dark:text-[#5c6478]">
-              No versions found
-            </div>
+            <div className="px-2 py-1.5 text-[12px] text-gray-400 dark:text-[#5c6478]">No versions found</div>
           )}
           {versions?.map((v) => {
             const isActive = location.pathname === `/versions/${v.versionId}`;
             const stateColor =
               VERSION_STATE_COLORS[v.appStoreState] ??
               "bg-gray-100 text-gray-500 dark:bg-[#252b38] dark:text-[#8b93a5]";
-            const stateShort =
-              VERSION_STATE_SHORT[v.appStoreState] ?? v.appStoreState;
+            const stateShort = VERSION_STATE_SHORT[v.appStoreState] ?? v.appStoreState;
             return (
               <NavLink
                 key={v.versionId}
@@ -846,9 +759,7 @@ function VersionsSidebarSection({
                 }`}
               >
                 <span className="truncate">{v.versionString}</span>
-                <span
-                  className={`shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${stateColor}`}
-                >
+                <span className={`shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${stateColor}`}>
                   {stateShort}
                 </span>
               </NavLink>
@@ -860,11 +771,7 @@ function VersionsSidebarSection({
   );
 }
 
-function MonetizationSidebarSection({
-  navLinkClass,
-}: {
-  navLinkClass: (p: { isActive: boolean }) => string;
-}) {
+function MonetizationSidebarSection({ navLinkClass }: { navLinkClass: (p: { isActive: boolean }) => string }) {
   const [expanded, setExpanded] = useState(false);
   const location = useLocation();
   const isAnyMonetizationActive = location.pathname.startsWith("/monetization");
@@ -1042,17 +949,10 @@ export default function App() {
         >
           <Search className="w-3.5 h-3.5 shrink-0" />
           <span>Search…</span>
-          <span className="ml-auto text-[10px] bg-black/[0.08] dark:bg-white/20 rounded px-1 py-0.5 font-mono">
-            ⌘K
-          </span>
+          <span className="ml-auto text-[10px] bg-black/[0.08] dark:bg-white/20 rounded px-1 py-0.5 font-mono">⌘K</span>
         </button>
         <HelpMenu />
-        <HeaderProfileMenu
-          user={user}
-          onLogout={handleLogout}
-          dark={dark}
-          onToggleDark={() => setDark((d) => !d)}
-        />
+        <HeaderProfileMenu user={user} onLogout={handleLogout} dark={dark} onToggleDark={() => setDark((d) => !d)} />
       </header>
       <div className="flex flex-1 min-h-0">
         <aside className="w-[250px] min-w-[250px] bg-[var(--shell-bg)] flex flex-col overflow-y-auto transition-colors">
@@ -1089,83 +989,29 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route
-              path="/suggestions"
-              element={<Suggestions addToast={addToast} />}
-            />
-            <Route
-              path="/keywords"
-              element={<Keywords addToast={addToast} />}
-            />
-            <Route
-              path="/competitors"
-              element={<Competitors addToast={addToast} />}
-            />
-            <Route
-              path="/competitors/:id"
-              element={<CompetitorDetailPage addToast={addToast} />}
-            />
-            <Route
-              path="/analytics"
-              element={<Analytics addToast={addToast} />}
-            />
-            <Route
-              path="/analytics/downloads"
-              element={<AnalyticsDownloads />}
-            />
-            <Route
-              path="/analytics/countries"
-              element={<AnalyticsCountries />}
-            />
-            <Route
-              path="/analytics/countries/:country"
-              element={<AnalyticsCountryDetail />}
-            />
+            <Route path="/suggestions" element={<Suggestions addToast={addToast} />} />
+            <Route path="/keywords" element={<Keywords addToast={addToast} />} />
+            <Route path="/competitors" element={<Competitors addToast={addToast} />} />
+            <Route path="/competitors/:id" element={<CompetitorDetailPage addToast={addToast} />} />
+            <Route path="/analytics" element={<Analytics addToast={addToast} />} />
+            <Route path="/analytics/downloads" element={<AnalyticsDownloads />} />
+            <Route path="/analytics/countries" element={<AnalyticsCountries />} />
+            <Route path="/analytics/countries/:country" element={<AnalyticsCountryDetail />} />
             <Route path="/analytics/reviews" element={<AnalyticsReviews />} />
-            <Route
-              path="/versions/:versionId"
-              element={<Versions addToast={addToast} />}
-            />
-            <Route
-              path="/versions"
-              element={<Versions addToast={addToast} />}
-            />
-            <Route
-              path="/monetization/subscriptions"
-              element={<MonetizationSubscriptions addToast={addToast} />}
-            />
-            <Route
-              path="/monetization/products"
-              element={<MonetizationProducts />}
-            />
+            <Route path="/versions/:versionId" element={<Versions addToast={addToast} />} />
+            <Route path="/versions" element={<Versions addToast={addToast} />} />
+            <Route path="/monetization/subscriptions" element={<MonetizationSubscriptions addToast={addToast} />} />
+            <Route path="/monetization/products" element={<MonetizationProducts />} />
             <Route path="/agents" element={<Agents addToast={addToast} />} />
             <Route path="/logs" element={<Actions addToast={addToast} />} />
-            <Route
-              path="/settings"
-              element={<Settings addToast={addToast} />}
-            />
-            <Route
-              path="/app-settings"
-              element={<AppSettings addToast={addToast} />}
-            />
+            <Route path="/settings" element={<Settings addToast={addToast} />} />
+            <Route path="/app-settings" element={<AppSettings addToast={addToast} />} />
             <Route
               path="/profile"
-              element={
-                <ProfileSettings
-                  user={user}
-                  onUserUpdate={(u) => setUser(u)}
-                  addToast={addToast}
-                />
-              }
+              element={<ProfileSettings user={user} onUserUpdate={(u) => setUser(u)} addToast={addToast} />}
             />
-            <Route
-              path="/team"
-              element={<Team addToast={addToast} currentUserId={user.id} />}
-            />
-            <Route
-              path="/invite/:token"
-              element={<InviteAccept onAuth={(u) => setUser(u)} />}
-            />
+            <Route path="/team" element={<Team addToast={addToast} currentUserId={user.id} />} />
+            <Route path="/invite/:token" element={<InviteAccept onAuth={(u) => setUser(u)} />} />
           </Routes>
         </main>
       </div>

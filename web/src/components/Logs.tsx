@@ -1,11 +1,6 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, ChevronDown, GitBranch } from "lucide-react";
-import {
-  useApi,
-  apiPost,
-  getActiveBundleId,
-  authHeaders,
-} from "../hooks/useApi";
+import { useApi, apiPost, getActiveBundleId, authHeaders } from "../hooks/useApi";
 import {
   badgeOutline,
   borderDefault,
@@ -17,13 +12,7 @@ import {
   textPrimary,
   textSecondary,
 } from "../styles";
-import type {
-  GitHubRepo,
-  AppRepoLink,
-  ScreenshotJob,
-  BuildJob,
-  AppItem,
-} from "../types";
+import type { GitHubRepo, AppRepoLink, ScreenshotJob, BuildJob, AppItem } from "../types";
 
 const LOG_PREFIX_COLORS: { prefix: string; color: string }[] = [
   { prefix: "[snapshot]", color: "#38bdf8" },
@@ -85,41 +74,23 @@ function useLazyLogs(path: string | null) {
   return { logs, loading, error };
 }
 
-function LogsBlock({
-  logs,
-  loading,
-  error,
-}: {
-  logs: string[] | null;
-  loading: boolean;
-  error: string | null;
-}) {
+function LogsBlock({ logs, loading, error }: { logs: string[] | null; loading: boolean; error: string | null }) {
   if (loading) {
     return (
-      <div
-        className={`flex items-center gap-2 text-[12px] ${textSecondary} py-2`}
-      >
+      <div className={`flex items-center gap-2 text-[12px] ${textSecondary} py-2`}>
         <div className="spinner !w-3 !h-3" /> Loading logs…
       </div>
     );
   }
   if (error) {
-    return (
-      <div className="text-[12px] text-red-500">
-        Failed to load logs: {error}
-      </div>
-    );
+    return <div className="text-[12px] text-red-500">Failed to load logs: {error}</div>;
   }
   if (!logs || logs.length === 0) {
-    return (
-      <div className={`text-[12px] ${textSecondary}`}>No logs captured.</div>
-    );
+    return <div className={`text-[12px] ${textSecondary}`}>No logs captured.</div>;
   }
   return (
     <div>
-      <div
-        className={`text-[11px] font-medium ${textSecondary} uppercase tracking-wide mb-1`}
-      >
+      <div className={`text-[11px] font-medium ${textSecondary} uppercase tracking-wide mb-1`}>
         Logs ({logs.length} lines)
       </div>
       <pre className="text-[11px] bg-[#111827] rounded-lg p-3 overflow-x-auto max-h-[400px] overflow-y-auto font-mono leading-relaxed">
@@ -140,11 +111,7 @@ export function RepoLinker({
   connected: boolean;
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }) {
-  const { data: link, refetch } = useApi<AppRepoLink>(
-    `/github/app-repo/${appId}`,
-    [appId],
-    true,
-  );
+  const { data: link, refetch } = useApi<AppRepoLink>(`/github/app-repo/${appId}`, [appId], true);
   const [repos, setRepos] = useState<GitHubRepo[] | null>(null);
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [selectedRepo, setSelectedRepo] = useState("");
@@ -235,12 +202,9 @@ export function RepoLinker({
 
   return (
     <div className={`${cardCls} mb-5`}>
-      <h2 className={`text-[18px] font-semibold ${textPrimary} mb-1`}>
-        GitHub Repository
-      </h2>
+      <h2 className={`text-[18px] font-semibold ${textPrimary} mb-1`}>GitHub Repository</h2>
       <p className={`text-xs ${textSecondary} mb-4`}>
-        Link a GitHub repo to this app. On every push, Marteso will
-        automatically generate screenshots and binary.
+        Link a GitHub repo to this app. On every push, Marteso will automatically generate screenshots and binary.
       </p>
 
       {link?.linked ? (
@@ -251,13 +215,9 @@ export function RepoLinker({
             <div className="flex items-center gap-3">
               <GitBranch className={`w-5 h-5 ${textPrimary}`} />
               <div>
-                <div className={`text-sm font-medium ${textPrimary}`}>
-                  {link.repoFullName}
-                </div>
+                <div className={`text-sm font-medium ${textPrimary}`}>{link.repoFullName}</div>
                 <div className={`text-[11px] ${textSecondary}`}>
-                  {link.iosDir
-                    ? `iOS folder: ${link.iosDir}/`
-                    : "Repo connected"}
+                  {link.iosDir ? `iOS folder: ${link.iosDir}/` : "Repo connected"}
                 </div>
               </div>
             </div>
@@ -281,26 +241,18 @@ export function RepoLinker({
               Link Repository
             </button>
           ) : (
-            <p className={`text-sm ${textSecondary}`}>
-              Connect GitHub in Team Settings to link a repo.
-            </p>
+            <p className={`text-sm ${textSecondary}`}>Connect GitHub in Team Settings to link a repo.</p>
           )}
         </div>
       )}
 
       {showPicker && (
-        <div
-          className={`mt-4 border ${borderDefault} rounded-xl p-4 bg-[#f8f9fb] dark:bg-[#161920]`}
-        >
+        <div className={`mt-4 border ${borderDefault} rounded-xl p-4 bg-[#f8f9fb] dark:bg-[#161920]`}>
           {step === "repo" ? (
             <>
-              <h3 className={`text-sm font-medium ${textPrimary} mb-3`}>
-                Select a repository
-              </h3>
+              <h3 className={`text-sm font-medium ${textPrimary} mb-3`}>Select a repository</h3>
               {loadingRepos ? (
-                <div
-                  className={`flex items-center gap-2 text-sm ${textSecondary} py-4`}
-                >
+                <div className={`flex items-center gap-2 text-sm ${textSecondary} py-4`}>
                   <div className="spinner !w-4 !h-4" /> Loading repositories…
                 </div>
               ) : (
@@ -319,17 +271,10 @@ export function RepoLinker({
                     ))}
                   </select>
                   <div className="flex gap-2">
-                    <button
-                      className={btnPrimary}
-                      onClick={handleRepoNext}
-                      disabled={!selectedRepo}
-                    >
+                    <button className={btnPrimary} onClick={handleRepoNext} disabled={!selectedRepo}>
                       Next
                     </button>
-                    <button
-                      className={btnSecondary}
-                      onClick={() => setShowPicker(false)}
-                    >
+                    <button className={btnSecondary} onClick={() => setShowPicker(false)}>
                       Cancel
                     </button>
                   </div>
@@ -338,18 +283,13 @@ export function RepoLinker({
             </>
           ) : (
             <>
-              <h3 className={`text-sm font-medium ${textPrimary} mb-0.5`}>
-                iOS app folder
-              </h3>
+              <h3 className={`text-sm font-medium ${textPrimary} mb-0.5`}>iOS app folder</h3>
               <p className={`text-xs ${textSecondary} mb-3`}>
-                Select the folder that contains the iOS app code (e.g.{" "}
-                <code className="font-mono">ios</code> for React Native). Leave
-                as root if the Xcode project is at the repo root.
+                Select the folder that contains the iOS app code (e.g. <code className="font-mono">ios</code> for React
+                Native). Leave as root if the Xcode project is at the repo root.
               </p>
               {loadingDirs ? (
-                <div
-                  className={`flex items-center gap-2 text-sm ${textSecondary} py-4`}
-                >
+                <div className={`flex items-center gap-2 text-sm ${textSecondary} py-4`}>
                   <div className="spinner !w-4 !h-4" /> Scanning folders…
                 </div>
               ) : (
@@ -367,23 +307,13 @@ export function RepoLinker({
                     ))}
                   </select>
                   <div className="flex gap-2">
-                    <button
-                      className={btnPrimary}
-                      onClick={handleLink}
-                      disabled={linking}
-                    >
+                    <button className={btnPrimary} onClick={handleLink} disabled={linking}>
                       {linking ? "Linking…" : "Link"}
                     </button>
-                    <button
-                      className={btnSecondary}
-                      onClick={() => setStep("repo")}
-                    >
+                    <button className={btnSecondary} onClick={() => setStep("repo")}>
                       Back
                     </button>
-                    <button
-                      className={btnSecondary}
-                      onClick={() => setShowPicker(false)}
-                    >
+                    <button className={btnSecondary} onClick={() => setShowPicker(false)}>
                       Cancel
                     </button>
                   </div>
@@ -404,11 +334,7 @@ export function ScreenshotJobsTable({
   appId: string;
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }) {
-  const {
-    data: jobs,
-    loading,
-    refetch,
-  } = useApi<ScreenshotJob[]>(`/github/screenshots/${appId}`, [appId], true);
+  const { data: jobs, loading, refetch } = useApi<ScreenshotJob[]>(`/github/screenshots/${appId}`, [appId], true);
   const [expandedJob, setExpandedJob] = useState<string | null>(null);
   const [triggering, setTriggering] = useState(false);
 
@@ -428,20 +354,12 @@ export function ScreenshotJobsTable({
   return (
     <div className={`${cardCls} mb-5`}>
       <div className="flex items-center justify-between mb-1">
-        <h2 className={`text-[16px] font-semibold ${textPrimary}`}>
-          Screenshot Jobs
-        </h2>
-        <button
-          onClick={handleTrigger}
-          disabled={triggering}
-          className={btnSecSm}
-        >
+        <h2 className={`text-[16px] font-semibold ${textPrimary}`}>Screenshot Jobs</h2>
+        <button onClick={handleTrigger} disabled={triggering} className={btnSecSm}>
           {triggering ? "Starting…" : "Run Now"}
         </button>
       </div>
-      <p className={`text-xs ${textSecondary} mb-4`}>
-        Recent screenshot generation runs triggered by GitHub pushes.
-      </p>
+      <p className={`text-xs ${textSecondary} mb-4`}>Recent screenshot generation runs triggered by GitHub pushes.</p>
 
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-[#5c6478] py-8 justify-center">
@@ -458,9 +376,7 @@ export function ScreenshotJobsTable({
               key={j.id}
               job={j}
               expanded={expandedJob === j.id}
-              onToggle={() =>
-                setExpandedJob(expandedJob === j.id ? null : j.id)
-              }
+              onToggle={() => setExpandedJob(expandedJob === j.id ? null : j.id)}
               addToast={addToast}
             />
           ))}
@@ -486,9 +402,7 @@ function JobRow({
     logs,
     loading: logsLoading,
     error: logsError,
-  } = useLazyLogs(
-    expanded ? `/github/screenshots/${job.appId}/${job.id}/logs` : null,
-  );
+  } = useLazyLogs(expanded ? `/github/screenshots/${job.appId}/${job.id}/logs` : null);
 
   return (
     <div
@@ -500,27 +414,19 @@ function JobRow({
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className={`text-[13px] font-mono ${textPrimary}`}>
-              {job.commitSha.slice(0, 7)}
-            </span>
+            <span className={`text-[13px] font-mono ${textPrimary}`}>{job.commitSha.slice(0, 7)}</span>
             <span className="text-[12px] font-mono bg-[#f3f4f6] dark:bg-[#252b38] dark:text-[#8b93a5] px-1.5 py-0.5 rounded">
               {job.branch ?? "—"}
             </span>
             <span className={badgeOutline(job.status)}>{job.status}</span>
           </div>
           {job.commitMessage && (
-            <div className={`text-[12px] ${textSecondary} truncate mt-0.5`}>
-              {job.commitMessage}
-            </div>
+            <div className={`text-[12px] ${textSecondary} truncate mt-0.5`}>{job.commitMessage}</div>
           )}
         </div>
         <div className="text-right shrink-0">
-          <div className={`text-[12px] ${textSecondary}`}>
-            {job.pusher ? `by ${job.pusher}` : ""}
-          </div>
-          <div className={`text-[11px] ${textSecondary}`}>
-            {new Date(job.createdAt).toLocaleString()}
-          </div>
+          <div className={`text-[12px] ${textSecondary}`}>{job.pusher ? `by ${job.pusher}` : ""}</div>
+          <div className={`text-[11px] ${textSecondary}`}>{new Date(job.createdAt).toLocaleString()}</div>
         </div>
         <ChevronDown
           className={`w-4 h-4 ${textSecondary} shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`}
@@ -528,46 +434,30 @@ function JobRow({
       </button>
 
       {expanded && (
-        <div
-          className={`border-t ${borderDefault} bg-[#fafbfc] dark:bg-[#161920] px-4 py-3`}
-        >
+        <div className={`border-t ${borderDefault} bg-[#fafbfc] dark:bg-[#161920] px-4 py-3`}>
           {job.error && (
             <div className="mb-3 p-3 rounded-lg bg-red-50 border border-red-200">
-              <div className="text-[11px] font-medium text-red-700 uppercase tracking-wide mb-1">
-                Error
-              </div>
-              <pre className="text-[12px] text-red-600 whitespace-pre-wrap break-all font-mono">
-                {job.error}
-              </pre>
+              <div className="text-[11px] font-medium text-red-700 uppercase tracking-wide mb-1">Error</div>
+              <pre className="text-[12px] text-red-600 whitespace-pre-wrap break-all font-mono">{job.error}</pre>
             </div>
           )}
 
           {job.status === "COMPLETED" && (
             <div className="mb-3 flex items-center gap-3">
               {job.screenshotUrls.length > 0 && (
-                <div className="text-[12px] text-emerald-700">
-                  {job.screenshotUrls.length} screenshot(s) generated
-                </div>
+                <div className="text-[12px] text-emerald-700">{job.screenshotUrls.length} screenshot(s) generated</div>
               )}
             </div>
           )}
 
           {framedUrls.length > 0 && (
             <div className="mb-4">
-              <div
-                className={`text-[11px] font-medium ${textSecondary} uppercase tracking-wide mb-2`}
-              >
+              <div className={`text-[11px] font-medium ${textSecondary} uppercase tracking-wide mb-2`}>
                 Framed ({framedUrls.length})
               </div>
               <div className="flex gap-3 overflow-x-auto pb-2">
                 {framedUrls.map((url) => (
-                  <a
-                    key={url}
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="shrink-0"
-                  >
+                  <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="shrink-0">
                     <img
                       src={url}
                       alt="Framed screenshot"
@@ -593,11 +483,7 @@ export function BuildJobsTable({
   appId: string;
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }) {
-  const {
-    data: jobs,
-    loading,
-    refetch,
-  } = useApi<BuildJob[]>(`/github/builds/${appId}`, [appId], true);
+  const { data: jobs, loading, refetch } = useApi<BuildJob[]>(`/github/builds/${appId}`, [appId], true);
   const [expandedJob, setExpandedJob] = useState<string | null>(null);
   const [triggering, setTriggering] = useState(false);
 
@@ -617,20 +503,12 @@ export function BuildJobsTable({
   return (
     <div className={`${cardCls} mb-5`}>
       <div className="flex items-center justify-between mb-1">
-        <h2 className={`text-[16px] font-semibold ${textPrimary}`}>
-          Build Jobs
-        </h2>
-        <button
-          onClick={handleTrigger}
-          disabled={triggering}
-          className={btnSecSm}
-        >
+        <h2 className={`text-[16px] font-semibold ${textPrimary}`}>Build Jobs</h2>
+        <button onClick={handleTrigger} disabled={triggering} className={btnSecSm}>
           {triggering ? "Starting…" : "Run Now"}
         </button>
       </div>
-      <p className={`text-xs ${textSecondary} mb-4`}>
-        Binary build runs triggered by GitHub pushes.
-      </p>
+      <p className={`text-xs ${textSecondary} mb-4`}>Binary build runs triggered by GitHub pushes.</p>
 
       {loading ? (
         <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-[#5c6478] py-8 justify-center">
@@ -647,9 +525,7 @@ export function BuildJobsTable({
               key={j.id}
               job={j}
               expanded={expandedJob === j.id}
-              onToggle={() =>
-                setExpandedJob(expandedJob === j.id ? null : j.id)
-              }
+              onToggle={() => setExpandedJob(expandedJob === j.id ? null : j.id)}
             />
           ))}
         </div>
@@ -658,22 +534,12 @@ export function BuildJobsTable({
   );
 }
 
-function BuildJobRow({
-  job,
-  expanded,
-  onToggle,
-}: {
-  job: BuildJob;
-  expanded: boolean;
-  onToggle: () => void;
-}) {
+function BuildJobRow({ job, expanded, onToggle }: { job: BuildJob; expanded: boolean; onToggle: () => void }) {
   const {
     logs,
     loading: logsLoading,
     error: logsError,
-  } = useLazyLogs(
-    expanded ? `/github/builds/${job.appId}/${job.id}/logs` : null,
-  );
+  } = useLazyLogs(expanded ? `/github/builds/${job.appId}/${job.id}/logs` : null);
 
   return (
     <div
@@ -686,9 +552,7 @@ function BuildJobRow({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             {job.commitSha && (
-              <span className={`text-[13px] font-mono ${textPrimary}`}>
-                {job.commitSha.slice(0, 7)}
-              </span>
+              <span className={`text-[13px] font-mono ${textPrimary}`}>{job.commitSha.slice(0, 7)}</span>
             )}
             {job.branch && (
               <span className="text-[12px] font-mono bg-[#f3f4f6] dark:bg-[#252b38] dark:text-[#8b93a5] px-1.5 py-0.5 rounded">
@@ -696,17 +560,11 @@ function BuildJobRow({
               </span>
             )}
             <span className={badgeOutline(job.status)}>{job.status}</span>
-            {job.ipaPath && (
-              <span className="text-[11px] text-emerald-600 dark:text-emerald-400">
-                IPA ready
-              </span>
-            )}
+            {job.ipaPath && <span className="text-[11px] text-emerald-600 dark:text-emerald-400">IPA ready</span>}
           </div>
         </div>
         <div className="text-right shrink-0">
-          <div className={`text-[11px] ${textSecondary}`}>
-            {new Date(job.createdAt).toLocaleString()}
-          </div>
+          <div className={`text-[11px] ${textSecondary}`}>{new Date(job.createdAt).toLocaleString()}</div>
         </div>
         <ChevronDown
           className={`w-4 h-4 ${textSecondary} shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`}
@@ -714,14 +572,10 @@ function BuildJobRow({
       </button>
 
       {expanded && (
-        <div
-          className={`border-t ${borderDefault} bg-[#fafbfc] dark:bg-[#161920] px-4 py-3`}
-        >
+        <div className={`border-t ${borderDefault} bg-[#fafbfc] dark:bg-[#161920] px-4 py-3`}>
           {job.errors.length > 0 && (
             <div className="mb-3 p-3 rounded-lg bg-red-50 border border-red-200">
-              <div className="text-[11px] font-medium text-red-700 uppercase tracking-wide mb-1">
-                Errors
-              </div>
+              <div className="text-[11px] font-medium text-red-700 uppercase tracking-wide mb-1">Errors</div>
               <pre className="text-[12px] text-red-600 whitespace-pre-wrap break-all font-mono">
                 {job.errors.join("\n")}
               </pre>

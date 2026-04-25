@@ -3,13 +3,7 @@ import { KeyRound } from "lucide-react";
 import { setToken } from "../../hooks/useApi";
 import AuthHeader from "./AuthHeader";
 import type { AuthUser } from "../../types";
-import {
-  borderDefault,
-  btnPrimary,
-  inputCls,
-  textMuted,
-  textPrimary,
-} from "../../styles";
+import { borderDefault, btnPrimary, inputCls, textMuted, textPrimary } from "../../styles";
 
 export type { AuthUser };
 
@@ -17,9 +11,7 @@ interface Props {
   onAuth: (user: AuthUser) => void;
 }
 
-async function passkeySignIn(
-  email: string,
-): Promise<{ token: string; user: AuthUser }> {
+async function passkeySignIn(email: string): Promise<{ token: string; user: AuthUser }> {
   const { startAuthentication } = await import("@simplewebauthn/browser");
 
   const optRes = await fetch("/api/auth/passkey/login-options", {
@@ -28,8 +20,7 @@ async function passkeySignIn(
     body: JSON.stringify({ email: email || undefined }),
   });
   const optData = await optRes.json();
-  if (!optRes.ok)
-    throw new Error(optData.error ?? "Failed to start passkey auth");
+  if (!optRes.ok) throw new Error(optData.error ?? "Failed to start passkey auth");
 
   const assertion = await startAuthentication({ optionsJSON: optData.options });
 
@@ -42,8 +33,7 @@ async function passkeySignIn(
     }),
   });
   const verifyData = await verifyRes.json();
-  if (!verifyRes.ok)
-    throw new Error(verifyData.error ?? "Passkey verification failed");
+  if (!verifyRes.ok) throw new Error(verifyData.error ?? "Passkey verification failed");
 
   return verifyData;
 }
@@ -59,8 +49,7 @@ async function passkeyRegister(token: string): Promise<void> {
     },
   });
   const optData = await optRes.json();
-  if (!optRes.ok)
-    throw new Error(optData.error ?? "Failed to start passkey registration");
+  if (!optRes.ok) throw new Error(optData.error ?? "Failed to start passkey registration");
 
   const attestation = await startRegistration({ optionsJSON: optData.options });
 
@@ -73,8 +62,7 @@ async function passkeyRegister(token: string): Promise<void> {
     body: JSON.stringify({ registrationResponse: attestation }),
   });
   const verifyData = await verifyRes.json();
-  if (!verifyRes.ok)
-    throw new Error(verifyData.error ?? "Passkey registration failed");
+  if (!verifyRes.ok) throw new Error(verifyData.error ?? "Passkey registration failed");
 }
 
 export default function Login({ onAuth }: Props) {
@@ -101,8 +89,7 @@ export default function Login({ onAuth }: Props) {
     setError(null);
     setLoading(true);
     try {
-      const endpoint =
-        mode === "login" ? "/api/auth/login" : "/api/auth/register";
+      const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
       const body: Record<string, string> = { email, password };
       if (mode === "register" && name) body.name = name;
       const res = await fetch(endpoint, {
@@ -155,19 +142,14 @@ export default function Login({ onAuth }: Props) {
   if (pendingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#f8f9fb] dark:bg-[#0f1117]">
-        <div
-          className={`w-[400px] bg-white dark:bg-[#1c2028] rounded-2xl shadow-xl border ${borderDefault} p-10`}
-        >
+        <div className={`w-[400px] bg-white dark:bg-[#1c2028] rounded-2xl shadow-xl border ${borderDefault} p-10`}>
           <div className="flex flex-col items-center text-center gap-3 mb-6">
             <div className="w-12 h-12 rounded-full bg-[#fff0f2] dark:bg-[#2a1520] flex items-center justify-center">
               <PasskeyIcon className="text-[#D94412]" size={24} />
             </div>
-            <h2 className={`text-lg font-semibold ${textPrimary}`}>
-              Add a Passkey?
-            </h2>
+            <h2 className={`text-lg font-semibold ${textPrimary}`}>Add a Passkey?</h2>
             <p className="text-sm text-[#6b7280] dark:text-[#8b9ab0] leading-relaxed">
-              Sign in faster next time using Face ID, Touch ID, or your device
-              PIN — no password needed.
+              Sign in faster next time using Face ID, Touch ID, or your device PIN — no password needed.
             </p>
           </div>
 
@@ -200,9 +182,7 @@ export default function Login({ onAuth }: Props) {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f8f9fb] dark:bg-[#0f1117]">
-      <div
-        className={`w-[400px] bg-white dark:bg-[#1c2028] rounded-2xl shadow-xl border ${borderDefault} p-10`}
-      >
+      <div className={`w-[400px] bg-white dark:bg-[#1c2028] rounded-2xl shadow-xl border ${borderDefault} p-10`}>
         <AuthHeader mode={mode} />
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {mode === "register" && (
@@ -231,9 +211,7 @@ export default function Login({ onAuth }: Props) {
             />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className={`text-sm font-medium ${textPrimary}`}>
-              Password
-            </span>
+            <span className={`text-sm font-medium ${textPrimary}`}>Password</span>
             <input
               className={inputCls}
               type="password"
@@ -242,26 +220,14 @@ export default function Login({ onAuth }: Props) {
               required
               minLength={8}
               onChange={(e) => setPassword(e.target.value)}
-              autoComplete={
-                mode === "login" ? "current-password" : "new-password"
-              }
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
             />
           </label>
           {error && (
-            <div className="bg-red-50 border border-red-100 text-red-700 text-sm rounded-xl px-4 py-2.5">
-              {error}
-            </div>
+            <div className="bg-red-50 border border-red-100 text-red-700 text-sm rounded-xl px-4 py-2.5">{error}</div>
           )}
-          <button
-            type="submit"
-            disabled={loading}
-            className={`${btnPrimary} w-full justify-center mt-1`}
-          >
-            {loading
-              ? "Please wait…"
-              : mode === "login"
-                ? "Sign in"
-                : "Create account"}
+          <button type="submit" disabled={loading} className={`${btnPrimary} w-full justify-center mt-1`}>
+            {loading ? "Please wait…" : mode === "login" ? "Sign in" : "Create account"}
           </button>
         </form>
 
@@ -318,12 +284,6 @@ export default function Login({ onAuth }: Props) {
   );
 }
 
-function PasskeyIcon({
-  className = "text-current",
-  size = 18,
-}: {
-  className?: string;
-  size?: number;
-}) {
+function PasskeyIcon({ className = "text-current", size = 18 }: { className?: string; size?: number }) {
   return <KeyRound width={size} height={size} className={className} />;
 }

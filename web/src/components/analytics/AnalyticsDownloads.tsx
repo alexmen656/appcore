@@ -3,22 +3,10 @@ import { useApi, getActiveBundleId } from "../../hooks/useApi";
 import MetricsChart from "./MetricsChart";
 import type { ChartMarker } from "./MetricsChart";
 import type { DownloadsData } from "../../types";
-import {
-  TD,
-  TH,
-  borderDefault,
-  pageTitle,
-  textMuted,
-  textPrimary,
-} from "../../styles";
+import { TD, TH, borderDefault, pageTitle, textMuted, textPrimary } from "../../styles";
 import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { fmtNumber, fmtRevenue, fmtShortDate } from "../../utils/formatters";
-import {
-  type RangeKey,
-  RANGE_OPTIONS,
-  rangeToParams,
-  rangeLabel,
-} from "../../utils/analyticsRange";
+import { type RangeKey, RANGE_OPTIONS, rangeToParams } from "../../utils/analyticsRange";
 
 export default function AnalyticsDownloads() {
   const bundleId = getActiveBundleId() ?? "";
@@ -27,15 +15,8 @@ export default function AnalyticsDownloads() {
   const [customEnd, setCustomEnd] = useState("");
   const [sortCol, setSortCol] = useState<keyof typeof COL_KEYS>("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-
-  const params = useMemo(
-    () => rangeToParams(range, customStart, customEnd),
-    [range, customStart, customEnd],
-  );
-
-  const { data: downloads, loading } = useApi<DownloadsData>(
-    `/analytics/downloads?bundleId=${bundleId}${params}`,
-  );
+  const params = useMemo(() => rangeToParams(range, customStart, customEnd), [range, customStart, customEnd]);
+  const { data: downloads, loading } = useApi<DownloadsData>(`/analytics/downloads?bundleId=${bundleId}${params}`);
 
   const { data: markersData } = useApi<{
     activatedAt: string | null;
@@ -44,10 +25,8 @@ export default function AnalyticsDownloads() {
 
   const markers: ChartMarker[] = useMemo(() => {
     const result: ChartMarker[] = [];
-    if (markersData?.activatedAt)
-      result.push({ date: markersData.activatedAt, type: "activation" });
-    for (const v of markersData?.versionUpdates ?? [])
-      result.push({ date: v.date, type: "version", label: v.version });
+    if (markersData?.activatedAt) result.push({ date: markersData.activatedAt, type: "activation" });
+    for (const v of markersData?.versionUpdates ?? []) result.push({ date: v.date, type: "version", label: v.version });
     return result;
   }, [markersData]);
 
@@ -58,9 +37,7 @@ export default function AnalyticsDownloads() {
     const minDate = byDay[0].date;
     const maxDate = byDay[byDay.length - 1].date;
     const existing = new Set(byDay.map((d) => d.date));
-    const toInject = markerDates.filter(
-      (d) => !existing.has(d) && d >= minDate && d <= maxDate,
-    );
+    const toInject = markerDates.filter((d) => !existing.has(d) && d >= minDate && d <= maxDate);
     if (!toInject.length) return byDay;
     const injected = toInject.map((d) => ({
       date: d,
@@ -84,9 +61,7 @@ export default function AnalyticsDownloads() {
     sessions: "sessions",
   } as const;
 
-  const hasEngagementData = (downloads?.byDay ?? []).some(
-    (d) => d.impressions > 0 || d.pageViews > 0,
-  );
+  const hasEngagementData = (downloads?.byDay ?? []).some((d) => d.impressions > 0 || d.pageViews > 0);
 
   const sortedDays = useMemo(() => {
     const rows = [...(downloads?.byDay ?? [])];
@@ -96,9 +71,7 @@ export default function AnalyticsDownloads() {
       if (typeof av === "string" && typeof bv === "string") {
         return sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
       }
-      return sortDir === "asc"
-        ? (av as number) - (bv as number)
-        : (bv as number) - (av as number);
+      return sortDir === "asc" ? (av as number) - (bv as number) : (bv as number) - (av as number);
     });
   }, [downloads?.byDay, sortCol, sortDir]);
 
@@ -129,15 +102,7 @@ export default function AnalyticsDownloads() {
         <span className="inline-flex items-center gap-1">
           {children}
           <span className="opacity-40 [&_svg]:w-3 [&_svg]:h-3">
-            {active ? (
-              sortDir === "asc" ? (
-                <ChevronUp />
-              ) : (
-                <ChevronDown />
-              )
-            ) : (
-              <ChevronsUpDown />
-            )}
+            {active ? sortDir === "asc" ? <ChevronUp /> : <ChevronDown /> : <ChevronsUpDown />}
           </span>
         </span>
       </th>
@@ -193,18 +158,12 @@ export default function AnalyticsDownloads() {
         className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]`}
       >
         <div className="px-5 py-4 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
-          <div className={`text-[16px] font-semibold ${textPrimary}`}>
-            Daily breakdown
-          </div>
+          <div className={`text-[16px] font-semibold ${textPrimary}`}>Daily breakdown</div>
         </div>
         {loading ? (
-          <div className={`px-5 py-8 text-center text-[13px] ${textMuted}`}>
-            Loading…
-          </div>
+          <div className={`px-5 py-8 text-center text-[13px] ${textMuted}`}>Loading…</div>
         ) : sortedDays.length === 0 ? (
-          <div className={`px-5 py-8 text-center text-[13px] ${textMuted}`}>
-            No data for this period
-          </div>
+          <div className={`px-5 py-8 text-center text-[13px] ${textMuted}`}>No data for this period</div>
         ) : (
           <table className="w-full">
             <thead>
@@ -236,16 +195,9 @@ export default function AnalyticsDownloads() {
             </thead>
             <tbody>
               {sortedDays.map((d) => (
-                <tr
-                  key={d.date}
-                  className="hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors"
-                >
-                  <td className={`${TD} font-mono text-[12px]`}>
-                    {fmtShortDate(d.date)}
-                  </td>
-                  <td
-                    className={`${TD} text-right tabular-nums font-medium ${textPrimary}`}
-                  >
+                <tr key={d.date} className="hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors">
+                  <td className={`${TD} font-mono text-[12px]`}>{fmtShortDate(d.date)}</td>
+                  <td className={`${TD} text-right tabular-nums font-medium ${textPrimary}`}>
                     {fmtNumber(d.downloads)}
                   </td>
                   <td className={`${TD} text-right tabular-nums ${textMuted}`}>
@@ -256,19 +208,13 @@ export default function AnalyticsDownloads() {
                   </td>
                   {hasEngagementData && (
                     <>
-                      <td
-                        className={`${TD} text-right tabular-nums ${textMuted}`}
-                      >
+                      <td className={`${TD} text-right tabular-nums ${textMuted}`}>
                         {d.impressions > 0 ? fmtNumber(d.impressions) : "—"}
                       </td>
-                      <td
-                        className={`${TD} text-right tabular-nums ${textMuted}`}
-                      >
+                      <td className={`${TD} text-right tabular-nums ${textMuted}`}>
                         {d.pageViews > 0 ? fmtNumber(d.pageViews) : "—"}
                       </td>
-                      <td
-                        className={`${TD} text-right tabular-nums pr-5 ${textMuted}`}
-                      >
+                      <td className={`${TD} text-right tabular-nums pr-5 ${textMuted}`}>
                         {d.sessions > 0 ? fmtNumber(d.sessions) : "—"}
                       </td>
                     </>

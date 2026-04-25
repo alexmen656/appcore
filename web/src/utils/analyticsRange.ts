@@ -1,13 +1,4 @@
-export type RangeKey =
-  | "7d"
-  | "14d"
-  | "30d"
-  | "90d"
-  | "180d"
-  | "365d"
-  | "ytd"
-  | "all"
-  | "custom";
+export type RangeKey = "7d" | "14d" | "30d" | "90d" | "180d" | "365d" | "ytd" | "all" | "custom";
 
 export const RANGE_OPTIONS: { key: RangeKey; label: string }[] = [
   { key: "7d", label: "7d" },
@@ -21,11 +12,7 @@ export const RANGE_OPTIONS: { key: RangeKey; label: string }[] = [
   { key: "custom", label: "Custom" },
 ];
 
-export function rangeToParams(
-  range: RangeKey,
-  customStart?: string,
-  customEnd?: string,
-): string {
+export function rangeToParams(range: RangeKey, customStart?: string, customEnd?: string): string {
   if (range === "all") return "&period=all";
   if (range === "ytd") return "&period=ytd";
   if (range === "custom") {
@@ -53,19 +40,14 @@ export function rangeLabel(range: RangeKey): string {
   return map[range];
 }
 
-export function prevPeriodParams(
-  range: RangeKey,
-  customStart?: string,
-  customEnd?: string,
-): string | null {
+export function prevPeriodParams(range: RangeKey, customStart?: string, customEnd?: string): string | null {
   if (range === "all" || range === "ytd") return null;
   const fmt = (d: Date) => d.toISOString().slice(0, 10);
   if (range === "custom") {
     if (!customStart || !customEnd) return null;
     const start = new Date(customStart);
     const end = new Date(customEnd);
-    const days =
-      Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
+    const days = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
     const prevEnd = new Date(start);
     prevEnd.setDate(prevEnd.getDate() - 1);
     const prevStart = new Date(prevEnd);

@@ -3,12 +3,7 @@ export default function MonetizationProducts() {
   return (
     <div className="flex flex-col items-center justify-center h-full min-h-[400px] gap-4 text-center">
       <div className="w-12 h-12 rounded-2xl bg-[#fef2f3] dark:bg-[#2a1f23] flex items-center justify-center">
-        <svg
-          className="w-6 h-6 text-[#C4001E]"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg className="w-6 h-6 text-[#C4001E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -18,12 +13,9 @@ export default function MonetizationProducts() {
         </svg>
       </div>
       <div>
-        <h2 className={`text-lg font-semibold ${textPrimary}`}>
-          In-App Products
-        </h2>
+        <h2 className={`text-lg font-semibold ${textPrimary}`}>In-App Products</h2>
         <p className="text-sm text-gray-500 dark:text-[#8b93a5] mt-1 max-w-sm">
-          Manage your one-time in-app purchases here. This feature is coming
-          soon.
+          Manage your one-time in-app purchases here. This feature is coming soon.
         </p>
       </div>
     </div>

@@ -53,16 +53,10 @@ export function preloadApi(path: string, skipBundleId = false): Promise<void> {
   return promise;
 }
 
-export function useApi<T>(
-  path: string,
-  deps: any[] = [],
-  skipBundleId = false,
-) {
+export function useApi<T>(path: string, deps: any[] = [], skipBundleId = false) {
   const getUrl = () => (skipBundleId ? `${BASE}${path}` : buildUrl(path));
 
-  const [data, setData] = useState<T | null>(
-    () => apiCache.get(getUrl()) ?? null,
-  );
+  const [data, setData] = useState<T | null>(() => apiCache.get(getUrl()) ?? null);
   const [loading, setLoading] = useState(() => !apiCache.has(getUrl()));
   const [error, setError] = useState<string | null>(null);
 

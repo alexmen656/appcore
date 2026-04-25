@@ -1,11 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
-import {
-  useApi,
-  apiPost,
-  authHeaders,
-  getActiveBundleId,
-} from "../hooks/useApi";
+import { useApi, apiPost, authHeaders, getActiveBundleId } from "../hooks/useApi";
 import {
   badgeOutline,
   borderDefault,
@@ -224,13 +219,7 @@ function getLocaleFlag(locale: string): string {
   return lang.toLowerCase();
 }
 
-function LocaleFlag({
-  locale,
-  className,
-}: {
-  locale: string;
-  className?: string;
-}) {
+function LocaleFlag({ locale, className }: { locale: string; className?: string }) {
   return (
     <img
       src={`/app/country-flags/${getLocaleFlag(locale)}.svg`}
@@ -262,9 +251,7 @@ function getDeviceLabel(url: string): string {
 }
 
 function StateBadge({ state }: { state: string }) {
-  const label = state
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  const label = state.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   return <span className={badgeOutline(state)}>{label}</span>;
 }
 
@@ -292,8 +279,7 @@ function ActionButton({
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node))
-        setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -325,9 +311,7 @@ function ActionButton({
           className="px-2.5 rounded-r-xl bg-[#D94412] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="More actions"
         >
-          <ChevronDown
-            className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`}
-          />
+          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
         </button>
         {open && (
           <div
@@ -394,9 +378,7 @@ function ActionButton({
         className={`px-2.5 rounded-r-xl border border-l-0 ${borderDefault} bg-white dark:bg-[#1c2028] ${textSecondary} hover:border-[#D94412] hover:text-[#D94412] transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
         aria-label="More actions"
       >
-        <ChevronDown
-          className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`}
-        />
+        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
         <div
@@ -439,11 +421,7 @@ function EditableField({
   value: string;
   localization: VersionLocalization;
   isEditable: boolean;
-  onSave: (
-    field: string,
-    value: string,
-    loc: VersionLocalization,
-  ) => Promise<void>;
+  onSave: (field: string, value: string, loc: VersionLocalization) => Promise<void>;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -459,10 +437,7 @@ function EditableField({
     if (editing && ref.current) {
       ref.current.focus();
       if (ref.current instanceof HTMLTextAreaElement) {
-        ref.current.setSelectionRange(
-          ref.current.value.length,
-          ref.current.value.length,
-        );
+        ref.current.setSelectionRange(ref.current.value.length, ref.current.value.length);
       }
     }
   }, [editing]);
@@ -504,11 +479,7 @@ function EditableField({
     <div className="group">
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2">
-          <label
-            className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide`}
-          >
-            {field.label}
-          </label>
+          <label className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide`}>{field.label}</label>
         </div>
         <div className="flex items-center gap-2">
           {field.maxLength && editing && (
@@ -547,18 +518,10 @@ function EditableField({
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={handleKeyDown}
               className={`${textareaCls} min-h-[80px]`}
-              rows={
-                field.key === "description"
-                  ? 8
-                  : field.key === "whatsNew"
-                    ? 4
-                    : 3
-              }
+              rows={field.key === "description" ? 8 : field.key === "whatsNew" ? 4 : 3}
             />
           )}
-          {field.hint && (
-            <p className="text-[10px] text-[#c8cdd3] mt-1">{field.hint}</p>
-          )}
+          {field.hint && <p className="text-[10px] text-[#c8cdd3] mt-1">{field.hint}</p>}
           <div className="flex items-center gap-2 mt-2">
             <button
               onClick={handleSave}
@@ -586,9 +549,7 @@ function EditableField({
               Cancel
             </button>
             {field.type === "textarea" && (
-              <span className="text-[10px] text-[#c8cdd3] dark:text-[#3a4050] ml-auto">
-                ⌘+Enter to save
-              </span>
+              <span className="text-[10px] text-[#c8cdd3] dark:text-[#3a4050] ml-auto">⌘+Enter to save</span>
             )}
           </div>
         </div>
@@ -601,11 +562,7 @@ function EditableField({
               : ""
           }`}
         >
-          {value || (
-            <span className="text-[#c8cdd3] dark:text-[#3a4050] italic">
-              Empty
-            </span>
-          )}
+          {value || <span className="text-[#c8cdd3] dark:text-[#3a4050] italic">Empty</span>}
         </div>
       )}
     </div>
@@ -653,11 +610,7 @@ function InlineEditField({
   return (
     <div className="group">
       <div className="flex items-center justify-between mb-1.5">
-        <label
-          className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide`}
-        >
-          {label}
-        </label>
+        <label className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide`}>{label}</label>
         {!editing && isEditable && (
           <button
             onClick={() => setEditing(true)}
@@ -719,11 +672,7 @@ function InlineEditField({
               : ""
           }`}
         >
-          {value || (
-            <span className="text-[#c8cdd3] dark:text-[#3a4050] italic">
-              Empty
-            </span>
-          )}
+          {value || <span className="text-[#c8cdd3] dark:text-[#3a4050] italic">Empty</span>}
         </div>
       )}
     </div>
@@ -739,13 +688,7 @@ interface LatestBuild {
   iconUrl: string | null;
 }
 
-function LatestBuildCard({
-  bundleId,
-  appName,
-}: {
-  bundleId: string;
-  appName: string;
-}) {
+function LatestBuildCard({ bundleId, appName }: { bundleId: string; appName: string }) {
   const { data, loading } = useApi<{ build: LatestBuild | null }>(
     `/submissions/build-info?bundleId=${encodeURIComponent(bundleId)}`,
     [bundleId],
@@ -787,32 +730,18 @@ function LatestBuildCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <div
-                className={`text-[14px] font-semibold ${textPrimary} leading-tight`}
-              >
-                {appName}
-              </div>
-              <div className={`text-[11px] ${textMuted} font-mono mt-0.5`}>
-                {build.bundleId}
-              </div>
+              <div className={`text-[14px] font-semibold ${textPrimary} leading-tight`}>{appName}</div>
+              <div className={`text-[11px] ${textMuted} font-mono mt-0.5`}>{build.bundleId}</div>
             </div>
-            <span
-              className={`${badgeOutline("sandbox")} shrink-0 uppercase tracking-wide`}
-            >
-              {build.exportMethod}
-            </span>
+            <span className={`${badgeOutline("sandbox")} shrink-0 uppercase tracking-wide`}>{build.exportMethod}</span>
           </div>
 
           <div className="flex items-center gap-3 mt-2 flex-wrap">
-            <span
-              className={`flex items-center gap-1 text-[12px] ${textSecondary}`}
-            >
+            <span className={`flex items-center gap-1 text-[12px] ${textSecondary}`}>
               <FileText className="w-3.5 h-3.5 shrink-0" />
               {sizeMb} MB
             </span>
-            <span
-              className={`flex items-center gap-1 text-[12px] ${textSecondary}`}
-            >
+            <span className={`flex items-center gap-1 text-[12px] ${textSecondary}`}>
               <Calendar className="w-3.5 h-3.5" />
               {builtDate}
             </span>
@@ -832,10 +761,9 @@ function ScreenshotsPanel({
   activeLocale: string | null;
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }) {
-  const { data, loading, refetch } = useApi<{ job: FramedJob | null }>(
-    `/github/screenshots/latest-framed/${appId}`,
-    [appId],
-  );
+  const { data, loading, refetch } = useApi<{ job: FramedJob | null }>(`/github/screenshots/latest-framed/${appId}`, [
+    appId,
+  ]);
   const [deleting, setDeleting] = useState<string | null>(null);
 
   const deleteScreenshot = async (jobId: string, url: string) => {
@@ -862,20 +790,13 @@ function ScreenshotsPanel({
 
   const job = data?.job;
   const framedByLocale = job?.framedByLocale ?? {};
-  const locales = Object.keys(framedByLocale).filter(
-    (l) => (framedByLocale[l]?.length ?? 0) > 0,
-  );
+  const locales = Object.keys(framedByLocale).filter((l) => (framedByLocale[l]?.length ?? 0) > 0);
 
-  const effectiveLocale =
-    activeLocale && locales.includes(activeLocale)
-      ? activeLocale
-      : (locales[0] ?? null);
+  const effectiveLocale = activeLocale && locales.includes(activeLocale) ? activeLocale : (locales[0] ?? null);
 
   if (loading || !job || locales.length === 0) return null;
 
-  const screenshots = effectiveLocale
-    ? (framedByLocale[effectiveLocale] ?? [])
-    : [];
+  const screenshots = effectiveLocale ? (framedByLocale[effectiveLocale] ?? []) : [];
 
   const grouped = new Map<string, string[]>();
   for (const url of screenshots) {
@@ -913,22 +834,14 @@ function ScreenshotsPanel({
       </div>
 
       {screenshots.length === 0 ? (
-        <p className="text-[12px] text-[#9ca3af] py-3 text-center">
-          No screenshots for {effectiveLocale}.
-        </p>
+        <p className="text-[12px] text-[#9ca3af] py-3 text-center">No screenshots for {effectiveLocale}.</p>
       ) : (
         <div className="flex flex-col gap-5">
           {sortedGroups.map(([label, urls]) => (
             <div key={label}>
               <div className="flex items-center gap-2 mb-2.5">
-                <div
-                  className={`text-[10px] font-bold uppercase tracking-widest ${textMuted}`}
-                >
-                  {label}
-                </div>
-                <span className="text-[10px] text-[#c8cdd3] dark:text-[#3a4050]">
-                  — max 10
-                </span>
+                <div className={`text-[10px] font-bold uppercase tracking-widest ${textMuted}`}>{label}</div>
+                <span className="text-[10px] text-[#c8cdd3] dark:text-[#3a4050]">— max 10</span>
               </div>
               <div className="flex gap-3 overflow-x-auto pb-1">
                 {urls.map((url) => (
@@ -951,11 +864,7 @@ function ScreenshotsPanel({
                       title="Remove screenshot"
                       className="absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center rounded-full bg-black/60 text-white opacity-0 group-hover/img:opacity-100 hover:bg-red-600 transition-all disabled:opacity-50"
                     >
-                      {deleting === url ? (
-                        <div className="spinner !w-3.5 !h-3.5" />
-                      ) : (
-                        <X className="w-3.5 h-3.5" />
-                      )}
+                      {deleting === url ? <div className="spinner !w-3.5 !h-3.5" /> : <X className="w-3.5 h-3.5" />}
                     </button>
                   </div>
                 ))}
@@ -1067,27 +976,21 @@ function ReviewerInfoPanel({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <ShieldCheck className={`w-4 h-4 ${textMuted}`} />
-          <span className={`text-[14px] font-bold ${textPrimary}`}>
-            App Review Contact
-          </span>
+          <span className={`text-[14px] font-bold ${textPrimary}`}>App Review Contact</span>
         </div>
         <button
           onClick={handleSync}
           disabled={syncing}
           className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border ${borderDefault} bg-transparent text-[12px] ${textSecondary} hover:border-[#D94412] hover:text-[#D94412] transition-all disabled:opacity-50`}
         >
-          <RefreshCcw
-            className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`}
-          />
+          <RefreshCcw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} />
           Sync from ASC
         </button>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label
-            className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide block mb-1.5`}
-          >
+          <label className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide block mb-1.5`}>
             First Name
           </label>
           <input
@@ -1099,9 +1002,7 @@ function ReviewerInfoPanel({
           />
         </div>
         <div>
-          <label
-            className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide block mb-1.5`}
-          >
+          <label className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide block mb-1.5`}>
             Last Name
           </label>
           <input
@@ -1113,9 +1014,7 @@ function ReviewerInfoPanel({
           />
         </div>
         <div>
-          <label
-            className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide block mb-1.5`}
-          >
+          <label className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide block mb-1.5`}>
             Phone Number
           </label>
           <input
@@ -1127,9 +1026,7 @@ function ReviewerInfoPanel({
           />
         </div>
         <div>
-          <label
-            className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide block mb-1.5`}
-          >
+          <label className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide block mb-1.5`}>
             E-Mail
           </label>
           <input
@@ -1146,23 +1043,17 @@ function ReviewerInfoPanel({
             <input
               type="checkbox"
               checked={form.reviewerDemoAccountRequired}
-              onChange={(e) =>
-                set("reviewerDemoAccountRequired", e.target.checked)
-              }
+              onChange={(e) => set("reviewerDemoAccountRequired", e.target.checked)}
               className="w-4 h-4 rounded accent-[#D94412]"
             />
-            <span className={`text-[13px] ${textPrimary}`}>
-              Login required (Demo Account)
-            </span>
+            <span className={`text-[13px] ${textPrimary}`}>Login required (Demo Account)</span>
           </label>
         </div>
 
         {form.reviewerDemoAccountRequired && (
           <>
             <div>
-              <label
-                className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide block mb-1.5`}
-              >
+              <label className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide block mb-1.5`}>
                 Demo Username
               </label>
               <input
@@ -1174,9 +1065,7 @@ function ReviewerInfoPanel({
               />
             </div>
             <div>
-              <label
-                className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide block mb-1.5`}
-              >
+              <label className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide block mb-1.5`}>
                 Demo Password
               </label>
               <input
@@ -1217,12 +1106,8 @@ function ReviewerInfoPanel({
 
 export default function Versions({ addToast }: Props) {
   const { versionId } = useParams<{ versionId: string }>();
-  const apiPath = versionId
-    ? `/asc/versions?versionId=${encodeURIComponent(versionId)}`
-    : "/asc/versions";
-  const { data, loading, error, refetch } = useApi<VersionsData>(apiPath, [
-    versionId ?? "",
-  ]);
+  const apiPath = versionId ? `/asc/versions?versionId=${encodeURIComponent(versionId)}` : "/asc/versions";
+  const { data, loading, error, refetch } = useApi<VersionsData>(apiPath, [versionId ?? ""]);
   const [activeLocale, setActiveLocale] = useState<string | null>(null);
   const [showAddLocale, setShowAddLocale] = useState(false);
   const [addingLocale, setAddingLocale] = useState(false);
@@ -1331,11 +1216,7 @@ export default function Versions({ addToast }: Props) {
   useEffect(() => {
     if (!showAddLocale) return;
     const handler = (e: MouseEvent) => {
-      if (
-        addLocaleRef.current &&
-        !addLocaleRef.current.contains(e.target as Node)
-      )
-        setShowAddLocale(false);
+      if (addLocaleRef.current && !addLocaleRef.current.contains(e.target as Node)) setShowAddLocale(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -1363,59 +1244,46 @@ export default function Versions({ addToast }: Props) {
         }
         const created = await res.json();
 
-        const sourceLoc =
-          data.localizations.find((l) => l.locale === "en-US") ??
-          data.localizations[0];
+        const sourceLoc = data.localizations.find((l) => l.locale === "en-US") ?? data.localizations[0];
 
-        if (
-          sourceLoc &&
-          (created.appInfoLocalizationId || created.versionLocalizationId)
-        ) {
+        if (sourceLoc && (created.appInfoLocalizationId || created.versionLocalizationId)) {
           addToast(`Language ${locale} added — translating with AI…`, "info");
           try {
-            const translateRes = await fetch(
-              "/api/asc/versions/localizations/translate",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  ...authHeaders(),
-                },
-                body: JSON.stringify({
-                  targetLocale: locale,
-                  sourceLocale: sourceLoc.locale,
-                  sourceFields: {
-                    name: sourceLoc.name || data.appName || "",
-                    subtitle: sourceLoc.subtitle ?? "",
-                    keywords: sourceLoc.keywords ?? "",
-                    description: sourceLoc.description ?? "",
-                    promotionalText: sourceLoc.promotionalText ?? "",
-                    whatsNew: sourceLoc.whatsNew ?? "",
-                  },
-                }),
+            const translateRes = await fetch("/api/asc/versions/localizations/translate", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...authHeaders(),
               },
-            );
+              body: JSON.stringify({
+                targetLocale: locale,
+                sourceLocale: sourceLoc.locale,
+                sourceFields: {
+                  name: sourceLoc.name || data.appName || "",
+                  subtitle: sourceLoc.subtitle ?? "",
+                  keywords: sourceLoc.keywords ?? "",
+                  description: sourceLoc.description ?? "",
+                  promotionalText: sourceLoc.promotionalText ?? "",
+                  whatsNew: sourceLoc.whatsNew ?? "",
+                },
+              }),
+            });
 
             if (translateRes.ok) {
               const { fields } = await translateRes.json();
               const mergedFields: Record<string, string> = {
                 ...(fields as Record<string, string>),
               };
-              if (sourceLoc.privacyPolicyUrl)
-                mergedFields.privacyPolicyUrl = sourceLoc.privacyPolicyUrl;
-              if (sourceLoc.supportUrl)
-                mergedFields.supportUrl = sourceLoc.supportUrl;
-              if (sourceLoc.marketingUrl)
-                mergedFields.marketingUrl = sourceLoc.marketingUrl;
+              if (sourceLoc.privacyPolicyUrl) mergedFields.privacyPolicyUrl = sourceLoc.privacyPolicyUrl;
+              if (sourceLoc.supportUrl) mergedFields.supportUrl = sourceLoc.supportUrl;
+              if (sourceLoc.marketingUrl) mergedFields.marketingUrl = sourceLoc.marketingUrl;
               const appInfoFields = ["name", "subtitle", "privacyPolicyUrl"];
               const savePromises = Object.entries(mergedFields)
                 .filter(([, v]) => v && v.trim())
                 .map(([field, value]) => {
                   const isAppInfoField = appInfoFields.includes(field);
-                  if (isAppInfoField && !created.appInfoLocalizationId)
-                    return null;
-                  if (!isAppInfoField && !created.versionLocalizationId)
-                    return null;
+                  if (isAppInfoField && !created.appInfoLocalizationId) return null;
+                  if (!isAppInfoField && !created.versionLocalizationId) return null;
                   return fetch("/api/asc/versions/metadata", {
                     method: "PATCH",
                     headers: {
@@ -1424,12 +1292,8 @@ export default function Versions({ addToast }: Props) {
                     },
                     body: JSON.stringify({
                       bundleId: getActiveBundleId(),
-                      appInfoLocalizationId: isAppInfoField
-                        ? created.appInfoLocalizationId
-                        : undefined,
-                      versionLocalizationId: !isAppInfoField
-                        ? created.versionLocalizationId
-                        : undefined,
+                      appInfoLocalizationId: isAppInfoField ? created.appInfoLocalizationId : undefined,
+                      versionLocalizationId: !isAppInfoField ? created.versionLocalizationId : undefined,
                       field,
                       value,
                     }),
@@ -1439,10 +1303,7 @@ export default function Versions({ addToast }: Props) {
 
               await Promise.allSettled(savePromises);
               await new Promise((r) => setTimeout(r, 1500));
-              addToast(
-                `Language ${locale} added and pre-filled with AI`,
-                "success",
-              );
+              addToast(`Language ${locale} added and pre-filled with AI`, "success");
             } else {
               addToast(`Language ${locale} added`, "success");
             }
@@ -1467,8 +1328,7 @@ export default function Versions({ addToast }: Props) {
   const removeLocale = useCallback(
     async (loc: VersionLocalization) => {
       if (!data?.versionId) return;
-      if (!confirm(`Remove ${getLocaleName(loc.locale)} (${loc.locale})?`))
-        return;
+      if (!confirm(`Remove ${getLocaleName(loc.locale)} (${loc.locale})?`)) return;
       setRemovingLocale(loc.locale);
       try {
         const res = await fetch("/api/asc/versions/localizations", {
@@ -1486,10 +1346,7 @@ export default function Versions({ addToast }: Props) {
         }
         addToast(`Language ${loc.locale} removed`, "success");
         if (activeLocale === loc.locale)
-          setActiveLocale(
-            data.localizations.find((l) => l.locale !== loc.locale)?.locale ??
-              null,
-          );
+          setActiveLocale(data.localizations.find((l) => l.locale !== loc.locale)?.locale ?? null);
         refetch();
       } catch (err: any) {
         addToast(`Failed to remove language: ${err.message}`, "error");
@@ -1550,10 +1407,7 @@ export default function Versions({ addToast }: Props) {
       <div className="flex flex-col items-center justify-center py-20 gap-3 text-gray-400 dark:text-[#5c6478]">
         <AlertCircle className="w-8 h-8 text-red-300" />
         <p className="text-sm">{error}</p>
-        <button
-          onClick={refetch}
-          className="text-[#D94412] text-sm font-medium hover:underline"
-        >
+        <button onClick={refetch} className="text-[#D94412] text-sm font-medium hover:underline">
           Retry
         </button>
       </div>
@@ -1562,26 +1416,19 @@ export default function Versions({ addToast }: Props) {
 
   if (!data) return null;
 
-  const activeLoc =
-    data.localizations.find((l) => l.locale === activeLocale) ??
-    data.localizations[0];
+  const activeLoc = data.localizations.find((l) => l.locale === activeLocale) ?? data.localizations[0];
   const isActive = submitStatus?.active === true;
   const canSubmitForReview =
-    data.isEditable &&
-    (data.appStoreState === "PREPARE_FOR_SUBMISSION" ||
-      data.appStoreState === "DEVELOPER_REJECTED");
+    data.isEditable && (data.appStoreState === "PREPARE_FOR_SUBMISSION" || data.appStoreState === "DEVELOPER_REJECTED");
 
   return (
     <div className="max-w-4xl">
       <div className="flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-2.5 flex-wrap">
-          {data.versionString && (
-            <h1 className={`${pageTitle}`}>Version {data.versionString}</h1>
-          )}
+          {data.versionString && <h1 className={`${pageTitle}`}>Version {data.versionString}</h1>}
           {data.appStoreState && <StateBadge state={data.appStoreState} />}
           {!data.isEditable &&
-            (data.appStoreState === "READY_FOR_SALE" ||
-              data.appStoreState === "REPLACED_WITH_NEW_VERSION") && (
+            (data.appStoreState === "READY_FOR_SALE" || data.appStoreState === "REPLACED_WITH_NEW_VERSION") && (
               <span className={badgeOutline("readonly")}>Read-only</span>
             )}
         </div>
@@ -1605,8 +1452,7 @@ export default function Versions({ addToast }: Props) {
             <div className="flex items-center gap-2.5">
               <span
                 className={`w-2 h-2 rounded-full shrink-0 ${
-                  submitStatus.status === "preparing" ||
-                  submitStatus.status === "running"
+                  submitStatus.status === "preparing" || submitStatus.status === "running"
                     ? "bg-blue-500 animate-pulse"
                     : submitStatus.status === "completed"
                       ? "bg-emerald-500"
@@ -1617,8 +1463,7 @@ export default function Versions({ addToast }: Props) {
               />
               <span
                 className={`text-[13px] font-medium capitalize ${
-                  submitStatus.status === "running" ||
-                  submitStatus.status === "preparing"
+                  submitStatus.status === "running" || submitStatus.status === "preparing"
                     ? "text-blue-600"
                     : submitStatus.status === "completed"
                       ? "text-emerald-600"
@@ -1656,8 +1501,7 @@ export default function Versions({ addToast }: Props) {
                       ? "text-yellow-400"
                       : line.toLowerCase().includes("error")
                         ? "text-red-400"
-                        : line.toLowerCase().includes("success") ||
-                            line.toLowerCase().includes("completed")
+                        : line.toLowerCase().includes("success") || line.toLowerCase().includes("completed")
                           ? "text-emerald-400"
                           : ""
                   }`}
@@ -1691,9 +1535,7 @@ export default function Versions({ addToast }: Props) {
                         }`}
                       >
                         <LocaleFlag locale={loc.locale} />
-                        <span className="text-[13px] font-medium">
-                          {getLocaleName(loc.locale)}
-                        </span>
+                        <span className="text-[13px] font-medium">{getLocaleName(loc.locale)}</span>
                         {/*<Check
                           className={`w-3.5 h-3.5 shrink-0 ${
                             loc.locale === activeLocale ? "opacity-100" : "opacity-30"
@@ -1725,46 +1567,34 @@ export default function Versions({ addToast }: Props) {
                   ))}
                 </div>
                 {data.isEditable && data.versionId && (
-                  <div
-                    ref={addLocaleRef}
-                    className="relative shrink-0 self-start"
-                  >
+                  <div ref={addLocaleRef} className="relative shrink-0 self-start">
                     <button
                       onClick={() => setShowAddLocale((v) => !v)}
                       disabled={addingLocale}
                       className={`flex items-center gap-1.5 px-3 py-[7px] rounded-xl border border-dashed border-[#d1d5db] dark:border-[#3a4050] ${textSecondary} hover:border-[#D94412] hover:text-[#D94412] transition-all text-[13px] font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
-                      {addingLocale ? (
-                        <div className="spinner !w-3.5 !h-3.5" />
-                      ) : (
-                        <Plus className="w-3.5 h-3.5" />
-                      )}
+                      {addingLocale ? <div className="spinner !w-3.5 !h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
                       Add Language
                     </button>
                     {showAddLocale && (
                       <div
                         className={`absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-xl shadow-lg py-1 min-w-[200px] max-h-64 overflow-y-auto`}
                       >
-                        {ALL_ASC_LOCALES.filter(
-                          (l) =>
-                            !data.localizations.some((loc) => loc.locale === l),
-                        ).map((locale) => (
-                          <button
-                            key={locale}
-                            onClick={() => createLocalization(locale)}
-                            className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left`}
-                          >
-                            <span className="flex items-center gap-2">
-                              <LocaleFlag locale={locale} />
-                              {getLocaleName(locale)}
-                            </span>
-                            <span
-                              className={`text-[11px] font-mono ${textMuted}`}
+                        {ALL_ASC_LOCALES.filter((l) => !data.localizations.some((loc) => loc.locale === l)).map(
+                          (locale) => (
+                            <button
+                              key={locale}
+                              onClick={() => createLocalization(locale)}
+                              className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left`}
                             >
-                              {locale}
-                            </span>
-                          </button>
-                        ))}
+                              <span className="flex items-center gap-2">
+                                <LocaleFlag locale={locale} />
+                                {getLocaleName(locale)}
+                              </span>
+                              <span className={`text-[11px] font-mono ${textMuted}`}>{locale}</span>
+                            </button>
+                          ),
+                        )}
                       </div>
                     )}
                   </div>
@@ -1776,40 +1606,21 @@ export default function Versions({ addToast }: Props) {
           {/* Active locale header */}
           <div className="flex items-center justify-between pb-3 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
             <div className="flex items-start gap-2.5">
-              <LocaleFlag
-                locale={activeLoc.locale}
-                className="w-5 h-4 rounded-xs object-cover shrink-0 mt-1"
-              />
+              <LocaleFlag locale={activeLoc.locale} className="w-5 h-4 rounded-xs object-cover shrink-0 mt-1" />
               <div>
-                <div
-                  className={`text-[16px] font-semibold ${textPrimary} leading-tight`}
-                >
+                <div className={`text-[16px] font-semibold ${textPrimary} leading-tight`}>
                   {getLocaleName(activeLoc.locale)}
                 </div>
-                <div className={`text-[11px] ${textMuted} mt-0.5`}>
-                  Locale: {activeLoc.locale}
-                </div>
+                <div className={`text-[11px] ${textMuted} mt-0.5`}>Locale: {activeLoc.locale}</div>
               </div>
             </div>
             {data.isEditable ? (
-              <span
-                className={`${badgeOutline("editable")} uppercase tracking-wide`}
-              >
-                Editable
-              </span>
+              <span className={`${badgeOutline("editable")} uppercase tracking-wide`}>Editable</span>
             ) : (
-              <span className={`${badgeOutline("")} uppercase tracking-wide`}>
-                Read-only
-              </span>
+              <span className={`${badgeOutline("")} uppercase tracking-wide`}>Read-only</span>
             )}
           </div>
-          {data.appId && (
-            <ScreenshotsPanel
-              appId={data.appId}
-              activeLocale={activeLocale}
-              addToast={addToast}
-            />
-          )}
+          {data.appId && <ScreenshotsPanel appId={data.appId} activeLocale={activeLocale} addToast={addToast} />}
 
           <div className="text-[14px] font-bold pt-4 border-t border-[#f3f4f6] dark:border-[#2a2f3d] -mb-1">
             {/*uppercase tracking-widest text-[#9ca3af] dark:text-[#5c6478]*/}
@@ -1827,11 +1638,7 @@ export default function Versions({ addToast }: Props) {
             />
           ))}
           <div className="pt-4 border-t border-[#f3f4f6]">
-            <div
-              className={`text-[11px] font-bold uppercase tracking-widest ${textMuted} mb-4`}
-            >
-              Version Info
-            </div>
+            <div className={`text-[11px] font-bold uppercase tracking-widest ${textMuted} mb-4`}>Version Info</div>
             <div className="flex flex-col gap-5">
               <InlineEditField
                 label="Copyright"
@@ -1865,11 +1672,7 @@ export default function Versions({ addToast }: Props) {
                     <span
                       className={`text-[13px] ${textPrimary} px-3.5 py-[9px] border ${borderDefault} bg-[#fafbfc] dark:bg-[#252b38] rounded-xl`}
                     >
-                      {data.ageRating || (
-                        <span className="text-[#c8cdd3] dark:text-[#3a4050] italic">
-                          Not set
-                        </span>
-                      )}
+                      {data.ageRating || <span className="text-[#c8cdd3] dark:text-[#3a4050] italic">Not set</span>}
                     </span>
                     <a
                       href="https://appstoreconnect.apple.com"
@@ -1886,23 +1689,13 @@ export default function Versions({ addToast }: Props) {
           </div>
         </div>
       ) : data.localizations.length === 0 ? (
-        <div
-          className={`${cardCls} flex flex-col items-center justify-center py-12 text-center`}
-        >
+        <div className={`${cardCls} flex flex-col items-center justify-center py-12 text-center`}>
           <FileText className="w-10 h-10 text-gray-300 mb-3" />
-          <p className={`text-sm ${textMuted}`}>
-            No localizations found for this version.
-          </p>
+          <p className={`text-sm ${textMuted}`}>No localizations found for this version.</p>
         </div>
       ) : null}
 
-      {data.versionId && (
-        <ReviewerInfoPanel
-          data={data}
-          addToast={addToast}
-          onRefetch={refetch}
-        />
-      )}
+      {data.versionId && <ReviewerInfoPanel data={data} addToast={addToast} onRefetch={refetch} />}
     </div>
   );
 }

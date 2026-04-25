@@ -1,18 +1,7 @@
 import { useState } from "react";
-import {
-  borderDefault,
-  pageTitle,
-  textMuted,
-  textPrimary,
-  textSecondary,
-} from "../../styles";
+import { borderDefault, pageTitle, textMuted, textPrimary, textSecondary } from "../../styles";
 import { Trash2 } from "lucide-react";
-import {
-  useApi,
-  getActiveBundleId,
-  apiDelete,
-  setActiveBundleId,
-} from "../../hooks/useApi";
+import { useApi, getActiveBundleId, apiDelete, setActiveBundleId } from "../../hooks/useApi";
 import SigningSection from "./SigningSection";
 import SnapshotEnvSection from "./SnapshotEnvSection";
 import { RepoLinker } from "../Logs";
@@ -26,9 +15,7 @@ export default function AppSettings({ addToast }: Props) {
   const { data: apps } = useApi<AppItem[]>("/apps", [], true);
   const { data: ghStatus } = useApi<GitHubStatus>("/github/status", [], true);
 
-  const activeApp = apps?.find(
-    (a) => a.bundleId === getActiveBundleId() && a.isOwnApp,
-  );
+  const activeApp = apps?.find((a) => a.bundleId === getActiveBundleId() && a.isOwnApp);
 
   return (
     <div className="max-w-3xl">
@@ -42,17 +29,13 @@ export default function AppSettings({ addToast }: Props) {
           addToast={addToast}
         />
       ) : (
-        <div
-          className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl p-5 mb-5 text-sm ${textMuted}`}
-        >
+        <div className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl p-5 mb-5 text-sm ${textMuted}`}>
           No app selected. Choose an app from the sidebar to link a GitHub repo.
         </div>
       )}
 
       {activeApp && <SigningSection appId={activeApp.id} addToast={addToast} />}
-      {activeApp && (
-        <SnapshotEnvSection appId={activeApp.id} addToast={addToast} />
-      )}
+      {activeApp && <SnapshotEnvSection appId={activeApp.id} addToast={addToast} />}
       {activeApp && <DangerZone app={activeApp} addToast={addToast} />}
     </div>
   );
@@ -88,8 +71,7 @@ function DangerZone({
         Danger Zone
       </h2>
       <p className={`text-[13px] ${textSecondary} mb-4`}>
-        This app and all associated data (screenshots, builds, keywords,
-        analyses) will be permanently deleted.
+        This app and all associated data (screenshots, builds, keywords, analyses) will be permanently deleted.
       </p>
 
       {!confirming ? (
@@ -104,9 +86,7 @@ function DangerZone({
         <div className="space-y-3">
           <p className="text-[13px] text-[#374151] dark:text-[#c8cdd3]">
             Confirm by typing the bundle ID:{" "}
-            <span className="font-mono font-semibold text-red-500">
-              {app.bundleId}
-            </span>
+            <span className="font-mono font-semibold text-red-500">{app.bundleId}</span>
           </p>
           <input
             value={confirmText}

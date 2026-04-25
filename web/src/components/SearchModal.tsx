@@ -133,14 +133,11 @@ export default function SearchModal({ open, onClose }: Props) {
     }
     debounceRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `/api/search?q=${encodeURIComponent(query.trim())}`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("appcore_token") ?? ""}`,
-            },
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("appcore_token") ?? ""}`,
           },
-        );
+        });
         if (!res.ok) return;
         const data = await res.json();
         setApiResults(data as SearchItem[]);
@@ -158,9 +155,7 @@ export default function SearchModal({ open, onClose }: Props) {
       return;
     }
     const staticMatches = STATIC_ITEMS.filter(
-      (item) =>
-        item.label.toLowerCase().includes(q) ||
-        item.category.toLowerCase().includes(q),
+      (item) => item.label.toLowerCase().includes(q) || item.category.toLowerCase().includes(q),
     );
     const merged = [...staticMatches, ...apiResults];
     setResults(merged);
@@ -210,9 +205,7 @@ export default function SearchModal({ open, onClose }: Props) {
       <div
         className={`relative w-full max-w-[560px] mx-4 bg-white dark:bg-[#1c2028] rounded-xl shadow-2xl border ${borderDefault} overflow-hidden`}
       >
-        <div
-          className={`flex items-center gap-3 px-4 py-3 border-b ${borderDefault}`}
-        >
+        <div className={`flex items-center gap-3 px-4 py-3 border-b ${borderDefault}`}>
           <Search className={`w-4 h-4 ${textMuted} shrink-0`} />
           <input
             ref={inputRef}
@@ -236,9 +229,7 @@ export default function SearchModal({ open, onClose }: Props) {
           <div className="max-h-[380px] overflow-y-auto py-2">
             {Object.entries(grouped).map(([category, items]) => (
               <div key={category}>
-                <div
-                  className={`px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.8px] ${textMuted}`}
-                >
+                <div className={`px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.8px] ${textMuted}`}>
                   {category}
                 </div>
                 {items.map((item) => {
@@ -250,28 +241,16 @@ export default function SearchModal({ open, onClose }: Props) {
                       onMouseEnter={() => setActiveIndex(idx)}
                       onClick={() => handleSelect(item)}
                       className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                        isActive
-                          ? "bg-[#f3f4f6] dark:bg-[#252b38]"
-                          : "hover:bg-[#f9fafb] dark:hover:bg-[#252b38]"
+                        isActive ? "bg-[#f3f4f6] dark:bg-[#252b38]" : "hover:bg-[#f9fafb] dark:hover:bg-[#252b38]"
                       }`}
                     >
-                      <span
-                        className={`shrink-0 ${isActive ? "text-[#D94412]" : "${textMuted}"}`}
-                      >
+                      <span className={`shrink-0 ${isActive ? "text-[#D94412]" : "${textMuted}"}`}>
                         <ItemIcon type={item.icon} />
                       </span>
                       <span className="flex-1 min-w-0">
-                        <span
-                          className={`block text-sm font-medium ${textPrimary} truncate`}
-                        >
-                          {item.label}
-                        </span>
+                        <span className={`block text-sm font-medium ${textPrimary} truncate`}>{item.label}</span>
                         {item.sublabel && (
-                          <span
-                            className={`block text-xs ${textMuted} truncate`}
-                          >
-                            {item.sublabel}
-                          </span>
+                          <span className={`block text-xs ${textMuted} truncate`}>{item.sublabel}</span>
                         )}
                       </span>
                       {isActive && (
@@ -290,15 +269,11 @@ export default function SearchModal({ open, onClose }: Props) {
         )}
 
         {query.trim() && results.length === 0 && (
-          <div className={`py-10 text-center text-sm ${textMuted}`}>
-            No results for &ldquo;{query}&rdquo;
-          </div>
+          <div className={`py-10 text-center text-sm ${textMuted}`}>No results for &ldquo;{query}&rdquo;</div>
         )}
 
         {!query && (
-          <div className={`py-8 text-center text-sm ${textMuted}`}>
-            Type to search pages, keywords, and more…
-          </div>
+          <div className={`py-8 text-center text-sm ${textMuted}`}>Type to search pages, keywords, and more…</div>
         )}
 
         <div
