@@ -32,6 +32,7 @@ import AnalyticsReviews from "./components/analytics/AnalyticsReviews";
 import Versions from "./components/Versions";
 import MonetizationSubscriptions from "./components/monetization/Subscriptions";
 import MonetizationProducts from "./components/monetization/Products";
+import GameCenterLeaderboards from "./components/gamecenter/Leaderboards";
 import Login from "./components/login/Login";
 import Team from "./components/Team";
 import InviteAccept from "./components/InviteAccept";
@@ -59,7 +60,7 @@ import {
   MessageSquare,
   LogOut,
   DollarSign,
-  Menu,
+  Trophy,
 } from "lucide-react";
 
 const sidebarLinks = [
@@ -631,18 +632,19 @@ function VersionsSidebarSection({ navLinkClass }: { navLinkClass: (p: { isActive
   }, [load]);
 
   const handleToggle = () => {
-    if (expanded) {
-      setExpanded(false);
+    if (location.pathname.startsWith("/versions")) {
+      const next = !expanded;
+      setExpanded(next);
+      if (next && !versions) load();
       return;
     }
     setExpanded(true);
-    if (!versions) load();
-    if (location.pathname.startsWith("/versions")) return;
     if (versions && versions.length > 0) {
       const best = versions.find((v) => v.isEditable) ?? versions[0];
       navigate(`/versions/${best.versionId}`);
     } else {
       navigate("/versions");
+      if (!versions) load();
     }
   };
 
@@ -789,6 +791,64 @@ function VersionsSidebarSection({ navLinkClass }: { navLinkClass: (p: { isActive
   );
 }
 
+function GameCenterSidebarSection({ navLinkClass }: { navLinkClass: (p: { isActive: boolean }) => string }) {
+  const [expanded, setExpanded] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isAnyGcActive = location.pathname.startsWith("/game-center");
+
+  useEffect(() => {
+    if (location.pathname.startsWith("/game-center")) setExpanded(true);
+  }, []);
+
+  const subLinks = [{ to: "/game-center/leaderboards", label: "Leaderboards" }];
+
+  const handleHeaderClick = () => {
+    if (isAnyGcActive) {
+      setExpanded((v) => !v);
+    } else {
+      setExpanded(true);
+      navigate(subLinks[0].to);
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex items-center gap-1 mb-0.5">
+        <button
+          onClick={handleHeaderClick}
+          className="flex-1 flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-sm font-medium transition-all [&_svg]:w-[18px] [&_svg]:h-[18px] text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] [&>svg:first-child]:opacity-60"
+        >
+          <Trophy />
+          <span className="flex-1 text-left">Game Center</span>
+          <ChevronDown
+            className={`!w-3.5 !h-3.5 shrink-0 text-gray-400 dark:text-[#5c6478] transition-transform ${expanded ? "rotate-180" : ""}`}
+          />
+        </button>
+      </div>
+      {expanded && (
+        <div className="ml-3 pl-3 border-l border-[#e5e7eb] dark:border-[#2a2f3d] mb-1 flex flex-col gap-0.5">
+          {subLinks.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              className={({ isActive }) =>
+                `flex items-center px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-all ${
+                  isActive
+                    ? "bg-white text-[#1a1a2e] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.06)] dark:bg-[#1f242e] dark:text-[#e8eaf0] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
+                    : "text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0]"
+                }`
+              }
+            >
+              {link.label}
+            </NavLink>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MonetizationSidebarSection({ navLinkClass }: { navLinkClass: (p: { isActive: boolean }) => string }) {
   const [expanded, setExpanded] = useState(false);
   const location = useLocation();
@@ -805,12 +865,12 @@ function MonetizationSidebarSection({ navLinkClass }: { navLinkClass: (p: { isAc
   ];
 
   const handleHeaderClick = () => {
-    if (expanded) {
-      setExpanded(false);
-      return;
+    if (isAnyMonetizationActive) {
+      setExpanded((v) => !v);
+    } else {
+      setExpanded(true);
+      navigate(subLinks[0].to);
     }
-    setExpanded(true);
-    if (!isAnyMonetizationActive) navigate(subLinks[0].to);
   };
 
   return (
@@ -857,15 +917,9 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dark, setDark] = useState(() => {
     return localStorage.getItem("theme") === "dark";
   });
-  const location = useLocation();
-
-  useEffect(() => {
-    setMobileMenuOpen(false);
-  }, [location.pathname]);
 
   useEffect(() => {
     if (dark) {
@@ -966,13 +1020,6 @@ export default function App() {
       <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
       <ToastContainer toasts={toasts} />
       <header className="h-[52px] bg-[var(--shell-bg)] flex items-center px-4 shrink-0 z-40 transition-colors">
-        <button
-          onClick={() => setMobileMenuOpen(true)}
-          className="lg:hidden mr-2 p-1.5 rounded-lg hover:bg-black/[0.06] dark:hover:bg-white/10 text-[#374151] dark:text-white/80 transition-colors"
-          aria-label="Open menu"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
         <a href="/app/" className="flex items-center gap-2.5">
           <img src="/app/logo.svg" alt="Marteso" className="h-[23px] w-auto" />
           <span className="text-[24px] font-bold tracking-[-0.3px] bg-gradient-to-br from-[#D94412] to-[#C4001E] bg-clip-text text-transparent">
@@ -982,34 +1029,17 @@ export default function App() {
         <div className="flex-1" />
         <button
           onClick={() => setSearchOpen(true)}
-          className="flex items-center gap-2 bg-black/[0.06] dark:bg-white/10 rounded-md px-3 py-1.5 text-sm text-[#6b7280] dark:text-white/50 w-44 mr-3 cursor-pointer select-none hover:bg-black/[0.09] dark:hover:bg-white/[0.15] transition-colors max-sm:hidden"
+          className="flex items-center gap-2 bg-black/[0.06] dark:bg-white/10 rounded-md px-3 py-1.5 text-sm text-[#6b7280] dark:text-white/50 w-44 mr-3 cursor-pointer select-none hover:bg-black/[0.09] dark:hover:bg-white/[0.15] transition-colors"
         >
           <Search className="w-3.5 h-3.5 shrink-0" />
           <span>Search…</span>
           <span className="ml-auto text-[10px] bg-black/[0.08] dark:bg-white/20 rounded px-1 py-0.5 font-mono">⌘K</span>
         </button>
-        <button
-          onClick={() => setSearchOpen(true)}
-          className="sm:hidden p-1.5 rounded-lg hover:bg-black/[0.06] dark:hover:bg-white/10 text-[#374151] dark:text-white/80 transition-colors mr-1"
-          aria-label="Search"
-        >
-          <Search className="w-4 h-4" />
-        </button>
         <HelpMenu />
         <HeaderProfileMenu user={user} onLogout={handleLogout} dark={dark} onToggleDark={() => setDark((d) => !d)} />
       </header>
-      <div className="flex flex-1 min-h-0 relative">
-        {mobileMenuOpen && (
-          <div
-            className="lg:hidden fixed inset-0 z-40 bg-black/40"
-            onClick={() => setMobileMenuOpen(false)}
-          />
-        )}
-        <aside
-          className={`${
-            mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-          } fixed lg:static inset-y-0 left-0 top-[52px] lg:top-0 z-40 lg:z-auto w-[260px] lg:w-[250px] lg:min-w-[250px] bg-[var(--shell-bg)] flex flex-col overflow-y-auto transition-transform border-r border-[#eef0f3] dark:border-[#2a2f3d] lg:border-r-0`}
-        >
+      <div className="flex flex-1 min-h-0">
+        <aside className="w-[250px] min-w-[250px] bg-[var(--shell-bg)] flex flex-col overflow-y-auto transition-colors">
           <AppSwitcher current={dash?.app ?? null} addToast={addToast} />
           <nav className="px-2 pt-1 flex-1 flex flex-col">
             {sidebarLinks.slice(0, 1).map((link) => (
@@ -1026,6 +1056,7 @@ export default function App() {
               </NavLink>
             ))}
             <MonetizationSidebarSection navLinkClass={navLinkClass} />
+            <GameCenterSidebarSection navLinkClass={navLinkClass} />
             <VersionsSidebarSection navLinkClass={navLinkClass} />
             <div className="mt-auto pb-3">
               <div className="h-px bg-[#eef0f3] dark:bg-[#2a2f3d] mx-1 mb-2 mt-1" />
@@ -1039,7 +1070,7 @@ export default function App() {
           </nav>
         </aside>
 
-        <main className="relative z-30 flex-1 overflow-y-auto overscroll-contain px-4 sm:px-7 py-4 sm:py-6 bg-white dark:bg-[#0f1117] rounded-tl-2xl border-t border-l border-[rgba(16,24,40,0.06)] dark:border-[rgba(255,255,255,0.05)] shadow-[-4px_-4px_14px_-8px_rgba(16,24,40,0.05),0_-6px_16px_-8px_rgba(16,24,40,0.07)] dark:shadow-[-4px_-4px_14px_-8px_rgba(0,0,0,0.3),0_-6px_16px_-8px_rgba(0,0,0,0.35)]">
+        <main className="relative z-30 flex-1 overflow-y-auto overscroll-contain px-7 py-6 bg-white dark:bg-[#0f1117] rounded-tl-2xl border-t border-l border-[rgba(16,24,40,0.06)] dark:border-[rgba(255,255,255,0.05)] shadow-[-4px_-4px_14px_-8px_rgba(16,24,40,0.05),0_-6px_16px_-8px_rgba(16,24,40,0.07)] dark:shadow-[-4px_-4px_14px_-8px_rgba(0,0,0,0.3),0_-6px_16px_-8px_rgba(0,0,0,0.35)]">
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
@@ -1056,6 +1087,7 @@ export default function App() {
             <Route path="/versions" element={<Versions addToast={addToast} />} />
             <Route path="/monetization/subscriptions" element={<MonetizationSubscriptions addToast={addToast} />} />
             <Route path="/monetization/products" element={<MonetizationProducts />} />
+            <Route path="/game-center/leaderboards" element={<GameCenterLeaderboards addToast={addToast} />} />
             <Route path="/agents" element={<Agents addToast={addToast} />} />
             <Route path="/logs" element={<Actions addToast={addToast} />} />
             <Route path="/settings" element={<Settings addToast={addToast} />} />

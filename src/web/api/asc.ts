@@ -142,8 +142,7 @@ async function upsertVersionDetailToDb(
             reviewerLastName: ts.reviewerLastName ?? null,
             reviewerPhone: ts.reviewerPhone ?? null,
             reviewerEmail: ts.reviewerEmail ?? null,
-            reviewerDemoAccountRequired:
-              ts.reviewerDemoAccountRequired ?? false,
+            reviewerDemoAccountRequired: ts.reviewerDemoAccountRequired ?? false,
             reviewerDemoUsername: ts.reviewerDemoUsername ?? null,
             reviewerDemoPassword: ts.reviewerDemoPassword ?? null,
           },
@@ -174,9 +173,7 @@ async function invalidateVersionCache(bundleId: string): Promise<void> {
     .catch(() => {});
 }
 
-async function ascClientForUser(
-  userId: string,
-): Promise<AppStoreConnectClient> {
+async function ascClientForUser(userId: string): Promise<AppStoreConnectClient> {
   const membership = await prisma.teamMember.findFirst({
     where: { userId },
     orderBy: { createdAt: "asc" },
@@ -198,23 +195,16 @@ async function ascClientForUser(
 
 ascRouter.get("/apps", async (req, res) => {
   try {
-    const apps = await ascClientForUser(req.user!.userId).then((c) =>
-      c.listApps(),
-    );
+    const apps = await ascClientForUser(req.user!.userId).then((c) => c.listApps());
     const iconMap = new Map<string, string>();
 
     if (apps.length > 0) {
       try {
         const ids = apps.map((a) => a.id).join(",");
-        const { data } = await axios.get(
-          `https://itunes.apple.com/lookup?id=${ids}`,
-        );
+        const { data } = await axios.get(`https://itunes.apple.com/lookup?id=${ids}`);
         for (const r of data.results ?? []) {
           if (r.trackId && r.artworkUrl100) {
-            iconMap.set(
-              String(r.trackId),
-              (r.artworkUrl100 as string).replace("100x100", "200x200"),
-            );
+            iconMap.set(String(r.trackId), (r.artworkUrl100 as string).replace("100x100", "200x200"));
           }
         }
       } catch {
@@ -254,12 +244,7 @@ ascRouter.post("/import", async (req, res) => {
     const teamId = req.user!.teamId ?? undefined;
     const existing = await prisma.app.findUnique({ where: { bundleId } });
 
-    if (
-      existing &&
-      existing.teamId &&
-      existing.teamId !== teamId &&
-      req.user!.role !== "ADMIN"
-    ) {
+    if (existing && existing.teamId && existing.teamId !== teamId && req.user!.role !== "ADMIN") {
       res.status(403).json({ error: "App is owned by another team" });
       return;
     }
@@ -294,11 +279,7 @@ ascRouter.post("/import", async (req, res) => {
     });
 
     const { AppStoreScraper } = await import("../../services/appstore-scraper");
-    await new AppStoreScraper(
-      app.country,
-      undefined,
-      bundleId,
-    ).runFullScrapeJob();
+    await new AppStoreScraper(app.country, undefined, bundleId).runFullScrapeJob();
 
     logger.info(`Post-import scrape completed for ${bundleId}`);
   } catch (err: any) {
@@ -358,12 +339,7 @@ ascRouter.get("/versions/list", async (req, res) => {
     }
 
     const versions = await asc.listVersions(app.id);
-    await upsertVersionsToDb(
-      app.attributes.bundleId,
-      app.id,
-      app.attributes.name,
-      versions,
-    );
+    await upsertVersionsToDb(app.attributes.bundleId, app.id, app.attributes.name, versions);
 
     res.json(
       versions.map((v) => ({
@@ -444,8 +420,7 @@ ascRouter.get("/versions", async (req, res) => {
           reviewerLastName: cached.reviewerLastName ?? "",
           reviewerPhone: cached.reviewerPhone ?? "",
           reviewerEmail: cached.reviewerEmail ?? "",
-          reviewerDemoAccountRequired:
-            cached.reviewerDemoAccountRequired ?? false,
+          reviewerDemoAccountRequired: cached.reviewerDemoAccountRequired ?? false,
           reviewerDemoUsername: cached.reviewerDemoUsername ?? "",
           reviewerDemoPassword: cached.reviewerDemoPassword ?? "",
           reviewDetailId: cached.reviewDetailId ?? null,
@@ -496,9 +471,7 @@ ascRouter.get("/versions", async (req, res) => {
       if (!version) version = await asc.getLiveVersion(app.id);
     }
 
-    const isEditable = version
-      ? editableStates.has(version.attributes.appStoreState)
-      : false;
+    const isEditable = version ? editableStates.has(version.attributes.appStoreState) : false;
 
     let versionLocalizations: any[] = [];
     if (version) {
@@ -506,9 +479,7 @@ ascRouter.get("/versions", async (req, res) => {
     }
 
     const localeMap = new Map<string, any>();
-    const appInfoById = new Map(
-      appInfoLocalizations.map((info: any) => [info.attributes.locale, info]),
-    );
+    const appInfoById = new Map(appInfoLocalizations.map((info: any) => [info.attributes.locale, info]));
 
     for (const vl of versionLocalizations) {
       const loc = vl.attributes.locale;
@@ -516,14 +487,10 @@ ascRouter.get("/versions", async (req, res) => {
       const appInfo = appInfoById.get(loc) as any | undefined;
       localeMap.set(loc, {
         locale: loc,
-        appInfoLocalizationId:
-          existing?.appInfoLocalizationId ?? appInfo?.id ?? null,
+        appInfoLocalizationId: existing?.appInfoLocalizationId ?? appInfo?.id ?? null,
         name: existing?.name ?? appInfo?.attributes.name ?? "",
         subtitle: existing?.subtitle ?? appInfo?.attributes.subtitle ?? "",
-        privacyPolicyUrl:
-          existing?.privacyPolicyUrl ??
-          appInfo?.attributes.privacyPolicyUrl ??
-          "",
+        privacyPolicyUrl: existing?.privacyPolicyUrl ?? appInfo?.attributes.privacyPolicyUrl ?? "",
         versionLocalizationId: vl.id,
         description: vl.attributes.description ?? "",
         keywords: vl.attributes.keywords ?? "",
@@ -537,13 +504,7 @@ ascRouter.get("/versions", async (req, res) => {
     const localizations = Array.from(localeMap.values());
 
     if (version) {
-      await upsertVersionDetailToDb(
-        app.attributes.bundleId,
-        app.id,
-        app.attributes.name,
-        version,
-        localizations,
-      );
+      await upsertVersionDetailToDb(app.attributes.bundleId, app.id, app.attributes.name, version, localizations);
     }
 
     res.json({
@@ -615,30 +576,18 @@ ascRouter.patch("/versions/metadata", async (req, res) => {
       appInfo: {
         fields: ["name", "subtitle", "privacyPolicyUrl"],
         localizationId: appInfoLocalizationId,
-        errorMsg:
-          "appInfoLocalizationId is required for app info localization fields",
-        update: (id: string) =>
-          asc.updateAppInfoLocalization(id, { [field]: value }),
+        errorMsg: "appInfoLocalizationId is required for app info localization fields",
+        update: (id: string) => asc.updateAppInfoLocalization(id, { [field]: value }),
       },
       version: {
-        fields: [
-          "description",
-          "keywords",
-          "whatsNew",
-          "promotionalText",
-          "supportUrl",
-          "marketingUrl",
-        ],
+        fields: ["description", "keywords", "whatsNew", "promotionalText", "supportUrl", "marketingUrl"],
         localizationId: versionLocalizationId,
         errorMsg: "versionLocalizationId is required for version fields",
-        update: (id: string) =>
-          asc.updateVersionLocalization(id, { [field]: value }),
+        update: (id: string) => asc.updateVersionLocalization(id, { [field]: value }),
       },
     };
 
-    const matchedGroup = Object.values(METADATA_FIELDS).find((g) =>
-      g.fields.includes(field),
-    );
+    const matchedGroup = Object.values(METADATA_FIELDS).find((g) => g.fields.includes(field));
 
     if (!matchedGroup) {
       res.status(400).json({ error: `Unknown field: ${field}` });
@@ -738,19 +687,15 @@ ascRouter.patch("/versions/reviewer-info", async (req, res) => {
 
     const existingDetailId = dbVersion?.reviewDetailId ?? null;
 
-    const newDetailId = await asc.upsertReviewDetail(
-      versionId,
-      existingDetailId,
-      {
-        firstName: reviewerFirstName ?? "",
-        lastName: reviewerLastName ?? "",
-        phone: reviewerPhone ?? "",
-        email: reviewerEmail ?? "",
-        demoAccountRequired: reviewerDemoAccountRequired ?? false,
-        demoAccountName: reviewerDemoUsername,
-        demoAccountPassword: reviewerDemoPassword,
-      },
-    );
+    const newDetailId = await asc.upsertReviewDetail(versionId, existingDetailId, {
+      firstName: reviewerFirstName ?? "",
+      lastName: reviewerLastName ?? "",
+      phone: reviewerPhone ?? "",
+      email: reviewerEmail ?? "",
+      demoAccountRequired: reviewerDemoAccountRequired ?? false,
+      demoAccountName: reviewerDemoUsername,
+      demoAccountPassword: reviewerDemoPassword,
+    });
 
     await prisma.appStoreVersion.update({
       where: { id: versionId },
@@ -831,9 +776,7 @@ ascRouter.post("/versions/localizations", async (req, res) => {
     };
 
     if (!versionId || !locale || !name) {
-      res
-        .status(400)
-        .json({ error: "versionId, locale and name are required" });
+      res.status(400).json({ error: "versionId, locale and name are required" });
       return;
     }
     if (!bundleId) {
@@ -866,16 +809,12 @@ ascRouter.post("/versions/localizations", async (req, res) => {
       } catch (err: any) {
         const msg: string = err?.message ?? "";
         if (msg.includes("409")) {
-          logger.info(
-            `${label}: locale ${locale} already exists in ASC (409), will try fallback lookup`,
-          );
+          logger.info(`${label}: locale ${locale} already exists in ASC (409), will try fallback lookup`);
           return null;
         }
         const swallowed = swallowCodes.find((c) => msg.includes(String(c)));
         if (swallowed) {
-          logger.warn(
-            `${label}: locale ${locale} creation returned ${swallowed} — ${msg.split("\n")[0]}`,
-          );
+          logger.warn(`${label}: locale ${locale} creation returned ${swallowed} — ${msg.split("\n")[0]}`);
           return null;
         }
         throw err;
@@ -883,31 +822,20 @@ ascRouter.post("/versions/localizations", async (req, res) => {
     };
 
     const [appInfoLoc, versionLoc] = await Promise.all([
-      tryCreate(
-        "appInfoLocalization",
-        () => asc.createAppInfoLocalization(appInfoId, locale, name),
-        [500, 422],
-      ),
-      tryCreate(
-        "versionLocalization",
-        () => asc.createVersionLocalization(versionId, locale),
-        [500, 422],
-      ),
+      tryCreate("appInfoLocalization", () => asc.createAppInfoLocalization(appInfoId, locale, name), [500, 422]),
+      tryCreate("versionLocalization", () => asc.createVersionLocalization(versionId, locale), [500, 422]),
     ]);
 
     let appInfoLocalizationId = appInfoLoc?.id ?? null;
     if (!appInfoLocalizationId) {
       const existing = await asc.getAppInfoLocalizations(app.id, appInfoId);
-      appInfoLocalizationId =
-        existing.find((l) => l.attributes.locale === locale)?.id ?? null;
+      appInfoLocalizationId = existing.find((l) => l.attributes.locale === locale)?.id ?? null;
     }
 
     let versionLocalizationId = versionLoc?.id ?? null;
     if (!versionLocalizationId) {
       const versionLocs = await asc.getVersionLocalizations(versionId);
-      versionLocalizationId =
-        versionLocs.find((l: any) => l.attributes.locale === locale)?.id ??
-        null;
+      versionLocalizationId = versionLocs.find((l: any) => l.attributes.locale === locale)?.id ?? null;
     }
     if (!appInfoLocalizationId && !versionLocalizationId) {
       logger.warn(
@@ -934,17 +862,14 @@ ascRouter.post("/versions/localizations", async (req, res) => {
 
 ascRouter.delete("/versions/localizations", async (req, res) => {
   try {
-    const { bundleId, appInfoLocalizationId, versionLocalizationId } =
-      req.body as {
-        bundleId?: string;
-        appInfoLocalizationId?: string;
-        versionLocalizationId?: string;
-      };
+    const { bundleId, appInfoLocalizationId, versionLocalizationId } = req.body as {
+      bundleId?: string;
+      appInfoLocalizationId?: string;
+      versionLocalizationId?: string;
+    };
 
     if (!appInfoLocalizationId && !versionLocalizationId) {
-      res
-        .status(400)
-        .json({ error: "At least one localization ID is required" });
+      res.status(400).json({ error: "At least one localization ID is required" });
       return;
     }
     if (!bundleId) {
@@ -956,12 +881,8 @@ ascRouter.delete("/versions/localizations", async (req, res) => {
 
     const asc = await ascClientForUser(req.user!.userId);
     await Promise.all([
-      appInfoLocalizationId
-        ? asc.deleteAppInfoLocalization(appInfoLocalizationId)
-        : Promise.resolve(),
-      versionLocalizationId
-        ? asc.deleteVersionLocalization(versionLocalizationId)
-        : Promise.resolve(),
+      appInfoLocalizationId ? asc.deleteAppInfoLocalization(appInfoLocalizationId) : Promise.resolve(),
+      versionLocalizationId ? asc.deleteVersionLocalization(versionLocalizationId) : Promise.resolve(),
     ]);
 
     await invalidateVersionCache(bundleId);
@@ -997,11 +918,7 @@ ascRouter.post("/versions/localizations/translate", async (req, res) => {
     const settings = await getEffectiveSettings(req.user!.userId);
     const analyzer = new AIAnalyzer("", settings);
 
-    const fields = await analyzer.translateLocalization(
-      sourceLocale,
-      targetLocale,
-      sourceFields,
-    );
+    const fields = await analyzer.translateLocalization(sourceLocale, targetLocale, sourceFields);
     res.json({ ok: true, fields });
   } catch (err: any) {
     logger.error("ASC translateLocalization failed", err);
@@ -1035,11 +952,7 @@ ascRouter.post("/versions", async (req, res) => {
       return;
     }
 
-    const version = await asc.createNewVersion(
-      app.id,
-      versionString,
-      releaseType ?? "MANUAL",
-    );
+    const version = await asc.createNewVersion(app.id, versionString, releaseType ?? "MANUAL");
 
     res.json({
       versionId: version.id,
@@ -1068,19 +981,15 @@ ascRouter.get("/subscriptions/groups", async (req, res) => {
       return;
     }
 
-    const { data: resp } = await (asc as any).client.get(
-      `/apps/${app.id}/subscriptionGroups`,
-      {
-        params: {
-          include: "subscriptions",
-          "fields[subscriptionGroups]": "referenceName,subscriptions",
-          "fields[subscriptions]":
-            "name,productId,familySharable,state,subscriptionPeriod,reviewNote,groupLevel",
-          "limit[subscriptions]": 50,
-          limit: 200,
-        },
+    const { data: resp } = await (asc as any).client.get(`/apps/${app.id}/subscriptionGroups`, {
+      params: {
+        include: "subscriptions",
+        "fields[subscriptionGroups]": "referenceName,subscriptions",
+        "fields[subscriptions]": "name,productId,familySharable,state,subscriptionPeriod,reviewNote,groupLevel",
+        "limit[subscriptions]": 50,
+        limit: 200,
       },
-    );
+    });
 
     const included: any[] = resp.included ?? [];
     const subMap = new Map<string, any>(included.map((s: any) => [s.id, s]));
@@ -1134,18 +1043,15 @@ ascRouter.post("/subscriptions/groups", async (req, res) => {
       return;
     }
 
-    const { data: resp } = await (asc as any).client.post(
-      "/subscriptionGroups",
-      {
-        data: {
-          type: "subscriptionGroups",
-          attributes: { referenceName },
-          relationships: {
-            app: { data: { type: "apps", id: app.id } },
-          },
+    const { data: resp } = await (asc as any).client.post("/subscriptionGroups", {
+      data: {
+        type: "subscriptionGroups",
+        attributes: { referenceName },
+        relationships: {
+          app: { data: { type: "apps", id: app.id } },
         },
       },
-    );
+    });
 
     res.status(201).json({
       id: resp.data.id,
@@ -1195,15 +1101,7 @@ ascRouter.delete("/subscriptions/groups/:id", async (req, res) => {
 
 ascRouter.post("/subscriptions", async (req, res) => {
   try {
-    const {
-      groupId,
-      name,
-      productId,
-      familySharable,
-      subscriptionPeriod,
-      groupLevel,
-      reviewNote,
-    } = req.body as {
+    const { groupId, name, productId, familySharable, subscriptionPeriod, groupLevel, reviewNote } = req.body as {
       groupId?: string;
       name?: string;
       productId?: string;
@@ -1243,8 +1141,7 @@ ascRouter.post("/subscriptions", async (req, res) => {
       productId: resp.data.attributes?.productId ?? productId,
       familySharable: resp.data.attributes?.familySharable ?? false,
       state: resp.data.attributes?.state ?? "",
-      subscriptionPeriod:
-        resp.data.attributes?.subscriptionPeriod ?? subscriptionPeriod,
+      subscriptionPeriod: resp.data.attributes?.subscriptionPeriod ?? subscriptionPeriod,
       reviewNote: resp.data.attributes?.reviewNote ?? null,
       groupLevel: resp.data.attributes?.groupLevel ?? null,
     });
@@ -1257,21 +1154,18 @@ ascRouter.post("/subscriptions", async (req, res) => {
 ascRouter.patch("/subscriptions/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, familySharable, subscriptionPeriod, reviewNote, groupLevel } =
-      req.body as {
-        name?: string;
-        familySharable?: boolean;
-        subscriptionPeriod?: string;
-        reviewNote?: string;
-        groupLevel?: number;
-      };
+    const { name, familySharable, subscriptionPeriod, reviewNote, groupLevel } = req.body as {
+      name?: string;
+      familySharable?: boolean;
+      subscriptionPeriod?: string;
+      reviewNote?: string;
+      groupLevel?: number;
+    };
 
     const attributes: Record<string, any> = {};
     if (name !== undefined) attributes.name = name;
-    if (familySharable !== undefined)
-      attributes.familySharable = familySharable;
-    if (subscriptionPeriod !== undefined)
-      attributes.subscriptionPeriod = subscriptionPeriod;
+    if (familySharable !== undefined) attributes.familySharable = familySharable;
+    if (subscriptionPeriod !== undefined) attributes.subscriptionPeriod = subscriptionPeriod;
     if (reviewNote !== undefined) attributes.reviewNote = reviewNote;
     if (groupLevel !== undefined) attributes.groupLevel = groupLevel;
 
@@ -1302,15 +1196,12 @@ ascRouter.get("/subscriptions/:id/localizations", async (req, res) => {
   try {
     const { id } = req.params;
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await (asc as any).client.get(
-      `/subscriptions/${id}/subscriptionLocalizations`,
-      {
-        params: {
-          "fields[subscriptionLocalizations]": "name,locale,description,state",
-          limit: 200,
-        },
+    const { data: resp } = await (asc as any).client.get(`/subscriptions/${id}/subscriptionLocalizations`, {
+      params: {
+        "fields[subscriptionLocalizations]": "name,locale,description,state",
+        limit: 200,
       },
-    );
+    });
     res.json(
       (resp.data ?? []).map((l: any) => ({
         id: l.id,
@@ -1335,26 +1226,21 @@ ascRouter.post("/subscriptions/localizations", async (req, res) => {
       description?: string;
     };
     if (!subscriptionId || !locale || !name) {
-      res
-        .status(400)
-        .json({ error: "subscriptionId, locale and name are required" });
+      res.status(400).json({ error: "subscriptionId, locale and name are required" });
       return;
     }
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await (asc as any).client.post(
-      "/subscriptionLocalizations",
-      {
-        data: {
-          type: "subscriptionLocalizations",
-          attributes: { locale, name, ...(description ? { description } : {}) },
-          relationships: {
-            subscription: {
-              data: { type: "subscriptions", id: subscriptionId },
-            },
+    const { data: resp } = await (asc as any).client.post("/subscriptionLocalizations", {
+      data: {
+        type: "subscriptionLocalizations",
+        attributes: { locale, name, ...(description ? { description } : {}) },
+        relationships: {
+          subscription: {
+            data: { type: "subscriptions", id: subscriptionId },
           },
         },
       },
-    );
+    });
     res.status(201).json({
       id: resp.data.id,
       locale: resp.data.attributes?.locale ?? locale,
@@ -1406,18 +1292,15 @@ ascRouter.get("/subscriptions/:id/price-points", async (req, res) => {
     const { id } = req.params;
     const territory = (req.query.territory as string) || undefined;
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await (asc as any).client.get(
-      `/subscriptions/${id}/pricePoints`,
-      {
-        params: {
-          include: "territory",
-          "fields[subscriptionPricePoints]": "customerPrice,proceeds,territory",
-          "fields[territories]": "currency",
-          ...(territory ? { "filter[territory]": territory } : {}),
-          limit: 8000,
-        },
+    const { data: resp } = await (asc as any).client.get(`/subscriptions/${id}/pricePoints`, {
+      params: {
+        include: "territory",
+        "fields[subscriptionPricePoints]": "customerPrice,proceeds,territory",
+        "fields[territories]": "currency",
+        ...(territory ? { "filter[territory]": territory } : {}),
+        limit: 8000,
       },
-    );
+    });
     const included: any[] = resp.included ?? [];
     const terrMap = new Map<string, any>(included.map((t: any) => [t.id, t]));
     res.json(
@@ -1443,29 +1326,21 @@ ascRouter.get("/subscriptions/:id/prices", async (req, res) => {
   try {
     const { id } = req.params;
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await (asc as any).client.get(
-      `/subscriptions/${id}/prices`,
-      {
-        params: {
-          include: "territory,subscriptionPricePoint",
-          "fields[subscriptionPrices]":
-            "startDate,preserved,territory,subscriptionPricePoint",
-          "fields[territories]": "currency",
-          "fields[subscriptionPricePoints]": "customerPrice,proceeds,territory",
-          limit: 200,
-        },
+    const { data: resp } = await (asc as any).client.get(`/subscriptions/${id}/prices`, {
+      params: {
+        include: "territory,subscriptionPricePoint",
+        "fields[subscriptionPrices]": "startDate,preserved,territory,subscriptionPricePoint",
+        "fields[territories]": "currency",
+        "fields[subscriptionPricePoints]": "customerPrice,proceeds,territory",
+        limit: 200,
       },
-    );
+    });
     const included: any[] = resp.included ?? [];
     const terrMap = new Map<string, any>(
-      included
-        .filter((i: any) => i.type === "territories")
-        .map((t: any) => [t.id, t]),
+      included.filter((i: any) => i.type === "territories").map((t: any) => [t.id, t]),
     );
     const ppMap = new Map<string, any>(
-      included
-        .filter((i: any) => i.type === "subscriptionPricePoints")
-        .map((pp: any) => [pp.id, pp]),
+      included.filter((i: any) => i.type === "subscriptionPricePoints").map((pp: any) => [pp.id, pp]),
     );
     res.json(
       (resp.data ?? []).map((p: any) => {
@@ -1493,13 +1368,7 @@ ascRouter.get("/subscriptions/:id/prices", async (req, res) => {
 
 ascRouter.post("/subscriptions/prices", async (req, res) => {
   try {
-    const {
-      subscriptionId,
-      pricePointId,
-      territory,
-      startDate,
-      preserveCurrentPrice,
-    } = req.body as {
+    const { subscriptionId, pricePointId, territory, startDate, preserveCurrentPrice } = req.body as {
       subscriptionId?: string;
       pricePointId?: string;
       territory?: string;
@@ -1507,37 +1376,28 @@ ascRouter.post("/subscriptions/prices", async (req, res) => {
       preserveCurrentPrice?: boolean;
     };
     if (!subscriptionId || !pricePointId) {
-      res
-        .status(400)
-        .json({ error: "subscriptionId and pricePointId are required" });
+      res.status(400).json({ error: "subscriptionId and pricePointId are required" });
       return;
     }
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await (asc as any).client.post(
-      "/subscriptionPrices",
-      {
-        data: {
-          type: "subscriptionPrices",
-          attributes: {
-            ...(startDate !== undefined ? { startDate } : {}),
-            ...(preserveCurrentPrice !== undefined
-              ? { preserveCurrentPrice }
-              : {}),
+    const { data: resp } = await (asc as any).client.post("/subscriptionPrices", {
+      data: {
+        type: "subscriptionPrices",
+        attributes: {
+          ...(startDate !== undefined ? { startDate } : {}),
+          ...(preserveCurrentPrice !== undefined ? { preserveCurrentPrice } : {}),
+        },
+        relationships: {
+          subscription: {
+            data: { type: "subscriptions", id: subscriptionId },
           },
-          relationships: {
-            subscription: {
-              data: { type: "subscriptions", id: subscriptionId },
-            },
-            subscriptionPricePoint: {
-              data: { type: "subscriptionPricePoints", id: pricePointId },
-            },
-            ...(territory
-              ? { territory: { data: { type: "territories", id: territory } } }
-              : {}),
+          subscriptionPricePoint: {
+            data: { type: "subscriptionPricePoints", id: pricePointId },
           },
+          ...(territory ? { territory: { data: { type: "territories", id: territory } } } : {}),
         },
       },
-    );
+    });
     res.status(201).json({ id: resp.data.id, ok: true });
   } catch (err: any) {
     logger.error("ASC createSubscriptionPrice failed", err);
@@ -1561,15 +1421,12 @@ ascRouter.get("/subscriptions/:id/review-screenshot", async (req, res) => {
   try {
     const { id } = req.params;
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await (asc as any).client.get(
-      `/subscriptions/${id}/appStoreReviewScreenshot`,
-      {
-        params: {
-          "fields[subscriptionAppStoreReviewScreenshots]":
-            "fileName,fileSize,sourceFileChecksum,imageAsset,assetToken,assetType,uploadOperations,assetDeliveryState",
-        },
+    const { data: resp } = await (asc as any).client.get(`/subscriptions/${id}/appStoreReviewScreenshot`, {
+      params: {
+        "fields[subscriptionAppStoreReviewScreenshots]":
+          "fileName,fileSize,sourceFileChecksum,imageAsset,assetToken,assetType,uploadOperations,assetDeliveryState",
       },
-    );
+    });
     if (!resp.data) {
       res.json(null);
       return;
@@ -1605,26 +1462,21 @@ ascRouter.post("/subscriptions/:id/review-screenshot", async (req, res) => {
       fileData?: string;
     };
     if (!fileName || !fileSize || !fileData) {
-      res
-        .status(400)
-        .json({ error: "fileName, fileSize and fileData are required" });
+      res.status(400).json({ error: "fileName, fileSize and fileData are required" });
       return;
     }
 
     const asc = await ascClientForUser(req.user!.userId);
 
-    const { data: createResp } = await (asc as any).client.post(
-      "/subscriptionAppStoreReviewScreenshots",
-      {
-        data: {
-          type: "subscriptionAppStoreReviewScreenshots",
-          attributes: { fileName, fileSize },
-          relationships: {
-            subscription: { data: { type: "subscriptions", id } },
-          },
+    const { data: createResp } = await (asc as any).client.post("/subscriptionAppStoreReviewScreenshots", {
+      data: {
+        type: "subscriptionAppStoreReviewScreenshots",
+        attributes: { fileName, fileSize },
+        relationships: {
+          subscription: { data: { type: "subscriptions", id } },
         },
       },
-    );
+    });
 
     const screenshotId = createResp.data.id;
     const uploadOps: any[] = createResp.data.attributes?.uploadOperations ?? [];
@@ -1633,22 +1485,17 @@ ascRouter.post("/subscriptions/:id/review-screenshot", async (req, res) => {
     for (const op of uploadOps) {
       const chunk = fileBytes.slice(op.offset, op.offset + op.length);
       await axios.put(op.url, chunk, {
-        headers: Object.fromEntries(
-          (op.requestHeaders ?? []).map((h: any) => [h.name, h.value]),
-        ),
+        headers: Object.fromEntries((op.requestHeaders ?? []).map((h: any) => [h.name, h.value])),
       });
     }
 
-    await (asc as any).client.patch(
-      `/subscriptionAppStoreReviewScreenshots/${screenshotId}`,
-      {
-        data: {
-          type: "subscriptionAppStoreReviewScreenshots",
-          id: screenshotId,
-          attributes: { uploaded: true },
-        },
+    await (asc as any).client.patch(`/subscriptionAppStoreReviewScreenshots/${screenshotId}`, {
+      data: {
+        type: "subscriptionAppStoreReviewScreenshots",
+        id: screenshotId,
+        attributes: { uploaded: true },
       },
-    );
+    });
 
     res.status(201).json({ id: screenshotId, ok: true });
   } catch (err: any) {
@@ -1661,12 +1508,291 @@ ascRouter.delete("/subscriptions/review-screenshots/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const asc = await ascClientForUser(req.user!.userId);
-    await (asc as any).client.delete(
-      `/subscriptionAppStoreReviewScreenshots/${id}`,
-    );
+    await (asc as any).client.delete(`/subscriptionAppStoreReviewScreenshots/${id}`);
     res.json({ ok: true });
   } catch (err: any) {
     logger.error("ASC deleteSubscriptionReviewScreenshot failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+async function getGameCenterDetailId(asc: AppStoreConnectClient, appId: string): Promise<string | null> {
+  try {
+    const { data: resp } = await (asc as any).client.get(`/apps/${appId}/gameCenterDetail`);
+    return resp.data?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+ascRouter.get("/gamecenter/leaderboards", async (req, res) => {
+  try {
+    const bundleId = (req.query.bundleId as string) || undefined;
+    if (bundleId) {
+      const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+      if (!owned) return;
+    }
+    const asc = await ascClientForUser(req.user!.userId);
+    const app = await asc.getApp(bundleId);
+    if (!app) {
+      res.status(404).json({ error: "App not found in App Store Connect" });
+      return;
+    }
+    const gcDetailId = await getGameCenterDetailId(asc, app.id);
+    if (!gcDetailId) {
+      res.json({ leaderboards: [], gcDetailId: null, gcEnabled: false });
+      return;
+    }
+    const { data: resp } = await (asc as any).client.get(`/gameCenterDetails/${gcDetailId}/gameCenterLeaderboards`, {
+      params: {
+        "fields[gameCenterLeaderboards]":
+          "referenceName,vendorIdentifier,defaultFormatter,archived,scoreSortType,submissionType",
+        limit: 200,
+      },
+    });
+    const leaderboards = (resp.data ?? []).map((lb: any) => ({
+      id: lb.id,
+      referenceName: lb.attributes?.referenceName ?? "",
+      vendorIdentifier: lb.attributes?.vendorIdentifier ?? "",
+      defaultFormatter: lb.attributes?.defaultFormatter ?? "INTEGER",
+      archived: lb.attributes?.archived ?? false,
+      scoreSortType: lb.attributes?.scoreSortType ?? "HIGH_TO_LOW",
+      submissionType: lb.attributes?.submissionType ?? "INDIVIDUAL",
+    }));
+    res.json({ leaderboards, gcDetailId, gcEnabled: true });
+  } catch (err: any) {
+    logger.error("ASC gamecenter leaderboards failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.post("/gamecenter/leaderboards", async (req, res) => {
+  try {
+    const { bundleId, gcDetailId, referenceName, vendorIdentifier, defaultFormatter, scoreSortType, submissionType } =
+      req.body as {
+        bundleId?: string;
+        gcDetailId: string;
+        referenceName: string;
+        vendorIdentifier: string;
+        defaultFormatter?: string;
+        scoreSortType?: string;
+        submissionType?: string;
+      };
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId required" });
+      return;
+    }
+    const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!owned) return;
+    if (!referenceName || !vendorIdentifier || !gcDetailId) {
+      res.status(400).json({ error: "referenceName, vendorIdentifier, gcDetailId required" });
+      return;
+    }
+    const asc = await ascClientForUser(req.user!.userId);
+    const { data: resp } = await (asc as any).client.post("/gameCenterLeaderboards", {
+      data: {
+        type: "gameCenterLeaderboards",
+        attributes: {
+          referenceName,
+          vendorIdentifier,
+          defaultFormatter: defaultFormatter ?? "INTEGER",
+          scoreSortType: scoreSortType ?? "HIGH_TO_LOW",
+          submissionType: submissionType ?? "INDIVIDUAL",
+        },
+        relationships: {
+          gameCenterDetail: {
+            data: { type: "gameCenterDetails", id: gcDetailId },
+          },
+        },
+      },
+    });
+    res.status(201).json({
+      id: resp.data.id,
+      referenceName: resp.data.attributes?.referenceName ?? referenceName,
+      vendorIdentifier: resp.data.attributes?.vendorIdentifier ?? vendorIdentifier,
+      defaultFormatter: resp.data.attributes?.defaultFormatter ?? defaultFormatter ?? "INTEGER",
+      archived: resp.data.attributes?.archived ?? false,
+      scoreSortType: resp.data.attributes?.scoreSortType ?? scoreSortType ?? "HIGH_TO_LOW",
+      submissionType: resp.data.attributes?.submissionType ?? submissionType ?? "INDIVIDUAL",
+    });
+  } catch (err: any) {
+    logger.error("ASC create leaderboard failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.patch("/gamecenter/leaderboards/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { bundleId, referenceName, archived } = req.body as {
+      bundleId?: string;
+      referenceName?: string;
+      archived?: boolean;
+    };
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId required" });
+      return;
+    }
+    const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!owned) return;
+    const asc = await ascClientForUser(req.user!.userId);
+    const attrs: Record<string, unknown> = {};
+    if (referenceName !== undefined) attrs.referenceName = referenceName;
+    if (archived !== undefined) attrs.archived = archived;
+    await (asc as any).client.patch(`/gameCenterLeaderboards/${id}`, {
+      data: { type: "gameCenterLeaderboards", id, attributes: attrs },
+    });
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error("ASC update leaderboard failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.delete("/gamecenter/leaderboards/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const bundleId = req.query.bundleId as string | undefined;
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId required" });
+      return;
+    }
+    const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!owned) return;
+    const asc = await ascClientForUser(req.user!.userId);
+    await (asc as any).client.delete(`/gameCenterLeaderboards/${id}`);
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error("ASC delete leaderboard failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.get("/gamecenter/leaderboards/:id/localizations", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const bundleId = req.query.bundleId as string | undefined;
+    if (bundleId) {
+      const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+      if (!owned) return;
+    }
+    const asc = await ascClientForUser(req.user!.userId);
+    const { data: resp } = await (asc as any).client.get(`/gameCenterLeaderboards/${id}/localizations`, {
+      params: {
+        "fields[gameCenterLeaderboardLocalizations]": "locale,name,formatterSuffix,formatterSuffixSingular",
+      },
+    });
+    const localizations = (resp.data ?? []).map((l: any) => ({
+      id: l.id,
+      locale: l.attributes?.locale ?? "",
+      name: l.attributes?.name ?? "",
+      formatterSuffix: l.attributes?.formatterSuffix ?? "",
+      formatterSuffixSingular: l.attributes?.formatterSuffixSingular ?? "",
+    }));
+    res.json(localizations);
+  } catch (err: any) {
+    logger.error("ASC leaderboard localizations failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.post("/gamecenter/leaderboard-localizations", async (req, res) => {
+  try {
+    const { bundleId, leaderboardId, locale, name, formatterSuffix, formatterSuffixSingular } = req.body as {
+      bundleId?: string;
+      leaderboardId: string;
+      locale: string;
+      name: string;
+      formatterSuffix?: string;
+      formatterSuffixSingular?: string;
+    };
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId required" });
+      return;
+    }
+    const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!owned) return;
+    if (!leaderboardId || !locale || !name) {
+      res.status(400).json({ error: "leaderboardId, locale, name required" });
+      return;
+    }
+    const asc = await ascClientForUser(req.user!.userId);
+    const attrs: Record<string, string> = { locale, name };
+    if (formatterSuffix) attrs.formatterSuffix = formatterSuffix;
+    if (formatterSuffixSingular) attrs.formatterSuffixSingular = formatterSuffixSingular;
+    const { data: resp } = await (asc as any).client.post("/gameCenterLeaderboardLocalizations", {
+      data: {
+        type: "gameCenterLeaderboardLocalizations",
+        attributes: attrs,
+        relationships: {
+          gameCenterLeaderboard: {
+            data: { type: "gameCenterLeaderboards", id: leaderboardId },
+          },
+        },
+      },
+    });
+    res.status(201).json({
+      id: resp.data.id,
+      locale,
+      name: resp.data.attributes?.name ?? name,
+      formatterSuffix: resp.data.attributes?.formatterSuffix ?? "",
+      formatterSuffixSingular: resp.data.attributes?.formatterSuffixSingular ?? "",
+    });
+  } catch (err: any) {
+    logger.error("ASC create leaderboard localization failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.patch("/gamecenter/leaderboard-localizations/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { bundleId, name, formatterSuffix, formatterSuffixSingular } = req.body as {
+      bundleId?: string;
+      name?: string;
+      formatterSuffix?: string;
+      formatterSuffixSingular?: string;
+    };
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId required" });
+      return;
+    }
+    const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!owned) return;
+    const asc = await ascClientForUser(req.user!.userId);
+    const attrs: Record<string, string> = {};
+    if (name !== undefined) attrs.name = name;
+    if (formatterSuffix !== undefined) attrs.formatterSuffix = formatterSuffix;
+    if (formatterSuffixSingular !== undefined) attrs.formatterSuffixSingular = formatterSuffixSingular;
+    await (asc as any).client.patch(`/gameCenterLeaderboardLocalizations/${id}`, {
+      data: {
+        type: "gameCenterLeaderboardLocalizations",
+        id,
+        attributes: attrs,
+      },
+    });
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error("ASC update leaderboard localization failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.delete("/gamecenter/leaderboard-localizations/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const bundleId = req.query.bundleId as string | undefined;
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId required" });
+      return;
+    }
+    const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!owned) return;
+    const asc = await ascClientForUser(req.user!.userId);
+    await (asc as any).client.delete(`/gameCenterLeaderboardLocalizations/${id}`);
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error("ASC delete leaderboard localization failed", err);
     res.status(500).json({ error: err.message ?? String(err) });
   }
 });
