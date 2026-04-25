@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { pageTitle, textMuted, textSecondary } from "../../styles";
-import { ClipboardList } from "lucide-react";
+import { textMuted, textPrimary, textSecondary, borderDefault, btnPrimary } from "../../styles";
+import { ClipboardList, ChevronDown } from "lucide-react";
 import { useApi, apiPost, getActiveBundleId } from "../../hooks/useApi";
-import FilterBar from "./FilterBar";
-import LocalePills from "./LocalePills";
-import SuggestionCard, { Suggestion } from "./SuggestionCard";
+import SuggestionCard from "./SuggestionCard";
+import SuggestionDetail from "./SuggestionDetail";
+import type { Suggestion } from "../../types";
 
 interface SuggestionsData {
   suggestions: Record<string, Suggestion[]>;
@@ -25,15 +25,14 @@ export default function Suggestions({ addToast }: Props) {
     typeFilter,
   ]);
   const [activeLocale, setActiveLocale] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [acting, setActing] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
 
   const runAnalyze = async () => {
     setAnalyzing(true);
     try {
-      const res = await apiPost("/actions/analyze", {
-        bundleId: getActiveBundleId(),
-      });
+      const res = await apiPost("/actions/analyze", { bundleId: getActiveBundleId() });
       addToast(res.message || "AI analysis started", "success");
       setTimeout(refetch, 5000);
     } catch (e: any) {
@@ -43,18 +42,14 @@ export default function Suggestions({ addToast }: Props) {
     }
   };
 
-  if (loading)
-    return (
-      <div className="flex items-center justify-center py-20 gap-3 text-gray-400 dark:text-[#5c6478]">
-        <div className="w-5 h-5 rounded-full border-2 border-gray-200 border-t-blue-500 animate-spin" />
-        Loading suggestions…
-      </div>
-    );
-
   const groups = data?.suggestions || {};
   const locales = Object.keys(groups);
   const currentLocale = activeLocale || locales[0] || "en-US";
   const items = groups[currentLocale] || [];
+
+  const selectedItem =
+    items.length > 0 ? (selectedId ? (items.find((i) => i.id === selectedId) ?? items[0]) : items[0]) : null;
+  const selectedIndex = selectedItem ? items.findIndex((i) => i.id === selectedItem.id) : -1;
 
   const handleAction = async (id: string, action: "approve" | "reject" | "apply") => {
     setActing(id);
@@ -75,59 +70,139 @@ export default function Suggestions({ addToast }: Props) {
   const handleBulkApprove = async () => {
     try {
       await apiPost("/suggestions/bulk-approve", { locale: currentLocale });
-      addToast(`All pending suggestions for ${currentLocale} approved`, "success");
+      addToast(`All pending for ${currentLocale} approved`, "success");
       refetch();
     } catch (e: any) {
       addToast(e.message, "error");
     }
   };
 
+  const navigateItem = (dir: -1 | 1) => {
+    const next = items[selectedIndex + dir];
+    if (next) setSelectedId(next.id);
+  };
+
   return (
-    <div>
-      <div className="flex items-start justify-between mb-1">
-        <h1 className={`${pageTitle}`}>ASO Suggestions</h1>
-        <button
-          onClick={runAnalyze}
-          disabled={analyzing}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium bg-[#D94412] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {analyzing ? (
-            <>
-              <div className="spinner" /> Analyzing…
-            </>
-          ) : (
-            "Run AI Analysis"
-          )}
-        </button>
-      </div>
-      <p className={`text-sm ${textMuted} mb-8`}>AI-generated optimization suggestions across locales</p>
+    <div className="-mx-7 -my-6 flex overflow-hidden" style={{ height: "calc(100vh - 52px)" }}>
+      <div className={`w-[300px] shrink-0 flex flex-col border-r ${borderDefault} overflow-hidden`}>
+        <div className={`flex items-center justify-between px-4 py-4 border-b ${borderDefault} shrink-0`}>
+          <h1 className={`text-[17px] font-semibold ${textPrimary}`}>Suggestions</h1>
+          <button onClick={runAnalyze} disabled={analyzing} className={btnPrimary}>
+            {analyzing ? (
+              <>
+                <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                Analyzing…
+              </>
+            ) : (
+              "Run AI"
+            )}
+          </button>
+        </div>
 
-      <FilterBar
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-        typeFilter={typeFilter}
-        setTypeFilter={setTypeFilter}
-        currentLocale={currentLocale}
-        onBulkApprove={handleBulkApprove}
-      />
-
-      <LocalePills locales={locales} groups={groups} currentLocale={currentLocale} onSelect={setActiveLocale} />
-
-      {items.length === 0 ? (
-        <div className="py-20 text-center">
-          <div className="flex justify-center mb-3 opacity-20">
-            <ClipboardList className="w-12 h-12 text-[#9ca3af]" />
+        {locales.length > 1 && (
+          <div className={`flex items-center gap-1.5 px-3 py-2.5 border-b ${borderDefault} shrink-0 flex-wrap`}>
+            {locales.map((loc) => (
+              <button
+                key={loc}
+                onClick={() => {
+                  setActiveLocale(loc);
+                  setSelectedId(null);
+                }}
+                className={`px-3 py-1 rounded-full text-[12px] font-medium border transition-colors cursor-pointer ${
+                  currentLocale === loc
+                    ? `bg-[#111827] dark:bg-[#e8eaf0] border-[#111827] dark:border-[#e8eaf0] text-white dark:text-[#111827]`
+                    : `border-[#eef0f3] dark:border-[#2a2f3d] ${textSecondary} bg-white dark:bg-[#1c2028] hover:border-[#d1d5db] dark:hover:border-[#5c6478]`
+                }`}
+              >
+                {loc}
+                <span className="ml-1 opacity-60">({groups[loc]?.length ?? 0})</span>
+              </button>
+            ))}
           </div>
-          <div className={`text-sm font-medium ${textSecondary} mb-1`}>No suggestions found</div>
-          <div className={`text-xs ${textMuted}`}>Run an AI analysis from the Actions page</div>
+        )}
+
+        <div className={`flex items-center gap-2 px-3 py-2.5 border-b ${borderDefault} shrink-0`}>
+          <div className="relative flex-1">
+            <select
+              className={`w-full appearance-none pl-2.5 pr-7 py-1.5 text-[12px] border ${borderDefault} rounded-lg bg-white dark:bg-[#1c2028] ${textPrimary} outline-none cursor-pointer focus:border-[#C4001E] transition-colors`}
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="">All statuses</option>
+              <option value="PENDING">Pending</option>
+              <option value="APPROVED">Approved</option>
+              <option value="APPLIED">Applied</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
+            <ChevronDown
+              className={`absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 ${textMuted} pointer-events-none`}
+            />
+          </div>
+          <div className="relative flex-1">
+            <select
+              className={`w-full appearance-none pl-2.5 pr-7 py-1.5 text-[12px] border ${borderDefault} rounded-lg bg-white dark:bg-[#1c2028] ${textPrimary} outline-none cursor-pointer focus:border-[#C4001E] transition-colors`}
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+            >
+              <option value="">All types</option>
+              <option value="TITLE">Title</option>
+              <option value="SUBTITLE">Subtitle</option>
+              <option value="KEYWORDS">Keywords</option>
+              <option value="DESCRIPTION">Description</option>
+            </select>
+            <ChevronDown
+              className={`absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 ${textMuted} pointer-events-none`}
+            />
+          </div>
+          <button
+            onClick={handleBulkApprove}
+            className="shrink-0 px-2.5 py-1.5 text-[12px] font-semibold rounded-lg text-[#C4001E] hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors cursor-pointer"
+          >
+            Approve all
+          </button>
         </div>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {items.map((s) => (
-            <SuggestionCard key={s.id} suggestion={s} acting={acting} onAction={handleAction} />
-          ))}
+
+        <div className="flex-1 overflow-y-auto">
+          {loading ? (
+            <div className="flex items-center justify-center py-16 gap-2">
+              <div className="spinner" />
+            </div>
+          ) : items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-2">
+              <ClipboardList className={`w-8 h-8 ${textMuted} opacity-30`} />
+              <div className={`text-sm ${textMuted}`}>No suggestions</div>
+            </div>
+          ) : (
+            items.map((s, i) => (
+              <SuggestionCard
+                key={s.id}
+                suggestion={s}
+                selected={s.id === selectedItem?.id}
+                onClick={() => setSelectedId(s.id)}
+                isLast={i === items.length - 1}
+              />
+            ))
+          )}
         </div>
-      )}
+      </div>
+
+      <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
+        {selectedItem ? (
+          <SuggestionDetail
+            suggestion={selectedItem}
+            index={selectedIndex}
+            total={items.length}
+            acting={acting}
+            onAction={handleAction}
+            onNavigate={navigateItem}
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center flex-1 gap-3">
+            <ClipboardList className={`w-10 h-10 ${textMuted} opacity-20`} />
+            <div className={`text-sm ${textMuted}`}>Select a suggestion to view details</div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,90 +1,41 @@
-import { badge, borderDefault, textMuted, textPrimary, textSecondary } from "../../styles";
+import { badge, badgeOutline, borderDefault, textMuted, textPrimary, textSecondary } from "../../styles";
 import type { Suggestion } from "../../types";
 export type { Suggestion };
 
 interface Props {
   suggestion: Suggestion;
-  acting: string | null;
-  onAction: (id: string, action: "approve" | "reject" | "apply") => void;
+  selected: boolean;
+  onClick: () => void;
+  isLast: boolean;
 }
 
-const btnBase =
-  "inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
-
-export default function SuggestionCard({ suggestion: s, acting, onAction }: Props) {
+export default function SuggestionCard({ suggestion: s, selected, onClick, isLast }: Props) {
   return (
-    <div
-      className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_2px_8px_rgba(0,0,0,0.3)] transition-shadow`}
+    <button
+      onClick={onClick}
+      className={`w-full text-left px-4 py-3.5 transition-colors relative cursor-pointer ${
+        selected ? "bg-[#fef5f5] dark:bg-[#2a1f23]" : "hover:bg-[#fafbfc] dark:hover:bg-[#252b38]"
+      } ${!isLast ? `border-b ${borderDefault}` : ""}`}
     >
-      <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className={badge(s.type)}>{s.type}</span>
-          <span className={badge(s.status)}>{s.status}</span>
-          {s.confidenceScore != null && (
-            <span className={`flex items-center gap-1 text-xs ${textMuted}`}>
-              {Math.round(s.confidenceScore * 100)}% confidence
-              <span className="inline-block w-10 h-1 rounded-full bg-gray-200 dark:bg-[#2a2f3d] overflow-hidden align-middle">
-                <span
-                  className="block h-full rounded-full bg-emerald-500"
-                  style={{ width: `${s.confidenceScore * 100}%` }}
-                />
-              </span>
-            </span>
-          )}
-        </div>
-        <div className={`text-[11px] ${textMuted} shrink-0 whitespace-nowrap`}>
-          {new Date(s.createdAt).toLocaleDateString()} · {s.aiProvider}/{s.aiModel}
-        </div>
+      {selected && <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#C4001E] rounded-r-sm" />}
+      <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+        <span className={badge(s.type)}>{s.type.charAt(0) + s.type.slice(1).toLowerCase()}</span>
+        <span className={badgeOutline(s.status.toLowerCase())}>
+          {s.status.charAt(0) + s.status.slice(1).toLowerCase()}
+        </span>
       </div>
-      <div className="flex flex-col gap-2 mb-3">
-        {s.currentValue && (
-          <div className="bg-red-50/60 dark:bg-red-900/10 rounded-xl px-4 py-3 text-xs text-[#4b5563] dark:text-[#8b93a5]">
-            <div className={`text-[10px] font-medium uppercase tracking-wide ${textMuted} mb-1`}>Current</div>
-            {s.currentValue}
+      <p className={`text-[13px] ${textPrimary} line-clamp-2 leading-snug mb-2`}>{s.suggestedValue}</p>
+      {s.confidenceScore != null && (
+        <div className="flex items-center gap-2 mb-1.5">
+          <div className="flex-1 h-1 rounded-full bg-[#f3f4f6] dark:bg-[#2a2f3d] overflow-hidden">
+            <div className="h-full rounded-full bg-emerald-500" style={{ width: `${s.confidenceScore * 100}%` }} />
           </div>
-        )}
-        <div className={`bg-emerald-50/60 dark:bg-emerald-900/10 rounded-xl px-4 py-3 text-xs ${textPrimary}`}>
-          <div className={`text-[10px] font-medium uppercase tracking-wide ${textMuted} mb-1`}>Suggested</div>
-          {s.suggestedValue}
+          <span className={`text-[11px] tabular-nums ${textMuted}`}>{Math.round(s.confidenceScore * 100)}%</span>
         </div>
+      )}
+      <div className={`text-[11px] ${textSecondary}`}>
+        {new Date(s.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })} · {s.aiModel}
       </div>
-      {s.reasoning && <div className={`text-xs ${textSecondary} leading-relaxed mb-3`}>{s.reasoning}</div>}
-      {s.status === "PENDING" && (
-        <div className="flex gap-2">
-          <button
-            className={`${btnBase} bg-emerald-500 text-white hover:bg-emerald-600`}
-            disabled={acting === s.id}
-            onClick={() => onAction(s.id, "approve")}
-          >
-            Approve
-          </button>
-          <button
-            className={`${btnBase} bg-red-500 text-white hover:bg-red-600`}
-            disabled={acting === s.id}
-            onClick={() => onAction(s.id, "reject")}
-          >
-            Reject
-          </button>
-          <button
-            className={`${btnBase} bg-blue-500 text-white hover:bg-blue-600`}
-            disabled={acting === s.id}
-            onClick={() => onAction(s.id, "apply")}
-          >
-            Apply to ASC
-          </button>
-        </div>
-      )}
-      {s.status === "APPROVED" && (
-        <div className="flex gap-2">
-          <button
-            className={`${btnBase} bg-blue-500 text-white hover:bg-blue-600`}
-            disabled={acting === s.id}
-            onClick={() => onAction(s.id, "apply")}
-          >
-            Apply to ASC
-          </button>
-        </div>
-      )}
-    </div>
+    </button>
   );
 }
