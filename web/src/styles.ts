@@ -5,7 +5,7 @@ export const borderDefault = "border-[#eef0f3] dark:border-[#2a2f3d]";
 export const pageTitle = `text-3xl font-semibold tracking-tight ${textPrimary}`;
 
 export const TH =
-  "text-left text-[11px] font-medium uppercase tracking-wide text-[#9ca3af] dark:text-[#5c6478] px-4 py-3 border-b border-[#f3f4f6] dark:border-[#2a2f3d] whitespace-nowrap";
+  "text-left text-[12.5px] font-medium tracking-wide text-[#9ca3af] dark:text-[#5c6478] px-4 py-3 border-b border-[#f3f4f6] dark:border-[#2a2f3d] whitespace-nowrap";
 
 export const TD = "px-4 py-3.5 border-b border-[#f3f4f6] dark:border-[#2a2f3d] text-[13px] align-middle";
 

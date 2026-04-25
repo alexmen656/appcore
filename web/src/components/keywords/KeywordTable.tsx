@@ -51,8 +51,8 @@ interface Props {
 function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
   return (
     <span className={`inline-flex flex-col ml-1 leading-none ${active ? "opacity-100" : "opacity-25"}`}>
-      <ChevronUp className={`w-3 h-3 -mb-1 ${active && dir === "asc" ? "text-[#D94412]" : "text-current"}`} />
-      <ChevronDown className={`w-3 h-3 -mt-1 ${active && dir === "desc" ? "text-[#D94412]" : "text-current"}`} />
+      <ChevronUp className={`w-4 h-4 -mb-1.5 ${active && dir === "asc" ? "text-[#D94412]" : "text-current"}`} />
+      <ChevronDown className={`w-4 h-4 -mt-1 ${active && dir === "desc" ? "text-[#D94412]" : "text-current"}`} />
     </span>
   );
 }
@@ -82,7 +82,18 @@ export default function KeywordTable({
     <div
       className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl overflow-hidden mb-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.2)]`}
     >
-      <table className="w-full border-collapse">
+      <table className="w-full border-collapse table-fixed">
+        <colgroup>
+          <col style={{ width: "23%" }} />
+          <col style={{ width: "9%" }} />
+          <col style={{ width: "12%" }} />
+          <col style={{ width: "9%" }} />
+          <col style={{ width: "8%" }} />
+          <col style={{ width: "9%" }} />
+          <col style={{ width: "8%" }} />
+          <col style={{ width: "13%" }} />
+          <col style={{ width: "9%" }} />
+        </colgroup>
         <thead>
           <tr>
             {col("term", "Keyword")}
@@ -92,8 +103,7 @@ export default function KeywordTable({
             <th className={TH}>Results</th>
             {col("rank", "Our Rank")}
             <th className={TH}>Trend</th>
-            <th className={TH}>Top Competitor</th>
-            {/* {col("tracked", "Tracked")} */}
+            <th className={TH}>Top Competitors</th>
             <th className={TH}></th>
           </tr>
         </thead>
@@ -104,7 +114,7 @@ export default function KeywordTable({
               onClick={() => onRowClick(k)}
               className={`cursor-pointer hover:bg-gray-50/60 dark:hover:bg-white/[0.03] ${selectedKeyword?.id === k.id ? "!bg-blue-50/60 dark:!bg-blue-900/20" : ""}`}
             >
-              <td className={`${TD} font-medium ${textPrimary}`}>{k.term}</td>
+              <td className={`${TD} font-medium ${textPrimary} truncate`} title={k.term}>{k.term}</td>
               <td className={`${TD} ${textSecondary}`}>
                 <span className="inline-flex items-center gap-1.5">
                   <img
@@ -154,7 +164,7 @@ export default function KeywordTable({
               </td>
               <td className={TD}>{trendDisplay(k.rankTrend)}</td>
               <td className={TD}>
-                {k.topCompetitor ? (
+                {/* {k.topCompetitor ? (
                   <span className="text-xs text-gray-500 dark:text-[#8b93a5]">
                     #{k.topCompetitor.rank}{" "}
                     <span className="text-gray-400 dark:text-[#5c6478]">
@@ -162,6 +172,29 @@ export default function KeywordTable({
                         ? k.topCompetitor.name.substring(0, 18) + "…"
                         : k.topCompetitor.name}
                     </span>
+                  </span>
+                ) : (
+                  <span className="text-gray-400 dark:text-[#5c6478]">—</span>
+                )} */}
+                {k.topCompetitors.length > 0 ? (
+                  <span className="inline-flex items-center -space-x-1.5">
+                    {k.topCompetitors.map((c) =>
+                      c.iconUrl ? (
+                        <img
+                          key={c.name + c.rank}
+                          src={c.iconUrl}
+                          alt={c.name}
+                          title={`#${c.rank} ${c.name}`}
+                          className="w-6 h-6 rounded-md object-cover ring-2 ring-white dark:ring-[#1c2028] shrink-0"
+                        />
+                      ) : (
+                        <span
+                          key={c.name + c.rank}
+                          title={`#${c.rank} ${c.name}`}
+                          className="w-6 h-6 rounded-md bg-gray-200 dark:bg-[#2a2f3d] ring-2 ring-white dark:ring-[#1c2028] shrink-0"
+                        />
+                      ),
+                    )}
                   </span>
                 ) : (
                   <span className="text-gray-400 dark:text-[#5c6478]">—</span>

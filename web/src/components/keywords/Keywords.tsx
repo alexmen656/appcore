@@ -1,9 +1,9 @@
 import { useState, useRef, useCallback } from "react";
-import { borderDefault, pageTitle, textMuted, textPrimary, textSecondary } from "../../styles";
-import { ChevronDown, Search } from "lucide-react";
+import { borderDefault, inputCls, btnPrimary, btnSecondary, pageTitle, textMuted, textPrimary, textSecondary } from "../../styles";
+import { ChevronDown, Search, X } from "lucide-react";
 import { useApi, apiPost, apiDelete, authHeaders, getActiveBundleId } from "../../hooks/useApi";
 import { useClickOutside } from "../../hooks/useClickOutside";
-import KeywordForm, { COUNTRIES } from "./KeywordForm";
+import { COUNTRIES } from "./KeywordForm";
 import KeywordTable, { Keyword, SortKey } from "./KeywordTable";
 import RankingHistoryChart, { HistoryData } from "./RankingHistoryChart";
 
@@ -16,6 +16,7 @@ export default function Keywords({ addToast }: Props) {
   const [newTerm, setNewTerm] = useState("");
   const [newCountry, setNewCountry] = useState("de");
   const [adding, setAdding] = useState(false);
+  const [addModalOpen, setAddModalOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortKey>("popularity");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [filterCountry, setFilterCountry] = useState("");
@@ -76,18 +77,32 @@ export default function Keywords({ addToast }: Props) {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTerm.trim()) return;
+    const terms = newTerm
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+    if (terms.length === 0) return;
     setAdding(true);
     const country = COUNTRIES.find((c) => c.code === newCountry) ?? COUNTRIES[0];
     try {
-      await apiPost("/keywords", {
-        term: newTerm.trim(),
-        country: country.code,
-        language: country.lang,
-        bundleId: getActiveBundleId(),
-      });
-      addToast(`Keyword "${newTerm.trim()}" (${country.code.toUpperCase()}) added`, "success");
+      await Promise.all(
+        terms.map((term) =>
+          apiPost("/keywords", {
+            term,
+            country: country.code,
+            language: country.lang,
+            bundleId: getActiveBundleId(),
+          }),
+        ),
+      );
+      addToast(
+        terms.length === 1
+          ? `Keyword "${terms[0]}" (${country.code.toUpperCase()}) added`
+          : `${terms.length} keywords (${country.code.toUpperCase()}) added`,
+        "success",
+      );
       setNewTerm("");
+      setAddModalOpen(false);
       refetch();
     } catch (e: any) {
       addToast(e.message, "error");
@@ -167,23 +182,107 @@ export default function Keywords({ addToast }: Props) {
               >
                 Track Rankings
               </button>
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  setAddModalOpen(true);
+                }}
+                className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left`}
+              >
+                Add Keywords
+              </button>
             </div>
           )}
         </div>
       </div>
       <p className={`text-sm ${textMuted} mb-8`}>Track keyword rankings and discover new opportunities</p>
 
-      <KeywordForm
-        newTerm={newTerm}
-        setNewTerm={setNewTerm}
-        newCountry={newCountry}
-        setNewCountry={setNewCountry}
-        adding={adding}
-        filterCountry={filterCountry}
-        setFilterCountry={setFilterCountry}
-        availableCountries={availableCountries}
-        onSubmit={handleAdd}
-      />
+      {availableCountries.length > 1 && (
+        <div className="flex items-center gap-2.5 flex-wrap mb-6">
+          <div className="flex-1" />
+          <select
+            className={`${inputCls} cursor-pointer`}
+            value={filterCountry}
+            onChange={(e) => setFilterCountry(e.target.value)}
+          >
+            <option value="">All Markets</option>
+            {availableCountries.map((code) => {
+              const label = COUNTRIES.find((c) => c.code === code)?.label ?? code.toUpperCase();
+              return (
+                <option key={code} value={code}>
+                  {label}
+                </option>
+              );
+            })}
+          </select>
+        </div>
+      )}
+
+      {addModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          onClick={(e) => e.target === e.currentTarget && setAddModalOpen(false)}
+        >
+          <div
+            className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl shadow-xl w-full max-w-md mx-4 p-6`}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className={`text-base font-semibold ${textPrimary}`}>Add Keywords</h2>
+              <button
+                onClick={() => setAddModalOpen(false)}
+                className={`p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-[#252b38] transition-colors ${textMuted}`}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleAdd} className="flex flex-col gap-3">
+              <div>
+                <label className={`block text-xs font-medium ${textSecondary} mb-1.5`}>
+                  Keywords
+                  <span className={`ml-1.5 font-normal ${textMuted}`}>(comma-separated)</span>
+                </label>
+                <textarea
+                  className={`${inputCls} resize-none h-24`}
+                  placeholder="fitness tracker, calorie counter, workout log…"
+                  value={newTerm}
+                  onChange={(e) => setNewTerm(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className={`block text-xs font-medium ${textSecondary} mb-1.5`}>Store / Market</label>
+                <select
+                  className={`${inputCls} cursor-pointer`}
+                  value={newCountry}
+                  onChange={(e) => setNewCountry(e.target.value)}
+                >
+                  {COUNTRIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex justify-end gap-2 mt-1">
+                <button
+                  type="button"
+                  className={btnSecondary}
+                  onClick={() => setAddModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className={btnPrimary} disabled={adding || !newTerm.trim()}>
+                  {adding ? (
+                    <><div className="spinner !w-3.5 !h-3.5" /> Adding…</>
+                  ) : (
+                    "Add Keywords"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {sorted.length === 0 ? (
         <div className="py-20 text-center">
