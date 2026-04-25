@@ -857,17 +857,24 @@ ascRouter.post("/versions/localizations", async (req, res) => {
     }
 
     const tryCreate = async <T>(
+      label: string,
       fn: () => Promise<T>,
-      swallow500 = false,
+      swallowCodes: number[] = [],
     ): Promise<T | null> => {
       try {
         return await fn();
       } catch (err: any) {
         const msg: string = err?.message ?? "";
-        if (msg.includes("409")) return null;
-        if (swallow500 && msg.includes("500")) {
+        if (msg.includes("409")) {
+          logger.info(
+            `${label}: locale ${locale} already exists in ASC (409), will try fallback lookup`,
+          );
+          return null;
+        }
+        const swallowed = swallowCodes.find((c) => msg.includes(String(c)));
+        if (swallowed) {
           logger.warn(
-            `Skipping creation (locale not supported by ASC): ${msg.split("\n")[0]}`,
+            `${label}: locale ${locale} creation returned ${swallowed} — ${msg.split("\n")[0]}`,
           );
           return null;
         }
@@ -877,10 +884,15 @@ ascRouter.post("/versions/localizations", async (req, res) => {
 
     const [appInfoLoc, versionLoc] = await Promise.all([
       tryCreate(
+        "appInfoLocalization",
         () => asc.createAppInfoLocalization(appInfoId, locale, name),
-        true,
+        [500, 422],
       ),
-      tryCreate(() => asc.createVersionLocalization(versionId, locale)),
+      tryCreate(
+        "versionLocalization",
+        () => asc.createVersionLocalization(versionId, locale),
+        [500, 422],
+      ),
     ]);
 
     let appInfoLocalizationId = appInfoLoc?.id ?? null;
@@ -897,6 +909,16 @@ ascRouter.post("/versions/localizations", async (req, res) => {
         versionLocs.find((l: any) => l.attributes.locale === locale)?.id ??
         null;
     }
+    if (!appInfoLocalizationId && !versionLocalizationId) {
+      logger.warn(
+        `ASC createLocalization: locale ${locale} could not be created or found — not supported by ASC for this app/version`,
+      );
+      res.status(422).json({
+        error: `Locale ${locale} is not supported by App Store Connect for this app or version`,
+      });
+      return;
+    }
+
     await invalidateVersionCache(bundleId);
     res.json({
       ok: true,

@@ -113,7 +113,7 @@ const FIELD_META: {
 
 const ALL_ASC_LOCALES = [
   "ar-SA",
-  "bn-IN",
+  "bn-BD",
   "ca",
   "cs",
   "da",
@@ -158,7 +158,7 @@ const ALL_ASC_LOCALES = [
   "th",
   "tr",
   "uk",
-  "ur-IN",
+  "ur-PK",
   "vi",
   "zh-Hans",
   "zh-Hant",
