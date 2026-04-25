@@ -69,9 +69,8 @@ const sidebarLinks = [
 ];
 
 const sidebarOperations = [
-  { to: "/agents", label: "Agents", icon: Bot },
   { to: "/logs", label: "Logs", icon: Zap },
-  { to: "/app-settings", label: "Settings", icon: SettingsIcon },
+  { to: "/app-settings", label: "App Settings", icon: SettingsIcon },
 ];
 
 function AppAvatar({
@@ -416,6 +415,14 @@ function HeaderProfileMenu({
           >
             <SettingsIcon className="w-4 h-4 text-gray-400 dark:text-[#5c6478] shrink-0" />
             Team Settings
+          </NavLink>
+          <NavLink
+            to="/agents"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors text-[13px] text-[#1a1a2e] dark:text-[#e8eaf0] font-medium"
+          >
+            <Bot className="w-4 h-4 text-gray-400 dark:text-[#5c6478] shrink-0" />
+            Agents
           </NavLink>
           <NavLink
             to="/team"
