@@ -33,6 +33,8 @@ import Versions from "./components/Versions";
 import MonetizationSubscriptions from "./components/monetization/Subscriptions";
 import MonetizationProducts from "./components/monetization/Products";
 import GameCenterLeaderboards from "./components/gamecenter/Leaderboards";
+import GameCenterAchievements from "./components/gamecenter/Achievements";
+import GameCenterChallenges from "./components/gamecenter/Challenges";
 import Login from "./components/login/Login";
 import Team from "./components/Team";
 import InviteAccept from "./components/InviteAccept";
@@ -61,6 +63,7 @@ import {
   LogOut,
   DollarSign,
   Trophy,
+  Swords,
 } from "lucide-react";
 
 const sidebarLinks = [
@@ -801,7 +804,11 @@ function GameCenterSidebarSection({ navLinkClass }: { navLinkClass: (p: { isActi
     if (location.pathname.startsWith("/game-center")) setExpanded(true);
   }, []);
 
-  const subLinks = [{ to: "/game-center/leaderboards", label: "Leaderboards" }];
+  const subLinks = [
+    { to: "/game-center/leaderboards", label: "Leaderboards" },
+    { to: "/game-center/achievements", label: "Achievements" },
+    { to: "/game-center/challenges", label: "Challenges" },
+  ];
 
   const handleHeaderClick = () => {
     if (isAnyGcActive) {
@@ -843,6 +850,35 @@ function GameCenterSidebarSection({ navLinkClass }: { navLinkClass: (p: { isActi
               {link.label}
             </NavLink>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MoreSidebarSection({ navLinkClass }: { navLinkClass: (p: { isActive: boolean }) => string }) {
+  const [expanded, setExpanded] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.pathname.startsWith("/game-center")) setExpanded(true);
+  }, []);
+
+  return (
+    <div>
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-sm font-medium transition-all [&_svg]:w-[18px] [&_svg]:h-[18px] text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] [&>svg:first-child]:opacity-60"
+      >
+        <Swords />
+        <span className="flex-1 text-left">More</span>
+        <ChevronDown
+          className={`!w-3.5 !h-3.5 shrink-0 text-gray-400 dark:text-[#5c6478] transition-transform ${expanded ? "rotate-180" : ""}`}
+        />
+      </button>
+      {expanded && (
+        <div className="ml-3 pl-3 border-l border-[#e5e7eb] dark:border-[#2a2f3d] mb-1 flex flex-col gap-0.5">
+          <GameCenterSidebarSection navLinkClass={navLinkClass} />
         </div>
       )}
     </div>
@@ -1056,8 +1092,8 @@ export default function App() {
               </NavLink>
             ))}
             <MonetizationSidebarSection navLinkClass={navLinkClass} />
-            <GameCenterSidebarSection navLinkClass={navLinkClass} />
             <VersionsSidebarSection navLinkClass={navLinkClass} />
+            <MoreSidebarSection navLinkClass={navLinkClass} />
             <div className="mt-auto pb-3">
               <div className="h-px bg-[#eef0f3] dark:bg-[#2a2f3d] mx-1 mb-2 mt-1" />
               {sidebarOperations.map((link) => (
@@ -1088,6 +1124,8 @@ export default function App() {
             <Route path="/monetization/subscriptions" element={<MonetizationSubscriptions addToast={addToast} />} />
             <Route path="/monetization/products" element={<MonetizationProducts />} />
             <Route path="/game-center/leaderboards" element={<GameCenterLeaderboards addToast={addToast} />} />
+            <Route path="/game-center/achievements" element={<GameCenterAchievements addToast={addToast} />} />
+            <Route path="/game-center/challenges" element={<GameCenterChallenges addToast={addToast} />} />
             <Route path="/agents" element={<Agents addToast={addToast} />} />
             <Route path="/logs" element={<Actions addToast={addToast} />} />
             <Route path="/settings" element={<Settings addToast={addToast} />} />

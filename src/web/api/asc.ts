@@ -1796,3 +1796,498 @@ ascRouter.delete("/gamecenter/leaderboard-localizations/:id", async (req, res) =
     res.status(500).json({ error: err.message ?? String(err) });
   }
 });
+
+ascRouter.get("/gamecenter/achievements", async (req, res) => {
+  try {
+    const bundleId = (req.query.bundleId as string) || undefined;
+    if (bundleId) {
+      const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+      if (!owned) return;
+    }
+    const asc = await ascClientForUser(req.user!.userId);
+    const app = await asc.getApp(bundleId);
+    if (!app) {
+      res.status(404).json({ error: "App not found in App Store Connect" });
+      return;
+    }
+    const gcDetailId = await getGameCenterDetailId(asc, app.id);
+    if (!gcDetailId) {
+      res.json({ achievements: [], gcDetailId: null, gcEnabled: false });
+      return;
+    }
+    const { data: resp } = await (asc as any).client.get(
+      `/gameCenterDetails/${gcDetailId}/gameCenterAchievements`,
+      {
+        params: {
+          "fields[gameCenterAchievements]":
+            "referenceName,vendorIdentifier,points,showBeforeEarned,repeatable,archived",
+          limit: 200,
+        },
+      },
+    );
+    const achievements = (resp.data ?? []).map((a: any) => ({
+      id: a.id,
+      referenceName: a.attributes?.referenceName ?? "",
+      vendorIdentifier: a.attributes?.vendorIdentifier ?? "",
+      points: a.attributes?.points ?? 0,
+      showBeforeEarned: a.attributes?.showBeforeEarned ?? true,
+      repeatable: a.attributes?.repeatable ?? false,
+      archived: a.attributes?.archived ?? false,
+    }));
+    res.json({ achievements, gcDetailId, gcEnabled: true });
+  } catch (err: any) {
+    logger.error("ASC gamecenter achievements failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.post("/gamecenter/achievements", async (req, res) => {
+  try {
+    const {
+      bundleId,
+      gcDetailId,
+      referenceName,
+      vendorIdentifier,
+      points,
+      showBeforeEarned,
+      repeatable,
+    } = req.body as {
+      bundleId?: string;
+      gcDetailId: string;
+      referenceName: string;
+      vendorIdentifier: string;
+      points: number;
+      showBeforeEarned: boolean;
+      repeatable: boolean;
+    };
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId required" });
+      return;
+    }
+    const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!owned) return;
+    const asc = await ascClientForUser(req.user!.userId);
+    const { data: resp } = await (asc as any).client.post("/gameCenterAchievements", {
+      data: {
+        type: "gameCenterAchievements",
+        attributes: { referenceName, vendorIdentifier, points, showBeforeEarned, repeatable },
+        relationships: {
+          gameCenterDetail: { data: { type: "gameCenterDetails", id: gcDetailId } },
+        },
+      },
+    });
+    res.json({
+      id: resp.data.id,
+      referenceName: resp.data.attributes?.referenceName ?? referenceName,
+      vendorIdentifier: resp.data.attributes?.vendorIdentifier ?? vendorIdentifier,
+      points: resp.data.attributes?.points ?? points,
+      showBeforeEarned: resp.data.attributes?.showBeforeEarned ?? showBeforeEarned,
+      repeatable: resp.data.attributes?.repeatable ?? repeatable,
+      archived: false,
+    });
+  } catch (err: any) {
+    logger.error("ASC create achievement failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.patch("/gamecenter/achievements/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { bundleId, referenceName, points, showBeforeEarned, repeatable, archived } = req.body as {
+      bundleId?: string;
+      referenceName?: string;
+      points?: number;
+      showBeforeEarned?: boolean;
+      repeatable?: boolean;
+      archived?: boolean;
+    };
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId required" });
+      return;
+    }
+    const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!owned) return;
+    const asc = await ascClientForUser(req.user!.userId);
+    const attrs: Record<string, unknown> = {};
+    if (referenceName !== undefined) attrs.referenceName = referenceName;
+    if (points !== undefined) attrs.points = points;
+    if (showBeforeEarned !== undefined) attrs.showBeforeEarned = showBeforeEarned;
+    if (repeatable !== undefined) attrs.repeatable = repeatable;
+    if (archived !== undefined) attrs.archived = archived;
+    await (asc as any).client.patch(`/gameCenterAchievements/${id}`, {
+      data: { type: "gameCenterAchievements", id, attributes: attrs },
+    });
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error("ASC update achievement failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.delete("/gamecenter/achievements/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const bundleId = req.query.bundleId as string | undefined;
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId required" });
+      return;
+    }
+    const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!owned) return;
+    const asc = await ascClientForUser(req.user!.userId);
+    await (asc as any).client.delete(`/gameCenterAchievements/${id}`);
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error("ASC delete achievement failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.get("/gamecenter/achievements/:id/localizations", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const bundleId = req.query.bundleId as string | undefined;
+    if (bundleId) {
+      const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+      if (!owned) return;
+    }
+    const asc = await ascClientForUser(req.user!.userId);
+    const { data: resp } = await (asc as any).client.get(
+      `/gameCenterAchievements/${id}/localizations`,
+      {
+        params: {
+          "fields[gameCenterAchievementLocalizations]":
+            "locale,name,afterEarnedDescription,beforeEarnedDescription",
+          limit: 200,
+        },
+      },
+    );
+    const locs = (resp.data ?? []).map((l: any) => ({
+      id: l.id,
+      locale: l.attributes?.locale ?? "",
+      name: l.attributes?.name ?? "",
+      afterEarnedDescription: l.attributes?.afterEarnedDescription ?? "",
+      beforeEarnedDescription: l.attributes?.beforeEarnedDescription ?? "",
+    }));
+    res.json(locs);
+  } catch (err: any) {
+    logger.error("ASC achievement localizations failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.post("/gamecenter/achievement-localizations", async (req, res) => {
+  try {
+    const { bundleId, achievementId, locale, name, afterEarnedDescription, beforeEarnedDescription } =
+      req.body as {
+        bundleId?: string;
+        achievementId: string;
+        locale: string;
+        name: string;
+        afterEarnedDescription?: string;
+        beforeEarnedDescription?: string;
+      };
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId required" });
+      return;
+    }
+    const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!owned) return;
+    const asc = await ascClientForUser(req.user!.userId);
+    const { data: resp } = await (asc as any).client.post("/gameCenterAchievementLocalizations", {
+      data: {
+        type: "gameCenterAchievementLocalizations",
+        attributes: { locale, name, afterEarnedDescription, beforeEarnedDescription },
+        relationships: {
+          gameCenterAchievement: { data: { type: "gameCenterAchievements", id: achievementId } },
+        },
+      },
+    });
+    res.json({
+      id: resp.data.id,
+      locale: resp.data.attributes?.locale ?? locale,
+      name: resp.data.attributes?.name ?? name,
+      afterEarnedDescription: resp.data.attributes?.afterEarnedDescription ?? afterEarnedDescription ?? "",
+      beforeEarnedDescription: resp.data.attributes?.beforeEarnedDescription ?? beforeEarnedDescription ?? "",
+    });
+  } catch (err: any) {
+    logger.error("ASC create achievement localization failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.patch("/gamecenter/achievement-localizations/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { bundleId, name, afterEarnedDescription, beforeEarnedDescription } = req.body as {
+      bundleId?: string;
+      name?: string;
+      afterEarnedDescription?: string;
+      beforeEarnedDescription?: string;
+    };
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId required" });
+      return;
+    }
+    const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!owned) return;
+    const asc = await ascClientForUser(req.user!.userId);
+    const attrs: Record<string, unknown> = {};
+    if (name !== undefined) attrs.name = name;
+    if (afterEarnedDescription !== undefined) attrs.afterEarnedDescription = afterEarnedDescription;
+    if (beforeEarnedDescription !== undefined) attrs.beforeEarnedDescription = beforeEarnedDescription;
+    await (asc as any).client.patch(`/gameCenterAchievementLocalizations/${id}`, {
+      data: { type: "gameCenterAchievementLocalizations", id, attributes: attrs },
+    });
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error("ASC update achievement localization failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.delete("/gamecenter/achievement-localizations/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const bundleId = req.query.bundleId as string | undefined;
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId required" });
+      return;
+    }
+    const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!owned) return;
+    const asc = await ascClientForUser(req.user!.userId);
+    await (asc as any).client.delete(`/gameCenterAchievementLocalizations/${id}`);
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error("ASC delete achievement localization failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.get("/gamecenter/challenges", async (req, res) => {
+  try {
+    const bundleId = (req.query.bundleId as string) || undefined;
+    if (bundleId) {
+      const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+      if (!owned) return;
+    }
+    const asc = await ascClientForUser(req.user!.userId);
+    const app = await asc.getApp(bundleId);
+    if (!app) {
+      res.status(404).json({ error: "App not found in App Store Connect" });
+      return;
+    }
+    const gcDetailId = await getGameCenterDetailId(asc, app.id);
+    if (!gcDetailId) {
+      res.json({ challenges: [], gcDetailId: null, gcEnabled: false });
+      return;
+    }
+    const { data: resp } = await (asc as any).client.get(
+      `/gameCenterDetails/${gcDetailId}/gameCenterLeaderboardSets`,
+      {
+        params: {
+          "fields[gameCenterLeaderboardSets]": "referenceName,vendorIdentifier",
+          limit: 200,
+        },
+      },
+    );
+    const challenges = (resp.data ?? []).map((c: any) => ({
+      id: c.id,
+      referenceName: c.attributes?.referenceName ?? "",
+      vendorIdentifier: c.attributes?.vendorIdentifier ?? "",
+    }));
+    res.json({ challenges, gcDetailId, gcEnabled: true });
+  } catch (err: any) {
+    logger.error("ASC gamecenter challenges failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.post("/gamecenter/challenges", async (req, res) => {
+  try {
+    const { bundleId, gcDetailId, referenceName, vendorIdentifier } = req.body as {
+      bundleId?: string;
+      gcDetailId: string;
+      referenceName: string;
+      vendorIdentifier: string;
+    };
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId required" });
+      return;
+    }
+    const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!owned) return;
+    const asc = await ascClientForUser(req.user!.userId);
+    const { data: resp } = await (asc as any).client.post("/gameCenterLeaderboardSets", {
+      data: {
+        type: "gameCenterLeaderboardSets",
+        attributes: { referenceName, vendorIdentifier },
+        relationships: {
+          gameCenterDetail: { data: { type: "gameCenterDetails", id: gcDetailId } },
+        },
+      },
+    });
+    res.json({
+      id: resp.data.id,
+      referenceName: resp.data.attributes?.referenceName ?? referenceName,
+      vendorIdentifier: resp.data.attributes?.vendorIdentifier ?? vendorIdentifier,
+    });
+  } catch (err: any) {
+    logger.error("ASC create challenge failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.patch("/gamecenter/challenges/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { bundleId, referenceName } = req.body as {
+      bundleId?: string;
+      referenceName?: string;
+    };
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId required" });
+      return;
+    }
+    const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!owned) return;
+    const asc = await ascClientForUser(req.user!.userId);
+    const attrs: Record<string, unknown> = {};
+    if (referenceName !== undefined) attrs.referenceName = referenceName;
+    await (asc as any).client.patch(`/gameCenterLeaderboardSets/${id}`, {
+      data: { type: "gameCenterLeaderboardSets", id, attributes: attrs },
+    });
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error("ASC update challenge failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.delete("/gamecenter/challenges/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const bundleId = req.query.bundleId as string | undefined;
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId required" });
+      return;
+    }
+    const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!owned) return;
+    const asc = await ascClientForUser(req.user!.userId);
+    await (asc as any).client.delete(`/gameCenterLeaderboardSets/${id}`);
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error("ASC delete challenge failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.get("/gamecenter/challenges/:id/localizations", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const bundleId = req.query.bundleId as string | undefined;
+    if (bundleId) {
+      const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+      if (!owned) return;
+    }
+    const asc = await ascClientForUser(req.user!.userId);
+    const { data: resp } = await (asc as any).client.get(
+      `/gameCenterLeaderboardSets/${id}/localizations`,
+      {
+        params: {
+          "fields[gameCenterLeaderboardSetLocalizations]": "locale,name",
+          limit: 200,
+        },
+      },
+    );
+    const locs = (resp.data ?? []).map((l: any) => ({
+      id: l.id,
+      locale: l.attributes?.locale ?? "",
+      name: l.attributes?.name ?? "",
+    }));
+    res.json(locs);
+  } catch (err: any) {
+    logger.error("ASC challenge localizations failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.post("/gamecenter/challenge-localizations", async (req, res) => {
+  try {
+    const { bundleId, challengeId, locale, name } = req.body as {
+      bundleId?: string;
+      challengeId: string;
+      locale: string;
+      name: string;
+    };
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId required" });
+      return;
+    }
+    const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!owned) return;
+    const asc = await ascClientForUser(req.user!.userId);
+    const { data: resp } = await (asc as any).client.post("/gameCenterLeaderboardSetLocalizations", {
+      data: {
+        type: "gameCenterLeaderboardSetLocalizations",
+        attributes: { locale, name },
+        relationships: {
+          gameCenterLeaderboardSet: { data: { type: "gameCenterLeaderboardSets", id: challengeId } },
+        },
+      },
+    });
+    res.json({
+      id: resp.data.id,
+      locale: resp.data.attributes?.locale ?? locale,
+      name: resp.data.attributes?.name ?? name,
+    });
+  } catch (err: any) {
+    logger.error("ASC create challenge localization failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.patch("/gamecenter/challenge-localizations/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { bundleId, name } = req.body as { bundleId?: string; name?: string };
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId required" });
+      return;
+    }
+    const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!owned) return;
+    const asc = await ascClientForUser(req.user!.userId);
+    const attrs: Record<string, unknown> = {};
+    if (name !== undefined) attrs.name = name;
+    await (asc as any).client.patch(`/gameCenterLeaderboardSetLocalizations/${id}`, {
+      data: { type: "gameCenterLeaderboardSetLocalizations", id, attributes: attrs },
+    });
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error("ASC update challenge localization failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
+
+ascRouter.delete("/gamecenter/challenge-localizations/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const bundleId = req.query.bundleId as string | undefined;
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId required" });
+      return;
+    }
+    const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!owned) return;
+    const asc = await ascClientForUser(req.user!.userId);
+    await (asc as any).client.delete(`/gameCenterLeaderboardSetLocalizations/${id}`);
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error("ASC delete challenge localization failed", err);
+    res.status(500).json({ error: err.message ?? String(err) });
+  }
+});
