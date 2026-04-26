@@ -2,14 +2,14 @@ import "dotenv/config";
 import express from "express";
 import { workerAuth } from "./auth";
 import { workerRouter } from "./routes/index";
+import { findFastlane } from "./fastlane-utils";
 
 const app = express();
 const PORT = Number(process.env.FASTLANE_WORKER_PORT ?? 3200);
 
-app.use(express.json({ limit: "500mb" }));
+app.use(express.json({ limit: "50mb" }));
 
 app.get("/health", async (_req, res) => {
-  const { findFastlane } = await import("./fastlane-utils");
   try {
     const fp = await findFastlane();
     res.json({ ok: true, fastlane: fp });
@@ -31,8 +31,6 @@ app.listen(PORT, "0.0.0.0", () => {
   console.log(`     POST /worker/frameit   - Run fastlane frameit`);
 
   if (!process.env.FASTLANE_WORKER_SECRET) {
-    console.error(
-      "⚠️  WARNING: FASTLANE_WORKER_SECRET not set! All authenticated requests will be rejected.",
-    );
+    console.error("⚠️  WARNING: FASTLANE_WORKER_SECRET not set! All authenticated requests will be rejected.");
   }
 });

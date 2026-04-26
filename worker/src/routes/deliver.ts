@@ -73,22 +73,18 @@ deliverRouter.post("/deliver", async (req: Request, res: Response) => {
 
     const screenshotsRoot = path.join(tmpDir, "screenshots");
     const hasScreenshots = screenshots && Object.keys(screenshots).length > 0;
-    
     if (hasScreenshots) {
       let totalScreenshots = 0;
       for (const [locale, images] of Object.entries(screenshots!)) {
         const localeDir = path.join(screenshotsRoot, locale);
         fs.mkdirSync(localeDir, { recursive: true });
         for (const img of images) {
-          fs.writeFileSync(
-            path.join(localeDir, img.filename),
-            Buffer.from(img.data, "base64"),
-          );
+          fs.writeFileSync(path.join(localeDir, img.filename), Buffer.from(img.data, "base64"));
           totalScreenshots++;
         }
       }
       logs.push(
-        `Screenshots written: ${totalScreenshots} image(s) across ${Object.keys(screenshots!).length} locale(s)`,
+        `Screenshots written: ${totalScreenshots} image(s) across ${Object.keys(screenshots).length} locale(s)`,
       );
     }
 
@@ -138,9 +134,7 @@ deliverRouter.post("/deliver", async (req: Request, res: Response) => {
       args.push("--submit_for_review");
     }
 
-    logs.push(
-      `Running: fastlane deliver (screenshots: ${hasScreenshots ? "yes" : "skipped"})`,
-    );
+    logs.push(`Running: fastlane deliver (screenshots: ${hasScreenshots ? "yes" : "skipped"})`);
 
     await new Promise<void>((resolve, reject) => {
       const parts = fastlanePath.split(" ");
@@ -153,6 +147,14 @@ deliverRouter.post("/deliver", async (req: Request, res: Response) => {
         stdio: ["pipe", "pipe", "pipe"],
       });
 
+      const hardTimeout = setTimeout(
+        () => {
+          proc.kill();
+          reject(new Error("fastlane deliver timed out after 30 minutes"));
+        },
+        30 * 60 * 1000,
+      );
+
       proc.stdout?.on("data", (data: Buffer) => {
         const line = data.toString().trim();
         if (line) logs.push(line);
@@ -164,6 +166,7 @@ deliverRouter.post("/deliver", async (req: Request, res: Response) => {
       });
 
       proc.on("close", (code) => {
+        clearTimeout(hardTimeout);
         if (code === 0) {
           logs.push("Fastlane deliver completed successfully.");
           resolve();
@@ -176,14 +179,15 @@ deliverRouter.post("/deliver", async (req: Request, res: Response) => {
       });
 
       proc.on("error", (err) => {
+        clearTimeout(hardTimeout);
         errors.push(err.message);
         reject(err);
       });
     });
 
     res.json({ ok: true, logs, errors });
-  } catch (err: any) {
-    errors.push(err.message);
+  } catch (err) {
+    errors.push(err instanceof Error ? err.message : String(err));
     res.json({ ok: false, logs, errors });
   } finally {
     try {

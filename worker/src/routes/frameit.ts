@@ -26,6 +26,37 @@ interface FrameitRequest {
   };
 }
 
+interface FramefileSection {
+  background?: string;
+  padding: number;
+  show_complete_frame: boolean;
+  stack_title: boolean;
+  title_below_image: boolean;
+  title: { text: string; color: string; font: string; font_size: number };
+}
+
+function buildTitleSection(
+  title: string | undefined,
+  subtitle: string | undefined,
+  textColor: string,
+  layoutMode: LayoutMode,
+  background?: string,
+): FramefileSection {
+  return {
+    ...(background ? { background } : {}),
+    padding: 50,
+    show_complete_frame: false,
+    stack_title: false,
+    title_below_image: layoutMode === "bottom",
+    title: {
+      text: title ?? subtitle ?? " ",
+      color: textColor,
+      font: "./ArialRoundedBold.ttf",
+      font_size: 150,
+    },
+  };
+}
+
 frameitRouter.post("/frameit", async (req: Request, res: Response) => {
   const body = req.body as FrameitRequest;
   const { images, options } = body;
@@ -98,42 +129,13 @@ frameitRouter.post("/frameit", async (req: Request, res: Response) => {
     </svg>`;
     await sharp(Buffer.from(svg)).jpeg({ quality: 95 }).toFile(bgPath);
 
-    fs.copyFileSync(
-      path.join(__dirname, "ArialRoundedBold.ttf"),
-      path.join(tmpDir, "ArialRoundedBold.ttf"),
-    );
+    fs.copyFileSync(path.join(__dirname, "ArialRoundedBold.ttf"), path.join(tmpDir, "ArialRoundedBold.ttf"));
 
-    const defaultSection: Record<string, any> = {
-      background: "./background.jpg",
-      padding: 50,
-      show_complete_frame: false,
-      stack_title: false,
-      title_below_image: layoutMode === "bottom",
-    };
-
-    const titleStyle = {
-      color: textColor,
-      font: "./ArialRoundedBold.ttf",
-      font_size: 150,
-    };
-
-    if (title) {
-      defaultSection.title = { text: title, ...titleStyle };
-    }
-    if (subtitle) {
-      defaultSection.title = { text: subtitle, ...titleStyle };
-    }
-    if (!title && !subtitle) {
-      defaultSection.title = { text: " ", ...titleStyle };
-    }
+    const defaultSection = buildTitleSection(title, subtitle, textColor, layoutMode, "./background.jpg");
 
     fs.writeFileSync(
       path.join(tmpDir, "Framefile.json"),
-      JSON.stringify(
-        { device_frame_version: "latest", default: defaultSection, data: [] },
-        null,
-        2,
-      ),
+      JSON.stringify({ device_frame_version: "latest", default: defaultSection, data: [] }, null, 2),
     );
 
     tmpDirNoBg = path.join(os.tmpdir(), `worker-frameit-nobg-${Date.now()}`);
@@ -146,51 +148,13 @@ frameitRouter.post("/frameit", async (req: Request, res: Response) => {
         fs.copyFileSync(src, path.join(tmpDirNoBg, basename + ".png"));
       }
     }
-    fs.copyFileSync(
-      path.join(tmpDir, "ArialRoundedBold.ttf"),
-      path.join(tmpDirNoBg, "ArialRoundedBold.ttf"),
-    );
+    fs.copyFileSync(path.join(tmpDir, "ArialRoundedBold.ttf"), path.join(tmpDirNoBg, "ArialRoundedBold.ttf"));
 
-    const defaultSectionNoBg: Record<string, any> = {
-      padding: 50,
-      show_complete_frame: false,
-      stack_title: false,
-      title_below_image: layoutMode === "bottom",
-    };
-    if (title) {
-      defaultSectionNoBg.title = {
-        text: title,
-        color: textColor,
-        font: "./ArialRoundedBold.ttf",
-        font_size: 150,
-      };
-    } else if (subtitle) {
-      defaultSectionNoBg.title = {
-        text: subtitle,
-        color: textColor,
-        font: "./ArialRoundedBold.ttf",
-        font_size: 150,
-      };
-    } else {
-      defaultSectionNoBg.title = {
-        text: " ",
-        color: textColor,
-        font: "./ArialRoundedBold.ttf",
-        font_size: 150,
-      };
-    }
+    const defaultSectionNoBg = buildTitleSection(title, subtitle, textColor, layoutMode);
 
     fs.writeFileSync(
       path.join(tmpDirNoBg, "Framefile.json"),
-      JSON.stringify(
-        {
-          device_frame_version: "latest",
-          default: defaultSectionNoBg,
-          data: [],
-        },
-        null,
-        2,
-      ),
+      JSON.stringify({ device_frame_version: "latest", default: defaultSectionNoBg, data: [] }, null, 2),
     );
 
     const fastlaneBin = await findFastlane();
@@ -205,38 +169,25 @@ frameitRouter.post("/frameit", async (req: Request, res: Response) => {
           maxBuffer: 10 * 1024 * 1024,
         });
         output = result.stdout ?? "";
-      } catch (execErr: any) {
-        output = (execErr.stdout ?? "") + (execErr.stderr ?? "");
-        const hasOutput = fs
-          .readdirSync(dir)
-          .some((f) => f.endsWith("_framed.png"));
+      } catch (execErr) {
+        const e = execErr as { stdout?: string; stderr?: string; code?: number };
+        output = (e.stdout ?? "") + (e.stderr ?? "");
+        const hasOutput = fs.readdirSync(dir).some((f) => f.endsWith("_framed.png"));
         if (!hasOutput) {
-          throw new Error(
-            `fastlane frameit failed (code ${execErr.code}).\n${output}`,
-          );
+          throw new Error(`fastlane frameit failed (code ${e.code}).\n${output}`);
         }
       }
       return output;
     };
 
-    const [combinedOutput] = await Promise.all([
-      runFrameit(tmpDir),
-      runFrameit(tmpDirNoBg),
-    ]);
+    const [combinedOutput] = await Promise.all([runFrameit(tmpDir), runFrameit(tmpDirNoBg)]);
 
-    const framedFiles = fs
-      .readdirSync(tmpDir)
-      .filter((f) => f.endsWith("_framed.png"));
+    const framedFiles = fs.readdirSync(tmpDir).filter((f) => f.endsWith("_framed.png"));
     if (framedFiles.length === 0) {
       throw new Error(`frameit produced no output.\n${combinedOutput}`);
     }
 
-    const gravity =
-      layoutMode === "top"
-        ? "north"
-        : layoutMode === "bottom"
-          ? "south"
-          : "centre";
+    const gravity = layoutMode === "top" ? "north" : layoutMode === "bottom" ? "south" : "centre";
 
     const processFramedFiles = async (
       dir: string,
@@ -244,30 +195,24 @@ frameitRouter.post("/frameit", async (req: Request, res: Response) => {
     ): Promise<Array<{ filename: string; data: string }>> => {
       const result: Array<{ filename: string; data: string }> = [];
       for (const f of files) {
-        const raw = fs.readFileSync(path.join(dir, f));
+        const raw = await fs.promises.readFile(path.join(dir, f));
         const srcBase = f.replace(/_framed\.png$/, "");
         const dims = outputDims.get(srcBase) ?? { w: firstW, h: firstH };
-        const finalBuf = await sharp(raw)
-          .resize(dims.w, dims.h, { fit: "cover", position: gravity })
-          .png()
-          .toBuffer();
+        const finalBuf = await sharp(raw).resize(dims.w, dims.h, { fit: "cover", position: gravity }).png().toBuffer();
         result.push({ filename: f, data: finalBuf.toString("base64") });
       }
       return result;
     };
 
-    const noBgFiles = fs
-      .readdirSync(tmpDirNoBg)
-      .filter((f) => f.endsWith("_framed.png"));
-
+    const noBgFiles = fs.readdirSync(tmpDirNoBg).filter((f) => f.endsWith("_framed.png"));
     const [framedImages, unframedImages] = await Promise.all([
       processFramedFiles(tmpDir, framedFiles),
       processFramedFiles(tmpDirNoBg, noBgFiles),
     ]);
 
     res.json({ ok: true, framedImages, unframedImages });
-  } catch (err: any) {
-    res.status(500).json({ ok: false, error: err.message });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err instanceof Error ? err.message : String(err) });
   } finally {
     for (const dir of [tmpDir, tmpDirNoBg].filter(Boolean)) {
       try {

@@ -15,9 +15,7 @@ async function getIosSimulatorInfo(): Promise<{
     const data = JSON.parse(stdout) as any;
     const runtime = data.runtimes
       .filter((r: any) => r.platform === "iOS" && r.isAvailable)
-      .sort((a: any, b: any) =>
-        b.version.localeCompare(a.version, undefined, { numeric: true }),
-      )[0];
+      .sort((a: any, b: any) => b.version.localeCompare(a.version, undefined, { numeric: true }))[0];
 
     if (!runtime) return null;
 
@@ -30,13 +28,9 @@ async function getIosSimulatorInfo(): Promise<{
   }
 }
 
-function resolveSimulatorUdid(
-  requested: string,
-  available: Array<{ name: string; udid: string }>,
-): string | null {
+function resolveSimulatorUdid(requested: string, available: Array<{ name: string; udid: string }>): string | null {
   const lower = requested.toLowerCase();
-  const find = (pred: (d: { name: string }) => boolean) =>
-    available.find(pred)?.udid ?? null;
+  const find = (pred: (d: { name: string }) => boolean) => available.find(pred)?.udid ?? null;
 
   const stripped = requested
     .replace(/\s*\([^)]*\)\s*$/, "")
@@ -45,9 +39,7 @@ function resolveSimulatorUdid(
   return (
     find((d) => d.name === requested) ??
     find((d) => d.name.toLowerCase() === lower) ??
-    (stripped && stripped !== lower
-      ? find((d) => d.name.toLowerCase().startsWith(stripped))
-      : null) ??
+    (stripped && stripped !== lower ? find((d) => d.name.toLowerCase().startsWith(stripped)) : null) ??
     find((d) =>
       lower
         .split(/\s+/)
@@ -79,11 +71,15 @@ const DEFAULT_DEVICES = [
 ];
 
 snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
-  const { repoUrl, accessToken, branch, appName, iosDir, envVars } =
-    req.body as SnapshotRequest;
+  const { repoUrl, accessToken, branch, appName, iosDir, envVars } = req.body as SnapshotRequest;
 
   if (!repoUrl || !accessToken) {
     res.status(400).json({ error: "Missing required fields" });
+    return;
+  }
+
+  if (branch && !/^[a-zA-Z0-9/_.-]+$/.test(branch)) {
+    res.status(400).json({ error: "Invalid branch name" });
     return;
   }
 
@@ -93,15 +89,12 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
 
   try {
     fs.mkdirSync(tmpDir, { recursive: true });
-    const cloneUrl = repoUrl.replace(
-      "https://",
-      `https://x-access-token:${accessToken}@`,
-    );
+    const cloneUrl = repoUrl.replace("https://", `https://x-access-token:${accessToken}@`);
     logs.push(`[repo] Cloning repo${branch ? ` @${branch}` : ""} ...`);
-    await execAsync(
-      `git clone --depth 1 ${branch ? `--branch ${branch}` : ""} "${cloneUrl}" "${tmpDir}"`,
-      { timeout: 120_000 },
-    );
+
+    await execAsync(`git clone --depth 1 ${branch ? `--branch ${branch}` : ""} "${cloneUrl}" "${tmpDir}"`, {
+      timeout: 120_000,
+    });
     logs.push(`[repo] Clone complete`);
 
     const workDir = resolveRepoWorkDir(tmpDir, iosDir, logs);
@@ -117,19 +110,27 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
       try {
         const parsed = JSON.parse(fs.readFileSync(configFile, "utf8"));
         const cfg = parsed._config ?? {};
-        if (cfg.scheme) scheme = cfg.scheme;
-        if (Array.isArray(cfg.devices) && cfg.devices.length)
-          effectiveDevices = cfg.devices;
-        if (Array.isArray(cfg.languages) && cfg.languages.length)
-          effectiveLanguages = cfg.languages;
-        if (cfg.appearance === "dark" || cfg.appearance === "light")
-          appearance = cfg.appearance;
+
+        if (cfg.scheme) {
+          const sanitized = cfg.scheme.replace(/[^a-zA-Z0-9 _.\-]/g, "");
+          if (sanitized !== cfg.scheme) {
+            logs.push(`[config] Warning: scheme name sanitized from "${cfg.scheme}" to "${sanitized}"`);
+          }
+          scheme = sanitized;
+        }
+
+        if (Array.isArray(cfg.devices) && cfg.devices.length) effectiveDevices = cfg.devices;
+        if (Array.isArray(cfg.languages) && cfg.languages.length) effectiveLanguages = cfg.languages;
+        if (cfg.appearance === "dark" || cfg.appearance === "light") appearance = cfg.appearance;
+
         const { bgColor1, bgColor2, textColor } = cfg;
-        if (bgColor1 || bgColor2 || textColor)
-          frameConfig = { bgColor1, bgColor2, textColor };
+        if (bgColor1 || bgColor2 || textColor) frameConfig = { bgColor1, bgColor2, textColor };
+
         const { _config: _, ...rest } = parsed;
         descriptions = rest;
+
         const descCount = Object.keys(descriptions).length;
+
         logs.push(
           `[config] Loaded config.json from ${path.relative(workDir, configFile)}
             - scheme: ${scheme}
@@ -139,9 +140,7 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
             - ${plural(descCount, "description")}`,
         );
       } catch {
-        logs.push(
-          `[config] Warning: could not parse ${path.relative(workDir, configFile)}`,
-        );
+        logs.push(`[config] Warning: could not parse ${path.relative(workDir, configFile)}`);
       }
     } else {
       logs.push(
@@ -150,9 +149,7 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
     }
 
     const simInfo = await getIosSimulatorInfo();
-    logs.push(
-      `[snapshot] Detected iOS simulator version: ${simInfo?.version ?? "unknown — will let fastlane pick"}`,
-    );
+    logs.push(`[snapshot] Detected iOS simulator version: ${simInfo?.version ?? "unknown — will let fastlane pick"}`);
 
     const snapDevices: string[] = [];
     for (const d of effectiveDevices) {
@@ -160,12 +157,14 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
         snapDevices.push(d);
         continue;
       }
+
       const udid = resolveSimulatorUdid(d, simInfo.devices);
       if (!udid) {
         snapDevices.push(d);
         continue;
       }
-      const matched = simInfo.devices.find((s) => s.udid === udid)!;
+
+      const matched = simInfo.devices.find((s) => s.udid === udid) ?? { name: d };
       logs.push(
         matched.name !== d
           ? `[snapshot] Device "${d}" → "${matched.name}" (${udid})`
@@ -183,25 +182,14 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
         ? `-project "${projFile}"`
         : `-project "${scheme}.xcodeproj"`;
 
-    const fastlaneCacheBase = path.join(
-      os.homedir(),
-      "Library",
-      "Caches",
-      "tools.fastlane",
-    );
+    const fastlaneCacheBase = path.join(os.homedir(), "Library", "Caches", "tools.fastlane");
     const fastlaneCacheDir = path.join(fastlaneCacheBase, "screenshots");
     const screenshotsDir = path.join(workDir, "fastlane", "screenshots");
     const destinations = snapDevices
-      .map((d) =>
-        d.includes("-")
-          ? `-destination 'id=${d}'`
-          : `-destination 'platform=iOS Simulator,name=${d}'`,
-      )
+      .map((d) => (d.includes("-") ? `-destination 'id=${d}'` : `-destination 'platform=iOS Simulator,name=${d}'`))
       .join(" ");
 
-    logs.push(
-      `[snapshot] Running xcodebuild with destinations:\n           - ${snapDevices.join("\n           - ")}`,
-    );
+    logs.push(`[snapshot] Running xcodebuild with destinations:\n           - ${snapDevices.join("\n           - ")}`);
 
     for (const udid of snapDevices.filter((d) => d.includes("-"))) {
       try {
@@ -222,81 +210,52 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
 
       const [langCode, regionCode] = lang.split("-");
       const localeId = regionCode ? `${langCode}_${regionCode}` : langCode;
-      fs.writeFileSync(
-        path.join(fastlaneCacheBase, "language.txt"),
-        lang,
-        "utf8",
-      );
-      fs.writeFileSync(
-        path.join(fastlaneCacheBase, "locale.txt"),
-        localeId,
-        "utf8",
-      );
+
+      fs.writeFileSync(path.join(fastlaneCacheBase, "language.txt"), lang, "utf8");
+      fs.writeFileSync(path.join(fastlaneCacheBase, "locale.txt"), localeId, "utf8");
+
       if (envVars && Object.keys(envVars).length > 0) {
-        fs.writeFileSync(
-          path.join(fastlaneCacheBase, "snapshot-env.json"),
-          JSON.stringify(envVars),
-          "utf8",
-        );
-        logs.push(
-          `[snapshot] Wrote snapshot-env.json with keys: ${Object.keys(envVars).join(", ")}`,
-        );
+        fs.writeFileSync(path.join(fastlaneCacheBase, "snapshot-env.json"), JSON.stringify(envVars), "utf8");
+        logs.push(`[snapshot] Wrote snapshot-env.json with keys: ${Object.keys(envVars).join(", ")}`);
       } else {
         logs.push(
           `[snapshot] Warning: no envVars provided — snapshot-env.json not written; UI tests requiring login credentials will fail`,
         );
       }
-      logs.push(
-        `[snapshot] Language: ${lang} (locale: ${localeId}) — building and running UI tests ...`,
-      );
+      logs.push(`[snapshot] Language: ${lang} (locale: ${localeId}) — building and running UI tests ...`);
 
       try {
         const hostHome = os.homedir();
         const xcodebuildCmd = `xcodebuild ${projectArg} -scheme "${scheme}" ${destinations} FASTLANE_SNAPSHOT=YES FASTLANE_LANGUAGE=${lang} TEST_RUNNER_SIMULATOR_HOST_HOME="${hostHome}" build test`;
         logs.push(`[snapshot] Command: ${xcodebuildCmd}`);
-        const { stdout } = await execAsync(
-          `${xcodebuildCmd} 2>&1 | tee /tmp/xcodebuild-snapshot.log; STATUS=\${PIPESTATUS[0]}; if [ $STATUS -ne 0 ]; then echo "[snapshot] xcodebuild exited with status $STATUS"; tail -80 /tmp/xcodebuild-snapshot.log; fi; exit 0`,
-          {
-            cwd: workDir,
-            timeout: 900_000,
-            env: { ...process.env, ...(envVars ?? {}) },
-            maxBuffer: 10 * 1024 * 1024,
-          },
-        );
+
+        const { stdout } = await execAsync(`${xcodebuildCmd} 2>&1`, {
+          cwd: workDir,
+          timeout: 900_000,
+          env: { ...process.env, ...(envVars ?? {}) },
+          maxBuffer: 10 * 1024 * 1024,
+        });
         if (stdout) logs.push(...stdout.split("\n").filter(Boolean));
-      } catch (execErr: any) {
-        if (execErr.stdout)
-          logs.push(...execErr.stdout.split("\n").filter(Boolean));
-        if (execErr.stderr)
-          logs.push(...execErr.stderr.split("\n").filter(Boolean));
-        throw new Error(
-          `xcodebuild failed for language ${lang}: ${execErr.message}`,
-        );
+      } catch (execErr) {
+        const e = execErr as { stdout?: string; stderr?: string; message?: string; code?: number };
+        if (e.stdout) logs.push(...e.stdout.split("\n").filter(Boolean));
+        if (e.stderr) logs.push(...e.stderr.split("\n").filter(Boolean));
+        throw new Error(`xcodebuild failed for language ${lang}: ${e.message ?? String(execErr)}`);
       }
 
       if (fs.existsSync(fastlaneCacheDir)) {
         const langDir = path.join(screenshotsDir, lang);
         fs.mkdirSync(langDir, { recursive: true });
-        const images = fs
-          .readdirSync(fastlaneCacheDir)
-          .filter((f) => /\.(png|jpg|jpeg)$/i.test(f));
-        for (const file of images)
-          fs.copyFileSync(
-            path.join(fastlaneCacheDir, file),
-            path.join(langDir, file),
-          );
-        logs.push(
-          `[snapshot] ${lang}: copied ${plural(images.length, "screenshot")}`,
-        );
+
+        const images = fs.readdirSync(fastlaneCacheDir).filter((f) => /\.(png|jpg|jpeg)$/i.test(f));
+        for (const file of images) fs.copyFileSync(path.join(fastlaneCacheDir, file), path.join(langDir, file));
+        logs.push(`[snapshot] ${lang}: copied ${plural(images.length, "screenshot")}`);
       }
     }
 
     logs.push("[snapshot] Snapshot completed");
 
-    const screenshots: Record<
-      string,
-      Array<{ filename: string; data: string }>
-    > = {};
+    const screenshots: Record<string, Array<{ filename: string; data: string }>> = {};
     if (fs.existsSync(screenshotsDir)) {
       const collectImages = (dir: string, locale: string) => {
         for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -311,10 +270,7 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
       };
 
       collectImages(screenshotsDir, "default");
-      const totalFiles = Object.values(screenshots).reduce(
-        (n, a) => n + a.length,
-        0,
-      );
+      const totalFiles = Object.values(screenshots).reduce((n, a) => n + a.length, 0);
       logs.push(
         `[snapshot] Collected ${plural(totalFiles, "screenshot")} across ${plural(Object.keys(screenshots).length, "locale")}`,
       );
@@ -330,8 +286,8 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
       descriptions,
       config: frameConfig,
     });
-  } catch (err: any) {
-    errors.push(err.message);
+  } catch (err) {
+    errors.push(err instanceof Error ? err.message : String(err));
     res.json({ ok: false, logs, errors, screenshots: {} });
   } finally {
     try {

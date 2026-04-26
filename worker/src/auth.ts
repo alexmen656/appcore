@@ -16,11 +16,12 @@ export function workerAuth(req: Request, res: Response, next: NextFunction) {
   }
 
   const token = authHeader.slice(7);
-  const tokenBuf = Buffer.from(token);
-  const secretBuf = Buffer.from(secret);
-  const valid =
-    tokenBuf.length === secretBuf.length &&
-    crypto.timingSafeEqual(tokenBuf, secretBuf);
+  const tokenBuf = Buffer.alloc(256);
+  const secretBuf = Buffer.alloc(256);
+  
+  tokenBuf.write(token);
+  secretBuf.write(secret);
+  const valid = crypto.timingSafeEqual(tokenBuf, secretBuf) && token.length === secret.length;
   if (!valid) {
     res.status(403).json({ error: "Invalid worker secret" });
     return;

@@ -56,22 +56,23 @@ buildRouter.post("/build", async (req: Request, res: Response) => {
     return;
   }
 
+  if (branch && !/^[a-zA-Z0-9/_.-]+$/.test(branch)) {
+    res.status(400).json({ error: "Invalid branch name" });
+    return;
+  }
+
   const tmpDir = path.join(os.tmpdir(), `worker-build-${Date.now()}`);
   const logs: string[] = [];
   const errors: string[] = [];
 
   try {
     fs.mkdirSync(tmpDir, { recursive: true });
-    const cloneUrl = repoUrl.replace(
-      "https://",
-      `https://x-access-token:${accessToken}@`,
-    );
-    
+    const cloneUrl = repoUrl.replace("https://", `https://x-access-token:${accessToken}@`);
+
     logs.push(`[repo] Cloning repo${branch ? ` @${branch}` : ""} ...`);
-    await execAsync(
-      `git clone --depth 1 ${branch ? `--branch ${branch}` : ""} "${cloneUrl}" "${tmpDir}"`,
-      { timeout: 120_000 },
-    );
+    await execAsync(`git clone --depth 1 ${branch ? `--branch ${branch}` : ""} "${cloneUrl}" "${tmpDir}"`, {
+      timeout: 120_000,
+    });
     logs.push("[repo] Clone complete");
 
     const workDir = resolveRepoWorkDir(tmpDir, iosDir, logs);
@@ -80,13 +81,10 @@ buildRouter.post("/build", async (req: Request, res: Response) => {
     const configFile = findConfigFile(workDir);
     if (configFile) {
       try {
-        const cfg =
-          JSON.parse(fs.readFileSync(configFile, "utf8"))?._config ?? {};
+        const cfg = JSON.parse(fs.readFileSync(configFile, "utf8"))?._config ?? {};
         if (cfg.scheme) {
           resolvedScheme = cfg.scheme;
-          logs.push(
-            `[config] Using scheme from config.json: ${resolvedScheme}`,
-          );
+          logs.push(`[config] Using scheme from config.json: ${resolvedScheme}`);
         }
       } catch {
         logs.push("[config] Warning: could not parse config.json");
@@ -114,8 +112,8 @@ buildRouter.post("/build", async (req: Request, res: Response) => {
       originalFilename: ipaResult.originalFilename,
       sizeBytes: ipaResult.sizeBytes,
     });
-  } catch (err: any) {
-    errors.push(err.message);
+  } catch (err) {
+    errors.push(err instanceof Error ? err.message : String(err));
     res.json({ ok: false, logs, errors, ipaBuilt: false });
   } finally {
     try {

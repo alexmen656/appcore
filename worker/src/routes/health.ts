@@ -10,20 +10,19 @@ export const healthRouter = Router();
 
 healthRouter.get("/health", async (_req: Request, res: Response) => {
   try {
-    const fastlanePath = await findFastlane();
-    const { stdout } = await execAsync(`${fastlanePath} --version`);
+    const fastlaneVersion = await findFastlane();
     res.json({
       ok: true,
-      fastlaneVersion: stdout.trim(),
+      fastlaneVersion,
       hostname: os.hostname(),
       platform: os.platform(),
       arch: os.arch(),
       uptime: process.uptime(),
     });
-  } catch (err: any) {
+  } catch (err) {
     res.json({
       ok: false,
-      error: err.message,
+      error: err instanceof Error ? err.message : String(err),
       hostname: os.hostname(),
     });
   }
