@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
+import { Prisma } from "@prisma/client";
 import { logger, prisma } from "../config";
 import type { EffectiveSettings } from "../config";
 import { AppStoreConnectClient } from "./appstore-connect";
@@ -35,6 +36,19 @@ export interface SubmissionResult {
 
 type SubmitAction = "metadata" | "submit_for_review";
 
+interface LocaleEntry {
+  name: string;
+  subtitle: string;
+  keywords: string;
+  description: string;
+  whatsNew: string;
+  promotionalText: string;
+  supportUrl: string;
+  marketingUrl: string;
+}
+
+const SCREENSHOT_FALLBACK_LOCALES = ["en-US", "en-GB"];
+
 interface ActiveSubmission {
   jobId: string;
   logs: string[];
@@ -43,18 +57,16 @@ interface ActiveSubmission {
   startedAt: Date;
 }
 
+const SUBMISSION_TTL_MS = 60 * 60 * 1000;
 const activeSubmissions = new Map<string, ActiveSubmission>();
+let latestJobId: string | undefined;
 
 export function getActiveSubmission(jobId: string): ActiveSubmission | undefined {
   return activeSubmissions.get(jobId);
 }
 
 export function getLatestSubmission(): ActiveSubmission | undefined {
-  let latest: ActiveSubmission | undefined;
-  for (const sub of activeSubmissions.values()) {
-    if (!latest || sub.startedAt > latest.startedAt) latest = sub;
-  }
-  return latest;
+  return latestJobId ? activeSubmissions.get(latestJobId) : undefined;
 }
 
 export class FastlaneService {
@@ -84,13 +96,9 @@ export class FastlaneService {
     const editable = await this.asc.getEditableVersion(app.id);
     const live = await this.asc.getLiveVersion(app.id);
     const version = editable ?? live;
-
-    const ascLocalizations = await this.asc.getAppInfoLocalizations(app.id).catch(() => []);
-
+    const localizations = await this.asc.getAppInfoLocalizations(app.id).catch(() => []);
     const locales =
-      ascLocalizations.length > 0
-        ? ascLocalizations.map((l: any) => l.attributes?.locale ?? l.locale).filter(Boolean)
-        : ["en-US"];
+      localizations.length > 0 ? localizations.map((l) => l.attributes.locale).filter(Boolean) : ["en-US"];
 
     const localeData: SubmissionPreview["locales"] = await Promise.all(
       locales.map(async (locale) => {
@@ -133,7 +141,6 @@ export class FastlaneService {
     >,
   ): Promise<SubmissionResult> {
     const jobId = randomUUID();
-
     const submission: ActiveSubmission = {
       jobId,
       logs: [],
@@ -141,11 +148,17 @@ export class FastlaneService {
       status: "preparing",
       startedAt: new Date(),
     };
-    activeSubmissions.set(jobId, submission);
 
+    activeSubmissions.set(jobId, submission);
+    latestJobId = jobId;
+
+    let versionString: string | null = null;
     try {
       submission.logs.push("Preparing metadata...");
-      const localeData = await this.prepareMetadataLocales(action, overrides);
+      const prepared = await this.prepareMetadataLocales(action, overrides);
+      const localeData = prepared.localeData;
+      versionString = prepared.versionString;
+
       submission.logs.push(
         `Metadata prepared for ${Object.keys(localeData).length} locale(s). Delegating to Fastlane worker...`,
       );
@@ -153,14 +166,13 @@ export class FastlaneService {
       submission.status = "running";
 
       const screenshots = await this.loadFramedScreenshots();
+
       if (screenshots) {
-        const total = Object.values(screenshots).reduce((n, a) => n + a.length, 0);
         submission.logs.push(
-          `Loaded ${total} framed screenshot(s) across ${Object.keys(screenshots).length} locale(s)`,
+          `Loaded ${Object.values(screenshots).reduce((n, a) => n + a.length, 0)} framed screenshot(s) across ${Object.keys(screenshots).length} locale(s)`,
         );
 
-        const FALLBACK_PREFERENCE = ["en-US", "en-GB"];
-        const fallbackLocale = FALLBACK_PREFERENCE.find((l) => screenshots[l]) ?? Object.keys(screenshots)[0];
+        const fallbackLocale = SCREENSHOT_FALLBACK_LOCALES.find((l) => screenshots[l]) ?? Object.keys(screenshots)[0];
         if (fallbackLocale) {
           for (const locale of Object.keys(localeData)) {
             if (!screenshots[locale]) {
@@ -194,14 +206,14 @@ export class FastlaneService {
 
       submission.logs.push(...result.logs);
       submission.errors.push(...result.errors);
-
       submission.status = submission.errors.length > 0 ? "failed" : "completed";
+      setTimeout(() => activeSubmissions.delete(jobId), SUBMISSION_TTL_MS);
 
       return {
         ok: submission.errors.length === 0,
         jobId,
         action,
-        versionString: null,
+        versionString,
         logs: submission.logs,
         errors: submission.errors,
       };
@@ -209,12 +221,13 @@ export class FastlaneService {
       const msg = err instanceof Error ? err.message : String(err);
       submission.errors.push(msg);
       submission.status = "failed";
+      setTimeout(() => activeSubmissions.delete(jobId), SUBMISSION_TTL_MS);
 
       return {
         ok: false,
         jobId,
         action,
-        versionString: null,
+        versionString,
         logs: submission.logs,
         errors: submission.errors,
       };
@@ -229,11 +242,11 @@ export class FastlaneService {
       });
       if (!app) return null;
 
-      const job = await (prisma as any).screenshotJob.findFirst({
+      const job = await prisma.screenshotJob.findFirst({
         where: {
           appId: app.id,
           status: "COMPLETED",
-          framedByLocale: { not: null },
+          framedByLocale: { not: Prisma.AnyNull },
         },
         orderBy: { completedAt: "desc" },
         select: { framedByLocale: true },
@@ -242,18 +255,19 @@ export class FastlaneService {
 
       const framedByLocale = job.framedByLocale as Record<string, string[]>;
       const screenshots: Record<string, Array<{ filename: string; data: string }>> = {};
-      const cwd = process.cwd();
 
       for (const [locale, urls] of Object.entries(framedByLocale)) {
         if (locale === "default") continue;
         const images: Array<{ filename: string; data: string }> = [];
+
         for (const url of urls) {
-          const filePath = path.join(cwd, url);
-          if (!fs.existsSync(filePath)) continue;
-          images.push({
-            filename: path.basename(filePath),
-            data: fs.readFileSync(filePath).toString("base64"),
-          });
+          const filePath = path.isAbsolute(url) ? url : path.join(process.cwd(), url);
+          try {
+            const data = await fs.promises.readFile(filePath);
+            images.push({ filename: path.basename(filePath), data: data.toString("base64") });
+          } catch {
+            // file not accessible, skip
+          }
         }
         if (images.length > 0) screenshots[locale] = images;
       }
@@ -280,11 +294,14 @@ export class FastlaneService {
       });
       if (!buildJob?.ipaPath) return null;
 
-      const ipaPath = path.isAbsolute(buildJob.ipaPath) ? buildJob.ipaPath : path.join(process.cwd(), buildJob.ipaPath);
+      const ipaPath = buildJob.ipaPath;
 
-      if (!fs.existsSync(ipaPath)) return null;
-
-      return fs.readFileSync(ipaPath).toString("base64");
+      try {
+        const buffer = await fs.promises.readFile(ipaPath);
+        return buffer.toString("base64");
+      } catch {
+        return null;
+      }
     } catch (err) {
       logger.warn("[Fastlane] Could not load latest IPA:", err);
       return null;
@@ -304,21 +321,7 @@ export class FastlaneService {
         promotionalText?: string;
       }
     >,
-  ): Promise<
-    Record<
-      string,
-      {
-        name: string;
-        subtitle: string;
-        keywords: string;
-        description: string;
-        whatsNew: string;
-        promotionalText: string;
-        supportUrl: string;
-        marketingUrl: string;
-      }
-    >
-  > {
+  ): Promise<{ localeData: Record<string, LocaleEntry>; versionString: string | null }> {
     const app = await this.asc.getApp(this.bundleId);
     if (!app) throw new Error("App not found in App Store Connect");
 
@@ -337,24 +340,13 @@ export class FastlaneService {
 
     logger.info(`[Fastlane] Preparing metadata for ${allLocales.size} locale(s): ${[...allLocales].join(", ")}`);
 
-    const localeData = new Map<
-      string,
-      {
-        name: string;
-        subtitle: string;
-        keywords: string;
-        description: string;
-        whatsNew: string;
-        promotionalText: string;
-        supportUrl: string;
-        marketingUrl: string;
-      }
-    >();
+    const localeData = new Map<string, LocaleEntry>();
 
     for (const locale of allLocales) {
       const vl = versionLocalizations.find((v) => v.attributes.locale === locale);
       const ai = appInfoLocalizations.find((a) => a.attributes.locale === locale);
       const ov = overrides?.[locale];
+
       localeData.set(locale, {
         name: ov?.name ?? ai?.attributes.name ?? "",
         subtitle: ov?.subtitle ?? ai?.attributes.subtitle ?? "",
@@ -391,10 +383,9 @@ export class FastlaneService {
       }
     }
 
-    const result: Record<string, typeof localeData extends Map<string, infer V> ? V : never> = {};
-    for (const [locale, data] of localeData) {
-      result[locale] = data;
-    }
-    return result;
+    return {
+      localeData: Object.fromEntries(localeData) as Record<string, LocaleEntry>,
+      versionString: version.attributes.versionString ?? null,
+    };
   }
 }
