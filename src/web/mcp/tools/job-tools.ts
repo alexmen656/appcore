@@ -2,11 +2,7 @@ import { randomUUID } from "crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { prisma, logger } from "../../../config";
-import {
-  createAscClient,
-  getSettingsWithBundleId,
-  verifyMcpAppAccess,
-} from "./shared";
+import { createAscClient, getSettingsWithBundleId, verifyMcpAppAccess } from "./shared";
 
 export function registerJobTools(server: McpServer, userId: string) {
   // @ts-ignore
@@ -23,13 +19,7 @@ export function registerJobTools(server: McpServer, userId: string) {
         "Use list_apps to find available bundle IDs.",
       inputSchema: {
         job: z
-          .enum([
-            "scrape",
-            "analyze",
-            "sync",
-            "track-keywords",
-            "discover-keywords",
-          ])
+          .enum(["scrape", "analyze", "sync", "track-keywords", "discover-keywords"])
           .describe("Which job to trigger"),
         bundleId: z
           .string()
@@ -41,10 +31,7 @@ export function registerJobTools(server: McpServer, userId: string) {
       },
     },
     async ({ job, bundleId }) => {
-      const { settings, resolvedBundleId } = await getSettingsWithBundleId(
-        userId,
-        bundleId,
-      );
+      const { settings, resolvedBundleId } = await getSettingsWithBundleId(userId, bundleId);
 
       if (resolvedBundleId) {
         const app = await verifyMcpAppAccess(userId, resolvedBundleId);
@@ -73,39 +60,35 @@ export function registerJobTools(server: McpServer, userId: string) {
       (async () => {
         try {
           if (job === "scrape") {
-            const { AppStoreScraper } =
-              await import("../../../services/appstore-scraper");
+            const { AppStoreScraper } = await import("../../../services/appstore-scraper");
             await new AppStoreScraper(appCountry, undefined, effectiveBundleId).runFullScrapeJob();
           } else if (job === "analyze") {
-            const { AIAnalyzer } =
-              await import("../../../services/ai-analyzer");
+            const { AIAnalyzer } = await import("../../../services/ai-analyzer");
             await new AIAnalyzer(effectiveBundleId, settings).analyzeAndSuggest();
           } else if (job === "sync") {
+            if (!effectiveBundleId) {
+              logger.warn(`MCP sync job [${jobId}] skipped: no bundleId resolved`);
+              return;
+            }
             const asc = await createAscClient(settings);
 
-            const ascApp = effectiveBundleId
-              ? await asc.getApp(effectiveBundleId).catch(() => null)
-              : null;
-            const ascLocalizations = ascApp
-              ? await asc.getAppInfoLocalizations(ascApp.id).catch(() => [])
-              : [];
+            const ascApp = await asc.getApp(effectiveBundleId).catch(() => null);
+            const ascLocalizations = ascApp ? await asc.getAppInfoLocalizations(ascApp.id).catch(() => []) : [];
 
             const syncLocales =
               ascLocalizations.length > 0
-                ? ascLocalizations
-                    .map((l: any) => l.attributes?.locale ?? l.locale)
-                    .filter(Boolean)
+                ? ascLocalizations.map((l: any) => l.attributes?.locale ?? l.locale).filter(Boolean)
                 : ["en-US"];
 
             const results: Record<string, any> = {};
             for (const locale of syncLocales) {
-              const state = await asc.getCurrentASOState(locale);
+              const state = await asc.getCurrentASOState(locale, effectiveBundleId);
               if (state) results[locale] = state;
             }
 
             const primaryState = results[syncLocales[0]];
 
-            if (primaryState && effectiveBundleId) {
+            if (primaryState) {
               await prisma.app.update({
                 where: { bundleId: effectiveBundleId },
                 data: {
@@ -117,12 +100,10 @@ export function registerJobTools(server: McpServer, userId: string) {
               });
             }
           } else if (job === "track-keywords") {
-            const { KeywordTracker } =
-              await import("../../../services/keyword-tracker");
+            const { KeywordTracker } = await import("../../../services/keyword-tracker");
             await new KeywordTracker(effectiveBundleId, appCountry, settings).trackAllKeywords();
           } else if (job === "discover-keywords") {
-            const { KeywordDiscoveryAgent } =
-              await import("../../../services/keyword-discovery-agent");
+            const { KeywordDiscoveryAgent } = await import("../../../services/keyword-discovery-agent");
             await new KeywordDiscoveryAgent(effectiveBundleId, settings).run();
           }
 

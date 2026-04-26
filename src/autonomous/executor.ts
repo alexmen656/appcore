@@ -9,10 +9,7 @@ export class ASOExecutor {
       include: { app: true },
     });
 
-    if (
-      experiment.status !== AsoExperimentStatus.PENDING &&
-      experiment.status !== AsoExperimentStatus.APPROVED
-    ) {
+    if (experiment.status !== AsoExperimentStatus.PENDING && experiment.status !== AsoExperimentStatus.APPROVED) {
       throw new Error(
         `Experiment ${experimentId} has status "${experiment.status}" — ` +
           `only PENDING or APPROVED experiments can be deployed`,
@@ -20,16 +17,10 @@ export class ASOExecutor {
     }
 
     const app = experiment.app;
-    logger.info(
-      `[ASOExecutor] Deploying experiment ${experimentId} for app "${app.name}" (${app.bundleId})`,
-    );
+    logger.info(`[ASOExecutor] Deploying experiment ${experimentId} for app "${app.name}" (${app.bundleId})`);
 
     const settings = await getEffectiveSettings(userId);
-    if (
-      !settings.ascIssuerId ||
-      !settings.ascKeyId ||
-      !settings.ascPrivateKey
-    ) {
+    if (!settings.ascIssuerId || !settings.ascKeyId || !settings.ascPrivateKey) {
       throw new Error(
         "App Store Connect credentials not configured. Set ascIssuerId / ascKeyId / ascPrivateKey in Settings.",
       );
@@ -53,10 +44,7 @@ export class ASOExecutor {
           .split(",")
           .map((k: string) => k.trim())
           .filter(Boolean)
-          .filter(
-            (k: string) =>
-              k.toLowerCase() !== (experiment.fromValue ?? "").toLowerCase(),
-          );
+          .filter((k: string) => k.toLowerCase() !== (experiment.fromValue ?? "").toLowerCase());
         newMetadata = { keywords: kws.join(",") };
         break;
       }
@@ -66,9 +54,7 @@ export class ASOExecutor {
           .map((k: string) => k.trim())
           .filter(Boolean)
           .map((k: string) =>
-            k.toLowerCase() === (experiment.fromValue ?? "").toLowerCase()
-              ? (experiment.toValue ?? k)
-              : k,
+            k.toLowerCase() === (experiment.fromValue ?? "").toLowerCase() ? (experiment.toValue ?? k) : k,
           );
         newMetadata = { keywords: kws.join(",") };
         break;
@@ -123,15 +109,14 @@ export class ASOExecutor {
         keywords: newMetadata.keywords,
       },
       locale,
+      app.bundleId,
     );
 
     if (ascResult.errors.length > 0) {
       logger.error(
         `[ASOExecutor] ASC deployment errors for experiment ${experimentId}: ${ascResult.errors.join(", ")}`,
       );
-      throw new Error(
-        `App Store Connect update failed: ${ascResult.errors.join("; ")}`,
-      );
+      throw new Error(`App Store Connect update failed: ${ascResult.errors.join("; ")}`);
     }
 
     logger.info(

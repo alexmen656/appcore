@@ -11,7 +11,10 @@ export interface SyncMetadataData {
 }
 
 export async function handler([job]: Job<SyncMetadataData>[]): Promise<void> {
-  const { data: { teamId, bundleId }, id } = job;
+  const {
+    data: { teamId, bundleId },
+    id,
+  } = job;
   logger.info(`[BOSS] Starting "${QUEUE_NAME}" job ${id} for ${bundleId}…`);
 
   const settings = await getEffectiveSettingsForTeam(teamId);
@@ -27,17 +30,13 @@ export async function handler([job]: Job<SyncMetadataData>[]): Promise<void> {
   });
 
   const ascApp = await asc.getApp(bundleId).catch(() => null);
-  const availableLocalizations = ascApp
-    ? await asc.getAppInfoLocalizations(ascApp.id).catch(() => [])
-    : [];
+  const availableLocalizations = ascApp ? await asc.getAppInfoLocalizations(ascApp.id).catch(() => []) : [];
   const locales =
     availableLocalizations.length > 0
-      ? availableLocalizations
-          .map((l: any) => l.attributes?.locale ?? l.locale)
-          .filter(Boolean)
+      ? availableLocalizations.map((l: any) => l.attributes?.locale ?? l.locale).filter(Boolean)
       : ["en-US"];
 
-  const primaryState = await asc.getCurrentASOState(locales[0]);
+  const primaryState = await asc.getCurrentASOState(locales[0], bundleId);
   if (primaryState) {
     await prisma.app.update({
       where: { bundleId },

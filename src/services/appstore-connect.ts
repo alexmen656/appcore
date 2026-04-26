@@ -125,25 +125,18 @@ export class AppStoreConnectClient {
     return data.data?.[0] ?? null;
   }
 
-  async getAppInfoLocalizations(
-    appId: string,
-    appInfoId?: string,
-  ): Promise<ASCAppInfoLocalization[]> {
+  async getAppInfoLocalizations(appId: string, appInfoId?: string): Promise<ASCAppInfoLocalization[]> {
     let resolvedAppInfoId = appInfoId;
     if (!resolvedAppInfoId) {
-      resolvedAppInfoId = await this.getAppInfoId(appId) ?? undefined;
+      resolvedAppInfoId = (await this.getAppInfoId(appId)) ?? undefined;
     }
     if (!resolvedAppInfoId) return [];
 
-    const { data } = await this.client.get(
-      `/appInfos/${resolvedAppInfoId}/appInfoLocalizations`,
-      {
-        params: {
-          "fields[appInfoLocalizations]":
-            "locale,name,subtitle,privacyPolicyUrl",
-        },
+    const { data } = await this.client.get(`/appInfos/${resolvedAppInfoId}/appInfoLocalizations`, {
+      params: {
+        "fields[appInfoLocalizations]": "locale,name,subtitle,privacyPolicyUrl",
       },
-    );
+    });
 
     return data.data ?? [];
   }
@@ -153,8 +146,7 @@ export class AppStoreConnectClient {
       params: {
         "filter[appStoreState]": "READY_FOR_SALE",
         "filter[platform]": "IOS",
-        "fields[appStoreVersions]":
-          "versionString,appStoreState,platform,releaseType,copyright",
+        "fields[appStoreVersions]": "versionString,appStoreState,platform,releaseType,copyright",
       },
     });
     return data.data?.[0] ?? null;
@@ -164,18 +156,14 @@ export class AppStoreConnectClient {
     const { data } = await this.client.get(`/apps/${appId}/appStoreVersions`, {
       params: {
         "filter[platform]": "IOS",
-        "fields[appStoreVersions]":
-          "versionString,appStoreState,platform,releaseType,copyright",
+        "fields[appStoreVersions]": "versionString,appStoreState,platform,releaseType,copyright",
         limit: 50,
       },
     });
     return data.data ?? [];
   }
 
-  async updateVersionAttributes(
-    versionId: string,
-    updates: { copyright?: string },
-  ): Promise<void> {
+  async updateVersionAttributes(versionId: string, updates: { copyright?: string }): Promise<void> {
     try {
       await this.client.patch(`/appStoreVersions/${versionId}`, {
         data: {
@@ -189,10 +177,7 @@ export class AppStoreConnectClient {
     }
   }
 
-  async getVersionLocalizations(
-    versionId: string,
-    locale?: string,
-  ): Promise<ASCVersionLocalization[]> {
+  async getVersionLocalizations(versionId: string, locale?: string): Promise<ASCVersionLocalization[]> {
     const params: Record<string, string> = {
       "fields[appStoreVersionLocalizations]":
         "locale,description,keywords,whatsNew,promotionalText,marketingUrl,supportUrl",
@@ -201,10 +186,7 @@ export class AppStoreConnectClient {
       params["filter[locale]"] = locale;
     }
 
-    const { data } = await this.client.get(
-      `/appStoreVersions/${versionId}/appStoreVersionLocalizations`,
-      { params },
-    );
+    const { data } = await this.client.get(`/appStoreVersions/${versionId}/appStoreVersionLocalizations`, { params });
 
     return data.data ?? [];
   }
@@ -212,9 +194,7 @@ export class AppStoreConnectClient {
   private throwASCError(err: any): never {
     const ascErrors = err?.response?.data?.errors;
     if (ascErrors?.length) {
-      const detail = ascErrors
-        .map((e: any) => e.detail ?? e.title ?? JSON.stringify(e))
-        .join("; ");
+      const detail = ascErrors.map((e: any) => e.detail ?? e.title ?? JSON.stringify(e)).join("; ");
       throw new Error(`ASC ${err.response.status}: ${detail}`);
     }
     throw err;
@@ -250,16 +230,13 @@ export class AppStoreConnectClient {
     },
   ): Promise<void> {
     try {
-      await this.client.patch(
-        `/appStoreVersionLocalizations/${localizationId}`,
-        {
-          data: {
-            type: "appStoreVersionLocalizations",
-            id: localizationId,
-            attributes: updates,
-          },
+      await this.client.patch(`/appStoreVersionLocalizations/${localizationId}`, {
+        data: {
+          type: "appStoreVersionLocalizations",
+          id: localizationId,
+          attributes: updates,
         },
-      );
+      });
       logger.info(`Updated version localization ${localizationId}`, updates);
     } catch (err: any) {
       this.throwASCError(err);
@@ -281,17 +258,11 @@ export class AppStoreConnectClient {
       "PENDING_DEVELOPER_RELEASE",
       "IN_REVIEW",
     ]);
-    const editable = infos.find((i) =>
-      editableStates.has(i.attributes?.appStoreState),
-    );
+    const editable = infos.find((i) => editableStates.has(i.attributes?.appStoreState));
     return editable?.id ?? infos[0]?.id ?? null;
   }
 
-  async createAppInfoLocalization(
-    appInfoId: string,
-    locale: string,
-    name: string,
-  ): Promise<ASCAppInfoLocalization> {
+  async createAppInfoLocalization(appInfoId: string, locale: string, name: string): Promise<ASCAppInfoLocalization> {
     try {
       const { data } = await this.client.post("/appInfoLocalizations", {
         data: {
@@ -308,10 +279,7 @@ export class AppStoreConnectClient {
     }
   }
 
-  async createVersionLocalization(
-    versionId: string,
-    locale: string,
-  ): Promise<ASCVersionLocalization> {
+  async createVersionLocalization(versionId: string, locale: string): Promise<ASCVersionLocalization> {
     try {
       const { data } = await this.client.post("/appStoreVersionLocalizations", {
         data: {
@@ -341,9 +309,7 @@ export class AppStoreConnectClient {
 
   async deleteVersionLocalization(localizationId: string): Promise<void> {
     try {
-      await this.client.delete(
-        `/appStoreVersionLocalizations/${localizationId}`,
-      );
+      await this.client.delete(`/appStoreVersionLocalizations/${localizationId}`);
     } catch (err: any) {
       if (err?.response?.status === 500) return;
       this.throwASCError(err);
@@ -366,8 +332,7 @@ export class AppStoreConnectClient {
             params: {
               "filter[appStoreState]": state,
               "filter[platform]": "IOS",
-              "fields[appStoreVersions]":
-                "versionString,appStoreState,platform,releaseType,copyright",
+              "fields[appStoreVersions]": "versionString,appStoreState,platform,releaseType,copyright",
             },
           })
           .then(({ data }) => data.data?.[0] ?? null)
@@ -399,9 +364,7 @@ export class AppStoreConnectClient {
       },
     });
 
-    logger.info(
-      `Created new App Store version ${versionString} (${data.data.id})`,
-    );
+    logger.info(`Created new App Store version ${versionString} (${data.data.id})`);
     return data.data;
   }
 
@@ -426,7 +389,10 @@ export class AppStoreConnectClient {
     return this.createNewVersion(appId, nextVersion);
   }
 
-  async getCurrentASOState(locale = "en-US"): Promise<{
+  async getCurrentASOState(
+    locale: string,
+    bundleId: string,
+  ): Promise<{
     title?: string;
     subtitle?: string;
     description?: string;
@@ -442,16 +408,14 @@ export class AppStoreConnectClient {
     versionString?: string;
     appStoreState?: string;
   } | null> {
-    const app = await this.getApp();
+    const app = await this.getApp(bundleId);
     if (!app) {
-      logger.error("Own app not found in App Store Connect");
+      logger.error(`App ${bundleId} not found in App Store Connect`);
       return null;
     }
 
     const infoLocalizations = await this.getAppInfoLocalizations(app.id);
-    const infoLoc = infoLocalizations.find(
-      (l) => l.attributes.locale === locale,
-    );
+    const infoLoc = infoLocalizations.find((l) => l.attributes.locale === locale);
 
     let version = await this.getEditableVersion(app.id);
     if (!version) {
@@ -460,10 +424,7 @@ export class AppStoreConnectClient {
 
     let versionLoc: ASCVersionLocalization | undefined;
     if (version) {
-      const versionLocalizations = await this.getVersionLocalizations(
-        version.id,
-        locale,
-      );
+      const versionLocalizations = await this.getVersionLocalizations(version.id, locale);
       versionLoc = versionLocalizations[0];
     }
 
@@ -494,7 +455,8 @@ export class AppStoreConnectClient {
       whatsNew?: string;
       promotionalText?: string;
     },
-    locale = "en-US",
+    locale: string,
+    bundleId: string,
   ): Promise<{
     applied: string[];
     errors: string[];
@@ -504,25 +466,21 @@ export class AppStoreConnectClient {
     const applied: string[] = [];
     const errors: string[] = [];
 
-    const app = await this.getApp();
+    const app = await this.getApp(bundleId);
     if (!app) {
-      throw new Error("App not found in App Store Connect");
+      throw new Error(`App ${bundleId} not found in App Store Connect`);
     }
 
     const version = await this.getOrCreateEditableVersion(app.id);
     const versionId = version.id;
     const versionString = version.attributes.versionString;
 
-    logger.info(
-      `Applying ASO changes to version ${versionString} (${version.attributes.appStoreState})`,
-    );
+    logger.info(`Applying ASO changes to version ${versionString} (${version.attributes.appStoreState})`);
 
     if (changes.title || changes.subtitle) {
       try {
         const infoLocalizations = await this.getAppInfoLocalizations(app.id);
-        const infoLoc = infoLocalizations.find(
-          (l) => l.attributes.locale === locale,
-        );
+        const infoLoc = infoLocalizations.find((l) => l.attributes.locale === locale);
 
         if (infoLoc) {
           const updates: { name?: string; subtitle?: string } = {};
@@ -532,8 +490,7 @@ export class AppStoreConnectClient {
           await this.updateAppInfoLocalization(infoLoc.id, updates);
 
           if (changes.title) applied.push(`Title → "${changes.title}"`);
-          if (changes.subtitle)
-            applied.push(`Subtitle → "${changes.subtitle}"`);
+          if (changes.subtitle) applied.push(`Subtitle → "${changes.subtitle}"`);
         } else {
           errors.push(
             `No appInfoLocalization found for locale "${locale}". Available: ${infoLocalizations.map((l) => l.attributes.locale).join(", ")}`,
@@ -546,17 +503,9 @@ export class AppStoreConnectClient {
       }
     }
 
-    if (
-      changes.description ||
-      changes.keywords ||
-      changes.whatsNew ||
-      changes.promotionalText
-    ) {
+    if (changes.description || changes.keywords || changes.whatsNew || changes.promotionalText) {
       try {
-        const versionLocs = await this.getVersionLocalizations(
-          versionId,
-          locale,
-        );
+        const versionLocs = await this.getVersionLocalizations(versionId, locale);
         const versionLoc = versionLocs[0];
 
         if (versionLoc) {
@@ -569,20 +518,16 @@ export class AppStoreConnectClient {
           if (changes.description) updates.description = changes.description;
           if (changes.keywords) updates.keywords = changes.keywords;
           if (changes.whatsNew) updates.whatsNew = changes.whatsNew;
-          if (changes.promotionalText)
-            updates.promotionalText = changes.promotionalText;
+          if (changes.promotionalText) updates.promotionalText = changes.promotionalText;
 
           await this.updateVersionLocalization(versionLoc.id, updates);
 
           if (changes.description) applied.push("Description updated");
-          if (changes.keywords)
-            applied.push(`Keywords → "${changes.keywords}"`);
+          if (changes.keywords) applied.push(`Keywords → "${changes.keywords}"`);
           if (changes.whatsNew) applied.push("What's New updated");
           if (changes.promotionalText) applied.push("Promotional Text updated");
         } else {
-          errors.push(
-            `No versionLocalization found for locale "${locale}" on version ${versionString}`,
-          );
+          errors.push(`No versionLocalization found for locale "${locale}" on version ${versionString}`);
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -618,15 +563,12 @@ export class AppStoreConnectClient {
     demoAccountPassword: string;
   } | null> {
     try {
-      const { data } = await this.client.get(
-        `/appStoreVersions/${versionId}/appStoreReviewDetail`,
-        {
-          params: {
-            "fields[appStoreReviewDetails]":
-              "contactFirstName,contactLastName,contactPhone,contactEmail,demoAccountRequired,demoAccountName,demoAccountPassword",
-          },
+      const { data } = await this.client.get(`/appStoreVersions/${versionId}/appStoreReviewDetail`, {
+        params: {
+          "fields[appStoreReviewDetails]":
+            "contactFirstName,contactLastName,contactPhone,contactEmail,demoAccountRequired,demoAccountName,demoAccountPassword",
         },
-      );
+      });
       if (!data.data) return null;
       const a = data.data.attributes;
       return {
@@ -672,16 +614,13 @@ export class AppStoreConnectClient {
 
     try {
       if (existingDetailId) {
-        await this.client.patch(
-          `/appStoreReviewDetails/${existingDetailId}`,
-          {
-            data: {
-              type: "appStoreReviewDetails",
-              id: existingDetailId,
-              attributes,
-            },
+        await this.client.patch(`/appStoreReviewDetails/${existingDetailId}`, {
+          data: {
+            type: "appStoreReviewDetails",
+            id: existingDetailId,
+            attributes,
           },
-        );
+        });
         return existingDetailId;
       } else {
         const { data } = await this.client.post("/appStoreReviewDetails", {

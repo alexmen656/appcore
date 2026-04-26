@@ -68,11 +68,7 @@ suggestionsRouter.get("/", async (req, res) => {
   }
 });
 
-async function updateSuggestionStatus(
-  req: Request,
-  res: Response,
-  status: "APPROVED" | "REJECTED",
-) {
+async function updateSuggestionStatus(req: Request, res: Response, status: "APPROVED" | "REJECTED") {
   try {
     const id = req.params.id as string;
     const existing = await verifySuggestionAccess(req, res, id);
@@ -87,13 +83,9 @@ async function updateSuggestionStatus(
   }
 }
 
-suggestionsRouter.post("/:id/approve", (req, res) =>
-  updateSuggestionStatus(req, res, "APPROVED"),
-);
+suggestionsRouter.post("/:id/approve", (req, res) => updateSuggestionStatus(req, res, "APPROVED"));
 
-suggestionsRouter.post("/:id/reject", (req, res) =>
-  updateSuggestionStatus(req, res, "REJECTED"),
-);
+suggestionsRouter.post("/:id/reject", (req, res) => updateSuggestionStatus(req, res, "REJECTED"));
 
 suggestionsRouter.post("/:id/apply", async (req, res) => {
   try {
@@ -104,8 +96,7 @@ suggestionsRouter.post("/:id/apply", async (req, res) => {
     if (!settings.ascIssuerId || !settings.ascKeyId || !settings.ascPrivateKey) {
       return res.status(400).json({ error: "App Store Connect credentials not configured." });
     }
-    const { AppStoreConnectClient } =
-      await import("../../services/appstore-connect");
+    const { AppStoreConnectClient } = await import("../../services/appstore-connect");
     const asc = new AppStoreConnectClient({
       issuerId: settings.ascIssuerId,
       keyId: settings.ascKeyId,
@@ -116,15 +107,15 @@ suggestionsRouter.post("/:id/apply", async (req, res) => {
     const changes: Record<string, string> = {};
     const typeKey = suggestion.type.toLowerCase();
     if (typeKey === "title") changes.name = suggestion.suggestedValue;
-    else if (typeKey === "subtitle")
-      changes.subtitle = suggestion.suggestedValue;
-    else if (typeKey === "keywords")
-      changes.keywords = suggestion.suggestedValue;
-    else if (typeKey === "description")
-      changes.description = suggestion.suggestedValue;
+    else if (typeKey === "subtitle") changes.subtitle = suggestion.suggestedValue;
+    else if (typeKey === "keywords") changes.keywords = suggestion.suggestedValue;
+    else if (typeKey === "description") changes.description = suggestion.suggestedValue;
 
     if (Object.keys(changes).length > 0) {
-      await asc.applyASOChanges(changes, locale);
+      if (!suggestion.appBundleId) {
+        return res.status(400).json({ error: "Suggestion has no associated app" });
+      }
+      await asc.applyASOChanges(changes, locale, suggestion.appBundleId);
       await prisma.aSOSuggestion.update({
         where: { id: req.params.id },
         data: { status: "APPLIED", appliedAt: new Date() },
@@ -159,21 +150,24 @@ suggestionsRouter.post("/auto-apply", async (req, res) => {
     const settings = await getEffectiveSettings(req.user!.userId);
     const minConfidence = parseFloat(req.body.minConfidence ?? "0.8");
     const locale = req.body.locale as string | undefined;
+    const bundleId = req.body.bundleId as string | undefined;
 
-    if (
-      !settings.ascIssuerId ||
-      !settings.ascKeyId ||
-      !settings.ascPrivateKey
-    ) {
-      res
-        .status(400)
-        .json({ error: "App Store Connect credentials not configured." });
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId is required" });
+      return;
+    }
+    const ownedApp = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!ownedApp) return;
+
+    if (!settings.ascIssuerId || !settings.ascKeyId || !settings.ascPrivateKey) {
+      res.status(400).json({ error: "App Store Connect credentials not configured." });
       return;
     }
 
     const where: any = {
       status: "PENDING",
       confidenceScore: { gte: minConfidence },
+      appBundleId: bundleId,
     };
     if (locale) where.locale = locale;
 
@@ -198,8 +192,7 @@ suggestionsRouter.post("/auto-apply", async (req, res) => {
       byLocale.set(s.locale, group);
     }
 
-    const { AppStoreConnectClient } =
-      await import("../../services/appstore-connect");
+    const { AppStoreConnectClient } = await import("../../services/appstore-connect");
     const asc = new AppStoreConnectClient({
       issuerId: settings.ascIssuerId,
       keyId: settings.ascKeyId,
@@ -207,17 +200,13 @@ suggestionsRouter.post("/auto-apply", async (req, res) => {
     });
 
     let totalApplied = 0;
-    const results: { locale: string; applied: string[]; errors: string[] }[] =
-      [];
+    const results: { locale: string; applied: string[]; errors: string[] }[] = [];
 
     for (const [loc, localeSuggestions] of byLocale) {
       const bestByType = new Map<string, (typeof localeSuggestions)[0]>();
       for (const s of localeSuggestions) {
         const existing = bestByType.get(s.type);
-        if (
-          !existing ||
-          (s.confidenceScore ?? 0) > (existing.confidenceScore ?? 0)
-        ) {
+        if (!existing || (s.confidenceScore ?? 0) > (existing.confidenceScore ?? 0)) {
           bestByType.set(s.type, s);
         }
       }
@@ -228,19 +217,16 @@ suggestionsRouter.post("/auto-apply", async (req, res) => {
       for (const [type, suggestion] of bestByType) {
         const key = type.toLowerCase();
         if (key === "title") changes.name = suggestion.suggestedValue;
-        else if (key === "subtitle")
-          changes.subtitle = suggestion.suggestedValue;
-        else if (key === "keywords")
-          changes.keywords = suggestion.suggestedValue;
-        else if (key === "description")
-          changes.description = suggestion.suggestedValue;
+        else if (key === "subtitle") changes.subtitle = suggestion.suggestedValue;
+        else if (key === "keywords") changes.keywords = suggestion.suggestedValue;
+        else if (key === "description") changes.description = suggestion.suggestedValue;
         appliedSuggestions.push(suggestion);
       }
 
       if (Object.keys(changes).length === 0) continue;
 
       try {
-        const result = await asc.applyASOChanges(changes, loc);
+        const result = await asc.applyASOChanges(changes, loc, bundleId);
 
         for (const suggestion of appliedSuggestions) {
           const wasApplied = result.applied.some((a: string) =>

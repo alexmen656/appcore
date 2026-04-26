@@ -45,9 +45,7 @@ interface ActiveSubmission {
 
 const activeSubmissions = new Map<string, ActiveSubmission>();
 
-export function getActiveSubmission(
-  jobId: string,
-): ActiveSubmission | undefined {
+export function getActiveSubmission(jobId: string): ActiveSubmission | undefined {
   return activeSubmissions.get(jobId);
 }
 
@@ -68,14 +66,8 @@ export class FastlaneService {
     this.bundleId = bundleId;
     this.settings = settings;
 
-    if (
-      !settings.ascIssuerId ||
-      !settings.ascKeyId ||
-      !settings.ascPrivateKey
-    ) {
-      throw new Error(
-        "App Store Connect credentials not configured. Set them in Settings.",
-      );
+    if (!settings.ascIssuerId || !settings.ascKeyId || !settings.ascPrivateKey) {
+      throw new Error("App Store Connect credentials not configured. Set them in Settings.");
     }
 
     this.asc = new AppStoreConnectClient({
@@ -93,20 +85,16 @@ export class FastlaneService {
     const live = await this.asc.getLiveVersion(app.id);
     const version = editable ?? live;
 
-    const ascLocalizations = await this.asc
-      .getAppInfoLocalizations(app.id)
-      .catch(() => []);
+    const ascLocalizations = await this.asc.getAppInfoLocalizations(app.id).catch(() => []);
 
     const locales =
       ascLocalizations.length > 0
-        ? ascLocalizations
-            .map((l: any) => l.attributes?.locale ?? l.locale)
-            .filter(Boolean)
+        ? ascLocalizations.map((l: any) => l.attributes?.locale ?? l.locale).filter(Boolean)
         : ["en-US"];
 
     const localeData: SubmissionPreview["locales"] = await Promise.all(
       locales.map(async (locale) => {
-        const state = await this.asc.getCurrentASOState(locale);
+        const state = await this.asc.getCurrentASOState(locale, this.bundleId);
         return {
           locale,
           name: state?.title ?? "",
@@ -166,18 +154,13 @@ export class FastlaneService {
 
       const screenshots = await this.loadFramedScreenshots();
       if (screenshots) {
-        const total = Object.values(screenshots).reduce(
-          (n, a) => n + a.length,
-          0,
-        );
+        const total = Object.values(screenshots).reduce((n, a) => n + a.length, 0);
         submission.logs.push(
           `Loaded ${total} framed screenshot(s) across ${Object.keys(screenshots).length} locale(s)`,
         );
 
         const FALLBACK_PREFERENCE = ["en-US", "en-GB"];
-        const fallbackLocale =
-          FALLBACK_PREFERENCE.find((l) => screenshots[l]) ??
-          Object.keys(screenshots)[0];
+        const fallbackLocale = FALLBACK_PREFERENCE.find((l) => screenshots[l]) ?? Object.keys(screenshots)[0];
         if (fallbackLocale) {
           for (const locale of Object.keys(localeData)) {
             if (!screenshots[locale]) {
@@ -192,9 +175,7 @@ export class FastlaneService {
 
       const ipaBase64 = await this.loadLatestIpa();
       if (ipaBase64) {
-        submission.logs.push(
-          "Latest build IPA loaded, will be uploaded alongside metadata.",
-        );
+        submission.logs.push("Latest build IPA loaded, will be uploaded alongside metadata.");
       }
 
       const result = await workerClient.deliver({
@@ -240,10 +221,7 @@ export class FastlaneService {
     }
   }
 
-  private async loadFramedScreenshots(): Promise<Record<
-    string,
-    Array<{ filename: string; data: string }>
-  > | null> {
+  private async loadFramedScreenshots(): Promise<Record<string, Array<{ filename: string; data: string }>> | null> {
     try {
       const app = await prisma.app.findFirst({
         where: { bundleId: this.bundleId },
@@ -263,10 +241,7 @@ export class FastlaneService {
       if (!job?.framedByLocale) return null;
 
       const framedByLocale = job.framedByLocale as Record<string, string[]>;
-      const screenshots: Record<
-        string,
-        Array<{ filename: string; data: string }>
-      > = {};
+      const screenshots: Record<string, Array<{ filename: string; data: string }>> = {};
       const cwd = process.cwd();
 
       for (const [locale, urls] of Object.entries(framedByLocale)) {
@@ -305,9 +280,7 @@ export class FastlaneService {
       });
       if (!buildJob?.ipaPath) return null;
 
-      const ipaPath = path.isAbsolute(buildJob.ipaPath)
-        ? buildJob.ipaPath
-        : path.join(process.cwd(), buildJob.ipaPath);
+      const ipaPath = path.isAbsolute(buildJob.ipaPath) ? buildJob.ipaPath : path.join(process.cwd(), buildJob.ipaPath);
 
       if (!fs.existsSync(ipaPath)) return null;
 
@@ -362,9 +335,7 @@ export class FastlaneService {
     const allLocales = new Set<string>();
     for (const vl of versionLocalizations) allLocales.add(vl.attributes.locale);
 
-    logger.info(
-      `[Fastlane] Preparing metadata for ${allLocales.size} locale(s): ${[...allLocales].join(", ")}`,
-    );
+    logger.info(`[Fastlane] Preparing metadata for ${allLocales.size} locale(s): ${[...allLocales].join(", ")}`);
 
     const localeData = new Map<
       string,
@@ -381,12 +352,8 @@ export class FastlaneService {
     >();
 
     for (const locale of allLocales) {
-      const vl = versionLocalizations.find(
-        (v) => v.attributes.locale === locale,
-      );
-      const ai = appInfoLocalizations.find(
-        (a) => a.attributes.locale === locale,
-      );
+      const vl = versionLocalizations.find((v) => v.attributes.locale === locale);
+      const ai = appInfoLocalizations.find((a) => a.attributes.locale === locale);
       const ov = overrides?.[locale];
       localeData.set(locale, {
         name: ov?.name ?? ai?.attributes.name ?? "",
@@ -394,8 +361,7 @@ export class FastlaneService {
         keywords: ov?.keywords ?? vl?.attributes.keywords ?? "",
         description: ov?.description ?? vl?.attributes.description ?? "",
         whatsNew: ov?.whatsNew ?? vl?.attributes.whatsNew ?? "",
-        promotionalText:
-          ov?.promotionalText ?? vl?.attributes.promotionalText ?? "",
+        promotionalText: ov?.promotionalText ?? vl?.attributes.promotionalText ?? "",
         supportUrl: vl?.attributes.supportUrl ?? "",
         marketingUrl: vl?.attributes.marketingUrl ?? "",
       });
@@ -411,30 +377,21 @@ export class FastlaneService {
 
       for (const [locale, data] of localeData) {
         if (!data.whatsNew && primary?.whatsNew) {
-          logger.info(
-            `[Fastlane] locale "${locale}" missing whatsNew - using "${primaryLocale}" as fallback`,
-          );
+          logger.info(`[Fastlane] locale "${locale}" missing whatsNew - using "${primaryLocale}" as fallback`);
           data.whatsNew = primary.whatsNew;
         }
         if (!data.supportUrl && primary?.supportUrl) {
-          logger.info(
-            `[Fastlane] locale "${locale}" missing supportUrl - using "${primaryLocale}" as fallback`,
-          );
+          logger.info(`[Fastlane] locale "${locale}" missing supportUrl - using "${primaryLocale}" as fallback`);
           data.supportUrl = primary.supportUrl;
         }
         if (!data.description && primary?.description) {
-          logger.info(
-            `[Fastlane] locale "${locale}" missing description - using "${primaryLocale}" as fallback`,
-          );
+          logger.info(`[Fastlane] locale "${locale}" missing description - using "${primaryLocale}" as fallback`);
           data.description = primary.description;
         }
       }
     }
 
-    const result: Record<
-      string,
-      typeof localeData extends Map<string, infer V> ? V : never
-    > = {};
+    const result: Record<string, typeof localeData extends Map<string, infer V> ? V : never> = {};
     for (const [locale, data] of localeData) {
       result[locale] = data;
     }
