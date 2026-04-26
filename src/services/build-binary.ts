@@ -21,9 +21,7 @@ export async function runBuildJob(
     commitSha?: string;
   },
 ): Promise<void> {
-  logger.info(
-    `[build:${appId}] Starting binary build for ${params.bundleId}@${params.branch ?? "default"}`,
-  );
+  logger.info(`[build:${appId}] Starting binary build for ${params.bundleId}@${params.branch ?? "default"}`);
 
   const buildJob = await prisma.buildJob.create({
     data: {
@@ -46,19 +44,13 @@ export async function runBuildJob(
     },
   });
 
-  const hasSigning = !!(
-    app?.signingCertP12 &&
-    app?.signingCertPassword &&
-    app?.signingProvisioningProfile
-  );
+  const hasSigning = !!(app?.signingCertP12 && app?.signingCertPassword && app?.signingProvisioningProfile);
   if (!hasSigning) {
     logger.warn(
       `[build:${appId}] No signing credentials configured — binary build will likely fail at code-signing step`,
     );
   } else {
-    logger.info(
-      `[build:${appId}] Signing credentials found (teamId: ${app?.signingTeamId ?? "not set"})`,
-    );
+    logger.info(`[build:${appId}] Signing credentials found (teamId: ${app?.signingTeamId ?? "not set"})`);
   }
 
   await prisma.buildJob.update({
@@ -68,19 +60,27 @@ export async function runBuildJob(
 
   const repoFullName = app?.githubRepoFullName ?? null;
   if (params.commitSha && repoFullName) {
-    await postCommitStatus(params.accessToken, repoFullName, params.commitSha, "pending", "marteso/build", "Binary build in progress…");
+    await postCommitStatus(
+      params.accessToken,
+      repoFullName,
+      params.commitSha,
+      "pending",
+      "marteso/build",
+      "Binary build in progress…",
+    );
   }
 
   try {
     const result = await workerClient.build({
       ...params,
       iosDir: params.iosDir ?? app?.githubIosDir ?? undefined,
-      ...(hasSigning && {
-        signingCertP12: app!.signingCertP12!,
-        signingCertPassword: app!.signingCertPassword!,
-        signingProvisioningProfile: app!.signingProvisioningProfile!,
-        signingTeamId: app?.signingTeamId ?? undefined,
-      }),
+      ...(hasSigning &&
+        app && {
+          signingCertP12: app.signingCertP12 as string,
+          signingCertPassword: app.signingCertPassword as string,
+          signingProvisioningProfile: app.signingProvisioningProfile as string,
+          signingTeamId: app.signingTeamId ?? undefined,
+        }),
     });
 
     for (const line of result.logs ?? []) {
@@ -95,15 +95,15 @@ export async function runBuildJob(
     if (result.ok && result.ipaBuilt && result.ipaBase64) {
       const buildsDir = path.join(BUILDS_BASE_DIR, params.bundleId);
       const historyDir = path.join(buildsDir, "history");
-      fs.mkdirSync(historyDir, { recursive: true });
+      await fs.promises.mkdir(historyDir, { recursive: true });
 
       const destIpa = path.join(buildsDir, "latest.ipa");
       const historyIpa = path.join(historyDir, `${Date.now()}.ipa`);
       const ipaBuffer = Buffer.from(result.ipaBase64, "base64");
 
-      fs.writeFileSync(destIpa, ipaBuffer);
-      fs.writeFileSync(historyIpa, ipaBuffer);
-      fs.writeFileSync(
+      await fs.promises.writeFile(destIpa, ipaBuffer);
+      await fs.promises.writeFile(historyIpa, ipaBuffer);
+      await fs.promises.writeFile(
         path.join(buildsDir, "latest.json"),
         JSON.stringify(
           {
@@ -150,19 +150,28 @@ export async function runBuildJob(
         succeeded ? "Binary build succeeded" : (result.errors?.[0] ?? "Binary build failed").slice(0, 140),
       );
     }
-  } catch (err: any) {
-    logger.error(`[build:${appId}] Binary build error: ${err.message}`);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error(`[build:${appId}] Binary build error: ${msg}`);
+    
     await prisma.buildJob.update({
       where: { id: buildJob.id },
       data: {
         status: "FAILED",
-        errors: JSON.stringify([err.message]),
+        errors: JSON.stringify([msg]),
         completedAt: new Date(),
       },
     });
 
     if (params.commitSha && repoFullName) {
-      await postCommitStatus(params.accessToken, repoFullName, params.commitSha, "failure", "marteso/build", err.message.slice(0, 140));
+      await postCommitStatus(
+        params.accessToken,
+        repoFullName,
+        params.commitSha,
+        "failure",
+        "marteso/build",
+        msg.slice(0, 140),
+      );
     }
   }
 }
