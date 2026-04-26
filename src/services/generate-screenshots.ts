@@ -5,10 +5,10 @@ import { decryptNullable } from "../config/encryption";
 import { frameWithFastlane } from "./frame-screenshots";
 import { workerClient } from "./worker-client";
 import { postCommitStatus } from "./github";
-import {
-  generateScreenshotSublines,
-  type ScreenshotSublines,
-} from "./screenshot-subline-generator";
+import { generateScreenshotSublines, type ScreenshotSublines } from "./screenshot-subline-generator";
+import { Prisma } from "@prisma/client";
+
+type ScreenshotJobWithApp = Prisma.ScreenshotJobGetPayload<{ include: { app: true } }>;
 
 export async function runScreenshotGeneration(jobId: string): Promise<void> {
   const job = await prisma.screenshotJob.findUnique({
@@ -34,13 +34,13 @@ export async function runScreenshotGeneration(jobId: string): Promise<void> {
 
 async function runScreenshotGenerationViaWorker(
   jobId: string,
-  job: any,
+  job: ScreenshotJobWithApp,
   outputDir: string,
   logs: string[],
   log: (msg: string) => void,
 ): Promise<void> {
-  let token: string | null = null;
-  let repoFullName: string | null = null;
+  let token: string | undefined;
+  let repoFullName: string | undefined;
 
   try {
     const userWithToken = await prisma.teamSettings.findFirst({
@@ -53,11 +53,20 @@ async function runScreenshotGenerationViaWorker(
       throw new Error("No GitHub repo linked to this app");
     }
 
-    token = decryptNullable(userWithToken.githubAccessToken)!;
-    repoFullName = job.app.githubRepoFullName!;
+    const decrypted = decryptNullable(userWithToken.githubAccessToken);
+    if (!decrypted) throw new Error("Failed to decrypt GitHub access token");
+    token = decrypted;
+    repoFullName = job.app.githubRepoFullName;
 
     if (job.commitSha) {
-      await postCommitStatus(token!, repoFullName!, job.commitSha, "pending", "marteso/screenshots", "Screenshot generation in progress…");
+      await postCommitStatus(
+        decrypted,
+        job.app.githubRepoFullName,
+        job.commitSha,
+        "pending",
+        "marteso/screenshots",
+        "Screenshot generation in progress…",
+      );
     }
 
     log("Delegating screenshot generation to worker...");
@@ -65,21 +74,22 @@ async function runScreenshotGenerationViaWorker(
     let envVars: Record<string, string> | undefined;
     if (job.app.snapshotEnvVars) {
       try {
-        const parsed: Array<{ key: string; value: string }> = JSON.parse(
-          decryptNullable(job.app.snapshotEnvVars)!,
-        );
+        const decryptedVars = decryptNullable(job.app.snapshotEnvVars);
+        if (!decryptedVars) throw new Error("Failed to decrypt snapshotEnvVars");
+        const parsed: Array<{ key: string; value: string }> = JSON.parse(decryptedVars);
         envVars = Object.fromEntries(parsed.map(({ key, value }) => [key, value]));
         log(`[config] Loaded ${parsed.length} UI test environment variable(s)`);
       } catch {
         log("[config] Warning: could not parse snapshotEnvVars — skipping");
       }
     } else {
-      log("[config] Warning: no UI test environment variables configured for this app — if your tests require login, add EMAIL/PASSWORD under App Settings → UI Test Environment");
+      log(
+        "[config] Warning: no UI test environment variables configured for this app — if your tests require login, add EMAIL/PASSWORD under App Settings → UI Test Environment",
+      );
     }
 
-    const repoUrl = `https://github.com/${repoFullName}.git`;
     const result = await workerClient.snapshot({
-      repoUrl,
+      repoUrl: `https://github.com/${repoFullName}.git`,
       accessToken: token,
       branch: job.branch ?? undefined,
       appName: job.app.name,
@@ -88,29 +98,27 @@ async function runScreenshotGenerationViaWorker(
       envVars,
     });
 
-    logs.push(...result.logs);
+    result.logs.forEach(log);
 
     if (!result.ok) {
       throw new Error(`Worker snapshot failed: ${result.errors.join("; ")}`);
     }
 
+    const screenshotsBase = path.join(process.cwd(), "screenshots");
     const screenshotUrls: string[] = [];
     const detectedLocales: string[] = [];
 
     for (const [locale, images] of Object.entries(result.screenshots)) {
-      const localeDir =
-        locale === "default" ? outputDir : path.join(outputDir, locale);
-      fs.mkdirSync(localeDir, { recursive: true });
+      const localeDir = locale === "default" ? outputDir : path.join(outputDir, locale);
+      await fs.promises.mkdir(localeDir, { recursive: true });
       for (const img of images) {
         const dest = path.join(localeDir, img.filename);
-        fs.writeFileSync(dest, Buffer.from(img.data, "base64"));
-        screenshotUrls.push(dest);
+        await fs.promises.writeFile(dest, Buffer.from(img.data, "base64"));
+        screenshotUrls.push("/screenshots/" + path.relative(screenshotsBase, dest).replace(/\\/g, "/"));
       }
       if (locale !== "default") detectedLocales.push(locale);
     }
-    log(
-      `[snapshot] Saved ${screenshotUrls.length} screenshot${screenshotUrls.length === 1 ? "" : "s"} from worker`,
-    );
+    log(`[snapshot] Saved ${screenshotUrls.length} screenshot${screenshotUrls.length === 1 ? "" : "s"} from worker`);
 
     const descriptions = result.descriptions ?? {};
     const frameConfig = result.config ?? {};
@@ -124,18 +132,14 @@ async function runScreenshotGenerationViaWorker(
           const match = base.match(/^(.+?)(?:_[a-z]{2}-[A-Z]{2}_|_[a-z]{2}_)/);
           const extracted = match ? match[1] : base;
 
-          return (
-            Object.keys(descriptions).find(
-              (k) => extracted === k || extracted.startsWith(k + "_"),
-            ) ?? extracted
-          );
+          return Object.keys(descriptions).find((k) => extracted === k || extracted.startsWith(k + "_")) ?? extracted;
         }),
       ),
     ];
     const effectiveDescriptions: Record<string, string> = { ...descriptions };
+
     for (const key of filenameKeys) {
-      if (!effectiveDescriptions[key])
-        effectiveDescriptions[key] = key.replace(/_/g, " ");
+      if (!effectiveDescriptions[key]) effectiveDescriptions[key] = key.replace(/_/g, " ");
     }
     const hasDescriptions = Object.keys(effectiveDescriptions).length > 0;
 
@@ -153,10 +157,9 @@ async function runScreenshotGenerationViaWorker(
         log(
           `[framing] AI sublines generated for ${Object.keys(sublines).length} locale${Object.keys(sublines).length === 1 ? "" : "s"}`,
         );
-      } catch (sublineErr: any) {
-        log(
-          `[framing] Subline generation failed (non-fatal): ${sublineErr.message}`,
-        );
+      } catch (sublineErr) {
+        const sublineMsg = sublineErr instanceof Error ? sublineErr.message : String(sublineErr);
+        log(`[framing] Subline generation failed (non-fatal): ${sublineMsg}`);
       }
     }
 
@@ -165,21 +168,13 @@ async function runScreenshotGenerationViaWorker(
       data: {
         screenshotUrls,
         ...(hasDescriptions && {
-          screenshotDescriptions: effectiveDescriptions,
-          screenshotSublines: sublines,
+          screenshotDescriptions: effectiveDescriptions as Prisma.InputJsonValue,
+          screenshotSublines: sublines as Prisma.InputJsonValue,
         }),
-      } as any,
+      },
     });
 
-    await autoFrameScreenshots(
-      jobId,
-      job,
-      outputDir,
-      effectiveDescriptions,
-      sublines,
-      frameConfig,
-      log,
-    );
+    await autoFrameScreenshots(jobId, job, outputDir, effectiveDescriptions, sublines, frameConfig, log);
 
     await prisma.screenshotJob.update({
       where: { id: jobId },
@@ -190,10 +185,17 @@ async function runScreenshotGenerationViaWorker(
       },
     });
 
-    if (job.commitSha) {
-      await postCommitStatus(token!, repoFullName!, job.commitSha, "success", "marteso/screenshots", "Screenshots generated successfully");
+    if (job.commitSha && token && repoFullName) {
+      await postCommitStatus(
+        token,
+        repoFullName,
+        job.commitSha,
+        "success",
+        "marteso/screenshots",
+        "Screenshots generated successfully",
+      );
     }
-  } catch (err: any) {
+  } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logs.push(`ERROR: ${msg}`);
 
@@ -215,7 +217,7 @@ async function runScreenshotGenerationViaWorker(
 
 async function autoFrameScreenshots(
   jobId: string,
-  job: any,
+  job: ScreenshotJobWithApp,
   outputDir: string,
   descriptions: Record<string, string>,
   sublines: ScreenshotSublines,
@@ -226,15 +228,12 @@ async function autoFrameScreenshots(
     const screenshotsBase = path.join(process.cwd(), "screenshots");
     const framedDir = path.join(outputDir, "framed");
     const unframedBaseDir = path.join(outputDir, "unframed");
-    const subDirs = fs.existsSync(outputDir)
-      ? fs
-          .readdirSync(outputDir, { withFileTypes: true })
-          .filter((e) => e.isDirectory() && e.name !== "framed")
-          .map((e) => path.join(outputDir, e.name))
-      : [];
+    const outputDirEntries = await fs.promises.readdir(outputDir, { withFileTypes: true }).catch(() => []);
+    const subDirs = outputDirEntries
+      .filter((e) => e.isDirectory() && e.name !== "framed")
+      .map((e) => path.join(outputDir, e.name));
     const sourceDirs = subDirs.length > 0 ? subDirs : [outputDir];
     const framedByLocale: Record<string, string[]> = {};
-
     const hasDescriptions = Object.keys(descriptions).length > 0;
 
     for (const srcDir of sourceDirs) {
@@ -252,62 +251,60 @@ async function autoFrameScreenshots(
       };
 
       if (!hasDescriptions) {
-        outputPaths = await frameWithFastlane(srcDir, outDir, {
-          subtitle: job.app.name,
-          ...bgOptions,
-        }, unframedOutDir);
+        outputPaths = await frameWithFastlane(
+          srcDir,
+          outDir,
+          {
+            subtitle: job.app.name,
+            ...bgOptions,
+          },
+          unframedOutDir,
+        );
       } else {
         outputPaths = [];
-        const files = fs
-          .readdirSync(srcDir)
-          .filter((f) => /\.(png|jpg|jpeg)$/i.test(f));
+        const files = (await fs.promises.readdir(srcDir)).filter((f) => /\.(png|jpg|jpeg)$/i.test(f));
 
         for (const filename of files) {
           const base = filename.replace(/\.[^.]+$/, "");
-          const descKey = Object.keys(descriptions).find(
-            (k) => base === k || base.startsWith(k + "_"),
-          );
-
-          const subtitle = descKey
-            ? (localeSublines[descKey] ?? descriptions[descKey])
-            : job.app.name;
-
+          const descKey = Object.keys(descriptions).find((k) => base === k || base.startsWith(k + "_"));
+          const subtitle = descKey ? (localeSublines[descKey] ?? descriptions[descKey]) : job.app.name;
           const singleDir = path.join(srcDir, ".frametmp_" + base);
           const singleOut = path.join(outDir, base);
           const singleUnframedOut = path.join(unframedOutDir, base);
-          fs.mkdirSync(singleDir, { recursive: true });
-          fs.copyFileSync(
-            path.join(srcDir, filename),
-            path.join(singleDir, filename),
-          );
+
+          await fs.promises.mkdir(singleDir, { recursive: true });
+          await fs.promises.copyFile(path.join(srcDir, filename), path.join(singleDir, filename));
+
           try {
-            const paths = await frameWithFastlane(singleDir, singleOut, {
-              subtitle,
-              ...bgOptions,
-            }, singleUnframedOut);
+            const paths = await frameWithFastlane(
+              singleDir,
+              singleOut,
+              {
+                subtitle,
+                ...bgOptions,
+              },
+              singleUnframedOut,
+            );
             outputPaths.push(...paths);
           } finally {
-            fs.rmSync(singleDir, { recursive: true, force: true });
+            await fs.promises.rm(singleDir, { recursive: true, force: true });
           }
         }
       }
 
-      const urls = outputPaths.map(
-        (p) =>
-          "/screenshots/" +
-          path.relative(screenshotsBase, p).replace(/\\/g, "/"),
-      );
+      const urls = outputPaths.map((p) => "/screenshots/" + path.relative(screenshotsBase, p).replace(/\\/g, "/"));
       framedByLocale[locale] = (framedByLocale[locale] ?? []).concat(urls);
     }
 
     await prisma.screenshotJob.update({
       where: { id: jobId },
-      data: { framedByLocale: framedByLocale } as any,
+      data: { framedByLocale: framedByLocale as Prisma.InputJsonValue },
     });
-    log(
-      `[framing] Framing complete: ${Object.values(framedByLocale).flat().length} image${Object.values(framedByLocale).flat().length === 1 ? "" : "s"}`,
-    );
-  } catch (frameErr: any) {
-    log(`[framing] Framing failed (non-fatal): ${frameErr.message}`);
+
+    const totalFramed = Object.values(framedByLocale).flat().length;
+    log(`[framing] Framing complete: ${totalFramed} image${totalFramed === 1 ? "" : "s"}`);
+  } catch (frameErr) {
+    const frameMsg = frameErr instanceof Error ? frameErr.message : String(frameErr);
+    log(`[framing] Framing failed (non-fatal): ${frameMsg}`);
   }
 }

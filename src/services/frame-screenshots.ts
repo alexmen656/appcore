@@ -43,9 +43,7 @@ async function frameWithWorker(
   const result = await workerClient.frameit({ images, options });
 
   if (!result.ok) {
-    throw new Error(
-      `Worker frameit failed: ${result.error ?? "unknown error"}`,
-    );
+    throw new Error(`Worker frameit failed: ${result.error ?? "unknown error"}`);
   }
 
   fs.mkdirSync(outputDir, { recursive: true });
