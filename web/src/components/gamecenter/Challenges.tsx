@@ -54,8 +54,7 @@ interface ChalFormProps {
 
 function ChalForm({ initial, onSave, onCancel, saving, title, lockVendorId }: ChalFormProps) {
   const [form, setForm] = useState<ChalFormState>({ ...emptyForm(), ...initial });
-  const set = <K extends keyof ChalFormState>(k: K, v: ChalFormState[K]) =>
-    setForm((f) => ({ ...f, [k]: v }));
+  const set = <K extends keyof ChalFormState>(k: K, v: ChalFormState[K]) => setForm((f) => ({ ...f, [k]: v }));
 
   return (
     <div className={`rounded-xl border ${borderDefault} bg-[#fafbfc] dark:bg-[#1c2028] p-4 flex flex-col gap-3`}>
@@ -225,19 +224,11 @@ function LocalizationsPanel({ challenge, bundleId, addToast }: LocPanelProps) {
                     <span className={`font-mono text-[12px] ${textSecondary}`}>{loc.locale}</span>
                   </td>
                   <td className={TD}>
-                    <input
-                      className={inputCls}
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                    />
+                    <input className={inputCls} value={editName} onChange={(e) => setEditName(e.target.value)} />
                   </td>
                   <td className={TD}>
                     <div className="flex gap-1 justify-end">
-                      <button
-                        onClick={() => handleSave(loc)}
-                        disabled={savingId === loc.id}
-                        className={btnPrimary}
-                      >
+                      <button onClick={() => handleSave(loc)} disabled={savingId === loc.id} className={btnPrimary}>
                         {savingId === loc.id ? (
                           <div className="spinner !w-3.5 !h-3.5" />
                         ) : (
@@ -274,11 +265,7 @@ function LocalizationsPanel({ challenge, bundleId, addToast }: LocPanelProps) {
                         disabled={deletingId === loc.id}
                         className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg border ${borderDefault} text-[12px] text-red-500 hover:border-red-300 dark:hover:border-red-800 transition-all disabled:opacity-50`}
                       >
-                        {deletingId === loc.id ? (
-                          <div className="spinner !w-3 !h-3" />
-                        ) : (
-                          <Trash2 className="w-3 h-3" />
-                        )}
+                        {deletingId === loc.id ? <div className="spinner !w-3 !h-3" /> : <Trash2 className="w-3 h-3" />}
                       </button>
                     </div>
                   </td>
@@ -290,20 +277,12 @@ function LocalizationsPanel({ challenge, bundleId, addToast }: LocPanelProps) {
       )}
 
       {showAdd ? (
-        <div
-          className={`rounded-xl border ${borderDefault} p-3 flex flex-col gap-2 bg-[#fafbfc] dark:bg-[#1c2028]`}
-        >
-          <p className={`text-[11px] font-semibold uppercase tracking-wider ${textSecondary}`}>
-            Add Localization
-          </p>
+        <div className={`rounded-xl border ${borderDefault} p-3 flex flex-col gap-2 bg-[#fafbfc] dark:bg-[#1c2028]`}>
+          <p className={`text-[11px] font-semibold uppercase tracking-wider ${textSecondary}`}>Add Localization</p>
           <div className="grid grid-cols-2 gap-2">
             <div className="flex flex-col gap-1">
               <label className={`text-[11px] ${textSecondary} font-medium`}>Locale</label>
-              <select
-                className={inputCls}
-                value={addLocale}
-                onChange={(e) => setAddLocale(e.target.value)}
-              >
+              <select className={inputCls} value={addLocale} onChange={(e) => setAddLocale(e.target.value)}>
                 <option value="">Select locale…</option>
                 {availableLocales.map((l) => (
                   <option key={l} value={l}>
@@ -334,11 +313,7 @@ function LocalizationsPanel({ challenge, bundleId, addToast }: LocPanelProps) {
             >
               <X className="w-3.5 h-3.5" /> Cancel
             </button>
-            <button
-              onClick={handleAdd}
-              disabled={adding || !addLocale || !addName.trim()}
-              className={btnPrimary}
-            >
+            <button onClick={handleAdd} disabled={adding || !addLocale || !addName.trim()} className={btnPrimary}>
               {adding ? <div className="spinner !w-3.5 !h-3.5" /> : <Check className="w-3.5 h-3.5" />} Add
             </button>
           </div>
@@ -410,9 +385,7 @@ function DetailView({ chal, bundleId, onBack, onUpdated, onDeleted, addToast }: 
     { label: "Reference Name", value: <span className={textPrimary}>{chal.referenceName}</span> },
     {
       label: "Vendor Identifier",
-      value: (
-        <span className={`font-mono text-[12px] ${textSecondary}`}>{chal.vendorIdentifier}</span>
-      ),
+      value: <span className={`font-mono text-[12px] ${textSecondary}`}>{chal.vendorIdentifier}</span>,
     },
   ];
 
@@ -427,9 +400,7 @@ function DetailView({ chal, bundleId, onBack, onUpdated, onDeleted, addToast }: 
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="min-w-0 flex items-center gap-2">
-            <h1 className={`text-2xl font-semibold tracking-tight ${textPrimary} truncate`}>
-              {chal.referenceName}
-            </h1>
+            <h1 className={`text-2xl font-semibold tracking-tight ${textPrimary} truncate`}>{chal.referenceName}</h1>
             {!editing && (
               <button
                 onClick={() => setEditing(true)}
@@ -599,12 +570,7 @@ export default function Challenges({ addToast }: Props) {
       </div>
 
       {showCreate && gcDetailId && (
-        <ChalForm
-          title="New Challenge"
-          onSave={handleCreate}
-          onCancel={() => setShowCreate(false)}
-          saving={creating}
-        />
+        <ChalForm title="New Challenge" onSave={handleCreate} onCancel={() => setShowCreate(false)} saving={creating} />
       )}
 
       {loading && !challenges ? (

@@ -66,8 +66,7 @@ interface AchFormProps {
 
 function AchForm({ initial, onSave, onCancel, saving, title, lockVendorId }: AchFormProps) {
   const [form, setForm] = useState<AchFormState>({ ...emptyForm(), ...initial });
-  const set = <K extends keyof AchFormState>(k: K, v: AchFormState[K]) =>
-    setForm((f) => ({ ...f, [k]: v }));
+  const set = <K extends keyof AchFormState>(k: K, v: AchFormState[K]) => setForm((f) => ({ ...f, [k]: v }));
 
   return (
     <div className={`rounded-xl border ${borderDefault} bg-[#fafbfc] dark:bg-[#1c2028] p-4 flex flex-col gap-3`}>
@@ -238,12 +237,13 @@ function LocalizationsPanel({ achievement, bundleId, addToast }: LocPanelProps) 
         }),
       });
       if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
-      setLocs((prev) =>
-        prev?.map((l) =>
-          l.id === loc.id
-            ? { ...l, name: editName, afterEarnedDescription: editAfter, beforeEarnedDescription: editBefore }
-            : l,
-        ) ?? null,
+      setLocs(
+        (prev) =>
+          prev?.map((l) =>
+            l.id === loc.id
+              ? { ...l, name: editName, afterEarnedDescription: editAfter, beforeEarnedDescription: editBefore }
+              : l,
+          ) ?? null,
       );
       setEditingId(null);
       addToast("Saved", "success");
@@ -302,11 +302,7 @@ function LocalizationsPanel({ achievement, bundleId, addToast }: LocPanelProps) 
                     <span className={`font-mono text-[12px] ${textSecondary}`}>{loc.locale}</span>
                   </td>
                   <td className={TD}>
-                    <input
-                      className={inputCls}
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                    />
+                    <input className={inputCls} value={editName} onChange={(e) => setEditName(e.target.value)} />
                   </td>
                   <td className={TD}>
                     <input
@@ -326,12 +322,12 @@ function LocalizationsPanel({ achievement, bundleId, addToast }: LocPanelProps) 
                   </td>
                   <td className={TD}>
                     <div className="flex gap-1 justify-end">
-                      <button
-                        onClick={() => handleSave(loc)}
-                        disabled={savingId === loc.id}
-                        className={btnPrimary}
-                      >
-                        {savingId === loc.id ? <div className="spinner !w-3.5 !h-3.5" /> : <Check className="w-3.5 h-3.5" />}
+                      <button onClick={() => handleSave(loc)} disabled={savingId === loc.id} className={btnPrimary}>
+                        {savingId === loc.id ? (
+                          <div className="spinner !w-3.5 !h-3.5" />
+                        ) : (
+                          <Check className="w-3.5 h-3.5" />
+                        )}
                       </button>
                       <button onClick={() => setEditingId(null)} className={btnSecondary}>
                         <X className="w-3.5 h-3.5" />
@@ -376,17 +372,11 @@ function LocalizationsPanel({ achievement, bundleId, addToast }: LocPanelProps) 
 
       {showAdd ? (
         <div className={`rounded-xl border ${borderDefault} p-3 flex flex-col gap-2 bg-[#fafbfc] dark:bg-[#1c2028]`}>
-          <p className={`text-[11px] font-semibold uppercase tracking-wider ${textSecondary}`}>
-            Add Localization
-          </p>
+          <p className={`text-[11px] font-semibold uppercase tracking-wider ${textSecondary}`}>Add Localization</p>
           <div className="grid grid-cols-2 gap-2">
             <div className="flex flex-col gap-1">
               <label className={`text-[11px] ${textSecondary} font-medium`}>Locale</label>
-              <select
-                className={inputCls}
-                value={addLocale}
-                onChange={(e) => setAddLocale(e.target.value)}
-              >
+              <select className={inputCls} value={addLocale} onChange={(e) => setAddLocale(e.target.value)}>
                 <option value="">Select locale…</option>
                 {availableLocales.map((l) => (
                   <option key={l} value={l}>
@@ -437,11 +427,7 @@ function LocalizationsPanel({ achievement, bundleId, addToast }: LocPanelProps) 
             >
               <X className="w-3.5 h-3.5" /> Cancel
             </button>
-            <button
-              onClick={handleAdd}
-              disabled={adding || !addLocale || !addName.trim()}
-              className={btnPrimary}
-            >
+            <button onClick={handleAdd} disabled={adding || !addLocale || !addName.trim()} className={btnPrimary}>
               {adding ? <div className="spinner !w-3.5 !h-3.5" /> : <Check className="w-3.5 h-3.5" />} Add
             </button>
           </div>
@@ -539,19 +525,11 @@ function DetailView({ ach, bundleId, onBack, onUpdated, onDeleted, addToast }: D
     { label: "Points", value: <span className={textPrimary}>{ach.points}</span> },
     {
       label: "Show Before Earned",
-      value: (
-        <span className={`text-[12px] font-medium ${textSecondary}`}>
-          {ach.showBeforeEarned ? "Yes" : "No"}
-        </span>
-      ),
+      value: <span className={`text-[12px] font-medium ${textSecondary}`}>{ach.showBeforeEarned ? "Yes" : "No"}</span>,
     },
     {
       label: "Repeatable",
-      value: (
-        <span className={`text-[12px] font-medium ${textSecondary}`}>
-          {ach.repeatable ? "Yes" : "No"}
-        </span>
-      ),
+      value: <span className={`text-[12px] font-medium ${textSecondary}`}>{ach.repeatable ? "Yes" : "No"}</span>,
     },
     {
       label: "Status",
@@ -578,9 +556,7 @@ function DetailView({ ach, bundleId, onBack, onUpdated, onDeleted, addToast }: D
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div className="min-w-0 flex items-center gap-2">
-            <h1 className={`text-2xl font-semibold tracking-tight ${textPrimary} truncate`}>
-              {ach.referenceName}
-            </h1>
+            <h1 className={`text-2xl font-semibold tracking-tight ${textPrimary} truncate`}>{ach.referenceName}</h1>
             {!editing && (
               <button
                 onClick={() => setEditing(true)}

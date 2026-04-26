@@ -1,5 +1,14 @@
 import { useState, useRef, useCallback } from "react";
-import { borderDefault, inputCls, btnPrimary, btnSecondary, pageTitle, textMuted, textPrimary, textSecondary } from "../../styles";
+import {
+  borderDefault,
+  inputCls,
+  btnPrimary,
+  btnSecondary,
+  pageTitle,
+  textMuted,
+  textPrimary,
+  textSecondary,
+} from "../../styles";
 import { ChevronDown, Search, X } from "lucide-react";
 import { useApi, apiPost, apiDelete, authHeaders, getActiveBundleId } from "../../hooks/useApi";
 import { useClickOutside } from "../../hooks/useClickOutside";
@@ -264,16 +273,14 @@ export default function Keywords({ addToast }: Props) {
                 </select>
               </div>
               <div className="flex justify-end gap-2 mt-1">
-                <button
-                  type="button"
-                  className={btnSecondary}
-                  onClick={() => setAddModalOpen(false)}
-                >
+                <button type="button" className={btnSecondary} onClick={() => setAddModalOpen(false)}>
                   Cancel
                 </button>
                 <button type="submit" className={btnPrimary} disabled={adding || !newTerm.trim()}>
                   {adding ? (
-                    <><div className="spinner !w-3.5 !h-3.5" /> Adding…</>
+                    <>
+                      <div className="spinner !w-3.5 !h-3.5" /> Adding…
+                    </>
                   ) : (
                     "Add Keywords"
                   )}

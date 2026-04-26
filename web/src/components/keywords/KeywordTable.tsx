@@ -114,7 +114,9 @@ export default function KeywordTable({
               onClick={() => onRowClick(k)}
               className={`cursor-pointer hover:bg-gray-50/60 dark:hover:bg-white/[0.03] ${selectedKeyword?.id === k.id ? "!bg-blue-50/60 dark:!bg-blue-900/20" : ""}`}
             >
-              <td className={`${TD} font-medium ${textPrimary} truncate`} title={k.term}>{k.term}</td>
+              <td className={`${TD} font-medium ${textPrimary} truncate`} title={k.term}>
+                {k.term}
+              </td>
               <td className={`${TD} ${textSecondary}`}>
                 <span className="inline-flex items-center gap-1.5">
                   <img
