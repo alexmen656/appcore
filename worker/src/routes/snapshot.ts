@@ -6,6 +6,18 @@ import { execAsync, resolveRepoWorkDir, findConfigFile } from "./shared";
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
+const LOG_INTERESTING_RE =
+  /Test (case|suite)|Testing (started|failed|passed|completed)|TEST (BUILD|EXECUTE|SUCCEEDED|FAILED)|encountered an error|error:|warning:|^\*\*|fatal|timed out|Compile|Linking|CodeSign|^Run-|FAIL/i;
+
+function filterXcodebuildOutput(output: string | undefined, maxLines = 200): string[] {
+  if (!output) return [];
+  const lines = output.split("\n").filter(Boolean);
+  const interesting = lines.filter((l) => LOG_INTERESTING_RE.test(l));
+  if (interesting.length <= maxLines) return interesting;
+  const dropped = interesting.length - maxLines;
+  return [`[snapshot] (truncated ${dropped} earlier filtered lines)`, ...interesting.slice(-maxLines)];
+}
+
 async function getIosSimulatorInfo(): Promise<{
   version: string;
   devices: Array<{ name: string; udid: string }>;
@@ -185,23 +197,31 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
     const fastlaneCacheBase = path.join(os.homedir(), "Library", "Caches", "tools.fastlane");
     const fastlaneCacheDir = path.join(fastlaneCacheBase, "screenshots");
     const screenshotsDir = path.join(workDir, "fastlane", "screenshots");
+    const derivedDataPath = path.join(tmpDir, "DerivedData");
     const destinations = snapDevices
       .map((d) => (d.includes("-") ? `-destination 'id=${d}'` : `-destination 'platform=iOS Simulator,name=${d}'`))
       .join(" ");
+    const parallelArgs = `-parallel-testing-enabled YES -maximum-concurrent-test-simulator-destinations ${snapDevices.length}`;
+    const hostHome = os.homedir();
 
     logs.push(`[snapshot] Running xcodebuild with destinations:\n           - ${snapDevices.join("\n           - ")}`);
 
-    for (const udid of snapDevices.filter((d) => d.includes("-"))) {
-      try {
-        await execAsync(`xcrun simctl boot "${udid}" 2>/dev/null || true`);
-        await execAsync(`xcrun simctl ui "${udid}" appearance ${appearance}`);
-        await execAsync(`xcrun simctl shutdown "${udid}" 2>/dev/null || true`);
-      } catch {
-        logs.push(`[snapshot] Warning: could not set appearance on ${udid}`);
-      }
-    }
-    if (snapDevices.some((d) => d.includes("-"))) {
-      logs.push(`[snapshot] Simulator appearance set to ${appearance}`);
+    const udids = snapDevices.filter((d) => d.includes("-"));
+    await Promise.all(
+      udids.map(async (udid) => {
+        try {
+          await execAsync(`xcrun simctl bootstatus "${udid}" -b`, { timeout: 120_000 });
+          await execAsync(`xcrun simctl ui "${udid}" appearance ${appearance}`);
+          await execAsync(`xcrun simctl shutdown "${udid}"`);
+        } catch {
+          logs.push(`[snapshot] Warning: could not set appearance on ${udid}`);
+        }
+      }),
+    );
+    if (udids.length) {
+      logs.push(
+        `[snapshot] Set appearance to ${appearance} on ${udids.length} source simulator(s) (xcodebuild will clone them)`,
+      );
     }
 
     for (const lang of effectiveLanguages) {
@@ -222,25 +242,26 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
           `[snapshot] Warning: no envVars provided — snapshot-env.json not written; UI tests requiring login credentials will fail`,
         );
       }
-      logs.push(`[snapshot] Language: ${lang} (locale: ${localeId}) — building and running UI tests ...`);
+      logs.push(`[snapshot] Language: ${lang} (locale: ${localeId}) — running UI tests (parallel) ...`);
 
       try {
-        const hostHome = os.homedir();
-        const xcodebuildCmd = `xcodebuild ${projectArg} -scheme "${scheme}" ${destinations} FASTLANE_SNAPSHOT=YES FASTLANE_LANGUAGE=${lang} TEST_RUNNER_SIMULATOR_HOST_HOME="${hostHome}" build test`;
+        const testStart = Date.now();
+        const xcodebuildCmd = `xcodebuild ${projectArg} -scheme "${scheme}" ${destinations} -derivedDataPath "${derivedDataPath}" ${parallelArgs} FASTLANE_SNAPSHOT=YES FASTLANE_LANGUAGE=${lang} TEST_RUNNER_SIMULATOR_HOST_HOME="${hostHome}" build test`;
         logs.push(`[snapshot] Command: ${xcodebuildCmd}`);
 
         const { stdout } = await execAsync(`${xcodebuildCmd} 2>&1`, {
           cwd: workDir,
-          timeout: 900_000,
+          timeout: 1800_000,
           env: { ...process.env, ...(envVars ?? {}) },
           maxBuffer: 10 * 1024 * 1024,
         });
-        if (stdout) logs.push(...stdout.split("\n").filter(Boolean));
+        logs.push(...filterXcodebuildOutput(stdout));
+        logs.push(`[snapshot] ${lang}: build+test finished in ${Math.round((Date.now() - testStart) / 1000)}s`);
       } catch (execErr) {
         const e = execErr as { stdout?: string; stderr?: string; message?: string; code?: number };
-        if (e.stdout) logs.push(...e.stdout.split("\n").filter(Boolean));
-        if (e.stderr) logs.push(...e.stderr.split("\n").filter(Boolean));
-        throw new Error(`xcodebuild failed for language ${lang}: ${e.message ?? String(execErr)}`);
+        logs.push(...filterXcodebuildOutput(e.stdout));
+        logs.push(...filterXcodebuildOutput(e.stderr));
+        throw new Error(`xcodebuild build test failed for language ${lang}: ${e.message ?? String(execErr)}`);
       }
 
       if (fs.existsSync(fastlaneCacheDir)) {
@@ -290,6 +311,21 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
     errors.push(err instanceof Error ? err.message : String(err));
     res.json({ ok: false, logs, errors, screenshots: {} });
   } finally {
+    try {
+      const debugDir = "/tmp/last-snapshot-debug";
+      fs.rmSync(debugDir, { recursive: true, force: true });
+      fs.mkdirSync(debugDir, { recursive: true });
+      const testLogsDir = path.join(tmpDir, "DerivedData", "Logs", "Test");
+      if (fs.existsSync(testLogsDir)) {
+        for (const entry of fs.readdirSync(testLogsDir)) {
+          if (entry.endsWith(".xcresult")) {
+            fs.cpSync(path.join(testLogsDir, entry), path.join(debugDir, entry), { recursive: true });
+          }
+        }
+      }
+    } catch {
+      /* ignore */
+    }
     try {
       fs.rmSync(tmpDir, { recursive: true, force: true });
     } catch {
