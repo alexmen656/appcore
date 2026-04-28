@@ -58,8 +58,7 @@ async function frameWithWorker(
   if (unframedOutputDir && result.unframedImages && result.unframedImages.length > 0) {
     fs.mkdirSync(unframedOutputDir, { recursive: true });
     for (const img of result.unframedImages) {
-      const dest = path.join(unframedOutputDir, img.filename);
-      fs.writeFileSync(dest, Buffer.from(img.data, "base64"));
+      fs.writeFileSync(path.join(unframedOutputDir, img.filename), Buffer.from(img.data, "base64"));
     }
   }
 

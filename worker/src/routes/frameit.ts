@@ -115,7 +115,6 @@ frameitRouter.post("/frameit", async (req: Request, res: Response) => {
       await pipeline.png().toFile(tmpPath);
     }
 
-    const bgPath = path.join(tmpDir, "background.jpg");
     const bgW = firstW * 2;
     const bgH = firstH * 2;
     const svg = `<svg width="${bgW}" height="${bgH}" xmlns="http://www.w3.org/2000/svg">
@@ -127,8 +126,8 @@ frameitRouter.post("/frameit", async (req: Request, res: Response) => {
       </defs>
       <rect width="${bgW}" height="${bgH}" fill="url(#bg)"/>
     </svg>`;
-    await sharp(Buffer.from(svg)).jpeg({ quality: 95 }).toFile(bgPath);
 
+    await sharp(Buffer.from(svg)).jpeg({ quality: 95 }).toFile(path.join(tmpDir, "background.jpg"));
     fs.copyFileSync(path.join(__dirname, "ArialRoundedBold.ttf"), path.join(tmpDir, "ArialRoundedBold.ttf"));
 
     const defaultSection = buildTitleSection(title, subtitle, textColor, layoutMode, "./background.jpg");
@@ -199,7 +198,7 @@ frameitRouter.post("/frameit", async (req: Request, res: Response) => {
         const srcBase = f.replace(/_framed\.png$/, "");
         const dims = outputDims.get(srcBase) ?? { w: firstW, h: firstH };
         const finalBuf = await sharp(raw).resize(dims.w, dims.h, { fit: "cover", position: gravity }).png().toBuffer();
-        result.push({ filename: f, data: finalBuf.toString("base64") });
+        result.push({ filename: srcBase + ".png", data: finalBuf.toString("base64") });
       }
       return result;
     };

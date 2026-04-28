@@ -1,4 +1,5 @@
 import { prisma, logger } from "../config";
+import { getEffectiveSettingsForTeam } from "../config/userSettings";
 import { AIClient } from "./ai-client";
 
 export type ScreenshotSublines = Record<string, Record<string, string>>;
@@ -31,18 +32,11 @@ export async function generateScreenshotSublines(
     .sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999))
     .slice(0, 20);
 
-  const settings = await prisma.teamSettings.findFirst();
-  const ai = new AIClient({
-    openaiApiKey: settings?.openaiApiKey ?? undefined,
-    anthropicApiKey: settings?.anthropicApiKey ?? undefined,
-    aiProvider: (settings?.aiProvider as "openai" | "anthropic" | undefined) ?? undefined,
-  });
+  const settings = await getEffectiveSettingsForTeam(app.teamId ?? "");
+  const ai = new AIClient(settings);
 
   if (!ai.hasProvider) {
-    logger.warn(
-      "[SublineGen] No AI provider configured — skipping subline generation",
-    );
-    return {};
+    throw new Error("No AI provider configured - add an OpenAI or Anthropic API key in Settings");
   }
 
   const screenshotList = Object.entries(descriptions)
@@ -50,13 +44,8 @@ export async function generateScreenshotSublines(
     .join("\n");
 
   const keywordList = topKeywords
-    .map(
-      (k) =>
-        `  ${k.term} (rank: ${k.rank ?? "unranked"}, popularity: ${k.popularity})`,
-    )
+    .map((k) => `  ${k.term} (rank: ${k.rank ?? "unranked"}, popularity: ${k.popularity})`)
     .join("\n");
-
-  const localeList = detectedLocales.join(", ");
 
   const systemPrompt = `You are an expert Apple App Store Optimization (ASO) specialist.
 Your task is to generate ultra-concise screenshot sublines that:
@@ -78,7 +67,7 @@ ${keywordList || "  (none tracked yet)"}
 Screenshots to generate sublines for:
 ${screenshotList}
 
-Generate sublines for these locales: ${localeList}
+Generate sublines for these locales: ${detectedLocales.join(", ")}
 
 Return JSON in this exact shape:
 {
@@ -126,6 +115,6 @@ Every subline must be ≤ 30 characters. Include every screenshot key for every 
     return sublines;
   } catch (err: any) {
     logger.error(`[SublineGen] AI call failed: ${err.message}`);
-    return {};
+    throw err;
   }
 }
