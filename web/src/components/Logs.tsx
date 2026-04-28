@@ -74,11 +74,6 @@ function useLazyLogs(path: string | null) {
   return { logs, loading, error };
 }
 
-/**
- * Streams logs via SSE for PENDING/RUNNING jobs.
- * Falls back to a "waiting" retry loop if the job hasn't started yet.
- * Returns `{ lines, streaming, done }`.
- */
 function useStreamingLogs(jobId: string | null, appId: string | null, active: boolean) {
   const [lines, setLines] = useState<string[]>([]);
   const [done, setDone] = useState(false);
@@ -460,20 +455,23 @@ function JobRow({
   const [framedUrls] = useState<string[]>([]);
   const isActive = job.status === "PENDING" || job.status === "RUNNING";
 
-  // For finished jobs: lazy-load logs from DB. For active jobs: stream live.
-  const { logs: lazyLogs, loading: logsLoading, error: logsError } =
-    useLazyLogs(!isActive && expanded ? `/github/screenshots/${job.appId}/${job.id}/logs` : null);
-  const { lines: streamLines, done: streamDone } =
-    useStreamingLogs(isActive ? job.id : null, isActive ? job.appId : null, expanded);
+  const {
+    logs: lazyLogs,
+    loading: logsLoading,
+    error: logsError,
+  } = useLazyLogs(!isActive && expanded ? `/github/screenshots/${job.appId}/${job.id}/logs` : null);
+  const { lines: streamLines, done: streamDone } = useStreamingLogs(
+    isActive ? job.id : null,
+    isActive ? job.appId : null,
+    expanded,
+  );
 
   const logsRef = useRef<HTMLPreElement>(null);
 
-  // Auto-scroll as new stream lines arrive
   useEffect(() => {
     if (logsRef.current) logsRef.current.scrollTop = logsRef.current.scrollHeight;
   }, [streamLines.length]);
 
-  // Notify parent when streaming finishes so it can refetch job list
   useEffect(() => {
     if (streamDone) onJobDone?.();
   }, [streamDone, onJobDone]);
@@ -547,7 +545,9 @@ function JobRow({
 
           {isActive ? (
             <div>
-              <div className={`flex items-center gap-2 text-[11px] font-medium ${textSecondary} uppercase tracking-wide mb-1`}>
+              <div
+                className={`flex items-center gap-2 text-[11px] font-medium ${textSecondary} uppercase tracking-wide mb-1`}
+              >
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 Live logs ({streamLines.length} lines)
               </div>
