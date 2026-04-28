@@ -1,6 +1,6 @@
 import path from "path";
 import fs from "fs";
-import { logger, prisma } from "../config";
+import { logger, prisma, getTeamSettings } from "../config";
 import { decryptNullable } from "../config/encryption";
 import { frameWithFastlane } from "./frame-screenshots";
 import { workerClient } from "./worker-client";
@@ -8,6 +8,9 @@ import { postCommitStatus } from "./github";
 import { generateScreenshotSublines, type ScreenshotSublines } from "./screenshot-subline-generator";
 import { Prisma } from "@prisma/client";
 import { createJobLogEmitter } from "./log-bus";
+
+const GITHUB_STATUS_DESC_MAX_LEN = 140;
+const VALID_LOCALE_RE = /^[a-zA-Z]{2,8}(?:-[a-zA-Z]{2,8})?$/;
 
 type ScreenshotJobWithApp = Prisma.ScreenshotJobGetPayload<{ include: { app: true } }>;
 
@@ -32,13 +35,13 @@ export async function runScreenshotGeneration(jobId: string): Promise<void> {
   });
 
   try {
-    await runScreenshotGenerationViaWorker(jobId, job, path.join(process.cwd(), "screenshots", jobId), logs, log);
+    await runWorkerScreenshotGeneration(jobId, job, path.join(process.cwd(), "screenshots", jobId), logs, log);
   } finally {
     finishLog();
   }
 }
 
-async function runScreenshotGenerationViaWorker(
+async function runWorkerScreenshotGeneration(
   jobId: string,
   job: ScreenshotJobWithApp,
   outputDir: string,
@@ -49,17 +52,20 @@ async function runScreenshotGenerationViaWorker(
   let repoFullName: string | undefined;
 
   try {
-    const userWithToken = await prisma.teamSettings.findFirst({
-      where: { githubAccessToken: { not: null } },
-    });
-    if (!userWithToken?.githubAccessToken) {
+    if (!job.app.teamId) {
+      throw new Error("App has no team");
+    }
+
+    const teamSettings = await getTeamSettings(job.app.teamId);
+
+    if (!teamSettings?.githubAccessToken) {
       throw new Error("No GitHub access token available");
     }
     if (!job.app.githubRepoFullName) {
       throw new Error("No GitHub repo linked to this app");
     }
 
-    const decrypted = decryptNullable(userWithToken.githubAccessToken);
+    const decrypted = decryptNullable(teamSettings.githubAccessToken);
     if (!decrypted) throw new Error("Failed to decrypt GitHub access token");
     token = decrypted;
     repoFullName = job.app.githubRepoFullName;
@@ -107,10 +113,6 @@ async function runScreenshotGenerationViaWorker(
       log,
     );
 
-    result.logs.forEach((l) => {
-      if (!logs.includes(l)) log(l);
-    });
-
     if (!result.ok) {
       throw new Error(`Worker snapshot failed: ${result.errors.join("; ")}`);
     }
@@ -119,16 +121,28 @@ async function runScreenshotGenerationViaWorker(
     const detectedLocales: string[] = [];
 
     for (const [locale, images] of Object.entries(result.screenshots)) {
+      if (!VALID_LOCALE_RE.test(locale)) {
+        log(`[snapshot] Skipping invalid locale: ${locale}`);
+        continue;
+      }
+
       await fs.promises.mkdir(path.join(outputDir, "raw", locale), { recursive: true });
 
       for (const img of images) {
-        await fs.promises.writeFile(path.join(outputDir, "raw", locale, img.filename), Buffer.from(img.data, "base64"));
-        screenshotUrls.push(`/screenshots/${jobId}/raw/${locale}/${img.filename}`);
+        const safeFilename = path.basename(img.filename);
+        if (!safeFilename || !/^[a-zA-Z0-9_\-. ]+$/.test(safeFilename)) {
+          log(`[snapshot] Skipping suspicious filename: ${img.filename}`);
+          continue;
+        }
+        await fs.promises.writeFile(path.join(outputDir, "raw", locale, safeFilename), Buffer.from(img.data, "base64"));
+        screenshotUrls.push(`/screenshots/${jobId}/raw/${locale}/${safeFilename}`);
       }
 
       detectedLocales.push(locale);
     }
-    log(`[snapshot] Saved ${screenshotUrls.length} screenshot${screenshotUrls.length === 1 ? "" : "s"} from worker: ${screenshotUrls.join(", ")} (outputDir=${outputDir})`);
+    log(
+      `[snapshot] Saved ${screenshotUrls.length} screenshot${screenshotUrls.length === 1 ? "" : "s"} from worker: ${screenshotUrls.join(", ")} (outputDir=${outputDir})`,
+    );
 
     const descriptions = result.descriptions ?? {};
     const frameConfig = result.config ?? {};
@@ -153,7 +167,7 @@ async function runScreenshotGenerationViaWorker(
     const hasDescriptions = Object.keys(effectiveDescriptions).length > 0;
     let sublines: ScreenshotSublines = {};
 
-    if (hasDescriptions) {
+    if (hasDescriptions && screenshotUrls.length > 0) {
       log(
         `[framing] Generating AI sublines for ${Object.keys(effectiveDescriptions).length} screen${Object.keys(effectiveDescriptions).length === 1 ? "" : "s"}...`,
       );
@@ -183,7 +197,7 @@ async function runScreenshotGenerationViaWorker(
       },
     });
 
-    await frameScreenshots(jobId, job, outputDir, effectiveDescriptions, sublines, frameConfig, log);
+    await frameScreenshots(jobId, job, outputDir, effectiveDescriptions, hasDescriptions, sublines, frameConfig, log);
 
     await prisma.screenshotJob.update({
       where: { id: jobId },
@@ -206,7 +220,7 @@ async function runScreenshotGenerationViaWorker(
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    logs.push(`ERROR: ${msg}`);
+    log(`ERROR: ${msg}`);
 
     await prisma.screenshotJob.update({
       where: { id: jobId },
@@ -219,7 +233,14 @@ async function runScreenshotGenerationViaWorker(
     });
 
     if (job.commitSha && token && repoFullName) {
-      await postCommitStatus(token, repoFullName, job.commitSha, "failure", "marteso/screenshots", msg.slice(0, 140));
+      await postCommitStatus(
+        token,
+        repoFullName,
+        job.commitSha,
+        "failure",
+        "marteso/screenshots",
+        msg.slice(0, GITHUB_STATUS_DESC_MAX_LEN),
+      );
     }
   }
 }
@@ -229,6 +250,7 @@ async function frameScreenshots(
   job: ScreenshotJobWithApp,
   outputDir: string,
   descriptions: Record<string, string>,
+  hasDescriptions: boolean,
   sublines: ScreenshotSublines,
   frameConfig: Record<string, string>,
   log: (msg: string) => void,
@@ -236,9 +258,7 @@ async function frameScreenshots(
   try {
     const rawEntries = await fs.promises.readdir(path.join(outputDir, "raw"), { withFileTypes: true }).catch(() => []);
     const sourceDirs = rawEntries.filter((e) => e.isDirectory()).map((e) => path.join(outputDir, "raw", e.name));
-    log(`[framing] sourceDirs: ${sourceDirs.map((d) => path.basename(d)).join(", ") || "(none)"}`);
     const framedByLocale: Record<string, string[]> = {};
-    const hasDescriptions = Object.keys(descriptions).length > 0;
 
     for (const srcDir of sourceDirs) {
       const locale = path.basename(srcDir);
@@ -269,7 +289,7 @@ async function frameScreenshots(
 
         for (const filename of files) {
           const base = filename.replace(/\.[^.]+$/, "");
-          const descKey = Object.keys(descriptions).find((k) => base === k);
+          const descKey = Object.keys(descriptions).find((k) => base === k || base.startsWith(k + "_"));
           const subtitle = descKey ? (localeSublines[descKey] ?? descriptions[descKey]) : job.app.name;
           const singleDir = path.join(srcDir, ".frametmp_" + base);
 
@@ -305,8 +325,7 @@ async function frameScreenshots(
       data: { framedByLocale: framedByLocale as Prisma.InputJsonValue },
     });
 
-    const totalFramed = Object.values(framedByLocale).flat().length;
-    log(`[framing] Framing complete: ${totalFramed} image${totalFramed === 1 ? "" : "s"}`);
+    log(`[framing] Framing complete: ${Object.values(framedByLocale).flat().length} image(s)`);
   } catch (frameErr) {
     const frameMsg = frameErr instanceof Error ? frameErr.message : String(frameErr);
     const stack = frameErr instanceof Error ? frameErr.stack : undefined;
