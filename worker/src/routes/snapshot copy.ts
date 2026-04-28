@@ -311,14 +311,6 @@ async function runSnapshot(
 
         push(`[snapshot] [${deviceLabel}] ${lang} — running UI tests ...`);
 
-        if (UDID_RE.test(device)) {
-          try {
-            await execAsync(`xcrun simctl shutdown "${device}"`, { timeout: 30_000 });
-          } catch {
-            // already shut down
-          }
-        }
-
         let testFailed = false;
         try {
           const testStart = Date.now();
@@ -339,14 +331,6 @@ async function runSnapshot(
           filterXcodebuildOutput(e.stderr).forEach(push);
           push(`[snapshot] [${deviceLabel}] ${lang}: tests failed (extracting any captured screenshots anyway)`);
           testFailed = true;
-        } finally {
-          if (UDID_RE.test(device)) {
-            try {
-              await execAsync(`xcrun simctl shutdown "${device}"`, { timeout: 30_000 });
-            } catch {
-              // ignore
-            }
-          }
         }
 
         if (fs.existsSync(testLogsDir)) {

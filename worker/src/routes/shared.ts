@@ -39,7 +39,7 @@ export function resolveRepoWorkDir(repoDir: string, iosDir: string | undefined, 
   if (relative.startsWith("..") || path.isAbsolute(relative)) {
     throw new Error(`Invalid iosDir path: ${iosDir}`);
   }
-  
+
   if (!fs.existsSync(workDir) || !fs.statSync(workDir).isDirectory()) {
     throw new Error(`Configured iosDir not found in repo: ${normalized}`);
   }
@@ -209,7 +209,7 @@ export async function buildWithGym(
       await execAsync(`${fastlanePath} ${updateSigningArgs} 2>&1`, {
         cwd: repoDir,
         timeout: 60_000,
-        env: { ...process.env, FASTLANE_DISABLE_COLORS: "1" },
+        env: { ...process.env, FASTLANE_DISABLE_COLORS: "1", LANG: "en_US.UTF-8", LANGUAGE: "en_US.UTF-8", LC_ALL: "en_US.UTF-8" },
         maxBuffer: 10 * 1024 * 1024,
       });
     }
@@ -217,7 +217,7 @@ export async function buildWithGym(
     await execAsync(`${fastlanePath} gym 2>&1`, {
       cwd: repoDir,
       timeout: 900_000,
-      env: { ...process.env, FASTLANE_DISABLE_COLORS: "1" },
+      env: { ...process.env, FASTLANE_DISABLE_COLORS: "1", LANG: "en_US.UTF-8", LANGUAGE: "en_US.UTF-8", LC_ALL: "en_US.UTF-8" },
       maxBuffer: 10 * 1024 * 1024,
     });
 

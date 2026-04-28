@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from "axios";
 import { logger } from "../config";
 import { env } from "../config/env";
+import type { IncomingMessage } from "http";
 
 export interface WorkerDeliverParams {
   locales: Record<
@@ -117,14 +118,10 @@ class FastlaneWorkerClient {
       const secret = env.FASTLANE_WORKER_SECRET;
 
       if (!baseURL) {
-        throw new Error(
-          "FASTLANE_WORKER_URL not set. Cannot communicate with Fastlane worker.",
-        );
+        throw new Error("FASTLANE_WORKER_URL not set. Cannot communicate with Fastlane worker.");
       }
       if (!secret) {
-        throw new Error(
-          "FASTLANE_WORKER_SECRET not set. Cannot authenticate with Fastlane worker.",
-        );
+        throw new Error("FASTLANE_WORKER_SECRET not set. Cannot authenticate with Fastlane worker.");
       }
 
       this.client = axios.create({
@@ -148,10 +145,7 @@ class FastlaneWorkerClient {
 
   async deliver(params: WorkerDeliverParams): Promise<WorkerDeliverResult> {
     const localeCount = Object.keys(params.locales ?? {}).length;
-    const timeoutMs = Math.min(
-      60 * 60 * 1000,
-      5 * 60 * 1000 + localeCount * 2 * 60 * 1000,
-    );
+    const timeoutMs = Math.min(60 * 60 * 1000, 5 * 60 * 1000 + localeCount * 2 * 60 * 1000);
     logger.info(
       `[WorkerClient] Sending deliver task to worker (${localeCount} locale(s), timeout ${Math.round(timeoutMs / 60000)}min)...`,
     );
@@ -161,12 +155,64 @@ class FastlaneWorkerClient {
     return res.data;
   }
 
-  async snapshot(params: WorkerSnapshotParams): Promise<WorkerSnapshotResult> {
-    logger.info("[WorkerClient] Sending snapshot task to worker...");
-    const res = await this.getClient().post("/worker/snapshot", params, {
-      timeout: 20 * 60 * 1000,
+  async snapshot(params: WorkerSnapshotParams, onLog?: (line: string) => void): Promise<WorkerSnapshotResult> {
+    logger.info("[WorkerClient] Sending snapshot task to worker (async+stream)...");
+
+    const startRes = await this.getClient().post<{ ok: boolean; runId: string }>("/worker/snapshot", params, {
+      timeout: 30_000,
     });
-    return res.data;
+    const { runId } = startRes.data;
+    logger.info(`[WorkerClient] Snapshot job started: runId=${runId}`);
+
+    return new Promise((resolve, reject) => {
+      const baseURL = env.FASTLANE_WORKER_URL!;
+      const secret = env.FASTLANE_WORKER_SECRET!;
+      const url = `${baseURL}/worker/snapshot/${runId}/stream`;
+
+      axios
+        .get<IncomingMessage>(url, {
+          headers: { Authorization: `Bearer ${secret}` },
+          responseType: "stream",
+          timeout: 40 * 60 * 1000,
+        })
+        .then(({ data: stream }) => {
+          let buf = "";
+
+          stream.on("data", (chunk: Buffer) => {
+            buf += chunk.toString();
+            const parts = buf.split("\n\n");
+            buf = parts.pop() ?? "";
+
+            for (const block of parts) {
+              let event = "message";
+              let data = "";
+              for (const line of block.split("\n")) {
+                if (line.startsWith("event: ")) event = line.slice(7).trim();
+                else if (line.startsWith("data: ")) data = line.slice(6);
+              }
+              if (!data) continue;
+
+              if (event === "log") {
+                const line = JSON.parse(data) as string;
+                onLog?.(line);
+              } else if (event === "result") {
+                const result = JSON.parse(data) as WorkerSnapshotResult;
+                stream.destroy();
+                resolve(result);
+              }
+            }
+          });
+
+          stream.on("end", () => {
+            reject(new Error("Worker SSE stream ended without a result event"));
+          });
+
+          stream.on("error", (err: Error) => {
+            reject(new Error(`Worker SSE stream error: ${err.message}`));
+          });
+        })
+        .catch(reject);
+    });
   }
 
   async frameit(params: WorkerFrameitParams): Promise<WorkerFrameitResult> {

@@ -7,6 +7,7 @@ import { workerClient } from "./worker-client";
 import { postCommitStatus } from "./github";
 import { generateScreenshotSublines, type ScreenshotSublines } from "./screenshot-subline-generator";
 import { Prisma } from "@prisma/client";
+import { createJobLogEmitter } from "./log-bus";
 
 type ScreenshotJobWithApp = Prisma.ScreenshotJobGetPayload<{ include: { app: true } }>;
 
@@ -18,8 +19,10 @@ export async function runScreenshotGeneration(jobId: string): Promise<void> {
   if (!job) throw new Error(`Screenshot job ${jobId} not found`);
 
   const logs: string[] = [];
+  const { emit: emitLog, finish: finishLog } = createJobLogEmitter(jobId);
   const log = (msg: string) => {
     logs.push(msg);
+    emitLog(msg);
     logger.info(`[screenshots:${jobId}] ${msg}`);
   };
 
@@ -29,7 +32,11 @@ export async function runScreenshotGeneration(jobId: string): Promise<void> {
   });
 
   const outputDir = path.join(process.cwd(), "screenshots", jobId);
-  await runScreenshotGenerationViaWorker(jobId, job, outputDir, logs, log);
+  try {
+    await runScreenshotGenerationViaWorker(jobId, job, outputDir, logs, log);
+  } finally {
+    finishLog();
+  }
 }
 
 async function runScreenshotGenerationViaWorker(
@@ -88,17 +95,22 @@ async function runScreenshotGenerationViaWorker(
       );
     }
 
-    const result = await workerClient.snapshot({
-      repoUrl: `https://github.com/${repoFullName}.git`,
-      accessToken: token,
-      branch: job.branch ?? undefined,
-      appName: job.app.name,
-      bundleId: job.app.bundleId,
-      iosDir: job.app.githubIosDir ?? undefined,
-      envVars,
-    });
+    const result = await workerClient.snapshot(
+      {
+        repoUrl: `https://github.com/${repoFullName}.git`,
+        accessToken: token,
+        branch: job.branch ?? undefined,
+        appName: job.app.name,
+        bundleId: job.app.bundleId,
+        iosDir: job.app.githubIosDir ?? undefined,
+        envVars,
+      },
+      log,
+    );
 
-    result.logs.forEach(log);
+    result.logs.forEach((l) => {
+      if (!logs.includes(l)) log(l);
+    });
 
     if (!result.ok) {
       throw new Error(`Worker snapshot failed: ${result.errors.join("; ")}`);

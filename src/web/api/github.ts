@@ -18,19 +18,17 @@ import {
   verifyWebhookSignature,
   type GitHubWebhookPayload,
 } from "../../services/github";
-import { verifyAppOwnership } from "../auth";
+import { verifyAppOwnership, verifyToken } from "../auth";
 import { runScreenshotGeneration } from "../../services/generate-screenshots";
 import { runBuildJob } from "../../services/build-binary";
 import { frameWithFastlane } from "../../services/frame-screenshots";
+import { getJobLogBuffer } from "../../services/log-bus";
 
 export const githubRouter = Router();
 
 function signOAuthState(payload: object): string {
   const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
-  const sig = crypto
-    .createHmac("sha256", env.JWT_SECRET)
-    .update(data)
-    .digest("base64url");
+  const sig = crypto.createHmac("sha256", env.JWT_SECRET).update(data).digest("base64url");
   return `${data}.${sig}`;
 }
 
@@ -39,10 +37,7 @@ function verifyOAuthState(state: string): { userId: string; ts: number } | null 
   if (dot < 0) return null;
   const data = state.slice(0, dot);
   const sig = state.slice(dot + 1);
-  const expected = crypto
-    .createHmac("sha256", env.JWT_SECRET)
-    .update(data)
-    .digest("base64url");
+  const expected = crypto.createHmac("sha256", env.JWT_SECRET).update(data).digest("base64url");
   if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
   try {
     return JSON.parse(Buffer.from(data, "base64url").toString());
@@ -51,19 +46,15 @@ function verifyOAuthState(state: string): { userId: string; ts: number } | null 
   }
 }
 
-githubRouter.get(
-  "/oauth/start",
-  requireAuth,
-  async (req: Request, res: Response) => {
-    try {
-      const state = signOAuthState({ userId: req.user!.userId, ts: Date.now() });
-      const url = getGitHubOAuthUrl(state);
-      res.json({ url });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  },
-);
+githubRouter.get("/oauth/start", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const state = signOAuthState({ userId: req.user!.userId, ts: Date.now() });
+    const url = getGitHubOAuthUrl(state);
+    res.json({ url });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 githubRouter.get("/oauth/callback", async (req: Request, res: Response) => {
   try {
@@ -124,64 +115,50 @@ githubRouter.get("/oauth/callback", async (req: Request, res: Response) => {
   }
 });
 
-githubRouter.get(
-  "/status",
-  requireAuth,
-  async (req: Request, res: Response) => {
-    try {
-      const teamId = req.user!.teamId;
-      const settings = teamId
-        ? await prisma.teamSettings.findUnique({ where: { teamId } })
-        : null;
-      res.json({
-        connected: !!settings?.githubAccessToken,
-        username: settings?.githubUsername ?? null,
-        avatarUrl: settings?.githubAvatarUrl ?? null,
-        connectedAt: settings?.githubConnectedAt ?? null,
-      });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  },
-);
+githubRouter.get("/status", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const teamId = req.user!.teamId;
+    const settings = teamId ? await prisma.teamSettings.findUnique({ where: { teamId } }) : null;
+    res.json({
+      connected: !!settings?.githubAccessToken,
+      username: settings?.githubUsername ?? null,
+      avatarUrl: settings?.githubAvatarUrl ?? null,
+      connectedAt: settings?.githubConnectedAt ?? null,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-githubRouter.post(
-  "/disconnect",
-  requireAuth,
-  async (req: Request, res: Response) => {
-    try {
-      const teamId = req.user!.teamId;
-      if (teamId) {
-        await prisma.teamSettings.updateMany({
-          where: { teamId },
-          data: {
-            githubAccessToken: null,
-            githubUsername: null,
-            githubAvatarUrl: null,
-            githubConnectedAt: null,
-          },
-        });
-      }
-      res.json({ ok: true });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
+githubRouter.post("/disconnect", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const teamId = req.user!.teamId;
+    if (teamId) {
+      await prisma.teamSettings.updateMany({
+        where: { teamId },
+        data: {
+          githubAccessToken: null,
+          githubUsername: null,
+          githubAvatarUrl: null,
+          githubConnectedAt: null,
+        },
+      });
     }
-  },
-);
+    res.json({ ok: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 githubRouter.get("/repos", requireAuth, async (req: Request, res: Response) => {
   try {
     const teamId = req.user!.teamId;
-    const settings = teamId
-      ? await prisma.teamSettings.findUnique({ where: { teamId } })
-      : null;
+    const settings = teamId ? await prisma.teamSettings.findUnique({ where: { teamId } }) : null;
     if (!settings?.githubAccessToken) {
       res.status(400).json({ error: "GitHub not connected" });
       return;
     }
-    const repos = await listUserRepos(
-      decryptNullable(settings.githubAccessToken)!,
-    );
+    const repos = await listUserRepos(decryptNullable(settings.githubAccessToken)!);
     res.json(
       repos.map((r) => ({
         id: r.id,
@@ -198,30 +175,21 @@ githubRouter.get("/repos", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-githubRouter.get(
-  "/repo-dirs/:owner/:repo",
-  requireAuth,
-  async (req: Request, res: Response) => {
-    try {
-      const teamId = req.user!.teamId;
-      const settings = teamId
-        ? await prisma.teamSettings.findUnique({ where: { teamId } })
-        : null;
-      if (!settings?.githubAccessToken) {
-        res.status(400).json({ error: "GitHub not connected" });
-        return;
-      }
-      const repoFullName = `${req.params.owner}/${req.params.repo}`;
-      const dirs = await listRepoDirs(
-        decryptNullable(settings.githubAccessToken)!,
-        repoFullName,
-      );
-      res.json(dirs);
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
+githubRouter.get("/repo-dirs/:owner/:repo", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const teamId = req.user!.teamId;
+    const settings = teamId ? await prisma.teamSettings.findUnique({ where: { teamId } }) : null;
+    if (!settings?.githubAccessToken) {
+      res.status(400).json({ error: "GitHub not connected" });
+      return;
     }
-  },
-);
+    const repoFullName = `${req.params.owner}/${req.params.repo}`;
+    const dirs = await listRepoDirs(decryptNullable(settings.githubAccessToken)!, repoFullName);
+    res.json(dirs);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 githubRouter.post("/link", requireAuth, async (req: Request, res: Response) => {
   try {
@@ -240,264 +208,288 @@ githubRouter.post("/link", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-githubRouter.post(
-  "/unlink",
-  requireAuth,
-  async (req: Request, res: Response) => {
-    try {
-      const { appId } = req.body;
-      if (!appId) {
-        res.status(400).json({ error: "appId required" });
-        return;
-      }
-      const app = await verifyAppOwnership(req, res, appId);
-      if (!app) return;
-
-      await unlinkRepoFromApp(req.user!.userId, appId);
-      res.json({ ok: true });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
+githubRouter.post("/unlink", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { appId } = req.body;
+    if (!appId) {
+      res.status(400).json({ error: "appId required" });
+      return;
     }
-  },
-);
+    const app = await verifyAppOwnership(req, res, appId);
+    if (!app) return;
 
-githubRouter.get(
-  "/app-repo/:appId",
-  requireAuth,
-  async (req: Request, res: Response) => {
-    try {
-      const owned = await verifyAppOwnership(
-        req,
-        res,
-        req.params.appId as string,
-      );
-      if (!owned) return;
+    await unlinkRepoFromApp(req.user!.userId, appId);
+    res.json({ ok: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-      const app = await prisma.app.findUnique({
-        where: { id: req.params.appId as string },
-        select: {
-          githubRepoOwner: true,
-          githubRepoName: true,
-          githubRepoFullName: true,
-          githubIosDir: true,
-        },
-      });
-      res.json({
-        linked: !!app?.githubRepoFullName,
-        repoFullName: app?.githubRepoFullName ?? null,
-        repoOwner: app?.githubRepoOwner ?? null,
-        repoName: app?.githubRepoName ?? null,
-        iosDir: app?.githubIosDir ?? null,
-      });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
+githubRouter.get("/app-repo/:appId", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const owned = await verifyAppOwnership(req, res, req.params.appId as string);
+    if (!owned) return;
+
+    const app = await prisma.app.findUnique({
+      where: { id: req.params.appId as string },
+      select: {
+        githubRepoOwner: true,
+        githubRepoName: true,
+        githubRepoFullName: true,
+        githubIosDir: true,
+      },
+    });
+    res.json({
+      linked: !!app?.githubRepoFullName,
+      repoFullName: app?.githubRepoFullName ?? null,
+      repoOwner: app?.githubRepoOwner ?? null,
+      repoName: app?.githubRepoName ?? null,
+      iosDir: app?.githubIosDir ?? null,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+githubRouter.get("/snapshot-env/:appId", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const owned = await verifyAppOwnership(req, res, req.params.appId as string);
+    if (!owned) return;
+
+    const app = await prisma.app.findUnique({
+      where: { id: req.params.appId as string },
+      select: { snapshotEnvVars: true },
+    });
+    if (!app) {
+      res.status(404).json({ error: "App not found" });
+      return;
     }
-  },
-);
+    const envVars: Array<{ key: string; value: string }> = app.snapshotEnvVars
+      ? JSON.parse(decryptNullable(app.snapshotEnvVars)!)
+      : [];
+    res.json({ envVars });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-githubRouter.get(
-  "/snapshot-env/:appId",
-  requireAuth,
-  async (req: Request, res: Response) => {
-    try {
-      const owned = await verifyAppOwnership(
-        req,
-        res,
-        req.params.appId as string,
-      );
-      if (!owned) return;
+githubRouter.put("/snapshot-env/:appId", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const owned = await verifyAppOwnership(req, res, req.params.appId as string);
+    if (!owned) return;
 
-      const app = await prisma.app.findUnique({
-        where: { id: req.params.appId as string },
-        select: { snapshotEnvVars: true },
-      });
-      if (!app) {
-        res.status(404).json({ error: "App not found" });
-        return;
-      }
-      const envVars: Array<{ key: string; value: string }> = app.snapshotEnvVars
-        ? JSON.parse(decryptNullable(app.snapshotEnvVars)!)
-        : [];
-      res.json({ envVars });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
+    const { envVars } = req.body as {
+      envVars: Array<{ key: string; value: string }>;
+    };
+    if (!Array.isArray(envVars)) {
+      res.status(400).json({ error: "envVars must be an array" });
+      return;
     }
-  },
-);
+    const encrypted = encrypt(JSON.stringify(envVars));
+    await prisma.app.update({
+      where: { id: req.params.appId as string },
+      data: { snapshotEnvVars: encrypted },
+    });
+    res.json({ ok: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-githubRouter.put(
-  "/snapshot-env/:appId",
-  requireAuth,
-  async (req: Request, res: Response) => {
-    try {
-      const owned = await verifyAppOwnership(
-        req,
-        res,
-        req.params.appId as string,
-      );
-      if (!owned) return;
+githubRouter.get("/builds/:appId", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const owned = await verifyAppOwnership(req, res, req.params.appId as string);
+    if (!owned) return;
 
-      const { envVars } = req.body as {
-        envVars: Array<{ key: string; value: string }>;
-      };
-      if (!Array.isArray(envVars)) {
-        res.status(400).json({ error: "envVars must be an array" });
-        return;
-      }
-      const encrypted = encrypt(JSON.stringify(envVars));
-      await prisma.app.update({
-        where: { id: req.params.appId as string },
-        data: { snapshotEnvVars: encrypted },
-      });
-      res.json({ ok: true });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
+    const jobs = await prisma.buildJob.findMany({
+      where: { appId: req.params.appId as string },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      select: {
+        id: true,
+        appId: true,
+        branch: true,
+        commitSha: true,
+        status: true,
+        errors: true,
+        ipaPath: true,
+        startedAt: true,
+        completedAt: true,
+        createdAt: true,
+      },
+    });
+    res.json(
+      jobs.map((j) => ({
+        ...j,
+        logs: [],
+        errors: j.errors ? JSON.parse(j.errors) : [],
+      })),
+    );
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+githubRouter.get("/builds/:appId/:jobId/logs", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const owned = await verifyAppOwnership(req, res, req.params.appId as string);
+    if (!owned) return;
+
+    const job = await prisma.buildJob.findFirst({
+      where: {
+        id: req.params.jobId as string,
+        appId: req.params.appId as string,
+      },
+      select: { logs: true },
+    });
+    if (!job) {
+      res.status(404).json({ error: "Build job not found" });
+      return;
     }
-  },
-);
+    res.json({ logs: job.logs ? JSON.parse(job.logs) : [] });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-githubRouter.get(
-  "/builds/:appId",
-  requireAuth,
-  async (req: Request, res: Response) => {
-    try {
-      const owned = await verifyAppOwnership(
-        req,
-        res,
-        req.params.appId as string,
-      );
-      if (!owned) return;
+githubRouter.get("/screenshots/:appId", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const owned = await verifyAppOwnership(req, res, req.params.appId as string);
+    if (!owned) return;
 
-      const jobs = await prisma.buildJob.findMany({
-        where: { appId: req.params.appId as string },
-        orderBy: { createdAt: "desc" },
-        take: 20,
-        select: {
-          id: true,
-          appId: true,
-          branch: true,
-          commitSha: true,
-          status: true,
-          errors: true,
-          ipaPath: true,
-          startedAt: true,
-          completedAt: true,
-          createdAt: true,
-        },
-      });
-      res.json(
-        jobs.map((j) => ({
-          ...j,
-          logs: [],
-          errors: j.errors ? JSON.parse(j.errors) : [],
-        })),
-      );
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
+    const jobs = await prisma.screenshotJob.findMany({
+      where: { appId: req.params.appId as string },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      select: {
+        id: true,
+        appId: true,
+        commitSha: true,
+        commitMessage: true,
+        branch: true,
+        pusher: true,
+        status: true,
+        error: true,
+        screenshotUrls: true,
+        framedByLocale: true,
+        screenshotDescriptions: true,
+        screenshotSublines: true,
+        startedAt: true,
+        completedAt: true,
+        createdAt: true,
+      },
+    });
+    res.json(jobs.map((j) => ({ ...j, logs: [] })));
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+githubRouter.get("/screenshots/:appId/:jobId/logs", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const owned = await verifyAppOwnership(req, res, req.params.appId as string);
+    if (!owned) return;
+
+    const job = await prisma.screenshotJob.findFirst({
+      where: {
+        id: req.params.jobId as string,
+        appId: req.params.appId as string,
+      },
+      select: { logs: true },
+    });
+    if (!job) {
+      res.status(404).json({ error: "Screenshot job not found" });
+      return;
     }
-  },
-);
+    res.json({ logs: job.logs ? JSON.parse(job.logs) : [] });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-githubRouter.get(
-  "/builds/:appId/:jobId/logs",
-  requireAuth,
-  async (req: Request, res: Response) => {
-    try {
-      const owned = await verifyAppOwnership(
-        req,
-        res,
-        req.params.appId as string,
-      );
-      if (!owned) return;
+githubRouter.get("/screenshots/:appId/:jobId/logs/stream", async (req: Request, res: Response) => {
+  const rawToken = req.query.token;
+  if (!rawToken || typeof rawToken !== "string") {
+    res.status(401).end();
+    return;
+  }
+  let user: ReturnType<typeof verifyToken>;
+  try {
+    user = verifyToken(rawToken);
+  } catch {
+    res.status(401).end();
+    return;
+  }
 
-      const job = await prisma.buildJob.findFirst({
-        where: {
-          id: req.params.jobId as string,
-          appId: req.params.appId as string,
-        },
-        select: { logs: true },
-      });
-      if (!job) {
-        res.status(404).json({ error: "Build job not found" });
-        return;
-      }
-      res.json({ logs: job.logs ? JSON.parse(job.logs) : [] });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
+  const appId = req.params.appId as string;
+  const jobId = req.params.jobId as string;
+
+  try {
+    const app = await prisma.app.findUnique({ where: { id: appId } });
+    if (!app || (user.role !== "ADMIN" && app.teamId !== user.teamId)) {
+      res.status(403).end();
+      return;
     }
-  },
-);
 
-githubRouter.get(
-  "/screenshots/:appId",
-  requireAuth,
-  async (req: Request, res: Response) => {
-    try {
-      const owned = await verifyAppOwnership(
-        req,
-        res,
-        req.params.appId as string,
-      );
-      if (!owned) return;
-
-      const jobs = await prisma.screenshotJob.findMany({
-        where: { appId: req.params.appId as string },
-        orderBy: { createdAt: "desc" },
-        take: 20,
-        select: {
-          id: true,
-          appId: true,
-          commitSha: true,
-          commitMessage: true,
-          branch: true,
-          pusher: true,
-          status: true,
-          error: true,
-          screenshotUrls: true,
-          framedByLocale: true,
-          screenshotDescriptions: true,
-          screenshotSublines: true,
-          startedAt: true,
-          completedAt: true,
-          createdAt: true,
-        },
-      });
-      res.json(jobs.map((j) => ({ ...j, logs: [] })));
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
+    const job = await prisma.screenshotJob.findFirst({
+      where: { id: jobId, appId },
+      select: { status: true, logs: true },
+    });
+    if (!job) {
+      res.status(404).end();
+      return;
     }
-  },
-);
 
-githubRouter.get(
-  "/screenshots/:appId/:jobId/logs",
-  requireAuth,
-  async (req: Request, res: Response) => {
-    try {
-      const owned = await verifyAppOwnership(
-        req,
-        res,
-        req.params.appId as string,
-      );
-      if (!owned) return;
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
 
-      const job = await prisma.screenshotJob.findFirst({
-        where: {
-          id: req.params.jobId as string,
-          appId: req.params.appId as string,
-        },
-        select: { logs: true },
-      });
-      if (!job) {
-        res.status(404).json({ error: "Screenshot job not found" });
-        return;
-      }
-      res.json({ logs: job.logs ? JSON.parse(job.logs) : [] });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
+    const send = (event: string, data: string) => {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
+    if (job.status === "COMPLETED" || job.status === "FAILED") {
+      const stored: string[] = job.logs ? JSON.parse(job.logs) : [];
+      for (const line of stored) send("log", line);
+      send("done", job.status);
+      res.end();
+      return;
     }
-  },
-);
+
+    const buffer = getJobLogBuffer(jobId);
+    if (!buffer) {
+      send("waiting", "pending");
+      res.end();
+      return;
+    }
+
+    for (const line of buffer.logs) send("log", line);
+
+    if (buffer.done) {
+      send("done", "COMPLETED");
+      res.end();
+      return;
+    }
+
+    const onLine = (line: string) => send("log", line);
+    const onDone = () => {
+      send("done", "COMPLETED");
+      res.end();
+    };
+
+    buffer.emitter.on("line", onLine);
+    buffer.emitter.once("done", onDone);
+
+    req.on("close", () => {
+      buffer.emitter.off("line", onLine);
+      buffer.emitter.off("done", onDone);
+    });
+  } catch (err: any) {
+    logger.error(`SSE log stream error: ${err.message}`);
+    res.end();
+  }
+});
 
 async function getAppAndToken(appId: string, res: Response) {
   const app = await prisma.app.findUnique({ where: { id: appId } });
@@ -525,15 +517,12 @@ async function getAppAndToken(appId: string, res: Response) {
 }
 
 async function fetchLatestCommit(repoFullName: string, token: string) {
-  const { data } = await axios.get(
-    `https://api.github.com/repos/${repoFullName}/git/refs/heads`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github+json",
-      },
+  const { data } = await axios.get(`https://api.github.com/repos/${repoFullName}/git/refs/heads`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/vnd.github+json",
     },
-  );
+  });
   const ref = Array.isArray(data) ? data[0] : null;
   return {
     commitSha: (ref?.object?.sha ?? "unknown") as string,
@@ -541,78 +530,52 @@ async function fetchLatestCommit(repoFullName: string, token: string) {
   };
 }
 
-githubRouter.post(
-  "/screenshots/trigger/:appId",
-  requireAuth,
-  async (req: Request, res: Response) => {
-    try {
-      const owned = await verifyAppOwnership(
-        req,
-        res,
-        req.params.appId as string,
-      );
-      if (!owned) return;
+githubRouter.post("/screenshots/trigger/:appId", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const owned = await verifyAppOwnership(req, res, req.params.appId as string);
+    if (!owned) return;
 
-      const ctx = await getAppAndToken(req.params.appId as string, res);
-      if (!ctx) return;
-      const { commitSha, branch } = await fetchLatestCommit(
-        ctx.app.githubRepoFullName!,
-        ctx.token,
-      );
-      const job = await prisma.screenshotJob.create({
-        data: {
-          appId: ctx.app.id,
-          commitSha,
-          commitMessage: "[manual trigger]",
-          branch,
-          pusher: req.user!.userId,
-          status: "PENDING",
-        },
-      });
-      runScreenshotGeneration(job.id).catch((err) =>
-        logger.error(`Screenshot job ${job.id} failed: ${err.message}`),
-      );
-      res.json({ ok: true, jobId: job.id });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  },
-);
-
-githubRouter.post(
-  "/builds/trigger/:appId",
-  requireAuth,
-  async (req: Request, res: Response) => {
-    try {
-      const owned = await verifyAppOwnership(
-        req,
-        res,
-        req.params.appId as string,
-      );
-      if (!owned) return;
-
-      const ctx = await getAppAndToken(req.params.appId as string, res);
-      if (!ctx) return;
-      const { commitSha, branch } = await fetchLatestCommit(
-        ctx.app.githubRepoFullName!,
-        ctx.token,
-      );
-      runBuildJob(ctx.app.id, {
-        repoUrl: `https://github.com/${ctx.app.githubRepoFullName}.git`,
-        accessToken: ctx.token,
-        branch,
-        appName: ctx.app.name,
-        bundleId: ctx.app.bundleId,
+    const ctx = await getAppAndToken(req.params.appId as string, res);
+    if (!ctx) return;
+    const { commitSha, branch } = await fetchLatestCommit(ctx.app.githubRepoFullName!, ctx.token);
+    const job = await prisma.screenshotJob.create({
+      data: {
+        appId: ctx.app.id,
         commitSha,
-      }).catch((err) =>
-        logger.error(`Build job for app ${ctx.app.id} failed: ${err.message}`),
-      );
-      res.json({ ok: true });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  },
-);
+        commitMessage: "[manual trigger]",
+        branch,
+        pusher: req.user!.userId,
+        status: "PENDING",
+      },
+    });
+    runScreenshotGeneration(job.id).catch((err) => logger.error(`Screenshot job ${job.id} failed: ${err.message}`));
+    res.json({ ok: true, jobId: job.id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+githubRouter.post("/builds/trigger/:appId", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const owned = await verifyAppOwnership(req, res, req.params.appId as string);
+    if (!owned) return;
+
+    const ctx = await getAppAndToken(req.params.appId as string, res);
+    if (!ctx) return;
+    const { commitSha, branch } = await fetchLatestCommit(ctx.app.githubRepoFullName!, ctx.token);
+    runBuildJob(ctx.app.id, {
+      repoUrl: `https://github.com/${ctx.app.githubRepoFullName}.git`,
+      accessToken: ctx.token,
+      branch,
+      appName: ctx.app.name,
+      bundleId: ctx.app.bundleId,
+      commitSha,
+    }).catch((err) => logger.error(`Build job for app ${ctx.app.id} failed: ${err.message}`));
+    res.json({ ok: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 githubRouter.post("/webhook", async (req: Request, res: Response) => {
   try {
@@ -653,9 +616,7 @@ githubRouter.post("/webhook", async (req: Request, res: Response) => {
     const branch = payload.ref.replace("refs/heads/", "");
     const pusher = payload.pusher.name;
 
-    logger.info(
-      `GitHub push: ${repoFullName}@${branch} (${commitSha.slice(0, 7)}) by ${pusher}`,
-    );
+    logger.info(`GitHub push: ${repoFullName}@${branch} (${commitSha.slice(0, 7)}) by ${pusher}`);
 
     const job = await prisma.screenshotJob.create({
       data: {
@@ -675,9 +636,7 @@ githubRouter.post("/webhook", async (req: Request, res: Response) => {
       : null;
 
     runScreenshotGeneration(job.id).catch((err) =>
-      logger.error(
-        `Screenshot generation failed for job ${job.id}: ${err.message}`,
-      ),
+      logger.error(`Screenshot generation failed for job ${job.id}: ${err.message}`),
     );
 
     if (settings?.githubAccessToken) {
@@ -688,9 +647,7 @@ githubRouter.post("/webhook", async (req: Request, res: Response) => {
         appName: app.name,
         bundleId: app.bundleId,
         commitSha,
-      }).catch((err) =>
-        logger.error(`Binary build failed for app ${app.id}: ${err.message}`),
-      );
+      }).catch((err) => logger.error(`Binary build failed for app ${app.id}: ${err.message}`));
     }
 
     res.json({ ok: true, jobId: job.id });
@@ -700,229 +657,194 @@ githubRouter.post("/webhook", async (req: Request, res: Response) => {
   }
 });
 
-githubRouter.post(
-  "/screenshots/frame/:jobId",
-  requireAuth,
-  async (req: Request, res: Response) => {
-    try {
-      const jobId = req.params.jobId as string;
-      const {
-        subtitle = "Your App",
-        bgColor1 = "#667eea",
-        bgColor2 = "#764ba2",
-        textColor = "#ffffff",
-      } = req.body;
+githubRouter.post("/screenshots/frame/:jobId", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const jobId = req.params.jobId as string;
+    const { subtitle = "Your App", bgColor1 = "#667eea", bgColor2 = "#764ba2", textColor = "#ffffff" } = req.body;
 
-      const job = await prisma.screenshotJob.findUnique({
-        where: { id: jobId },
-      });
-      if (!job) {
-        res.status(404).json({ error: "Job not found" });
-        return;
-      }
-      if (job.status !== "COMPLETED") {
-        res.status(400).json({ error: "Job is not completed yet" });
-        return;
-      }
-
-      const screenshotsBase = path.join(process.cwd(), "screenshots");
-      const rawDir = path.join(screenshotsBase, jobId);
-      const framedDir = path.join(screenshotsBase, jobId, "framed");
-
-      if (!fs.existsSync(rawDir)) {
-        res
-          .status(404)
-          .json({ error: "Screenshot directory not found on disk" });
-        return;
-      }
-
-      const subDirs = fs
-        .readdirSync(rawDir, { withFileTypes: true })
-        .filter((e) => e.isDirectory() && e.name !== "framed")
-        .map((e) => path.join(rawDir, e.name));
-
-      const sourceDirs = subDirs.length > 0 ? subDirs : [rawDir];
-      const framedUrls: string[] = [];
-      const framedByLocale: Record<string, string[]> = {};
-
-      for (const srcDir of sourceDirs) {
-        const rel = path.relative(rawDir, srcDir);
-        const locale = path.basename(srcDir);
-        const outDir = path.join(framedDir, rel === "." ? "" : rel);
-        const outputPaths = await frameWithFastlane(srcDir, outDir, {
-          subtitle,
-          bgColor1,
-          bgColor2,
-          textColor,
-        });
-        const urls = outputPaths.map(
-          (p) =>
-            "/screenshots/" +
-            path.relative(screenshotsBase, p).replace(/\\/g, "/"),
-        );
-        framedUrls.push(...urls);
-        const key = rel === "." ? "default" : locale;
-        framedByLocale[key] = (framedByLocale[key] ?? []).concat(urls);
-      }
-
-      await prisma.screenshotJob.update({
-        where: { id: jobId },
-        data: { framedByLocale: framedByLocale as any },
-      });
-
-      res.json({
-        ok: true,
-        count: framedUrls.length,
-        framedUrls,
-        framedByLocale,
-      });
-    } catch (err: any) {
-      logger.error(`Frame screenshots error: ${err.message}`);
-      res.status(500).json({ error: err.message });
+    const job = await prisma.screenshotJob.findUnique({
+      where: { id: jobId },
+    });
+    if (!job) {
+      res.status(404).json({ error: "Job not found" });
+      return;
     }
-  },
-);
+    if (job.status !== "COMPLETED") {
+      res.status(400).json({ error: "Job is not completed yet" });
+      return;
+    }
 
-githubRouter.post(
-  "/screenshots/test-local",
-  requireAuth,
-  async (req: Request, res: Response) => {
-    try {
-      const {
-        dirPath,
-        subtitle = "Your App",
-        bgColor1 = "#667eea",
-        bgColor2 = "#764ba2",
-        textColor = "#ffffff",
-      } = req.body;
+    const screenshotsBase = path.join(process.cwd(), "screenshots");
+    const rawDir = path.join(screenshotsBase, jobId);
+    const framedDir = path.join(screenshotsBase, jobId, "framed");
 
-      if (!dirPath || typeof dirPath !== "string") {
-        res.status(400).json({ error: "dirPath is required" });
-        return;
-      }
-      if (!fs.existsSync(dirPath)) {
-        res.status(400).json({ error: `Directory not found: ${dirPath}` });
-        return;
-      }
+    if (!fs.existsSync(rawDir)) {
+      res.status(404).json({ error: "Screenshot directory not found on disk" });
+      return;
+    }
 
-      const screenshotsBase = path.join(process.cwd(), "screenshots");
-      const outputDir = path.join(
-        screenshotsBase,
-        "local-test",
-        String(Date.now()),
-      );
+    const subDirs = fs
+      .readdirSync(rawDir, { withFileTypes: true })
+      .filter((e) => e.isDirectory() && e.name !== "framed")
+      .map((e) => path.join(rawDir, e.name));
 
-      const framedPaths = await frameWithFastlane(dirPath, outputDir, {
+    const sourceDirs = subDirs.length > 0 ? subDirs : [rawDir];
+    const framedUrls: string[] = [];
+    const framedByLocale: Record<string, string[]> = {};
+
+    for (const srcDir of sourceDirs) {
+      const rel = path.relative(rawDir, srcDir);
+      const locale = path.basename(srcDir);
+      const outDir = path.join(framedDir, rel === "." ? "" : rel);
+      const outputPaths = await frameWithFastlane(srcDir, outDir, {
         subtitle,
         bgColor1,
         bgColor2,
         textColor,
       });
-
-      const framedUrls = framedPaths.map(
-        (p) =>
-          "/screenshots/" +
-          path.relative(screenshotsBase, p).replace(/\\/g, "/"),
-      );
-
-      res.json({ ok: true, count: framedUrls.length, framedUrls, outputDir });
-    } catch (err: any) {
-      logger.error(`Test-local frame error: ${err.message}`);
-      res.status(500).json({ error: err.message });
+      const urls = outputPaths.map((p) => "/screenshots/" + path.relative(screenshotsBase, p).replace(/\\/g, "/"));
+      framedUrls.push(...urls);
+      const key = rel === "." ? "default" : locale;
+      framedByLocale[key] = (framedByLocale[key] ?? []).concat(urls);
     }
-  },
-);
 
-githubRouter.delete(
-  "/screenshots/framed/:jobId",
-  requireAuth,
-  async (req: Request, res: Response) => {
+    await prisma.screenshotJob.update({
+      where: { id: jobId },
+      data: { framedByLocale: framedByLocale as any },
+    });
+
+    res.json({
+      ok: true,
+      count: framedUrls.length,
+      framedUrls,
+      framedByLocale,
+    });
+  } catch (err: any) {
+    logger.error(`Frame screenshots error: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+githubRouter.post("/screenshots/test-local", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const {
+      dirPath,
+      subtitle = "Your App",
+      bgColor1 = "#667eea",
+      bgColor2 = "#764ba2",
+      textColor = "#ffffff",
+    } = req.body;
+
+    if (!dirPath || typeof dirPath !== "string") {
+      res.status(400).json({ error: "dirPath is required" });
+      return;
+    }
+    if (!fs.existsSync(dirPath)) {
+      res.status(400).json({ error: `Directory not found: ${dirPath}` });
+      return;
+    }
+
+    const screenshotsBase = path.join(process.cwd(), "screenshots");
+    const outputDir = path.join(screenshotsBase, "local-test", String(Date.now()));
+
+    const framedPaths = await frameWithFastlane(dirPath, outputDir, {
+      subtitle,
+      bgColor1,
+      bgColor2,
+      textColor,
+    });
+
+    const framedUrls = framedPaths.map((p) => "/screenshots/" + path.relative(screenshotsBase, p).replace(/\\/g, "/"));
+
+    res.json({ ok: true, count: framedUrls.length, framedUrls, outputDir });
+  } catch (err: any) {
+    logger.error(`Test-local frame error: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+githubRouter.delete("/screenshots/framed/:jobId", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const jobId = req.params.jobId as string;
+    const { url } = req.body as { url?: string };
+    if (!url) {
+      res.status(400).json({ error: "url is required" });
+      return;
+    }
+
+    const job = await prisma.screenshotJob.findUnique({ where: { id: jobId } });
+    if (!job || !job.framedByLocale) {
+      res.status(404).json({ error: "Job not found" });
+      return;
+    }
+
+    const framedByLocale = job.framedByLocale as Record<string, string[]>;
+    const updated: Record<string, string[]> = {};
+    for (const [locale, urls] of Object.entries(framedByLocale)) {
+      const filtered = urls.filter((u) => u !== url);
+      if (filtered.length > 0) updated[locale] = filtered;
+    }
+
+    await prisma.screenshotJob.update({
+      where: { id: jobId },
+      data: { framedByLocale: updated as any },
+    });
+
     try {
-      const jobId = req.params.jobId as string;
-      const { url } = req.body as { url?: string };
-      if (!url) {
-        res.status(400).json({ error: "url is required" });
-        return;
+      const screenshotsBase = path.join(process.cwd(), "screenshots");
+      const rel = url.replace(/^\/screenshots\//, "");
+      const filePath = path.join(screenshotsBase, rel);
+      if (filePath.startsWith(screenshotsBase) && fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
       }
-
-      const job = await prisma.screenshotJob.findUnique({ where: { id: jobId } });
-      if (!job || !job.framedByLocale) {
-        res.status(404).json({ error: "Job not found" });
-        return;
-      }
-
-      const framedByLocale = job.framedByLocale as Record<string, string[]>;
-      const updated: Record<string, string[]> = {};
-      for (const [locale, urls] of Object.entries(framedByLocale)) {
-        const filtered = urls.filter((u) => u !== url);
-        if (filtered.length > 0) updated[locale] = filtered;
-      }
-
-      await prisma.screenshotJob.update({
-        where: { id: jobId },
-        data: { framedByLocale: updated as any },
-      });
-
-      try {
-        const screenshotsBase = path.join(process.cwd(), "screenshots");
-        const rel = url.replace(/^\/screenshots\//, "");
-        const filePath = path.join(screenshotsBase, rel);
-        if (filePath.startsWith(screenshotsBase) && fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
-        }
-      } catch (err: any) {
-        logger.warn(`Failed to delete screenshot file: ${err.message}`);
-      }
-
-      res.json({ ok: true });
     } catch (err: any) {
-      logger.error(`Delete framed screenshot error: ${err.message}`);
-      res.status(500).json({ error: err.message });
+      logger.warn(`Failed to delete screenshot file: ${err.message}`);
     }
-  },
-);
 
-githubRouter.get(
-  "/screenshots/latest-framed/:appId",
-  requireAuth,
-  async (req: Request, res: Response) => {
-    try {
-      const ascAppId = req.params.appId as string;
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error(`Delete framed screenshot error: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
 
-      const internalApp = await prisma.app.findFirst({
-        where: { trackId: BigInt(ascAppId) },
-        select: { id: true },
-      });
-      if (!internalApp) {
-        res.json({ job: null });
-        return;
-      }
+githubRouter.get("/screenshots/latest-framed/:appId", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const ascAppId = req.params.appId as string;
 
-      const jobs = await prisma.screenshotJob.findMany({
-        where: { appId: internalApp.id, status: "COMPLETED" },
-        orderBy: { createdAt: "desc" },
-        take: 20,
-      });
-      const job = jobs.find((j) => j.framedByLocale != null) ?? null;
-
-      if (!job || !job.framedByLocale) {
-        res.json({ job: null });
-        return;
-      }
-
-      res.json({
-        job: {
-          id: job.id,
-          commitSha: job.commitSha,
-          commitMessage: job.commitMessage,
-          branch: job.branch,
-          createdAt: job.createdAt,
-          framedByLocale: job.framedByLocale,
-        },
-      });
-    } catch (err: any) {
-      logger.error(`latest-framed error: ${err.message}`);
-      res.status(500).json({ error: err.message });
+    const internalApp = await prisma.app.findFirst({
+      where: { trackId: BigInt(ascAppId) },
+      select: { id: true },
+    });
+    if (!internalApp) {
+      res.json({ job: null });
+      return;
     }
-  },
-);
+
+    const jobs = await prisma.screenshotJob.findMany({
+      where: { appId: internalApp.id, status: "COMPLETED" },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    });
+    const job = jobs.find((j) => j.framedByLocale != null) ?? null;
+
+    if (!job || !job.framedByLocale) {
+      res.json({ job: null });
+      return;
+    }
+
+    res.json({
+      job: {
+        id: job.id,
+        commitSha: job.commitSha,
+        commitMessage: job.commitMessage,
+        branch: job.branch,
+        createdAt: job.createdAt,
+        framedByLocale: job.framedByLocale,
+      },
+    });
+  } catch (err: any) {
+    logger.error(`latest-framed error: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});

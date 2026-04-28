@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, ChevronDown, GitBranch } from "lucide-react";
-import { useApi, apiPost, getActiveBundleId, authHeaders } from "../hooks/useApi";
+import { useApi, apiPost, getActiveBundleId, authHeaders, getToken } from "../hooks/useApi";
 import {
   badgeOutline,
   borderDefault,
@@ -72,6 +72,63 @@ function useLazyLogs(path: string | null) {
   }, [path]);
 
   return { logs, loading, error };
+}
+
+/**
+ * Streams logs via SSE for PENDING/RUNNING jobs.
+ * Falls back to a "waiting" retry loop if the job hasn't started yet.
+ * Returns `{ lines, streaming, done }`.
+ */
+function useStreamingLogs(jobId: string | null, appId: string | null, active: boolean) {
+  const [lines, setLines] = useState<string[]>([]);
+  const [done, setDone] = useState(false);
+  const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!jobId || !appId || !active) return;
+    const token = getToken();
+    if (!token) return;
+
+    let es: EventSource | null = null;
+    let cancelled = false;
+
+    function connect() {
+      if (cancelled) return;
+      const url = `/api/github/screenshots/${appId}/${jobId}/logs/stream?token=${encodeURIComponent(token!)}`;
+      es = new EventSource(url);
+
+      es.addEventListener("log", (e) => {
+        if (cancelled) return;
+        setLines((prev) => [...prev, JSON.parse((e as MessageEvent).data) as string]);
+      });
+
+      es.addEventListener("done", () => {
+        if (cancelled) return;
+        setDone(true);
+        es?.close();
+      });
+
+      es.addEventListener("waiting", () => {
+        es?.close();
+        if (!cancelled) retryRef.current = setTimeout(connect, 2000);
+      });
+
+      es.onerror = () => {
+        es?.close();
+        if (!cancelled) retryRef.current = setTimeout(connect, 3000);
+      };
+    }
+
+    connect();
+
+    return () => {
+      cancelled = true;
+      es?.close();
+      if (retryRef.current) clearTimeout(retryRef.current);
+    };
+  }, [jobId, appId, active]);
+
+  return { lines, done };
 }
 
 function LogsBlock({ logs, loading, error }: { logs: string[] | null; loading: boolean; error: string | null }) {
@@ -378,6 +435,7 @@ export function ScreenshotJobsTable({
               expanded={expandedJob === j.id}
               onToggle={() => setExpandedJob(expandedJob === j.id ? null : j.id)}
               addToast={addToast}
+              onJobDone={() => setTimeout(refetch, 1000)}
             />
           ))}
         </div>
@@ -391,18 +449,36 @@ function JobRow({
   expanded,
   onToggle,
   addToast,
+  onJobDone,
 }: {
   job: ScreenshotJob;
   expanded: boolean;
   onToggle: () => void;
   addToast: (msg: string, type: "success" | "error" | "info") => void;
+  onJobDone?: () => void;
 }) {
   const [framedUrls] = useState<string[]>([]);
-  const {
-    logs,
-    loading: logsLoading,
-    error: logsError,
-  } = useLazyLogs(expanded ? `/github/screenshots/${job.appId}/${job.id}/logs` : null);
+  const isActive = job.status === "PENDING" || job.status === "RUNNING";
+
+  // For finished jobs: lazy-load logs from DB. For active jobs: stream live.
+  const { logs: lazyLogs, loading: logsLoading, error: logsError } =
+    useLazyLogs(!isActive && expanded ? `/github/screenshots/${job.appId}/${job.id}/logs` : null);
+  const { lines: streamLines, done: streamDone } =
+    useStreamingLogs(isActive ? job.id : null, isActive ? job.appId : null, expanded);
+
+  const logsRef = useRef<HTMLPreElement>(null);
+
+  // Auto-scroll as new stream lines arrive
+  useEffect(() => {
+    if (logsRef.current) logsRef.current.scrollTop = logsRef.current.scrollHeight;
+  }, [streamLines.length]);
+
+  // Notify parent when streaming finishes so it can refetch job list
+  useEffect(() => {
+    if (streamDone) onJobDone?.();
+  }, [streamDone, onJobDone]);
+
+  const displayLogs: string[] | null = isActive ? streamLines : lazyLogs;
 
   return (
     <div
@@ -469,7 +545,28 @@ function JobRow({
             </div>
           )}
 
-          <LogsBlock logs={logs} loading={logsLoading} error={logsError} />
+          {isActive ? (
+            <div>
+              <div className={`flex items-center gap-2 text-[11px] font-medium ${textSecondary} uppercase tracking-wide mb-1`}>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                Live logs ({streamLines.length} lines)
+              </div>
+              {streamLines.length === 0 ? (
+                <div className={`flex items-center gap-2 text-[12px] ${textSecondary} py-2`}>
+                  <div className="spinner !w-3 !h-3" /> Waiting for logs…
+                </div>
+              ) : (
+                <pre
+                  ref={logsRef}
+                  className="text-[11px] bg-[#111827] rounded-lg p-3 overflow-x-auto max-h-[400px] overflow-y-auto font-mono leading-relaxed"
+                >
+                  {streamLines.map(renderLogLine)}
+                </pre>
+              )}
+            </div>
+          ) : (
+            <LogsBlock logs={displayLogs} loading={logsLoading} error={logsError} />
+          )}
         </div>
       )}
     </div>
