@@ -374,42 +374,49 @@ export class SnapshotRunner {
   ): Promise<void> {
     const xcResults = fs.readdirSync(testLogsDir).filter((n) => n.endsWith(".xcresult"));
     const collected: string[] = [];
+    const langBase = lang.split("-")[0];
+    const langPrefix = `${langBase}__`;
 
     for (const xcName of xcResults) {
       const xcPath = path.join(testLogsDir, xcName);
-      const extractDir = path.join(
-        this.tmpDir,
-        `attachments-${lang}-${device.replace(/[^a-zA-Z0-9]/g, "_")}-${xcName}`,
-      );
-      fs.mkdirSync(extractDir, { recursive: true });
+      let nameMap: Map<string, string>;
 
       try {
-        await execAsync(`xcrun xcresulttool export attachments --path "${xcPath}" --output-path "${extractDir}"`, {
-          timeout: 120_000,
-          maxBuffer: 10 * 1024 * 1024,
-        });
-      } catch {
-        this.push(`[snapshot] Warning: xcresulttool export failed for ${xcName}`);
+        nameMap = await this.buildAttachmentNameMap(xcPath);
+      } catch (e) {
+        this.push(`[snapshot] Warning: could not parse xcresult JSON for ${xcName}: ${e}`);
         continue;
       }
 
-      const walk = (dir: string) => {
-        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-          const full = path.join(dir, entry.name);
-          if (entry.isDirectory()) walk(full);
-          else if (/\.(png|jpg|jpeg)$/i.test(entry.name)) {
-            const cleanName = entry.name
-              .replace(new RegExp(`^${lang}__`, "i"), "")
-              .replace(new RegExp(`^${lang}_`, "i"), "");
+      this.push(
+        `[snapshot] [${deviceLabel}] ${lang}: attachment names: ${[...nameMap.values()].join(", ") || "(none)"}`,
+      );
+
+      const relevant = [...nameMap.entries()].filter(([, name]) => name.startsWith(langPrefix));
+      this.push(`[snapshot] [${deviceLabel}] ${lang}: exporting ${relevant.length} screenshot(s)`);
+
+      for (const [payloadId, attName] of relevant) {
+        const cleanName = attName.slice(langPrefix.length) + ".png";
+        const outPath = path.join(this.tmpDir, `snap-${this.runId}-${cleanName}.png`);
+        try {
+          await execAsync(
+            `xcrun xcresulttool export --legacy --path "${xcPath}" --output-path "${outPath}" --type file --id "${payloadId}"`,
+            { timeout: 30_000 },
+          );
+          if (fs.existsSync(outPath)) {
             (screenshots[lang] ??= []).push({
               filename: cleanName,
-              data: fs.readFileSync(full).toString("base64"),
+              data: fs.readFileSync(outPath).toString("base64"),
             });
             collected.push(cleanName);
+            fs.unlinkSync(outPath);
+          } else {
+            this.push(`[snapshot] Warning: export produced no file for "${attName}"`);
           }
+        } catch (e) {
+          this.push(`[snapshot] Warning: could not export "${attName}": ${e}`);
         }
-      };
-      walk(extractDir);
+      }
     }
 
     this.push(
@@ -419,6 +426,115 @@ export class SnapshotRunner {
     for (const xcName of xcResults) {
       fs.rmSync(path.join(testLogsDir, xcName), { recursive: true, force: true });
     }
+  }
+
+  private async buildAttachmentNameMap(xcPath: string): Promise<Map<string, string>> {
+    const map = new Map<string, string>();
+
+    const getJson = async (id?: string): Promise<unknown> => {
+      const idArg = id ? ` --id "${id}"` : "";
+      const opts = { timeout: 60_000, maxBuffer: 50 * 1024 * 1024 };
+      for (const flags of ["--legacy ", ""]) {
+        try {
+          const { stdout } = await execAsync(
+            `xcrun xcresulttool get ${flags}--path "${xcPath}" --format json${idArg}`,
+            opts,
+          );
+          return JSON.parse(stdout);
+        } catch {
+          // try next variant
+        }
+      }
+      throw new Error("xcresulttool get failed for all flag variants");
+    };
+
+    const extractAttachments = (node: unknown): void => {
+      if (!node || typeof node !== "object") return;
+      if (Array.isArray(node)) {
+        node.forEach(extractAttachments);
+        return;
+      }
+      const obj = node as Record<string, unknown>;
+
+      const typeName = (obj._type as any)?._name;
+      if (typeName === "ActionTestAttachment" || (typeof obj.payloadRef === "object" && obj.payloadRef !== null)) {
+        const rawName = obj.name;
+        const name = typeof rawName === "string" ? rawName : (rawName as any)?._value;
+        const ref = obj.payloadRef as any;
+        const payloadId: string | undefined = typeof ref?.id === "string" ? ref.id : ref?.id?._value;
+        if (typeof name === "string" && typeof payloadId === "string" && name.length > 0) {
+          map.set(payloadId.replace(/\.(png|jpg|jpeg)$/i, ""), name);
+        }
+      }
+
+      for (const val of Object.values(obj)) {
+        if (!val || typeof val !== "object") continue;
+        const v = val as any;
+        if (Array.isArray(v)) {
+          v.forEach(extractAttachments);
+          continue;
+        }
+        if (Array.isArray(v._values)) {
+          v._values.forEach(extractAttachments);
+          continue;
+        }
+        extractAttachments(val);
+      }
+    };
+
+    const collectRefIds = (root: unknown, key: string): string[] => {
+      const ids: string[] = [];
+      const walk = (n: unknown): void => {
+        if (!n || typeof n !== "object") return;
+        if (Array.isArray(n)) {
+          n.forEach(walk);
+          return;
+        }
+        const o = n as Record<string, unknown>;
+        if (key in o) {
+          const ref = o[key] as any;
+          const id = typeof ref?.id === "string" ? ref.id : ref?.id?._value;
+          if (typeof id === "string") ids.push(id);
+        }
+        for (const val of Object.values(o)) {
+          if (!val || typeof val !== "object") continue;
+          const v = val as any;
+          if (Array.isArray(v)) {
+            v.forEach(walk);
+            continue;
+          }
+          if (Array.isArray(v._values)) {
+            v._values.forEach(walk);
+            continue;
+          }
+          walk(val);
+        }
+      };
+      walk(root);
+      return [...new Set(ids)];
+    };
+
+    const root = await getJson();
+    extractAttachments(root);
+
+    for (const refId of collectRefIds(root, "testsRef")) {
+      let sub: unknown;
+      try {
+        sub = await getJson(refId);
+      } catch {
+        continue;
+      }
+      extractAttachments(sub);
+      for (const summaryId of collectRefIds(sub, "summaryRef")) {
+        try {
+          extractAttachments(await getJson(summaryId));
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+
+    return map;
   }
 
   // ---------------------------------------------------------------------------

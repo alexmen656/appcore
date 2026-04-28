@@ -137,5 +137,8 @@ Top level ::Parts is deprecated, require 'multipart/post' and use `Multipart::Po
 	from /opt/homebrew/Cellar/fastlane/2.232.2/libexec/bin/fastlane:25:in '<main>'
 
 
+## important
+setup dhcp lease
+
 ## Credits
 Design partly inspired by RevenueCat
