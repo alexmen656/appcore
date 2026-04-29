@@ -1,4 +1,3 @@
-import axios from "axios";
 import { prisma, logger } from "../config";
 import type { EffectiveSettings } from "../config";
 import { AIClient } from "./ai-client";
@@ -30,10 +29,13 @@ export class CompetitorIntelService {
 
     for (let page = 1; page <= 10; page++) {
       try {
-        const { data } = await axios.get(
+        const data: any = await fetch(
           `https://itunes.apple.com/${cc}/rss/customerreviews/page=${page}/id=${tid}/sortby=mostrecent/json`,
-          { timeout: 10000 },
-        );
+          { signal: AbortSignal.timeout(10000) },
+        ).then((r) => {
+          if (!r.ok) throw new Error(`iTunes API Error: ${r.status}`);
+          return r.json();
+        });
 
         const entries = data?.feed?.entry;
         if (!entries || !Array.isArray(entries)) break;

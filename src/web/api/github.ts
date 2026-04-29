@@ -1,6 +1,5 @@
 import { Router, Request, Response } from "express";
 import crypto from "crypto";
-import axios from "axios";
 import fs from "fs";
 import path from "path";
 import { logger, prisma } from "../../config";
@@ -517,11 +516,14 @@ async function getAppAndToken(appId: string, res: Response) {
 }
 
 async function fetchLatestCommit(repoFullName: string, token: string) {
-  const { data } = await axios.get(`https://api.github.com/repos/${repoFullName}/git/refs/heads`, {
+  const data = await fetch(`https://api.github.com/repos/${repoFullName}/git/refs/heads`, {
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/vnd.github+json",
     },
+  }).then((r) => {
+    if (!r.ok) throw new Error(`GitHub API Error: ${r.status}`);
+    return r.json();
   });
   const ref = Array.isArray(data) ? data[0] : null;
   return {
