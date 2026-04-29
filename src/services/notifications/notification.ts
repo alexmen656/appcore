@@ -56,9 +56,7 @@ class NotificationService {
   configure(config: APNsConfig): void {
     this.apnsConfig = config;
     this.jwtToken = null;
-    logger.info(
-      `[PUSH] Configured APNs for ${config.bundleId} (${config.apnsHost})`,
-    );
+    logger.info(`[PUSH] Configured APNs for ${config.bundleId} (${config.apnsHost})`);
   }
 
   isConfigured(): boolean {
@@ -71,9 +69,7 @@ class NotificationService {
     if (this.jwtToken && now - this.jwtIssuedAt < 3000) return this.jwtToken;
 
     const { keyPath, keyId, teamId } = this.apnsConfig;
-    const privateKey = keyPath.startsWith("-----BEGIN")
-      ? keyPath
-      : fs.readFileSync(keyPath, "utf8");
+    const privateKey = keyPath.startsWith("-----BEGIN") ? keyPath : fs.readFileSync(keyPath, "utf8");
 
     this.jwtToken = jwt.sign({}, privateKey, {
       algorithm: "ES256",
@@ -82,15 +78,12 @@ class NotificationService {
       expiresIn: "1h",
       header: { alg: "ES256", kid: keyId },
     } as any);
-    
+
     this.jwtIssuedAt = now;
     return this.jwtToken!;
   }
 
-  async pushToDevice(
-    deviceToken: string,
-    payload: PushPayload,
-  ): Promise<boolean> {
+  async pushToDevice(deviceToken: string, payload: PushPayload): Promise<boolean> {
     if (!this.apnsConfig) {
       logger.warn("[PUSH] APNs not configured, skipping push");
       return false;
@@ -178,49 +171,34 @@ class NotificationService {
     });
   }
 
-  async pushToAll(
-    payload: PushPayload,
-  ): Promise<{ sent: number; failed: number }> {
+  async pushToAll(payload: PushPayload): Promise<{ sent: number; failed: number }> {
     const tokens = await prisma.deviceToken.findMany({
       where: { isActive: true, platform: "ios" },
     });
 
-    const results = await Promise.all(
-      tokens.map((t) => this.pushToDevice(t.token, payload)),
-    );
+    const results = await Promise.all(tokens.map((t) => this.pushToDevice(t.token, payload)));
 
     const sent = results.filter(Boolean).length;
     const failed = results.length - sent;
 
-    logger.info(
-      `[PUSH] Broadcast: ${sent} sent, ${failed} failed (of ${tokens.length} devices)`,
-    );
+    logger.info(`[PUSH] Broadcast: ${sent} sent, ${failed} failed (of ${tokens.length} devices)`);
     return { sent, failed };
   }
 
-  async pushToUser(
-    userId: string,
-    payload: PushPayload,
-  ): Promise<{ sent: number; failed: number }> {
+  async pushToUser(userId: string, payload: PushPayload): Promise<{ sent: number; failed: number }> {
     const tokens = await prisma.deviceToken.findMany({
       where: { userId, isActive: true, platform: "ios" },
     });
 
-    const results = await Promise.all(
-      tokens.map((t) => this.pushToDevice(t.token, payload)),
-    );
+    const results = await Promise.all(tokens.map((t) => this.pushToDevice(t.token, payload)));
 
     const sent = results.filter(Boolean).length;
     return { sent, failed: results.length - sent };
   }
 
-  async sendEmail(
-    emailOpts: NonNullable<NotifyOptions["email"]>,
-  ): Promise<NotifyResult["email"]> {
+  async sendEmail(emailOpts: NonNullable<NotifyOptions["email"]>): Promise<NotifyResult["email"]> {
     if (!env.RESEND_API_KEY) {
-      logger.warn(
-        `[email] RESEND_API_KEY not set — skipping "${emailOpts.subject}" to ${emailOpts.to}`,
-      );
+      logger.warn(`[email] RESEND_API_KEY not set — skipping "${emailOpts.subject}" to ${emailOpts.to}`);
       return "skipped";
     }
     try {
@@ -239,8 +217,7 @@ class NotificationService {
           : ""
       }
       <p style="color:#9ca3af;font-size:12px;margin-top:24px;line-height:1.5;">${
-        content.footer ??
-        "Falls du diese E-Mail nicht erwartet hast, kannst du sie ignorieren."
+        content.footer ?? "Falls du diese E-Mail nicht erwartet hast, kannst du sie ignorieren."
       }</p>
       </div></body></html>`;
 
@@ -268,9 +245,7 @@ class NotificationService {
               result.push = { sent: 0, failed: 1 };
             })
         : Promise.resolve(),
-      options.email
-        ? this.sendEmail(options.email).then((r) => (result.email = r))
-        : Promise.resolve(),
+      options.email ? this.sendEmail(options.email).then((r) => (result.email = r)) : Promise.resolve(),
     ]);
     return result;
   }
@@ -286,17 +261,12 @@ class NotificationService {
               result.push = { sent: 0, failed: 1 };
             })
         : Promise.resolve(),
-      options.email
-        ? this.sendEmail(options.email).then((r) => (result.email = r))
-        : Promise.resolve(),
+      options.email ? this.sendEmail(options.email).then((r) => (result.email = r)) : Promise.resolve(),
     ]);
     return result;
   }
 
-  async notifyDevice(
-    deviceToken: string,
-    options: NotifyOptions,
-  ): Promise<NotifyResult> {
+  async notifyDevice(deviceToken: string, options: NotifyOptions): Promise<NotifyResult> {
     const result: NotifyResult = {};
     await Promise.all([
       options.push
@@ -307,9 +277,7 @@ class NotificationService {
               result.push = false;
             })
         : Promise.resolve(),
-      options.email
-        ? this.sendEmail(options.email).then((r) => (result.email = r))
-        : Promise.resolve(),
+      options.email ? this.sendEmail(options.email).then((r) => (result.email = r)) : Promise.resolve(),
     ]);
     return result;
   }

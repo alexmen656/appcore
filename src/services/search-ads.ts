@@ -47,14 +47,11 @@ export class AppleSearchAdsClient {
   }
 
   private generateClientSecret(): string {
-    const keyPath = path.resolve(
-      env.APPLE_ADS_KEY_PATH || "./keys/apple_ads_private_key.pem",
-    );
+    const keyPath = path.resolve(env.APPLE_ADS_KEY_PATH || "./keys/apple_ads_private_key.pem");
 
     if (!fs.existsSync(keyPath)) {
       throw new Error(
-        `Search Ads private key not found at ${keyPath}. ` +
-          `Download it from Apple Search Ads UI → Settings → API.`,
+        `Search Ads private key not found at ${keyPath}. ` + `Download it from Apple Search Ads UI → Settings → API.`,
       );
     }
 
@@ -127,9 +124,7 @@ export class AppleSearchAdsClient {
     }
 
     if (!env.APPLE_ADS_CLIENT_ID) {
-      throw new Error(
-        "Apple Search Ads credentials missing. Set APPLE_ADS_CLIENT_ID.",
-      );
+      throw new Error("Apple Search Ads credentials missing. Set APPLE_ADS_CLIENT_ID.");
     }
 
     const clientSecret = this.generateClientSecret();
@@ -152,10 +147,7 @@ export class AppleSearchAdsClient {
     return this.accessToken;
   }
 
-  async getTargetingKeywords(
-    appId: string,
-    limit = 50,
-  ): Promise<KeywordInsight[]> {
+  async getTargetingKeywords(appId: string, limit = 50): Promise<KeywordInsight[]> {
     const recommended = await this.getRecommendedKeywords(appId, limit);
     if (recommended.length > 0) return recommended;
 
@@ -179,10 +171,7 @@ export class AppleSearchAdsClient {
     }
   }
 
-  async getRecommendedKeywords(
-    appId: string,
-    limit = 50,
-  ): Promise<KeywordInsight[]> {
+  async getRecommendedKeywords(appId: string, limit = 50): Promise<KeywordInsight[]> {
     try {
       const { data } = await this.client.post("/keywords/recommended", {
         appId,
@@ -196,9 +185,7 @@ export class AppleSearchAdsClient {
         })) ?? [];
 
       if (results.length > 0) {
-        logger.info(
-          `Got ${results.length} recommended keywords from Search Ads`,
-        );
+        logger.info(`Got ${results.length} recommended keywords from Search Ads`);
       }
       return results;
     } catch (error) {
@@ -209,23 +196,16 @@ export class AppleSearchAdsClient {
     }
   }
 
-  async getSearchTermReport(
-    campaignId: string,
-    startDate: string,
-    endDate: string,
-  ): Promise<SearchTermSource[]> {
+  async getSearchTermReport(campaignId: string, startDate: string, endDate: string): Promise<SearchTermSource[]> {
     try {
-      const { data } = await this.client.post(
-        `/reports/campaigns/${campaignId}/searchterms`,
-        {
-          startTime: startDate,
-          endTime: endDate,
-          granularity: "DAILY",
-          selector: {
-            pagination: { offset: 0, limit: 100 },
-          },
+      const { data } = await this.client.post(`/reports/campaigns/${campaignId}/searchterms`, {
+        startTime: startDate,
+        endTime: endDate,
+        granularity: "DAILY",
+        selector: {
+          pagination: { offset: 0, limit: 100 },
         },
-      );
+      });
 
       return (
         data.data?.reportingDataResponse?.row?.map((row: any) => ({
@@ -259,24 +239,16 @@ export class AppleSearchAdsClient {
     }
   }
 
-  async getKeywordReport(
-    campaignId: string,
-    adGroupId: string,
-    startDate: string,
-    endDate: string,
-  ): Promise<any[]> {
+  async getKeywordReport(campaignId: string, adGroupId: string, startDate: string, endDate: string): Promise<any[]> {
     try {
-      const { data } = await this.client.post(
-        `/reports/campaigns/${campaignId}/adgroups/${adGroupId}/keywords`,
-        {
-          startTime: startDate,
-          endTime: endDate,
-          granularity: "DAILY",
-          selector: {
-            pagination: { offset: 0, limit: 200 },
-          },
+      const { data } = await this.client.post(`/reports/campaigns/${campaignId}/adgroups/${adGroupId}/keywords`, {
+        startTime: startDate,
+        endTime: endDate,
+        granularity: "DAILY",
+        selector: {
+          pagination: { offset: 0, limit: 200 },
         },
-      );
+      });
       return data.data?.reportingDataResponse?.row ?? [];
     } catch (error) {
       logger.warn("Failed to get keyword report", {

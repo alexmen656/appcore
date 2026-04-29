@@ -33,11 +33,7 @@ function clampHsl(hex: string): string {
   }
   const lClamped = Math.min(0.6, Math.max(0.35, l));
   const sClamped = Math.max(0.4, s);
-  const hslToRgb = (
-    h: number,
-    s: number,
-    l: number,
-  ): [number, number, number] => {
+  const hslToRgb = (h: number, s: number, l: number): [number, number, number] => {
     const c = (1 - Math.abs(2 * l - 1)) * s;
     const hp = h / 60;
     const x = c * (1 - Math.abs((hp % 2) - 1));
@@ -51,21 +47,13 @@ function clampHsl(hex: string): string {
     else if (hp < 5) [r1, g1, b1] = [x, 0, c];
     else [r1, g1, b1] = [c, 0, x];
     const m = l - c / 2;
-    return [
-      Math.round((r1 + m) * 255),
-      Math.round((g1 + m) * 255),
-      Math.round((b1 + m) * 255),
-    ];
+    return [Math.round((r1 + m) * 255), Math.round((g1 + m) * 255), Math.round((b1 + m) * 255)];
   };
   const [rr, gg, bb] = hslToRgb(h, sClamped, lClamped);
-  return (
-    "#" + [rr, gg, bb].map((v) => v.toString(16).padStart(2, "0")).join("")
-  );
+  return "#" + [rr, gg, bb].map((v) => v.toString(16).padStart(2, "0")).join("");
 }
 
-export async function extractAccentColor(
-  iconUrl: string,
-): Promise<string | null> {
+export async function extractAccentColor(iconUrl: string): Promise<string | null> {
   try {
     const palette = await Vibrant.from(iconUrl).getPalette();
     const swatch =

@@ -19,9 +19,7 @@ export class KeywordDiscoveryAgent {
     this.ai = new AIClient(settings);
     this.bundleId = bundleId;
     if (!bundleId) {
-      logger.warn(
-        "[Discovery] No bundle ID provided, discovery will be disabled",
-      );
+      logger.warn("[Discovery] No bundle ID provided, discovery will be disabled");
     }
   }
 
@@ -39,35 +37,26 @@ export class KeywordDiscoveryAgent {
           keyId: s.ascKeyId,
           privateKey: s.ascPrivateKey,
         });
-        const liveVersion = ascAppId
-          ? await asc.getLiveVersion(ascAppId)
-          : null;
+        const liveVersion = ascAppId ? await asc.getLiveVersion(ascAppId) : null;
         if (liveVersion) {
-          const localizations = await asc.getVersionLocalizations(
-            liveVersion.id,
-          );
+          const localizations = await asc.getVersionLocalizations(liveVersion.id);
           const countries = localizations
             .map((loc) => localeToCountry(loc.attributes.locale))
             .filter((c): c is string => c !== null);
           const unique = [...new Set(countries)];
           if (unique.length > 0) {
-            logger.info(
-              `[Discovery] Active countries from ASC live version: ${unique.join(", ")}`,
-            );
+            logger.info(`[Discovery] Active countries from ASC live version: ${unique.join(", ")}`);
             return unique;
           }
         }
       } catch (error) {
-        logger.warn(
-          "[Discovery] Could not fetch active countries from ASC, falling back to DB",
-          { error: error instanceof Error ? error.message : error },
-        );
+        logger.warn("[Discovery] Could not fetch active countries from ASC, falling back to DB", {
+          error: error instanceof Error ? error.message : error,
+        });
       }
     }
 
-    const ownApp = this.bundleId
-      ? await prisma.app.findUnique({ where: { bundleId: this.bundleId } })
-      : null;
+    const ownApp = this.bundleId ? await prisma.app.findUnique({ where: { bundleId: this.bundleId } }) : null;
     if (ownApp) {
       const rows = await prisma.keywordRanking.findMany({
         where: { appId: ownApp.id },
@@ -90,9 +79,7 @@ export class KeywordDiscoveryAgent {
       }
 
       const countries = await this.getActiveCountries();
-      logger.info(
-        `[Discovery] Running for ${countries.length} countries: ${countries.join(", ")}`,
-      );
+      logger.info(`[Discovery] Running for ${countries.length} countries: ${countries.join(", ")}`);
 
       let totalDiscovered = 0;
       let totalScored = 0;
@@ -127,24 +114,16 @@ export class KeywordDiscoveryAgent {
   }> {
     const scraper = new AppStoreScraper(country);
     const existingTerms = await this.loadExistingTerms(country);
-    logger.info(
-      `[Discovery:${country}] Starting – ${existingTerms.size} keywords already tracked`,
-    );
+    logger.info(`[Discovery:${country}] Starting – ${existingTerms.size} keywords already tracked`);
 
-    const [fromCompetitors, fromAutocomplete, fromSemantic] = await Promise.all(
-      [
-        this.discoverFromCompetitorTexts(existingTerms, country),
-        this.discoverFromAutocompleteExpansion(existingTerms, scraper),
-        this.discoverFromSemanticExpansion(existingTerms, country),
-      ],
-    );
+    const [fromCompetitors, fromAutocomplete, fromSemantic] = await Promise.all([
+      this.discoverFromCompetitorTexts(existingTerms, country),
+      this.discoverFromAutocompleteExpansion(existingTerms, scraper),
+      this.discoverFromSemanticExpansion(existingTerms, country),
+    ]);
 
     const candidates = new Set<string>();
-    for (const term of [
-      ...fromCompetitors,
-      ...fromAutocomplete,
-      ...fromSemantic,
-    ]) {
+    for (const term of [...fromCompetitors, ...fromAutocomplete, ...fromSemantic]) {
       const normalized = term.toLowerCase().trim();
       if (normalized.length >= 3 && !existingTerms.has(normalized)) {
         candidates.add(normalized);
@@ -156,11 +135,7 @@ export class KeywordDiscoveryAgent {
         `(competitors=${fromCompetitors.length} autocomplete=${fromAutocomplete.length} semantic=${fromSemantic.length})`,
     );
 
-    const qualified = await this.scoreAndFilter(
-      [...candidates],
-      scraper,
-      country,
-    );
+    const qualified = await this.scoreAndFilter([...candidates], scraper, country);
 
     const keywordLanguage = langForCountry(country);
     const ownApp = await prisma.app.findUnique({
@@ -200,10 +175,7 @@ export class KeywordDiscoveryAgent {
     };
   }
 
-  private async discoverFromCompetitorTexts(
-    existing: Set<string>,
-    country: string,
-  ): Promise<string[]> {
+  private async discoverFromCompetitorTexts(existing: Set<string>, country: string): Promise<string[]> {
     const ownApp = await prisma.app.findFirst({
       where: { bundleId: this.bundleId, isOwnApp: true },
       include: {
@@ -279,10 +251,7 @@ Return the 25 most valuable keyword candidates not yet tracked. Respond with JSO
     }
   }
 
-  private async discoverFromAutocompleteExpansion(
-    existing: Set<string>,
-    scraper: AppStoreScraper,
-  ): Promise<string[]> {
+  private async discoverFromAutocompleteExpansion(existing: Set<string>, scraper: AppStoreScraper): Promise<string[]> {
     const seeds = [...existing].slice(0, this.MAX_AUTOCOMPLETE_SEEDS);
     const discovered = new Set<string>();
 
@@ -296,23 +265,16 @@ Return the 25 most valuable keyword candidates not yet tracked. Respond with JSO
           }
         }
       } catch {
-        logger.debug(
-          `[Discovery:autocomplete] Suggestion fetch failed for seed "${seed}"`,
-        );
+        logger.debug(`[Discovery:autocomplete] Suggestion fetch failed for seed "${seed}"`);
       }
       await this.sleep(500);
     }
 
-    logger.debug(
-      `[Discovery:autocomplete] ${discovered.size} candidates from ${seeds.length} seeds`,
-    );
+    logger.debug(`[Discovery:autocomplete] ${discovered.size} candidates from ${seeds.length} seeds`);
     return [...discovered];
   }
 
-  private async discoverFromSemanticExpansion(
-    existing: Set<string>,
-    country: string,
-  ): Promise<string[]> {
+  private async discoverFromSemanticExpansion(existing: Set<string>, country: string): Promise<string[]> {
     const ownApp = await prisma.app.findFirst({
       where: { bundleId: this.bundleId, isOwnApp: true },
       include: { snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 } },
@@ -320,8 +282,7 @@ Return the 25 most valuable keyword candidates not yet tracked. Respond with JSO
 
     if (!ownApp) return [];
 
-    const description =
-      ownApp.snapshots[0]?.description?.substring(0, 400) ?? "";
+    const description = ownApp.snapshots[0]?.description?.substring(0, 400) ?? "";
     const trackedSample = [...existing].slice(0, 50).join(", ");
 
     const systemPrompt = `You are an ASO keyword strategy expert.
@@ -360,11 +321,7 @@ Return JSON only.`;
     }
   }
 
-  private async scoreAndFilter(
-    candidates: string[],
-    scraper: AppStoreScraper,
-    country: string,
-  ): Promise<string[]> {
+  private async scoreAndFilter(candidates: string[], scraper: AppStoreScraper, country: string): Promise<string[]> {
     const toScore = candidates.slice(0, this.MAX_SCORE_PER_RUN);
     const qualified: string[] = [];
 
@@ -374,35 +331,21 @@ Return JSON only.`;
 
     for (const candidate of toScore) {
       try {
-        const { popularity, searchVolume } = await scraper.analyzeKeyword(
-          candidate,
-          25,
-        );
+        const { popularity, searchVolume } = await scraper.analyzeKeyword(candidate, 25);
 
-        if (
-          popularity >= this.MIN_POPULARITY &&
-          searchVolume >= this.MIN_RESULTS
-        ) {
+        if (popularity >= this.MIN_POPULARITY && searchVolume >= this.MIN_RESULTS) {
           qualified.push(candidate);
-          logger.debug(
-            `[Discovery:${country}] ✓ "${candidate}" accepted (pop=${popularity} results=${searchVolume})`,
-          );
+          logger.debug(`[Discovery:${country}] ✓ "${candidate}" accepted (pop=${popularity} results=${searchVolume})`);
         } else {
-          logger.debug(
-            `[Discovery:${country}] ✗ "${candidate}" rejected (pop=${popularity} results=${searchVolume})`,
-          );
+          logger.debug(`[Discovery:${country}] ✗ "${candidate}" rejected (pop=${popularity} results=${searchVolume})`);
         }
       } catch {
-        logger.debug(
-          `[Discovery:${country}] Scoring failed for "${candidate}", skipping`,
-        );
+        logger.debug(`[Discovery:${country}] Scoring failed for "${candidate}", skipping`);
       }
       await this.sleep(1500);
     }
 
-    logger.info(
-      `[Discovery:${country}] ${qualified.length}/${toScore.length} candidates passed scoring`,
-    );
+    logger.info(`[Discovery:${country}] ${qualified.length}/${toScore.length} candidates passed scoring`);
     return qualified;
   }
 
@@ -421,10 +364,7 @@ Return JSON only.`;
     return new Set(keywords.map((k) => k.term.toLowerCase()));
   }
 
-  private async queryAI(
-    systemPrompt: string,
-    userPrompt: string,
-  ): Promise<string> {
+  private async queryAI(systemPrompt: string, userPrompt: string): Promise<string> {
     const response = await this.ai.query(systemPrompt, userPrompt, {
       temperature: 0.6,
       maxTokens: 1000,

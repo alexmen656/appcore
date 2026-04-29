@@ -153,7 +153,7 @@ export async function runBuildJob(
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.error(`[build:${appId}] Binary build error: ${msg}`);
-    
+
     await prisma.buildJob.update({
       where: { id: buildJob.id },
       data: {

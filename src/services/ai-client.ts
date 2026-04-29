@@ -23,10 +23,7 @@ const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
 const DEFAULT_TEMPERATURE = 0.7;
 const DEFAULT_MAX_TOKENS = 4000;
 
-type AISettings = Pick<
-  EffectiveSettings,
-  "openaiApiKey" | "anthropicApiKey" | "aiProvider"
->;
+type AISettings = Pick<EffectiveSettings, "openaiApiKey" | "anthropicApiKey" | "aiProvider">;
 
 export class AIClient {
   private readonly openai?: OpenAI;
@@ -34,25 +31,16 @@ export class AIClient {
   private readonly preferredProvider?: "openai" | "anthropic";
 
   constructor(settings?: Partial<AISettings>) {
-    if (settings?.openaiApiKey)
-      this.openai = new OpenAI({ apiKey: settings.openaiApiKey });
-    if (settings?.anthropicApiKey)
-      this.anthropic = new Anthropic({ apiKey: settings.anthropicApiKey });
-    this.preferredProvider = settings?.aiProvider as
-      | "openai"
-      | "anthropic"
-      | undefined;
+    if (settings?.openaiApiKey) this.openai = new OpenAI({ apiKey: settings.openaiApiKey });
+    if (settings?.anthropicApiKey) this.anthropic = new Anthropic({ apiKey: settings.anthropicApiKey });
+    this.preferredProvider = settings?.aiProvider as "openai" | "anthropic" | undefined;
   }
 
   get hasProvider(): boolean {
     return !!(this.openai || this.anthropic);
   }
 
-  async query(
-    systemPrompt: string,
-    userPrompt: string,
-    options?: AIQueryOptions,
-  ): Promise<AIResponse> {
+  async query(systemPrompt: string, userPrompt: string, options?: AIQueryOptions): Promise<AIResponse> {
     if (this.preferredProvider === "anthropic" && this.anthropic) {
       return this.callAnthropic(systemPrompt, userPrompt, options);
     }
@@ -65,11 +53,7 @@ export class AIClient {
     throw new Error("No AI provider available");
   }
 
-  private async callOpenAI(
-    systemPrompt: string,
-    userPrompt: string,
-    options?: AIQueryOptions,
-  ): Promise<AIResponse> {
+  private async callOpenAI(systemPrompt: string, userPrompt: string, options?: AIQueryOptions): Promise<AIResponse> {
     const model = options?.openaiModel ?? DEFAULT_OPENAI_MODEL;
     const response = await this.openai!.chat.completions.create({
       model,
@@ -79,9 +63,7 @@ export class AIClient {
       ],
       temperature: options?.temperature ?? DEFAULT_TEMPERATURE,
       max_completion_tokens: options?.maxTokens ?? DEFAULT_MAX_TOKENS,
-      ...(options?.jsonMode
-        ? { response_format: { type: "json_object" } }
-        : {}),
+      ...(options?.jsonMode ? { response_format: { type: "json_object" } } : {}),
     });
 
     return {
@@ -93,20 +75,14 @@ export class AIClient {
     };
   }
 
-  private async callAnthropic(
-    systemPrompt: string,
-    userPrompt: string,
-    options?: AIQueryOptions,
-  ): Promise<AIResponse> {
+  private async callAnthropic(systemPrompt: string, userPrompt: string, options?: AIQueryOptions): Promise<AIResponse> {
     const model = options?.anthropicModel ?? DEFAULT_ANTHROPIC_MODEL;
     const response = await this.anthropic!.messages.create({
       model,
       max_tokens: options?.maxTokens ?? DEFAULT_MAX_TOKENS,
       system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
-      ...(options?.temperature !== undefined
-        ? { temperature: options.temperature }
-        : {}),
+      ...(options?.temperature !== undefined ? { temperature: options.temperature } : {}),
     });
 
     const text = response.content

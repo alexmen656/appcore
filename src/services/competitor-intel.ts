@@ -23,11 +23,7 @@ export class CompetitorIntelService {
     this.ai = new AIClient(settings);
   }
 
-  async scrapeReviews(
-    trackId: bigint | number,
-    appId: string,
-    country?: string,
-  ): Promise<number> {
+  async scrapeReviews(trackId: bigint | number, appId: string, country?: string): Promise<number> {
     const cc = country ?? this.country;
     const tid = typeof trackId === "bigint" ? Number(trackId) : trackId;
     let totalSaved = 0;
@@ -45,9 +41,7 @@ export class CompetitorIntelService {
         const reviews: ScrapedReview[] = entries
           .filter((e: any) => e?.["im:rating"]?.label)
           .map((e: any) => ({
-            externalId:
-              e.id?.label ??
-              `${tid}-${e.title?.label}-${e.author?.name?.label}`,
+            externalId: e.id?.label ?? `${tid}-${e.title?.label}-${e.author?.name?.label}`,
             rating: parseInt(e["im:rating"]?.label ?? "0", 10),
             title: e.title?.label ?? "",
             body: e.content?.label ?? "",
@@ -79,9 +73,7 @@ export class CompetitorIntelService {
             });
             totalSaved++;
           } catch (err: any) {
-            logger.debug(
-              `[Reviews] Upsert failed for review ${review.externalId}: ${err?.message ?? err}`,
-            );
+            logger.debug(`[Reviews] Upsert failed for review ${review.externalId}: ${err?.message ?? err}`);
           }
         }
 
@@ -94,15 +86,11 @@ export class CompetitorIntelService {
       }
     }
 
-    logger.info(
-      `Scraped ${totalSaved} reviews for app ${appId} (track ${tid})`,
-    );
+    logger.info(`Scraped ${totalSaved} reviews for app ${appId} (track ${tid})`);
     return totalSaved;
   }
 
-  async scrapeAllCompetitorReviews(
-    bundleId: string,
-  ): Promise<{ total: number; apps: number }> {
+  async scrapeAllCompetitorReviews(bundleId: string): Promise<{ total: number; apps: number }> {
     const ownApp = await prisma.app.findUnique({
       where: { bundleId },
       include: {
@@ -129,9 +117,7 @@ export class CompetitorIntelService {
       await this.sleep(1000);
     }
 
-    logger.info(
-      `Scraped reviews for ${apps} competitors, ${total} total reviews`,
-    );
+    logger.info(`Scraped reviews for ${apps} competitors, ${total} total reviews`);
     return { total, apps };
   }
 
@@ -147,15 +133,10 @@ export class CompetitorIntelService {
       return "No reviews available";
     }
 
-    const avgRating =
-      reviews.reduce((sum: number, r: any) => sum + r.rating, 0) /
-      reviews.length;
+    const avgRating = reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviews.length;
 
     const reviewTexts = reviews
-      .map(
-        (r: any, i: number) =>
-          `[${i + 1}] ★${r.rating} "${r.title ?? ""}" — ${r.body ?? "(no body)"}`,
-      )
+      .map((r: any, i: number) => `[${i + 1}] ★${r.rating} "${r.title ?? ""}" — ${r.body ?? "(no body)"}`)
       .join("\n");
 
     const systemPrompt = `You are an app market analyst. Analyze the following user reviews for a competitor app and provide a structured summary. Respond in JSON format with these fields:
@@ -312,17 +293,13 @@ Be concise but thorough. Extract actionable insights.`;
     }
 
     if (changesDetected > 0) {
-      logger.info(
-        `Detected ${changesDetected} metadata changes for app ${appId}`,
-      );
+      logger.info(`Detected ${changesDetected} metadata changes for app ${appId}`);
     }
 
     return changesDetected;
   }
 
-  async detectAllMetadataChanges(
-    bundleId: string,
-  ): Promise<{ apps: number; changes: number }> {
+  async detectAllMetadataChanges(bundleId: string): Promise<{ apps: number; changes: number }> {
     const ownApp = await prisma.app.findUnique({
       where: { bundleId },
       include: {
@@ -332,11 +309,7 @@ Be concise but thorough. Extract actionable insights.`;
 
     if (!ownApp) throw new Error(`App not found: ${bundleId}`);
 
-    const results = await Promise.all(
-      ownApp.competitors.map((rel) =>
-        this.detectMetadataChanges(rel.competitor.id),
-      ),
-    );
+    const results = await Promise.all(ownApp.competitors.map((rel) => this.detectMetadataChanges(rel.competitor.id)));
 
     const totalChanges = results.reduce((sum, n) => sum + n, 0);
     const appsWithChanges = results.filter((n) => n > 0).length;
@@ -372,9 +345,7 @@ Be concise but thorough. Extract actionable insights.`;
     });
 
     return keywords.map((kw) => {
-      const competitorRanking = kw.rankings.find(
-        (r) => r.appId === competitorAppId,
-      );
+      const competitorRanking = kw.rankings.find((r) => r.appId === competitorAppId);
       const ourRanking = kw.rankings.find((r) => r.appId === ownApp.id);
 
       return {
@@ -393,13 +364,11 @@ Be concise but thorough. Extract actionable insights.`;
   }> {
     logger.info(`Starting full competitor intel job for ${bundleId}`);
 
-    const { total: reviewsScraped } =
-      await this.scrapeAllCompetitorReviews(bundleId);
+    const { total: reviewsScraped } = await this.scrapeAllCompetitorReviews(bundleId);
 
     const appsSummarized = await this.summarizeAllCompetitorReviews(bundleId);
 
-    const { changes: metadataChanges } =
-      await this.detectAllMetadataChanges(bundleId);
+    const { changes: metadataChanges } = await this.detectAllMetadataChanges(bundleId);
 
     logger.info(
       `Competitor intel complete: ${reviewsScraped} reviews, ${appsSummarized} summaries, ${metadataChanges} changes`,

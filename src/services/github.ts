@@ -50,8 +50,7 @@ export function getGitHubOAuthUrl(state: string): string {
 export async function exchangeGitHubCode(code: string): Promise<string> {
   const clientId = env.GITHUB_CLIENT_ID;
   const clientSecret = env.GITHUB_CLIENT_SECRET;
-  if (!clientId || !clientSecret)
-    throw new Error("GitHub OAuth credentials not configured");
+  if (!clientId || !clientSecret) throw new Error("GitHub OAuth credentials not configured");
 
   const { data } = await axios.post(
     "https://github.com/login/oauth/access_token",
@@ -59,10 +58,7 @@ export async function exchangeGitHubCode(code: string): Promise<string> {
     { headers: { Accept: "application/json" } },
   );
 
-  if (data.error)
-    throw new Error(
-      `GitHub OAuth error: ${data.error_description ?? data.error}`,
-    );
+  if (data.error) throw new Error(`GitHub OAuth error: ${data.error_description ?? data.error}`);
   return data.access_token as string;
 }
 
@@ -73,9 +69,7 @@ export async function getGitHubUser(accessToken: string): Promise<GitHubUser> {
   return data;
 }
 
-export async function listUserRepos(
-  accessToken: string,
-): Promise<GitHubRepo[]> {
+export async function listUserRepos(accessToken: string): Promise<GitHubRepo[]> {
   const repos: GitHubRepo[] = [];
   let page = 1;
   while (true) {
@@ -90,23 +84,17 @@ export async function listUserRepos(
   return repos;
 }
 
-export async function listRepoDirs(
-  accessToken: string,
-  repoFullName: string,
-): Promise<string[]> {
-  const { data } = await axios.get<
-    { type: string; name: string; path: string }[]
-  >(`${GITHUB_API}/repos/${repoFullName}/contents`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+export async function listRepoDirs(accessToken: string, repoFullName: string): Promise<string[]> {
+  const { data } = await axios.get<{ type: string; name: string; path: string }[]>(
+    `${GITHUB_API}/repos/${repoFullName}/contents`,
+    {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    },
+  );
   return data.filter((e) => e.type === "dir").map((e) => e.name);
 }
 
-export async function createWebhook(
-  accessToken: string,
-  repoFullName: string,
-  secret: string,
-): Promise<number> {
+export async function createWebhook(accessToken: string, repoFullName: string, secret: string): Promise<number> {
   const baseUrl = env.GITHUB_WEBHOOK_BASE_URL;
   if (!baseUrl) throw new Error("GITHUB_WEBHOOK_BASE_URL not configured");
 
@@ -129,16 +117,11 @@ export async function createWebhook(
   return data.id as number;
 }
 
-export async function deleteWebhook(
-  accessToken: string,
-  repoFullName: string,
-  webhookId: bigint,
-): Promise<void> {
+export async function deleteWebhook(accessToken: string, repoFullName: string, webhookId: bigint): Promise<void> {
   try {
-    await axios.delete(
-      `${GITHUB_API}/repos/${repoFullName}/hooks/${webhookId}`,
-      { headers: { Authorization: `Bearer ${accessToken}` } },
-    );
+    await axios.delete(`${GITHUB_API}/repos/${repoFullName}/hooks/${webhookId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
     logger.info(`Deleted GitHub webhook ${webhookId} from ${repoFullName}`);
   } catch (err: any) {
     if (err.response?.status === 404) {
@@ -149,14 +132,8 @@ export async function deleteWebhook(
   }
 }
 
-export function verifyWebhookSignature(
-  payload: string | Buffer,
-  signature: string,
-  secret: string,
-): boolean {
-  const expected =
-    "sha256=" +
-    crypto.createHmac("sha256", secret).update(payload).digest("hex");
+export function verifyWebhookSignature(payload: string | Buffer, signature: string, secret: string): boolean {
+  const expected = "sha256=" + crypto.createHmac("sha256", secret).update(payload).digest("hex");
   return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
 }
 
@@ -175,19 +152,16 @@ export async function linkRepoToApp(
         where: { teamId: membership.teamId },
       })
     : null;
-  if (!settings?.githubAccessToken)
-    throw new Error("GitHub not connected. Connect in Settings first.");
+  if (!settings?.githubAccessToken) throw new Error("GitHub not connected. Connect in Settings first.");
 
   const token = decryptNullable(settings.githubAccessToken)!;
   const app = await prisma.app.findUnique({ where: { id: appId } });
   if (!app) throw new Error("App not found");
 
   if (app.githubRepoFullName && app.githubWebhookId) {
-    await deleteWebhook(
-      token,
-      app.githubRepoFullName,
-      app.githubWebhookId,
-    ).catch((err) => logger.warn(`Error removing old webhook: ${err.message}`));
+    await deleteWebhook(token, app.githubRepoFullName, app.githubWebhookId).catch((err) =>
+      logger.warn(`Error removing old webhook: ${err.message}`),
+    );
   }
 
   const [owner, name] = repoFullName.split("/");
@@ -209,10 +183,7 @@ export async function linkRepoToApp(
   logger.info(`Linked repo ${repoFullName} → app ${app.bundleId}`);
 }
 
-export async function unlinkRepoFromApp(
-  userId: string,
-  appId: string,
-): Promise<void> {
+export async function unlinkRepoFromApp(userId: string, appId: string): Promise<void> {
   const membership = await prisma.teamMember.findFirst({
     where: { userId },
     orderBy: { createdAt: "asc" },
@@ -225,11 +196,7 @@ export async function unlinkRepoFromApp(
   const app = await prisma.app.findUnique({ where: { id: appId } });
   if (!app) throw new Error("App not found");
 
-  if (
-    app.githubRepoFullName &&
-    app.githubWebhookId &&
-    settings?.githubAccessToken
-  ) {
+  if (app.githubRepoFullName && app.githubWebhookId && settings?.githubAccessToken) {
     await deleteWebhook(
       decryptNullable(settings.githubAccessToken)!,
       app.githubRepoFullName,

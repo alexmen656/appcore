@@ -29,10 +29,7 @@ export function localeToCountry(locale: string): string | null {
   return langMap[parts[0] ?? ""] ?? null;
 }
 
-export function normalizeLanguage(
-  language: string | null | undefined,
-  country: string,
-): string {
+export function normalizeLanguage(language: string | null | undefined, country: string): string {
   const fallback = langForCountry(country);
   if (!language) return fallback;
 

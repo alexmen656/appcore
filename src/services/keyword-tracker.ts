@@ -15,9 +15,7 @@ export class KeywordTracker {
     this.country = country;
 
     if (!bundleId || !country) {
-      logger.warn(
-        "[KeywordTracker] No bundleId or country provided, keyword tracking will be limited",
-      );
+      logger.warn("[KeywordTracker] No bundleId or country provided, keyword tracking will be limited");
     }
 
     if (env.APPLE_ADS_CLIENT_ID) {
@@ -43,9 +41,7 @@ export class KeywordTracker {
       });
       const ascAppId = ownApp?.trackId?.toString() ?? "";
       if (!ascAppId) {
-        logger.debug(
-          "No trackId for app, skipping Search Ads popularity fetch",
-        );
+        logger.debug("No trackId for app, skipping Search Ads popularity fetch");
         return this.searchAdsPopularity;
       }
       const keywords = await this.searchAds.getTargetingKeywords(ascAppId, 200);
@@ -54,9 +50,7 @@ export class KeywordTracker {
         this.searchAdsPopularity.set(kw.keyword.toLowerCase(), kw.popularity);
       }
 
-      logger.info(
-        `Got popularity data for ${keywords.length} keywords from Search Ads`,
-      );
+      logger.info(`Got popularity data for ${keywords.length} keywords from Search Ads`);
     } catch (error) {
       logger.warn("Failed to fetch Search Ads data, will use estimates", {
         error: error instanceof Error ? error.message : error,
@@ -66,11 +60,7 @@ export class KeywordTracker {
     return this.searchAdsPopularity;
   }
 
-  async addKeywords(
-    terms: string[],
-    country = this.country,
-    language?: string,
-  ): Promise<number> {
+  async addKeywords(terms: string[], country = this.country, language?: string): Promise<number> {
     const lang = normalizeLanguage(language, country);
     const normalized = terms.map((t) => t.toLowerCase().trim()).filter(Boolean);
 
@@ -88,10 +78,7 @@ export class KeywordTracker {
     return normalized.length;
   }
 
-  async trackKeywordRanking(
-    keywordTerm: string,
-    country = this.country,
-  ): Promise<number | null> {
+  async trackKeywordRanking(keywordTerm: string, country = this.country): Promise<number | null> {
     const keyword = await prisma.keyword.findUnique({
       where: { term_country: { term: keywordTerm, country } },
     });
@@ -112,8 +99,7 @@ export class KeywordTracker {
     }
 
     const scraper = new AppStoreScraper(country, normalizedLanguage);
-    const { results, popularity, difficulty, searchVolume } =
-      await scraper.analyzeKeyword(keywordTerm, 50);
+    const { results, popularity, difficulty, searchVolume } = await scraper.analyzeKeyword(keywordTerm, 50);
 
     const searchAdsData = await this.fetchSearchAdsData();
     const realPopularity = searchAdsData.get(keywordTerm.toLowerCase());
@@ -129,9 +115,7 @@ export class KeywordTracker {
     });
 
     if (realPopularity != null) {
-      logger.debug(
-        `Keyword "${keywordTerm}": Search Ads popularity = ${realPopularity}`,
-      );
+      logger.debug(`Keyword "${keywordTerm}": Search Ads popularity = ${realPopularity}`);
     }
 
     const ownApp = await prisma.app.findUnique({
@@ -143,8 +127,7 @@ export class KeywordTracker {
       return null;
     }
 
-    const rank =
-      results.findIndex((r) => r.bundleId === this.bundleId) + 1 || null;
+    const rank = results.findIndex((r) => r.bundleId === this.bundleId) + 1 || null;
 
     await prisma.keywordRanking.create({
       data: {
@@ -164,9 +147,7 @@ export class KeywordTracker {
       competitors
         .map((rel) => ({
           rel,
-          compRank:
-            results.findIndex((r) => r.bundleId === rel.competitor.bundleId) +
-              1 || null,
+          compRank: results.findIndex((r) => r.bundleId === rel.competitor.bundleId) + 1 || null,
         }))
         .filter(({ compRank }) => compRank !== null)
         .map(({ rel, compRank }) =>
@@ -198,10 +179,7 @@ export class KeywordTracker {
       });
 
       for (const keyword of keywords) {
-        const rank = await this.trackKeywordRanking(
-          keyword.term,
-          keyword.country,
-        );
+        const rank = await this.trackKeywordRanking(keyword.term, keyword.country);
         rankings.set(`${keyword.term}@${keyword.country}`, rank);
 
         await new Promise((r) => setTimeout(r, 1500));

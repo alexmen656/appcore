@@ -41,11 +41,7 @@ export function keywordRankChange(
 ) {
   const rankText = newRank ? `now #${newRank}` : "no longer ranked";
   const changeText =
-    oldRank && newRank
-      ? newRank < oldRank
-        ? `↑ ${oldRank - newRank}`
-        : `↓ ${newRank - oldRank}`
-      : "";
+    oldRank && newRank ? (newRank < oldRank ? `↑ ${oldRank - newRank}` : `↓ ${newRank - oldRank}`) : "";
 
   return notificationService.broadcast({
     push: {
@@ -62,19 +58,9 @@ export function keywordRankChange(
   });
 }
 
-export function submissionUpdate(
-  appName: string,
-  versionString: string,
-  status: string,
-) {
+export function submissionUpdate(appName: string, versionString: string, status: string) {
   const emoji =
-    status === "READY_FOR_DISTRIBUTION"
-      ? "✅"
-      : status === "IN_REVIEW"
-        ? "👀"
-        : status === "REJECTED"
-          ? "❌"
-          : "📦";
+    status === "READY_FOR_DISTRIBUTION" ? "✅" : status === "IN_REVIEW" ? "👀" : status === "REJECTED" ? "❌" : "📦";
 
   return notificationService.broadcast({
     push: {
@@ -86,11 +72,7 @@ export function submissionUpdate(
   });
 }
 
-export function jobComplete(
-  jobType: string,
-  status: string,
-  itemsCount?: number,
-) {
+export function jobComplete(jobType: string, status: string, itemsCount?: number) {
   const emoji = status === "COMPLETED" ? "✅" : "❌";
   const itemsText = itemsCount ? ` (${itemsCount} items)` : "";
 

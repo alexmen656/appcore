@@ -2,10 +2,7 @@ import axios from "axios";
 import * as cheerio from "cheerio";
 import { parseStringPromise } from "xml2js";
 import { prisma, logger } from "../config";
-import {
-  normalizeLanguage,
-  storefrontHeaderForCountry,
-} from "./app-store-markets";
+import { normalizeLanguage, storefrontHeaderForCountry } from "./app-store-markets";
 
 interface ITunesResult {
   trackId: number;
@@ -75,11 +72,7 @@ export class AppStoreScraper {
       if (!dict) return [];
 
       const hintsKey = Array.isArray(dict.key) ? dict.key : [dict.key];
-      const hintsVal = Array.isArray(dict.array?.dict)
-        ? dict.array.dict
-        : dict.array?.dict
-          ? [dict.array.dict]
-          : [];
+      const hintsVal = Array.isArray(dict.array?.dict) ? dict.array.dict : dict.array?.dict ? [dict.array.dict] : [];
 
       return hintsVal
         .map((h: any) => {
@@ -88,9 +81,7 @@ export class AppStoreScraper {
         })
         .filter(Boolean);
     } catch (error) {
-      logger.debug(
-        `Search suggestions for "${term}" failed: ${error instanceof Error ? error.message : error}`,
-      );
+      logger.debug(`Search suggestions for "${term}" failed: ${error instanceof Error ? error.message : error}`);
       return [];
     }
   }
@@ -104,22 +95,13 @@ export class AppStoreScraper {
     difficulty: number;
     searchVolume: number;
   }> {
-    const [results, suggestions] = await Promise.all([
-      this.searchApps(term, limit),
-      this.getSearchSuggestions(term),
-    ]);
+    const [results, suggestions] = await Promise.all([this.searchApps(term, limit), this.getSearchSuggestions(term)]);
     const resultCount = results.length;
     const termLower = term.toLowerCase();
 
-    const exactIndex = suggestions.findIndex(
-      (s) => s.toLowerCase() === termLower,
-    );
-    const prefixIndex = suggestions.findIndex((s) =>
-      s.toLowerCase().startsWith(termLower),
-    );
-    const containsIndex = suggestions.findIndex((s) =>
-      s.toLowerCase().includes(termLower),
-    );
+    const exactIndex = suggestions.findIndex((s) => s.toLowerCase() === termLower);
+    const prefixIndex = suggestions.findIndex((s) => s.toLowerCase().startsWith(termLower));
+    const containsIndex = suggestions.findIndex((s) => s.toLowerCase().includes(termLower));
 
     let positionScore: number;
     if (exactIndex === 0) {
@@ -143,27 +125,16 @@ export class AppStoreScraper {
     }
 
     const suggestionBonus = Math.min(5, Math.ceil(suggestions.length / 2));
-    const autocompleteScore = Math.min(
-      30,
-      Math.round(positionScore + suggestionBonus),
-    );
+    const autocompleteScore = Math.min(30, Math.round(positionScore + suggestionBonus));
 
-    const depthScore =
-      resultCount === 0
-        ? 0
-        : Math.round(25 * (1 - Math.exp(-resultCount / 15)));
+    const depthScore = resultCount === 0 ? 0 : Math.round(25 * (1 - Math.exp(-resultCount / 15)));
 
     const weightedRatings = results
       .slice(0, 20)
       .reduce((sum, r, i) => sum + (r.userRatingCount ?? 0) / (1 + i * 0.3), 0);
-    const engagementScore =
-      weightedRatings > 0
-        ? Math.min(30, Math.round(Math.log10(weightedRatings + 1) * 5))
-        : 0;
+    const engagementScore = weightedRatings > 0 ? Math.min(30, Math.round(Math.log10(weightedRatings + 1) * 5)) : 0;
 
-    const qualifiedApps = results
-      .slice(0, 10)
-      .filter((r) => (r.userRatingCount ?? 0) >= 500).length;
+    const qualifiedApps = results.slice(0, 10).filter((r) => (r.userRatingCount ?? 0) >= 500).length;
     const qualityScore = Math.min(15, Math.round(qualifiedApps * 1.5));
 
     let popularityMultiplier = 1.0;
@@ -180,47 +151,24 @@ export class AppStoreScraper {
       }
     }
 
-    const rawPopularity =
-      autocompleteScore + depthScore + engagementScore + qualityScore;
-    const popularity = Math.min(
-      100,
-      Math.max(1, Math.round(rawPopularity * popularityMultiplier)),
-    );
+    const rawPopularity = autocompleteScore + depthScore + engagementScore + qualityScore;
+    const popularity = Math.min(100, Math.max(1, Math.round(rawPopularity * popularityMultiplier)));
 
     const top3 = results.slice(0, 3);
     const top10 = results.slice(0, 10);
 
-    const top3AvgRatings =
-      top3.length > 0
-        ? top3.reduce((s, r) => s + (r.userRatingCount ?? 0), 0) / top3.length
-        : 0;
+    const top3AvgRatings = top3.length > 0 ? top3.reduce((s, r) => s + (r.userRatingCount ?? 0), 0) / top3.length : 0;
     const top10AvgRatings =
-      top10.length > 0
-        ? top10.reduce((s, r) => s + (r.userRatingCount ?? 0), 0) / top10.length
-        : 0;
-    const top10MaxRatings =
-      top10.length > 0
-        ? Math.max(...top10.map((r) => r.userRatingCount ?? 0))
-        : 0;
+      top10.length > 0 ? top10.reduce((s, r) => s + (r.userRatingCount ?? 0), 0) / top10.length : 0;
+    const top10MaxRatings = top10.length > 0 ? Math.max(...top10.map((r) => r.userRatingCount ?? 0)) : 0;
 
     const blendedAvgRatings = top3AvgRatings * 0.6 + top10AvgRatings * 0.4;
-    const baseDifficulty = Math.round(
-      (Math.log10(blendedAvgRatings + 10) - 1) * 20,
-    );
+    const baseDifficulty = Math.round((Math.log10(blendedAvgRatings + 10) - 1) * 20);
 
     const dominanceBonus =
-      top10MaxRatings > 5_000_000
-        ? 8
-        : top10MaxRatings > 1_000_000
-          ? 5
-          : top10MaxRatings > 100_000
-            ? 2
-            : 0;
+      top10MaxRatings > 5_000_000 ? 8 : top10MaxRatings > 1_000_000 ? 5 : top10MaxRatings > 100_000 ? 2 : 0;
 
-    const difficulty = Math.min(
-      100,
-      Math.max(1, baseDifficulty + dominanceBonus),
-    );
+    const difficulty = Math.min(100, Math.max(1, baseDifficulty + dominanceBonus));
 
     const searchVolume = resultCount;
 
@@ -269,8 +217,7 @@ export class AppStoreScraper {
       const url = `https://apps.apple.com/${this.country}/app/id${trackId}`;
       const { data: html } = await axios.get<string>(url, {
         headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
           "Accept-Language": `${this.language},en;q=0.9`,
         },
       });
@@ -278,17 +225,14 @@ export class AppStoreScraper {
       const $ = cheerio.load(html);
 
       const subtitle =
-        $('h2[class*="subtitle"]').text().trim() ||
-        $(".app-header__subtitle").text().trim() ||
-        undefined;
+        $('h2[class*="subtitle"]').text().trim() || $(".app-header__subtitle").text().trim() || undefined;
 
       const fullDescription =
         $('[data-test-id="description"] .we-truncate__child').text().trim() ||
         $(".section__description .we-truncate__child").text().trim() ||
         undefined;
 
-      const whatsNew =
-        $('[data-test-id="version-notes"]').text().trim() || undefined;
+      const whatsNew = $('[data-test-id="version-notes"]').text().trim() || undefined;
 
       return { subtitle, fullDescription, whatsNew };
     } catch (error) {
@@ -299,15 +243,12 @@ export class AppStoreScraper {
     }
   }
 
-  async scrapeVersionHistory(
-    trackId: number,
-  ): Promise<Array<{ version: string; date: string }>> {
+  async scrapeVersionHistory(trackId: number): Promise<Array<{ version: string; date: string }>> {
     try {
       const url = `https://apps.apple.com/us/app/id${trackId}`;
       const { data: html } = await axios.get<string>(url, {
         headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
           "Accept-Language": "en-US,en;q=0.9",
         },
       });
@@ -323,20 +264,13 @@ export class AppStoreScraper {
         const dateStr = datetime.slice(0, 10);
         const prevH4 = timeEl.prev("h4");
         const siblingText = prevH4.length ? prevH4.text().trim() : "";
-        const versionFromH4 =
-          siblingText.match(/^(?:Version\s+)?([\d]+(?:\.[\d]+)+)$/i)?.[1] ??
-          null;
+        const versionFromH4 = siblingText.match(/^(?:Version\s+)?([\d]+(?:\.[\d]+)+)$/i)?.[1] ?? null;
 
-        const container = timeEl.closest(
-          "li, .version-history__item, section, [data-test-id]",
-        );
+        const container = timeEl.closest("li, .version-history__item, section, [data-test-id]");
 
-        const containerText = (
-          container.length ? container : timeEl.parent()
-        ).text();
+        const containerText = (container.length ? container : timeEl.parent()).text();
 
-        const versionFromText =
-          containerText.match(/Version\s+([\d]+(?:\.[\d]+)*)/i)?.[1] ?? null;
+        const versionFromText = containerText.match(/Version\s+([\d]+(?:\.[\d]+)*)/i)?.[1] ?? null;
 
         const version = versionFromH4 ?? versionFromText;
         if (version && dateStr && !seen.has(version)) {
@@ -354,10 +288,7 @@ export class AppStoreScraper {
     }
   }
 
-  async scrapeAndSaveApp(
-    bundleId: string,
-    isOwnApp = false,
-  ): Promise<string | null> {
+  async scrapeAndSaveApp(bundleId: string, isOwnApp = false): Promise<string | null> {
     const itunesData = await this.lookupByBundleId(bundleId);
     if (!itunesData) {
       logger.warn(`App not found: ${bundleId}`);
@@ -403,11 +334,7 @@ export class AppStoreScraper {
         oldValue: string | null;
         newValue: string | null;
       }> = [];
-      const compare = (
-        field: string,
-        oldVal: string | null | undefined,
-        newVal: string | null | undefined,
-      ) => {
+      const compare = (field: string, oldVal: string | null | undefined, newVal: string | null | undefined) => {
         const o = oldVal ?? null;
         const n = newVal ?? null;
         if (o !== n)
@@ -422,21 +349,9 @@ export class AppStoreScraper {
       compare("subtitle", prevSnapshot.subtitle, webData?.subtitle);
       compare("description", prevSnapshot.description, itunesData.description);
       compare("version", prevSnapshot.version, itunesData.version);
-      compare(
-        "releaseNotes",
-        prevSnapshot.releaseNotes,
-        itunesData.releaseNotes ?? webData?.whatsNew,
-      );
-      compare(
-        "rating",
-        prevSnapshot.rating?.toFixed(2),
-        itunesData.averageUserRating?.toFixed(2),
-      );
-      compare(
-        "price",
-        prevSnapshot.price?.toString(),
-        itunesData.price?.toString(),
-      );
+      compare("releaseNotes", prevSnapshot.releaseNotes, itunesData.releaseNotes ?? webData?.whatsNew);
+      compare("rating", prevSnapshot.rating?.toFixed(2), itunesData.averageUserRating?.toFixed(2));
+      compare("price", prevSnapshot.price?.toString(), itunesData.price?.toString());
 
       if (changes.length > 0) {
         await prisma.appMetadataChange.createMany({
@@ -484,9 +399,7 @@ export class AppStoreScraper {
         });
 
         const existingVersions = new Set(existing.map((e) => e.newValue));
-        const toCreate = history.filter(
-          ({ version }) => !existingVersions.has(version),
-        );
+        const toCreate = history.filter(({ version }) => !existingVersions.has(version));
 
         if (toCreate.length > 0) {
           await prisma.appMetadataChange.createMany({
@@ -509,11 +422,7 @@ export class AppStoreScraper {
     return app.id;
   }
 
-  async discoverCompetitors(
-    searchTerms: string[],
-    ownBundleId: string,
-    maxResults = 100,
-  ): Promise<string[]> {
+  async discoverCompetitors(searchTerms: string[], ownBundleId: string, maxResults = 100): Promise<string[]> {
     const seen = new Set<string>();
     const competitorIds: string[] = [];
 
@@ -553,9 +462,7 @@ export class AppStoreScraper {
       );
     }
 
-    logger.info(
-      `Discovered ${competitorIds.length} competitors for "${ownBundleId}"`,
-    );
+    logger.info(`Discovered ${competitorIds.length} competitors for "${ownBundleId}"`);
     return competitorIds;
   }
 

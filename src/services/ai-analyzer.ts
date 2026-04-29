@@ -51,9 +51,7 @@ export class AIAnalyzer {
     this.settings = settings;
     this.ai = new AIClient(settings);
     if (!this.ai.hasProvider) {
-      logger.warn(
-        "No AI provider configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY in settings.",
-      );
+      logger.warn("No AI provider configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY in settings.");
     }
   }
 
@@ -61,23 +59,13 @@ export class AIAnalyzer {
     sourceLocale: string,
     targetLocale: string,
     sourceFields: Partial<
-      Record<
-        | "name"
-        | "subtitle"
-        | "keywords"
-        | "description"
-        | "promotionalText"
-        | "whatsNew",
-        string
-      >
+      Record<"name" | "subtitle" | "keywords" | "description" | "promotionalText" | "whatsNew", string>
     >,
   ): Promise<Record<string, string>> {
     const sourceConfig = getLocaleConfig(sourceLocale);
     const targetConfig = getLocaleConfig(targetLocale);
 
-    const fieldsToTranslate = Object.entries(sourceFields).filter(
-      ([, v]) => v && v.trim(),
-    ) as [string, string][];
+    const fieldsToTranslate = Object.entries(sourceFields).filter(([, v]) => v && v.trim()) as [string, string][];
     if (fieldsToTranslate.length === 0) return {};
 
     const keywordsInstruction =
@@ -109,9 +97,7 @@ ${fieldsToTranslate.map(([k, v]) => `${k}: ${v}`).join("\n\n")}`;
     return {};
   }
 
-  async analyzeAndSuggest(
-    locales?: string[],
-  ): Promise<Map<string, ASOAnalysis>> {
+  async analyzeAndSuggest(locales?: string[]): Promise<Map<string, ASOAnalysis>> {
     const targetLocales = locales ?? ["en-US"];
     const results = new Map<string, ASOAnalysis>();
     const appData = await this.gatherAppData();
@@ -307,11 +293,7 @@ Generate detailed ASO optimization suggestions in ${lc.promptLang} for the ${lc.
     return analysis;
   }
 
-  private async saveSuggestions(
-    analysis: ASOAnalysis,
-    aiResponse: AIResponse,
-    locale: string,
-  ): Promise<void> {
+  private async saveSuggestions(analysis: ASOAnalysis, aiResponse: AIResponse, locale: string): Promise<void> {
     const suggestions = [
       ...analysis.titleSuggestions.map((s) => ({
         type: SuggestionType.TITLE as SuggestionType,
@@ -352,14 +334,10 @@ Generate detailed ASO optimization suggestions in ${lc.promptLang} for the ${lc.
       ),
     );
 
-    logger.info(
-      `Saved ${suggestions.length} ASO suggestions for locale ${locale}`,
-    );
+    logger.info(`Saved ${suggestions.length} ASO suggestions for locale ${locale}`);
   }
 
-  async extractKeywordsFromCompetitors(): Promise<
-    Array<{ keyword: string; frequency: number; relevance: number }>
-  > {
+  async extractKeywordsFromCompetitors(): Promise<Array<{ keyword: string; frequency: number; relevance: number }>> {
     const competitors = await prisma.app.findMany({
       where: { isOwnApp: false },
       include: { snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 } },
