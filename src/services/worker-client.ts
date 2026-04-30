@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from "axios";
+import axios, { AxiosInstance } from "./utils/http";
 import { logger } from "../config";
 import { env } from "../config/env";
 import type { IncomingMessage } from "http";

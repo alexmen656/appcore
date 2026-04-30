@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from "axios";
+import axios, { AxiosInstance } from "./utils/http";
 import { logger, env } from "../config";
 import { generateASCToken } from "./utils/asc-token";
 

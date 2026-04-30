@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios from "./utils/http";
 import * as cheerio from "cheerio";
 import { parseStringPromise } from "xml2js";
 import { prisma, logger } from "../config";

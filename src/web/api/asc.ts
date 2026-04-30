@@ -1,5 +1,5 @@
 import { Router } from "express";
-import axios from "axios";
+import axios from "../../services/utils/http";
 import { prisma, logger, getEffectiveSettings } from "../../config";
 import { requireAuth, verifyAppOwnershipByBundleId } from "../auth";
 import { AppStoreConnectClient } from "../../services/appstore-connect";

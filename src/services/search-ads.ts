@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from "axios";
+import axios, { AxiosInstance } from "./utils/http";
 import * as crypto from "crypto";
 import * as fs from "fs";
 import * as path from "path";

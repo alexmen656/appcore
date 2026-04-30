@@ -1,5 +1,5 @@
 import zlib from "zlib";
-import axios from "axios";
+import axios from "./utils/http";
 import { prisma, logger } from "../config";
 import type { EffectiveSettings } from "../config/userSettings";
 import { generateASCToken } from "./utils/asc-token";

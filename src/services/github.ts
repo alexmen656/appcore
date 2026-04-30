@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import axios from "axios";
+import axios from "./utils/http";
 import { logger, prisma } from "../config";
 import { env } from "../config/env";
 import { decryptNullable } from "../config/encryption";

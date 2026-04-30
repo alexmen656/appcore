@@ -154,7 +154,7 @@ submissionsRouter.get("/build-info", ...requireBundleAccess("query"), async (req
 
     let iconUrl: string | null = null;
     try {
-      const { default: axios } = await import("axios");
+      const { default: axios } = await import("../../services/utils/http");
       const { data } = await axios.get(
         `https://itunes.apple.com/lookup?bundleId=${encodeURIComponent(bundleId)}&limit=1`,
         { timeout: 5000 },
