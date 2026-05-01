@@ -13,6 +13,7 @@ export interface SnapshotJobResult {
   screenshots: Record<string, Array<{ filename: string; data: string }>>;
   descriptions: Record<string, string>;
   config: Record<string, string>;
+  xcresultLogs?: Array<{ filename: string; sizeBytes: number }>;
 }
 
 const activeJobs = new Map<string, SnapshotJobState>();

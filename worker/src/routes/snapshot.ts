@@ -1,6 +1,11 @@
 import { Router, Request, Response } from "express";
+import fs from "fs";
+import path from "path";
 import { createSnapshotJob, getSnapshotJob } from "../log-bus";
 import { SnapshotRunner } from "../services/SnapshotRunner";
+
+const RUN_ID_RE = /^[A-Za-z0-9_-]+$/;
+const FILENAME_RE = /^[A-Za-z0-9._-]+$/;
 
 export const snapshotRouter = Router();
 
@@ -54,6 +59,7 @@ snapshotRouter.get("/snapshot/:runId/stream", (req: Request, res: Response) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
   res.flushHeaders();
 
   const send = (event: string, data: unknown) => {
@@ -77,8 +83,42 @@ snapshotRouter.get("/snapshot/:runId/stream", (req: Request, res: Response) => {
   job.emitter.on("line", onLine);
   job.emitter.once("result", onResult);
 
+  const heartbeat = setInterval(() => {
+    res.write(`: ping ${Date.now()}\n\n`);
+  }, 15_000);
+  heartbeat.unref?.();
+
   req.on("close", () => {
+    clearInterval(heartbeat);
     job.emitter.off("line", onLine);
     job.emitter.off("result", onResult);
   });
+});
+
+snapshotRouter.get("/snapshot/:runId/xcresult/:filename", (req: Request, res: Response) => {
+  const { runId, filename } = req.params as { runId: string; filename: string };
+
+  if (!RUN_ID_RE.test(runId) || !FILENAME_RE.test(filename)) {
+    res.status(400).json({ error: "Invalid runId or filename" });
+    return;
+  }
+
+  const artifactsDir = path.join(process.cwd(), "logs", "snapshots", runId);
+  const filePath = path.join(artifactsDir, filename);
+  const resolved = path.resolve(filePath);
+  if (!resolved.startsWith(path.resolve(artifactsDir) + path.sep)) {
+    res.status(400).json({ error: "Invalid path" });
+    return;
+  }
+
+  if (!fs.existsSync(resolved)) {
+    res.status(404).json({ error: "xcresult not found" });
+    return;
+  }
+
+  const stat = fs.statSync(resolved);
+  res.setHeader("Content-Type", "application/zip");
+  res.setHeader("Content-Length", stat.size);
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  fs.createReadStream(resolved).pipe(res);
 });

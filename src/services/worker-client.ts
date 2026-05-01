@@ -55,6 +55,7 @@ export interface WorkerSnapshotResult {
   screenshots: Record<string, Array<{ filename: string; data: string }>>;
   descriptions: Record<string, string>;
   config: Record<string, string>;
+  xcresultLogs?: Array<{ filename: string; sizeBytes: number; data: string }>;
   ipaBuilt: boolean;
   ipaPath?: string;
 }
@@ -198,7 +199,12 @@ class FastlaneWorkerClient {
               } else if (event === "result") {
                 const result = JSON.parse(data) as WorkerSnapshotResult;
                 stream.destroy();
-                resolve(result);
+                this.fetchXcresultLogs(runId, result, onLog)
+                  .then(() => resolve(result))
+                  .catch((err: Error) => {
+                    onLog?.(`[snapshot] Warning: could not download xcresult logs: ${err.message ?? err}`);
+                    resolve(result);
+                  });
               }
             }
           });
@@ -213,6 +219,35 @@ class FastlaneWorkerClient {
         })
         .catch(reject);
     });
+  }
+
+  private async fetchXcresultLogs(
+    runId: string,
+    result: WorkerSnapshotResult,
+    onLog?: (line: string) => void,
+  ): Promise<void> {
+    if (!result.xcresultLogs || result.xcresultLogs.length === 0) return;
+
+    const baseURL = env.FASTLANE_WORKER_URL!;
+    const secret = env.FASTLANE_WORKER_SECRET!;
+
+    for (const meta of result.xcresultLogs) {
+      try {
+        const url = `${baseURL}/worker/snapshot/${encodeURIComponent(runId)}/xcresult/${encodeURIComponent(meta.filename)}`;
+        const res = await axios.get<ArrayBuffer>(url, {
+          headers: { Authorization: `Bearer ${secret}` },
+          responseType: "arraybuffer",
+          timeout: 10 * 60 * 1000,
+          maxContentLength: 500 * 1024 * 1024,
+          maxBodyLength: 500 * 1024 * 1024,
+        });
+        meta.data = Buffer.from(res.data).toString("base64");
+        onLog?.(`[snapshot] Downloaded xcresult ${meta.filename} (${Math.round(meta.sizeBytes / 1024)} KB)`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        onLog?.(`[snapshot] Warning: failed to download ${meta.filename}: ${msg}`);
+      }
+    }
   }
 
   async frameit(params: WorkerFrameitParams): Promise<WorkerFrameitResult> {

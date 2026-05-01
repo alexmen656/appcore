@@ -37,8 +37,10 @@ export class SnapshotRunner {
   private readonly tmpDir: string;
   private readonly logsDir: string;
   private readonly logFile: string;
+  private readonly artifactsDir: string;
   private readonly logs: string[] = [];
   private readonly errors: string[] = [];
+  private readonly xcresultLogs: Array<{ filename: string; sizeBytes: number }> = [];
 
   constructor(
     runId: string,
@@ -54,6 +56,7 @@ export class SnapshotRunner {
     this.tmpDir = path.join(os.tmpdir(), `worker-snapshot-${runId}`);
     this.logsDir = path.join(process.cwd(), "logs", "snapshots");
     this.logFile = path.join(this.logsDir, `snapshot-${runId}.log`);
+    this.artifactsDir = path.join(this.logsDir, runId);
   }
 
   async run(): Promise<void> {
@@ -75,6 +78,7 @@ export class SnapshotRunner {
 
     fs.mkdirSync(this.tmpDir, { recursive: true });
     fs.mkdirSync(this.logsDir, { recursive: true });
+    this.sweepOldArtifacts();
     this.push(`[repo] Cloning repo${branch ? ` @${branch}` : ""} ...`);
 
     await execAsync(
@@ -143,7 +147,15 @@ export class SnapshotRunner {
       `[snapshot] Total: ${plural(totalFiles, "screenshot")} across ${plural(Object.keys(screenshots).length, "language")}`,
     );
 
-    this.finish({ ok: true, logs: this.logs, errors: this.errors, screenshots, descriptions, config: frameConfig });
+    this.finish({
+      ok: true,
+      logs: this.logs,
+      errors: this.errors,
+      screenshots,
+      descriptions,
+      config: frameConfig,
+      xcresultLogs: this.xcresultLogs,
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -424,7 +436,40 @@ export class SnapshotRunner {
     );
 
     for (const xcName of xcResults) {
-      fs.rmSync(path.join(testLogsDir, xcName), { recursive: true, force: true });
+      const xcPath = path.join(testLogsDir, xcName);
+      await this.archiveXcresult(xcPath, xcName, device, lang, deviceLabel);
+      fs.rmSync(xcPath, { recursive: true, force: true });
+    }
+  }
+
+  private async archiveXcresult(
+    xcPath: string,
+    xcName: string,
+    device: string,
+    lang: string,
+    deviceLabel: string,
+  ): Promise<void> {
+    const tag = (UDID_RE.test(device) ? device.slice(0, 8) : device).replace(/[^a-zA-Z0-9._-]/g, "_");
+    const safeLang = lang.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const safeXcName = xcName.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const zipName = `${tag}-${safeLang}-${safeXcName}.zip`;
+    fs.mkdirSync(this.artifactsDir, { recursive: true });
+    const zipPath = path.join(this.artifactsDir, zipName);
+    try {
+      await execAsync(`zip -rq "${zipPath}" "${path.basename(xcPath)}"`, {
+        cwd: path.dirname(xcPath),
+        timeout: 120_000,
+        maxBuffer: 10 * 1024 * 1024,
+      });
+      if (fs.existsSync(zipPath)) {
+        const sizeBytes = fs.statSync(zipPath).size;
+        this.xcresultLogs.push({ filename: zipName, sizeBytes });
+        this.push(
+          `[snapshot] [${deviceLabel}] ${lang}: archived xcresult → ${zipName} (${Math.round(sizeBytes / 1024)} KB)`,
+        );
+      }
+    } catch (e) {
+      this.push(`[snapshot] Warning: could not zip xcresult ${xcName}: ${e}`);
     }
   }
 
@@ -581,6 +626,26 @@ export class SnapshotRunner {
   private cleanup(): void {
     try {
       fs.rmSync(this.tmpDir, { recursive: true, force: true });
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private sweepOldArtifacts(): void {
+    const ttlMs = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    try {
+      for (const entry of fs.readdirSync(this.logsDir, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        const dir = path.join(this.logsDir, entry.name);
+        try {
+          if (now - fs.statSync(dir).mtimeMs > ttlMs) {
+            fs.rmSync(dir, { recursive: true, force: true });
+          }
+        } catch {
+          /* ignore individual failures */
+        }
+      }
     } catch {
       /* ignore */
     }

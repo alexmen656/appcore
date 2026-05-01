@@ -144,6 +144,26 @@ async function runWorkerScreenshotGeneration(
       `[snapshot] Saved ${screenshotUrls.length} screenshot${screenshotUrls.length === 1 ? "" : "s"} from worker: ${screenshotUrls.join(", ")} (outputDir=${outputDir})`,
     );
 
+    if (result.xcresultLogs && result.xcresultLogs.length > 0) {
+      const logsDir = path.join(outputDir, "logs");
+      await fs.promises.mkdir(logsDir, { recursive: true });
+      let saved = 0;
+      for (const archive of result.xcresultLogs) {
+        const safeFilename = path.basename(archive.filename);
+        if (!safeFilename || !/^[a-zA-Z0-9_\-. ]+$/.test(safeFilename)) {
+          log(`[snapshot] Skipping suspicious xcresult filename: ${archive.filename}`);
+          continue;
+        }
+        if (!archive.data) {
+          log(`[snapshot] Skipping xcresult ${safeFilename}: no data (download failed)`);
+          continue;
+        }
+        await fs.promises.writeFile(path.join(logsDir, safeFilename), Buffer.from(archive.data, "base64"));
+        saved += 1;
+      }
+      log(`[snapshot] Saved ${saved} xcresult archive(s) to ${logsDir}`);
+    }
+
     const descriptions = result.descriptions ?? {};
     const frameConfig = result.config ?? {};
     const filenameKeys = [
