@@ -14,6 +14,7 @@ import {
 } from "../styles";
 import type { VersionsData, VersionLocalization } from "../types";
 import { getLocaleFlag, getLocaleName } from "../utils/localeUtils";
+import { useClickOutside } from "../hooks/useClickOutside";
 import {
   Send,
   ChevronDown,
@@ -112,45 +113,48 @@ const FIELD_META: {
   },
 ];
 
-const res = await fetch("/api/asc/supported-locales", {
-  headers: { "Content-Type": "application/json", ...authHeaders() },
-});
-
-const ASC_LOCALES: string[] = await res.json();
-
 function LocaleFlag({ locale, className }: { locale: string; className?: string }) {
   return (
     <img
       src={`/app/country-flags/${getLocaleFlag(locale)}.svg`}
       alt=""
-      className={className ?? "w-4 h-3 rounded-xs object-cover shrink-0"}
+      className={className ?? "h-[14px] w-auto object-contain shrink-0 rounded-xs"}
       onError={(e) => {
         (e.currentTarget as HTMLImageElement).style.display = "none";
       }}
     />
   );
-}
+} /*aspect-[3/2]*/
+
+const DEVICE_PATTERNS: [RegExp, string][] = [
+  [/iphone[_-]?6\.9/i, 'iPhone 6.9"'],
+  [/iphone[_-]?6\.7/i, 'iPhone 6.7"'],
+  [/iphone[_-]?6\.5/i, 'iPhone 6.5"'],
+  [/iphone[_-]?6\.3/i, 'iPhone 6.3"'],
+  [/iphone[_-]?5\.5/i, 'iPhone 5.5"'],
+  [/iphone[_-]?4\.7/i, 'iPhone 4.7"'],
+  [/ipad[_-]?13/i, 'iPad 13"'],
+  [/ipad[_-]?12\.9/i, 'iPad 12.9"'],
+  [/ipad[_-]?11/i, 'iPad 11"'],
+  [/ipad/i, "iPad"],
+];
 
 function getDeviceLabel(url: string): string {
-  const DEVICE_PATTERNS: [RegExp, string][] = [
-    [/iphone[_-]?6\.9/i, 'iPhone 6.9"'],
-    [/iphone[_-]?6\.7/i, 'iPhone 6.7"'],
-    [/iphone[_-]?6\.5/i, 'iPhone 6.5"'],
-    [/iphone[_-]?6\.3/i, 'iPhone 6.3"'],
-    [/iphone[_-]?5\.5/i, 'iPhone 5.5"'],
-    [/iphone[_-]?4\.7/i, 'iPhone 4.7"'],
-    [/ipad[_-]?13/i, 'iPad 13"'],
-    [/ipad[_-]?12\.9/i, 'iPad 12.9"'],
-    [/ipad[_-]?11/i, 'iPad 11"'],
-    [/ipad/i, "iPad"],
-  ];
-
   const filename = decodeURIComponent(url.split("/").pop() ?? url);
+
   for (const [re, label] of DEVICE_PATTERNS) {
     if (re.test(filename)) return label;
   }
   return "Other";
 }
+
+const SUBMIT_STATUS_DEFAULT = { dot: "bg-gray-300", text: "text-gray-500" };
+const SUBMIT_STATUS_COLORS: Record<string, { dot: string; text: string }> = {
+  preparing: { dot: "bg-blue-500 animate-pulse", text: "text-blue-600" },
+  running: { dot: "bg-blue-500 animate-pulse", text: "text-blue-600" },
+  completed: { dot: "bg-emerald-500", text: "text-emerald-600" },
+  failed: { dot: "bg-red-500", text: "text-red-600" },
+};
 
 function StateBadge({ state }: { state: string }) {
   const label = state.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -178,14 +182,7 @@ function ActionButton({
   const ref = useRef<HTMLDivElement>(null);
   const busy = !!submitting || isActive;
 
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
+  useClickOutside(ref, () => setOpen(false));
 
   if (canSubmitForReview) {
     return (
@@ -1005,6 +1002,7 @@ export default function Versions({ addToast }: Props) {
   const { versionId } = useParams<{ versionId: string }>();
   const apiPath = versionId ? `/asc/versions?versionId=${encodeURIComponent(versionId)}` : "/asc/versions";
   const { data, loading, error, refetch } = useApi<VersionsData>(apiPath, [versionId ?? ""]);
+  const { data: ascLocales } = useApi<string[]>("/asc/supported-locales", [], true);
   const [activeLocale, setActiveLocale] = useState<string | null>(null);
   const [showAddLocale, setShowAddLocale] = useState(false);
   const [addingLocale, setAddingLocale] = useState(false);
@@ -1067,30 +1065,13 @@ export default function Versions({ addToast }: Props) {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [submitStatus?.logs?.length]);
 
-  const submitMetadata = async () => {
-    setSubmitting("metadata");
+  const runSubmission = async (kind: "metadata" | "review") => {
+    setSubmitting(kind);
     setShowLogs(true);
     try {
-      const res = await apiPost("/submissions/metadata", {
-        bundleId: getActiveBundleId(),
-      });
-      addToast(res.message || "Metadata push started", "success");
-      startPolling();
-    } catch (e: any) {
-      addToast(e.message, "error");
-    } finally {
-      setSubmitting(null);
-    }
-  };
-
-  const submitForReview = async () => {
-    setSubmitting("review");
-    setShowLogs(true);
-    try {
-      const res = await apiPost("/submissions/review", {
-        bundleId: getActiveBundleId(),
-      });
-      addToast(res.message || "Submit for review started", "success");
+      const res = await apiPost(`/submissions/${kind}`, { bundleId: getActiveBundleId() });
+      const fallback = kind === "metadata" ? "Metadata push started" : "Submit for review started";
+      addToast(res.message || fallback, "success");
       startPolling();
     } catch (e: any) {
       addToast(e.message, "error");
@@ -1110,14 +1091,7 @@ export default function Versions({ addToast }: Props) {
     }
   };
 
-  useEffect(() => {
-    if (!showAddLocale) return;
-    const handler = (e: MouseEvent) => {
-      if (addLocaleRef.current && !addLocaleRef.current.contains(e.target as Node)) setShowAddLocale(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [showAddLocale]);
+  useClickOutside(addLocaleRef, () => setShowAddLocale(false));
 
   const createLocalization = useCallback(
     async (locale: string) => {
@@ -1139,8 +1113,8 @@ export default function Versions({ addToast }: Props) {
           const err = await res.json().catch(() => ({}));
           throw new Error(err.error ?? `HTTP ${res.status}`);
         }
-        const created = await res.json();
 
+        const created = await res.json();
         const sourceLoc = data.localizations.find((l) => l.locale === "en-US") ?? data.localizations[0];
 
         if (sourceLoc && (created.appInfoLocalizationId || created.versionLocalizationId)) {
@@ -1335,8 +1309,8 @@ export default function Versions({ addToast }: Props) {
             canSubmitForReview={canSubmitForReview}
             submitting={submitting}
             isActive={isActive}
-            onSubmitForReview={submitForReview}
-            onPushMetadata={submitMetadata}
+            onSubmitForReview={() => runSubmission("review")}
+            onPushMetadata={() => runSubmission("metadata")}
             onRefetch={refetch}
             onSync={syncFromAppStore}
           />
@@ -1347,30 +1321,17 @@ export default function Versions({ addToast }: Props) {
         <div className={`${cardCls} mb-5 py-3.5`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <span
-                className={`w-2 h-2 rounded-full shrink-0 ${
-                  submitStatus.status === "preparing" || submitStatus.status === "running"
-                    ? "bg-blue-500 animate-pulse"
-                    : submitStatus.status === "completed"
-                      ? "bg-emerald-500"
-                      : submitStatus.status === "failed"
-                        ? "bg-red-500"
-                        : "bg-gray-300"
-                }`}
-              />
-              <span
-                className={`text-[13px] font-medium capitalize ${
-                  submitStatus.status === "running" || submitStatus.status === "preparing"
-                    ? "text-blue-600"
-                    : submitStatus.status === "completed"
-                      ? "text-emerald-600"
-                      : submitStatus.status === "failed"
-                        ? "text-red-600"
-                        : "text-gray-500"
-                }`}
-              >
-                Fastlane — {submitStatus.status}
-              </span>
+              {(() => {
+                const c = SUBMIT_STATUS_COLORS[submitStatus.status] ?? SUBMIT_STATUS_DEFAULT;
+                return (
+                  <>
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${c.dot}`} />
+                    <span className={`text-[13px] font-medium capitalize ${c.text}`}>
+                      Status — {submitStatus.status}
+                    </span>
+                  </>
+                );
+              })()}
             </div>
             <button
               onClick={() => setShowLogs((v) => !v)}
@@ -1420,14 +1381,16 @@ export default function Versions({ addToast }: Props) {
             <div className="-mx-5 -mt-5 px-5 pt-4 pb-4 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
               <div className="flex items-start gap-2">
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 flex-wrap flex-1 min-w-0">
-                  {data.localizations.map((loc) => (
+                  {[...data.localizations]
+                    .sort((a, b) => getLocaleName(a.locale).localeCompare(getLocaleName(b.locale)))
+                    .map((loc) => (
                     <div key={loc.locale} className="relative group">
                       <button
                         onClick={() => setActiveLocale(loc.locale)}
                         className={`flex items-center gap-2 px-3.5 py-[7px] rounded-xl transition-all whitespace-nowrap ${
                           loc.locale === activeLocale
-                            ? "bg-[#111827] dark:bg-[#e8eaf0] text-white dark:text-[#111827] shadow-sm"
-                            : "bg-[#fafbfc] dark:bg-[#252b38] border ${borderDefault} ${textPrimary} hover:border-[#d1d5db] dark:hover:border-[#3a4050]"
+                            ? "bg-[#111827] dark:bg-[#e8eaf0] border text-white dark:text-[#111827] shadow-sm"
+                            : "bg-[#fafbfc] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] ${textPrimary} hover:border-[#d1d5db] dark:hover:border-[#3a4050]"
                         }`}
                       >
                         <LocaleFlag locale={loc.locale} />
@@ -1469,23 +1432,24 @@ export default function Versions({ addToast }: Props) {
                     </button>
                     {showAddLocale && (
                       <div
-                        className={`absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-xl shadow-lg py-1 min-w-[200px] max-h-64 overflow-y-auto`}
+                        className={`absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-xl shadow-lg py-1 min-w-[235px] max-h-64 overflow-y-auto`}
                       >
-                        {ASC_LOCALES.filter((l) => !data.localizations.some((loc) => loc.locale === l)).map(
-                          (locale) => (
+                        {(ascLocales ?? [])
+                          .filter((l) => !data.localizations.some((loc) => loc.locale === l))
+                          .sort((a, b) => getLocaleName(a).localeCompare(getLocaleName(b)))
+                          .map((locale) => (
                             <button
                               key={locale}
                               onClick={() => createLocalization(locale)}
                               className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left`}
                             >
                               <span className="flex items-center gap-2">
-                                <LocaleFlag locale={locale} />
+                                <LocaleFlag locale={locale} className="w-5 h-4 rounded-xs" />
                                 {getLocaleName(locale)}
                               </span>
                               <span className={`text-[11px] font-mono ${textMuted}`}>{locale}</span>
                             </button>
-                          ),
-                        )}
+                          ))}
                       </div>
                     )}
                   </div>
@@ -1496,7 +1460,7 @@ export default function Versions({ addToast }: Props) {
 
           <div className="flex items-center justify-between pb-3 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
             <div className="flex items-start gap-2.5">
-              <LocaleFlag locale={activeLoc.locale} className="w-5 h-4 rounded-xs object-cover shrink-0 mt-1" />
+              <LocaleFlag locale={activeLoc.locale} className="w-auto h-[17px] rounded-xs object-cover shrink-0 mt-1" />
               <div>
                 <div className={`text-[16px] font-semibold ${textPrimary} leading-tight`}>
                   {getLocaleName(activeLoc.locale)}
