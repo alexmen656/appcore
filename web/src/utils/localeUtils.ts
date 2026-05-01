@@ -41,3 +41,13 @@ export function getLocaleFlag(locale: string): string {
   if (LOCALE_FLAG_OVERRIDES[lang]) return LOCALE_FLAG_OVERRIDES[lang];
   return lang.toLowerCase();
 }
+
+const displayNames = new Intl.DisplayNames(["en"], { type: "language" });
+
+export const getLocaleName = (locale: string) => {
+  try {
+    return displayNames.of(locale)?.replace(/\s*\(.*\)$/, "") ?? locale;
+  } catch {
+    return locale;
+  }
+};

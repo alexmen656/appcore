@@ -149,8 +149,8 @@ export const LOCALE_MAP: Record<string, LocaleConfig> = {
     promptLang: "Spanish",
     market: "Latin American",
   },
-  "it-IT": {
-    locale: "it-IT",
+  it: {
+    locale: "it",
     language: "Italiano",
     promptLang: "Italian",
     market: "Italian",
@@ -234,8 +234,8 @@ export const LOCALE_MAP: Record<string, LocaleConfig> = {
     promptLang: "Finnish",
     market: "Finnish",
   },
-  nb: {
-    locale: "nb",
+  no: {
+    locale: "no",
     language: "Norsk",
     promptLang: "Norwegian",
     market: "Norwegian",
@@ -323,5 +323,83 @@ export const LOCALE_MAP: Record<string, LocaleConfig> = {
     language: "हिन्दी",
     promptLang: "Hindi",
     market: "Indian",
+  },
+  "bn-BD": {
+    locale: "bn-BD",
+    language: "বাংলা",
+    promptLang: "Bengali",
+    market: "Bangladeshi",
+  },
+  "en-CA": {
+    locale: "en-CA",
+    language: "English (CA)",
+    promptLang: "English",
+    market: "Canadian",
+  },
+  "fr-CA": {
+    locale: "fr-CA",
+    language: "Français (CA)",
+    promptLang: "French",
+    market: "Canadian French",
+  },
+  "gu-IN": {
+    locale: "gu-IN",
+    language: "ગુજરાતી",
+    promptLang: "Gujarati",
+    market: "Indian",
+  },
+  "kn-IN": {
+    locale: "kn-IN",
+    language: "ಕನ್ನಡ",
+    promptLang: "Kannada",
+    market: "Indian",
+  },
+  "ml-IN": {
+    locale: "ml-IN",
+    language: "മലയാളം",
+    promptLang: "Malayalam",
+    market: "Indian",
+  },
+  "mr-IN": {
+    locale: "mr-IN",
+    language: "मराठी",
+    promptLang: "Marathi",
+    market: "Indian",
+  },
+  "or-IN": {
+    locale: "or-IN",
+    language: "ଓଡ଼ିଆ",
+    promptLang: "Odia",
+    market: "Indian",
+  },
+  "pa-IN": {
+    locale: "pa-IN",
+    language: "ਪੰਜਾਬੀ",
+    promptLang: "Punjabi",
+    market: "Indian",
+  },
+  sl: {
+    locale: "sl",
+    language: "Slovenščina",
+    promptLang: "Slovenian",
+    market: "Slovenian",
+  },
+  "ta-IN": {
+    locale: "ta-IN",
+    language: "தமிழ்",
+    promptLang: "Tamil",
+    market: "Indian",
+  },
+  "te-IN": {
+    locale: "te-IN",
+    language: "తెలుగు",
+    promptLang: "Telugu",
+    market: "Indian",
+  },
+  "ur-PK": {
+    locale: "ur-PK",
+    language: "اردو",
+    promptLang: "Urdu",
+    market: "Pakistani",
   },
 };

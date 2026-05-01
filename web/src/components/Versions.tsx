@@ -13,7 +13,7 @@ import {
   textareaCls,
 } from "../styles";
 import type { VersionsData, VersionLocalization } from "../types";
-import { getLocaleFlag } from "../utils/localeUtils";
+import { getLocaleFlag, getLocaleName } from "../utils/localeUtils";
 import {
   Send,
   ChevronDown,
@@ -112,69 +112,11 @@ const FIELD_META: {
   },
 ];
 
-const ALL_ASC_LOCALES = [
-  "ar-SA",
-  "bn-BD",
-  "ca",
-  "cs",
-  "da",
-  "de-DE",
-  "el",
-  "en-AU",
-  "en-CA",
-  "en-GB",
-  "en-US",
-  "es-ES",
-  "es-MX",
-  "fi",
-  "fr-CA",
-  "fr-FR",
-  "gu-IN",
-  "he",
-  "hi",
-  "hr",
-  "hu",
-  "id",
-  "it",
-  "ja",
-  "kn-IN",
-  "ko",
-  "ml-IN",
-  "mr-IN",
-  "ms",
-  "nl-NL",
-  "no",
-  "or-IN",
-  "pa-IN",
-  "pl",
-  "pt-BR",
-  "pt-PT",
-  "ro",
-  "ru",
-  "sk",
-  "sl",
-  "sv",
-  "ta-IN",
-  "te-IN",
-  "th",
-  "tr",
-  "uk",
-  "ur-PK",
-  "vi",
-  "zh-Hans",
-  "zh-Hant",
-];
+const res = await fetch("/api/asc/supported-locales", {
+  headers: { "Content-Type": "application/json", ...authHeaders() },
+});
 
-const _localeNames = new Intl.DisplayNames(["en"], { type: "language" });
-
-function getLocaleName(locale: string): string {
-  try {
-    const full = _localeNames.of(locale) ?? locale;
-    return full.replace(/\s*\(.*\)$/, "");
-  } catch {
-    return locale;
-  }
-}
+const ASC_LOCALES: string[] = await res.json();
 
 function LocaleFlag({ locale, className }: { locale: string; className?: string }) {
   return (
@@ -666,9 +608,7 @@ function LatestBuildCard({ bundleId, appName }: { bundleId: string; appName: str
 
   return (
     <div className={`${cardCls} mb-5`}>
-      <div className="text-[14px] font-bold mb-3">
-        Latest Build
-      </div>
+      <div className="text-[14px] font-bold mb-3">Latest Build</div>
       <div className="flex items-start gap-4">
         <div className="shrink-0">
           {build.iconUrl ? (
@@ -762,6 +702,7 @@ function ScreenshotsPanel({
     if (!grouped.has(label)) grouped.set(label, []);
     grouped.get(label)!.push(url);
   }
+
   const DEVICE_ORDER = [
     'iPhone 6.9"',
     'iPhone 6.7"',
@@ -772,6 +713,7 @@ function ScreenshotsPanel({
     "iPad",
     "Other",
   ];
+
   const sortedGroups = [...grouped.entries()].sort(
     ([a], [b]) =>
       (DEVICE_ORDER.indexOf(a) === -1 ? 99 : DEVICE_ORDER.indexOf(a)) -
@@ -781,9 +723,7 @@ function ScreenshotsPanel({
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <div className="text-[14px] font-bold">
-          Screenshots
-        </div>
+        <div className="text-[14px] font-bold">Screenshots</div>
         <span className={`text-[11px] ${textMuted} font-mono`}>
           {job.commitSha.slice(0, 7)}
           {job.branch ? ` · ${job.branch}` : ""}
@@ -1531,7 +1471,7 @@ export default function Versions({ addToast }: Props) {
                       <div
                         className={`absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-xl shadow-lg py-1 min-w-[200px] max-h-64 overflow-y-auto`}
                       >
-                        {ALL_ASC_LOCALES.filter((l) => !data.localizations.some((loc) => loc.locale === l)).map(
+                        {ASC_LOCALES.filter((l) => !data.localizations.some((loc) => loc.locale === l)).map(
                           (locale) => (
                             <button
                               key={locale}

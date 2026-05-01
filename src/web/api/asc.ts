@@ -4,6 +4,7 @@ import { prisma, logger, getEffectiveSettings } from "../../config";
 import { requireAuth, verifyAppOwnershipByBundleId } from "../auth";
 import { AppStoreConnectClient } from "../../services/appstore-connect";
 import { AIAnalyzer } from "../../services/ai-analyzer";
+import { LOCALE_MAP } from "../../services/utils/country_lang";
 
 export const ascRouter = Router();
 ascRouter.use(requireAuth);
@@ -1815,16 +1816,12 @@ ascRouter.get("/gamecenter/achievements", async (req, res) => {
       res.json({ achievements: [], gcDetailId: null, gcEnabled: false });
       return;
     }
-    const { data: resp } = await (asc as any).client.get(
-      `/gameCenterDetails/${gcDetailId}/gameCenterAchievements`,
-      {
-        params: {
-          "fields[gameCenterAchievements]":
-            "referenceName,vendorIdentifier,points,showBeforeEarned,repeatable,archived",
-          limit: 200,
-        },
+    const { data: resp } = await (asc as any).client.get(`/gameCenterDetails/${gcDetailId}/gameCenterAchievements`, {
+      params: {
+        "fields[gameCenterAchievements]": "referenceName,vendorIdentifier,points,showBeforeEarned,repeatable,archived",
+        limit: 200,
       },
-    );
+    });
     const achievements = (resp.data ?? []).map((a: any) => ({
       id: a.id,
       referenceName: a.attributes?.referenceName ?? "",
@@ -1843,23 +1840,16 @@ ascRouter.get("/gamecenter/achievements", async (req, res) => {
 
 ascRouter.post("/gamecenter/achievements", async (req, res) => {
   try {
-    const {
-      bundleId,
-      gcDetailId,
-      referenceName,
-      vendorIdentifier,
-      points,
-      showBeforeEarned,
-      repeatable,
-    } = req.body as {
-      bundleId?: string;
-      gcDetailId: string;
-      referenceName: string;
-      vendorIdentifier: string;
-      points: number;
-      showBeforeEarned: boolean;
-      repeatable: boolean;
-    };
+    const { bundleId, gcDetailId, referenceName, vendorIdentifier, points, showBeforeEarned, repeatable } =
+      req.body as {
+        bundleId?: string;
+        gcDetailId: string;
+        referenceName: string;
+        vendorIdentifier: string;
+        points: number;
+        showBeforeEarned: boolean;
+        repeatable: boolean;
+      };
     if (!bundleId) {
       res.status(400).json({ error: "bundleId required" });
       return;
@@ -1953,16 +1943,12 @@ ascRouter.get("/gamecenter/achievements/:id/localizations", async (req, res) => 
       if (!owned) return;
     }
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await (asc as any).client.get(
-      `/gameCenterAchievements/${id}/localizations`,
-      {
-        params: {
-          "fields[gameCenterAchievementLocalizations]":
-            "locale,name,afterEarnedDescription,beforeEarnedDescription",
-          limit: 200,
-        },
+    const { data: resp } = await (asc as any).client.get(`/gameCenterAchievements/${id}/localizations`, {
+      params: {
+        "fields[gameCenterAchievementLocalizations]": "locale,name,afterEarnedDescription,beforeEarnedDescription",
+        limit: 200,
       },
-    );
+    });
     const locs = (resp.data ?? []).map((l: any) => ({
       id: l.id,
       locale: l.attributes?.locale ?? "",
@@ -1979,15 +1965,14 @@ ascRouter.get("/gamecenter/achievements/:id/localizations", async (req, res) => 
 
 ascRouter.post("/gamecenter/achievement-localizations", async (req, res) => {
   try {
-    const { bundleId, achievementId, locale, name, afterEarnedDescription, beforeEarnedDescription } =
-      req.body as {
-        bundleId?: string;
-        achievementId: string;
-        locale: string;
-        name: string;
-        afterEarnedDescription?: string;
-        beforeEarnedDescription?: string;
-      };
+    const { bundleId, achievementId, locale, name, afterEarnedDescription, beforeEarnedDescription } = req.body as {
+      bundleId?: string;
+      achievementId: string;
+      locale: string;
+      name: string;
+      afterEarnedDescription?: string;
+      beforeEarnedDescription?: string;
+    };
     if (!bundleId) {
       res.status(400).json({ error: "bundleId required" });
       return;
@@ -2084,15 +2069,12 @@ ascRouter.get("/gamecenter/challenges", async (req, res) => {
       res.json({ challenges: [], gcDetailId: null, gcEnabled: false });
       return;
     }
-    const { data: resp } = await (asc as any).client.get(
-      `/gameCenterDetails/${gcDetailId}/gameCenterLeaderboardSets`,
-      {
-        params: {
-          "fields[gameCenterLeaderboardSets]": "referenceName,vendorIdentifier",
-          limit: 200,
-        },
+    const { data: resp } = await (asc as any).client.get(`/gameCenterDetails/${gcDetailId}/gameCenterLeaderboardSets`, {
+      params: {
+        "fields[gameCenterLeaderboardSets]": "referenceName,vendorIdentifier",
+        limit: 200,
       },
-    );
+    });
     const challenges = (resp.data ?? []).map((c: any) => ({
       id: c.id,
       referenceName: c.attributes?.referenceName ?? "",
@@ -2194,15 +2176,12 @@ ascRouter.get("/gamecenter/challenges/:id/localizations", async (req, res) => {
       if (!owned) return;
     }
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await (asc as any).client.get(
-      `/gameCenterLeaderboardSets/${id}/localizations`,
-      {
-        params: {
-          "fields[gameCenterLeaderboardSetLocalizations]": "locale,name",
-          limit: 200,
-        },
+    const { data: resp } = await (asc as any).client.get(`/gameCenterLeaderboardSets/${id}/localizations`, {
+      params: {
+        "fields[gameCenterLeaderboardSetLocalizations]": "locale,name",
+        limit: 200,
       },
-    );
+    });
     const locs = (resp.data ?? []).map((l: any) => ({
       id: l.id,
       locale: l.attributes?.locale ?? "",
@@ -2290,4 +2269,8 @@ ascRouter.delete("/gamecenter/challenge-localizations/:id", async (req, res) => 
     logger.error("ASC delete challenge localization failed", err);
     res.status(500).json({ error: err.message ?? String(err) });
   }
+});
+
+ascRouter.get("/supported-locales", async (req, res) => {
+  res.json(Object.keys(LOCALE_MAP));
 });

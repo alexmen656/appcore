@@ -1,17 +1,7 @@
 import { useState } from "react";
 import { textMuted, textPrimary, borderDefault, btnPrimary } from "../../styles";
 import { ClipboardList, ChevronDown } from "lucide-react";
-import { getLocaleFlag } from "../../utils/localeUtils";
-
-const _localeNames = new Intl.DisplayNames(["en"], { type: "language" });
-function getLocaleName(locale: string): string {
-  try {
-    const full = _localeNames.of(locale) ?? locale;
-    return full.replace(/\s*\(.*\)$/, "");
-  } catch {
-    return locale;
-  }
-}
+import { getLocaleFlag, getLocaleName } from "../../utils/localeUtils";
 
 function LocaleFlag({ locale }: { locale: string }) {
   return (
