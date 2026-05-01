@@ -810,6 +810,47 @@ githubRouter.delete("/screenshots/framed/:jobId", requireAuth, async (req: Reque
   }
 });
 
+githubRouter.patch("/screenshots/framed/:jobId/reorder", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const jobId = req.params.jobId as string;
+    const { locale, urls } = req.body as { locale?: string; urls?: string[] };
+    if (!locale || !Array.isArray(urls)) {
+      res.status(400).json({ error: "locale and urls are required" });
+      return;
+    }
+
+    const job = await prisma.screenshotJob.findUnique({ where: { id: jobId } });
+    if (!job?.framedByLocale) {
+      res.status(404).json({ error: "Job not found" });
+      return;
+    }
+
+    const framedByLocale = job.framedByLocale as Record<string, string[]>;
+    const existing = framedByLocale[locale];
+    if (!existing) {
+      res.status(404).json({ error: `Locale ${locale} not found` });
+      return;
+    }
+
+    const existingSet = new Set(existing);
+    if (urls.length !== existing.length || !urls.every((u) => existingSet.has(u))) {
+      res.status(400).json({ error: "urls must be a permutation of the existing screenshots" });
+      return;
+    }
+
+    const updated = { ...framedByLocale, [locale]: urls };
+    await prisma.screenshotJob.update({
+      where: { id: jobId },
+      data: { framedByLocale: updated as any },
+    });
+
+    res.json({ ok: true });
+  } catch (err: any) {
+    logger.error(`Reorder framed screenshots error: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 githubRouter.get("/screenshots/latest-framed/:appId", requireAuth, async (req: Request, res: Response) => {
   try {
     const ascAppId = req.params.appId as string;

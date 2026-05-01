@@ -661,6 +661,13 @@ function ScreenshotsPanel({
     appId,
   ]);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [orderOverride, setOrderOverride] = useState<Record<string, string[]>>({});
+  const [draggingUrl, setDraggingUrl] = useState<string | null>(null);
+  const [dragOverUrl, setDragOverUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    setOrderOverride({});
+  }, [data?.job?.id]);
 
   const deleteScreenshot = async (jobId: string, url: string) => {
     if (!confirm("Remove this screenshot?")) return;
@@ -684,6 +691,27 @@ function ScreenshotsPanel({
     }
   };
 
+  const persistOrder = async (jobId: string, locale: string, urls: string[]) => {
+    try {
+      const res = await fetch(`/api/github/screenshots/framed/${jobId}/reorder`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ locale, urls }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? `HTTP ${res.status}`);
+      }
+    } catch (err: any) {
+      addToast(`Failed to reorder: ${err.message}`, "error");
+      setOrderOverride((prev) => {
+        const next = { ...prev };
+        delete next[locale];
+        return next;
+      });
+    }
+  };
+
   const job = data?.job;
   const framedByLocale = job?.framedByLocale ?? {};
   const locales = Object.keys(framedByLocale).filter((l) => (framedByLocale[l]?.length ?? 0) > 0);
@@ -691,7 +719,7 @@ function ScreenshotsPanel({
 
   if (loading || !job || locales.length === 0) return null;
 
-  const screenshots = effectiveLocale ? (framedByLocale[effectiveLocale] ?? []) : [];
+  const screenshots = effectiveLocale ? (orderOverride[effectiveLocale] ?? framedByLocale[effectiveLocale] ?? []) : [];
   const grouped = new Map<string, string[]>();
 
   for (const url of screenshots) {
@@ -717,13 +745,32 @@ function ScreenshotsPanel({
       (DEVICE_ORDER.indexOf(b) === -1 ? 99 : DEVICE_ORDER.indexOf(b)),
   );
 
+  const handleDrop = (targetUrl: string) => {
+    const sourceUrl = draggingUrl;
+    setDraggingUrl(null);
+    setDragOverUrl(null);
+    if (!sourceUrl || !effectiveLocale || sourceUrl === targetUrl) return;
+    if (getDeviceLabel(sourceUrl) !== getDeviceLabel(targetUrl)) return;
+
+    const next = [...screenshots];
+    const from = next.indexOf(sourceUrl);
+    const to = next.indexOf(targetUrl);
+    if (from === -1 || to === -1) return;
+    next.splice(from, 1);
+    next.splice(to, 0, sourceUrl);
+
+    setOrderOverride((prev) => ({ ...prev, [effectiveLocale]: next }));
+    persistOrder(job.id, effectiveLocale, next);
+  };
+
   return (
-    <div>
+    <div className="pb-5 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
       <div className="flex items-center justify-between mb-4">
         <div className="text-[14px] font-bold">Screenshots</div>
         <span className={`text-[11px] ${textMuted} font-mono`}>
           {job.commitSha.slice(0, 7)}
           {job.branch ? ` · ${job.branch}` : ""}
+          {job.framedByLocale ? ` · ${job.framedByLocale}` : ""}
         </span>
       </div>
 
@@ -735,33 +782,67 @@ function ScreenshotsPanel({
             <div key={label}>
               <div className="flex items-center gap-2 mb-2.5">
                 <div className={`text-[10px] font-bold uppercase tracking-widest ${textMuted}`}>{label}</div>
-                <span className="text-[10px] text-[#c8cdd3] dark:text-[#3a4050]">— max 10</span>
+                <span className="text-[10px] text-[#c8cdd3] dark:text-[#3a4050]">- max 10</span>
               </div>
               <div className="flex gap-3 overflow-x-auto pb-1">
-                {urls.map((url) => (
-                  <div key={url} className="relative shrink-0 group/img">
-                    <a href={url} target="_blank" rel="noopener noreferrer">
-                      <img
-                        src={url}
-                        alt={`${label} screenshot`}
-                        className="h-[200px] w-auto rounded-xl border border-[#eef0f3] object-cover shadow-sm group-hover/img:shadow-md group-hover/img:opacity-90 transition-all"
-                      />
-                    </a>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        deleteScreenshot(job.id, url);
+                {urls.map((url) => {
+                  const isDragging = draggingUrl === url;
+                  const isDropTarget =
+                    dragOverUrl === url && draggingUrl && draggingUrl !== url && getDeviceLabel(draggingUrl) === label;
+                  return (
+                    <div
+                      key={url}
+                      draggable
+                      onDragStart={(e) => {
+                        setDraggingUrl(url);
+                        e.dataTransfer.effectAllowed = "move";
                       }}
-                      disabled={deleting === url}
-                      title="Remove screenshot"
-                      className="absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center rounded-full bg-black/60 text-white opacity-0 group-hover/img:opacity-100 hover:bg-red-600 transition-all disabled:opacity-50"
+                      onDragEnd={() => {
+                        setDraggingUrl(null);
+                        setDragOverUrl(null);
+                      }}
+                      onDragOver={(e) => {
+                        if (!draggingUrl || draggingUrl === url) return;
+                        if (getDeviceLabel(draggingUrl) !== label) return;
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "move";
+                        if (dragOverUrl !== url) setDragOverUrl(url);
+                      }}
+                      onDragLeave={() => {
+                        if (dragOverUrl === url) setDragOverUrl(null);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        handleDrop(url);
+                      }}
+                      className={`relative shrink-0 group/img cursor-grab active:cursor-grabbing transition-all ${
+                        isDragging ? "opacity-40" : ""
+                      } ${isDropTarget ? "ring-2 ring-[#D94412] ring-offset-2 rounded-xl" : ""}`}
                     >
-                      {deleting === url ? <div className="spinner !w-3.5 !h-3.5" /> : <X className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
-                ))}
+                      <a href={url} target="_blank" rel="noopener noreferrer">
+                        <img
+                          src={url}
+                          alt={`${label} screenshot`}
+                          draggable={false}
+                          className="h-[200px] w-auto rounded-xl border border-[#eef0f3] object-cover shadow-sm group-hover/img:shadow-md group-hover/img:opacity-90 transition-all"
+                        />
+                      </a>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          deleteScreenshot(job.id, url);
+                        }}
+                        disabled={deleting === url}
+                        title="Remove screenshot"
+                        className="absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center rounded-full bg-black/60 text-white opacity-0 group-hover/img:opacity-100 hover:bg-red-600 transition-all disabled:opacity-50"
+                      >
+                        {deleting === url ? <div className="spinner !w-3.5 !h-3.5" /> : <X className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ))}
@@ -1118,7 +1199,7 @@ export default function Versions({ addToast }: Props) {
         const sourceLoc = data.localizations.find((l) => l.locale === "en-US") ?? data.localizations[0];
 
         if (sourceLoc && (created.appInfoLocalizationId || created.versionLocalizationId)) {
-          addToast(`Language ${locale} added — translating with AI…`, "info");
+          addToast(`Language ${locale} added - translating with AI…`, "info");
           try {
             const translateRes = await fetch("/api/asc/versions/localizations/translate", {
               method: "POST",
@@ -1327,7 +1408,7 @@ export default function Versions({ addToast }: Props) {
                   <>
                     <span className={`w-2 h-2 rounded-full shrink-0 ${c.dot}`} />
                     <span className={`text-[13px] font-medium capitalize ${c.text}`}>
-                      Status — {submitStatus.status}
+                      Status - {submitStatus.status}
                     </span>
                   </>
                 );
@@ -1384,41 +1465,41 @@ export default function Versions({ addToast }: Props) {
                   {[...data.localizations]
                     .sort((a, b) => getLocaleName(a.locale).localeCompare(getLocaleName(b.locale)))
                     .map((loc) => (
-                    <div key={loc.locale} className="relative group">
-                      <button
-                        onClick={() => setActiveLocale(loc.locale)}
-                        className={`flex items-center gap-2 px-3.5 py-[7px] rounded-xl transition-all whitespace-nowrap ${
-                          loc.locale === activeLocale
-                            ? "bg-[#111827] dark:bg-[#e8eaf0] border text-white dark:text-[#111827] shadow-sm"
-                            : "bg-[#fafbfc] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] ${textPrimary} hover:border-[#d1d5db] dark:hover:border-[#3a4050]"
-                        }`}
-                      >
-                        <LocaleFlag locale={loc.locale} />
-                        <span className="text-[13px] font-medium">{getLocaleName(loc.locale)}</span>
-                      </button>
-                      {data.isEditable && data.localizations.length > 1 && (
+                      <div key={loc.locale} className="relative group">
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeLocale(loc);
-                          }}
-                          disabled={removingLocale === loc.locale}
-                          className={`absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm ${
+                          onClick={() => setActiveLocale(loc.locale)}
+                          className={`flex items-center gap-2 px-3.5 py-[7px] rounded-xl transition-all whitespace-nowrap ${
                             loc.locale === activeLocale
-                              ? "bg-white/20 hover:bg-white/40 text-white"
-                              : "bg-[#f3f4f6] dark:bg-[#2a2f3d] hover:bg-red-100 dark:hover:bg-red-900/30 text-[#9ca3af] hover:text-[#D94412]"
+                              ? "bg-[#111827] dark:bg-[#e8eaf0] border text-white dark:text-[#111827] shadow-sm"
+                              : "bg-[#fafbfc] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] ${textPrimary} hover:border-[#d1d5db] dark:hover:border-[#3a4050]"
                           }`}
-                          title="Remove language"
                         >
-                          {removingLocale === loc.locale ? (
-                            <div className="spinner !w-2.5 !h-2.5" />
-                          ) : (
-                            <X className="w-2 h-2" />
-                          )}
+                          <LocaleFlag locale={loc.locale} />
+                          <span className="text-[13px] font-medium">{getLocaleName(loc.locale)}</span>
                         </button>
-                      )}
-                    </div>
-                  ))}
+                        {data.isEditable && data.localizations.length > 1 && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeLocale(loc);
+                            }}
+                            disabled={removingLocale === loc.locale}
+                            className={`absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm ${
+                              loc.locale === activeLocale
+                                ? "bg-white/20 hover:bg-white/40 text-white"
+                                : "bg-[#f3f4f6] dark:bg-[#2a2f3d] hover:bg-red-100 dark:hover:bg-red-900/30 text-[#9ca3af] hover:text-[#D94412]"
+                            }`}
+                            title="Remove language"
+                          >
+                            {removingLocale === loc.locale ? (
+                              <div className="spinner !w-2.5 !h-2.5" />
+                            ) : (
+                              <X className="w-2 h-2" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    ))}
                 </div>
                 {data.isEditable && data.versionId && (
                   <div ref={addLocaleRef} className="relative shrink-0 self-start">
@@ -1476,9 +1557,7 @@ export default function Versions({ addToast }: Props) {
           </div>
           {data.appId && <ScreenshotsPanel appId={data.appId} activeLocale={activeLocale} addToast={addToast} />}
 
-          <div className="text-[14px] font-bold pt-4 border-t border-[#f3f4f6] dark:border-[#2a2f3d] -mb-1">
-            App Metadata
-          </div>
+          <div className="text-[14px] font-bold -mb-1">App Metadata</div>
 
           {FIELD_META.map((field) => (
             <EditableField
