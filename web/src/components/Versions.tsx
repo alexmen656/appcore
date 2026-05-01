@@ -13,6 +13,7 @@ import {
   textareaCls,
 } from "../styles";
 import type { VersionsData, VersionLocalization } from "../types";
+import { getLocaleFlag } from "../utils/localeUtils";
 import {
   Send,
   ChevronDown,
@@ -173,50 +174,6 @@ function getLocaleName(locale: string): string {
   } catch {
     return locale;
   }
-}
-
-const LOCALE_FLAG_OVERRIDES: Record<string, string> = {
-  ar: "sa",
-  ca: "es",
-  cs: "cz",
-  da: "dk",
-  el: "gr",
-  en: "us",
-  he: "il",
-  hi: "in",
-  ja: "jp",
-  ko: "kr",
-  ms: "my",
-  no: "no",
-  sl: "si",
-  sv: "se",
-  uk: "ua",
-  vi: "vn",
-  zh: "cn",
-  "zh-Hant": "tw",
-  "pt-PT": "pt",
-  "pt-BR": "br",
-  "es-MX": "mx",
-  "es-ES": "es",
-  "fr-CA": "ca",
-  "fr-FR": "fr",
-  "en-AU": "au",
-  "en-CA": "ca",
-  "en-GB": "gb",
-  "en-US": "us",
-  "de-DE": "de",
-  "nl-NL": "nl",
-  "ar-SA": "sa",
-  "zh-Hans": "cn",
-};
-
-function getLocaleFlag(locale: string): string {
-  if (LOCALE_FLAG_OVERRIDES[locale]) return LOCALE_FLAG_OVERRIDES[locale];
-  const parts = locale.split("-");
-  if (parts.length > 1) return parts[1].toLowerCase();
-  const lang = parts[0];
-  if (LOCALE_FLAG_OVERRIDES[lang]) return LOCALE_FLAG_OVERRIDES[lang];
-  return lang.toLowerCase();
 }
 
 function LocaleFlag({ locale, className }: { locale: string; className?: string }) {
@@ -710,7 +667,6 @@ function LatestBuildCard({ bundleId, appName }: { bundleId: string; appName: str
   return (
     <div className={`${cardCls} mb-5`}>
       <div className="text-[14px] font-bold mb-3">
-        {/*tracking-widest text-[#9ca3af] dark:text-[#5c6478] uppercase */}
         Latest Build
       </div>
       <div className="flex items-start gap-4">
@@ -794,14 +750,13 @@ function ScreenshotsPanel({
   const job = data?.job;
   const framedByLocale = job?.framedByLocale ?? {};
   const locales = Object.keys(framedByLocale).filter((l) => (framedByLocale[l]?.length ?? 0) > 0);
-
   const effectiveLocale = activeLocale && locales.includes(activeLocale) ? activeLocale : (locales[0] ?? null);
 
   if (loading || !job || locales.length === 0) return null;
 
   const screenshots = effectiveLocale ? (framedByLocale[effectiveLocale] ?? []) : [];
-
   const grouped = new Map<string, string[]>();
+
   for (const url of screenshots) {
     const label = getDeviceLabel(url);
     if (!grouped.has(label)) grouped.set(label, []);
@@ -827,7 +782,6 @@ function ScreenshotsPanel({
     <div>
       <div className="flex items-center justify-between mb-4">
         <div className="text-[14px] font-bold">
-          {/*uppercase tracking-widest text-[#9ca3af] dark:text-[#5c6478]*/}
           Screenshots
         </div>
         <span className={`text-[11px] ${textMuted} font-mono`}>
@@ -1522,7 +1476,6 @@ export default function Versions({ addToast }: Props) {
 
       {activeLoc ? (
         <div className={`${cardCls} flex flex-col gap-5`}>
-          {/* Language selector */}
           {(data.localizations.length > 1 || data.isEditable) && (
             <div className="-mx-5 -mt-5 px-5 pt-4 pb-4 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
               <div className="flex items-start gap-2">
@@ -1539,11 +1492,6 @@ export default function Versions({ addToast }: Props) {
                       >
                         <LocaleFlag locale={loc.locale} />
                         <span className="text-[13px] font-medium">{getLocaleName(loc.locale)}</span>
-                        {/*<Check
-                          className={`w-3.5 h-3.5 shrink-0 ${
-                            loc.locale === activeLocale ? "opacity-100" : "opacity-30"
-                          }`}
-                        />*/}
                       </button>
                       {data.isEditable && data.localizations.length > 1 && (
                         <button
@@ -1606,7 +1554,6 @@ export default function Versions({ addToast }: Props) {
             </div>
           )}
 
-          {/* Active locale header */}
           <div className="flex items-center justify-between pb-3 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
             <div className="flex items-start gap-2.5">
               <LocaleFlag locale={activeLoc.locale} className="w-5 h-4 rounded-xs object-cover shrink-0 mt-1" />
@@ -1626,7 +1573,6 @@ export default function Versions({ addToast }: Props) {
           {data.appId && <ScreenshotsPanel appId={data.appId} activeLocale={activeLocale} addToast={addToast} />}
 
           <div className="text-[14px] font-bold pt-4 border-t border-[#f3f4f6] dark:border-[#2a2f3d] -mb-1">
-            {/*uppercase tracking-widest text-[#9ca3af] dark:text-[#5c6478]*/}
             App Metadata
           </div>
 
