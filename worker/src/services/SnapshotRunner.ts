@@ -96,17 +96,13 @@ export class SnapshotRunner {
     let effectiveLanguages = DEFAULT_LANGUAGES;
     let appearance: "light" | "dark" = "light";
     let scheme = appName;
+    let concurrency = 2;
 
     const configFile = findConfigFile(workDir);
 
     if (configFile) {
-      ({ descriptions, frameConfig, effectiveDevices, effectiveLanguages, appearance, scheme } = this.loadConfig(
-        configFile,
-        workDir,
-        scheme,
-        effectiveDevices,
-        effectiveLanguages,
-      ));
+      ({ descriptions, frameConfig, effectiveDevices, effectiveLanguages, appearance, scheme, concurrency } =
+        this.loadConfig(configFile, workDir, scheme, effectiveDevices, effectiveLanguages));
     } else {
       this.push(
         `[config] No config.json found - using defaults (scheme: ${scheme}, devices: ${effectiveDevices.join(", ")})`,
@@ -126,8 +122,9 @@ export class SnapshotRunner {
         ? `-project "${projFile}"`
         : `-project "${scheme}.xcodeproj"`;
 
+    const effectiveConcurrency = Math.max(1, Math.min(concurrency, snapDevices.length));
     this.push(
-      `[snapshot] Running xcodebuild sequentially for ${snapDevices.length} device(s):\n           - ${snapDevices.join("\n           - ")}`,
+      `[snapshot] Running xcodebuild for ${snapDevices.length} device(s) (concurrency: ${effectiveConcurrency}):\n           - ${snapDevices.join("\n           - ")}`,
     );
 
     await this.bootSimulators(snapDevices, appearance);
@@ -139,6 +136,7 @@ export class SnapshotRunner {
       projectArg,
       workDir,
       envVars,
+      effectiveConcurrency,
     );
 
     this.push("[snapshot] Snapshot completed");
@@ -175,6 +173,7 @@ export class SnapshotRunner {
     effectiveLanguages: string[];
     appearance: "light" | "dark";
     scheme: string;
+    concurrency: number;
   } {
     let descriptions: Record<string, string> = {};
     let frameConfig: Record<string, string> = {};
@@ -182,6 +181,7 @@ export class SnapshotRunner {
     let effectiveLanguages = defaultLanguages;
     let appearance: "light" | "dark" = "light";
     let scheme = defaultScheme;
+    let concurrency = 1;
 
     try {
       const parsed = JSON.parse(fs.readFileSync(configFile, "utf8"));
@@ -198,6 +198,9 @@ export class SnapshotRunner {
       if (Array.isArray(cfg.devices) && cfg.devices.length) effectiveDevices = cfg.devices;
       if (Array.isArray(cfg.languages) && cfg.languages.length) effectiveLanguages = cfg.languages;
       if (cfg.appearance === "dark" || cfg.appearance === "light") appearance = cfg.appearance;
+      if (Number.isFinite(cfg.concurrency) && cfg.concurrency >= 1) {
+        concurrency = Math.floor(cfg.concurrency);
+      }
 
       const { bgColor1, bgColor2, textColor } = cfg;
       if (bgColor1 || bgColor2 || textColor) {
@@ -218,6 +221,7 @@ export class SnapshotRunner {
           `  - devices: ${effectiveDevices.join(", ")}`,
           `  - languages: ${effectiveLanguages.join(", ")}`,
           `  - appearance: ${appearance}`,
+          `  - concurrency: ${concurrency}`,
           `  - ${plural(descCount, "description")}`,
         ].join("\n"),
       );
@@ -225,7 +229,7 @@ export class SnapshotRunner {
       this.push(`[config] Warning: could not parse ${path.relative(workDir, configFile)}`);
     }
 
-    return { descriptions, frameConfig, effectiveDevices, effectiveLanguages, appearance, scheme };
+    return { descriptions, frameConfig, effectiveDevices, effectiveLanguages, appearance, scheme, concurrency };
   }
 
   // ---------------------------------------------------------------------------
@@ -285,14 +289,15 @@ export class SnapshotRunner {
     projectArg: string,
     workDir: string,
     envVars: Record<string, string> | undefined,
+    concurrency: number,
   ): Promise<Record<string, Array<{ filename: string; data: string }>>> {
     const screenshots: Record<string, Array<{ filename: string; data: string }>> = {};
 
-    for (const lang of effectiveLanguages) {
-      const [langCode, regionCode] = lang.split("-");
-      const localeId = regionCode ? `${langCode}_${regionCode}` : langCode;
+    const runDeviceLanguages = async (device: string): Promise<void> => {
+      for (const lang of effectiveLanguages) {
+        const [langCode, regionCode] = lang.split("-");
+        const localeId = regionCode ? `${langCode}_${regionCode}` : langCode;
 
-      for (const device of snapDevices) {
         const deviceLabel = UDID_RE.test(device) ? device.slice(0, 8) + "…" : device;
         const destination = UDID_RE.test(device)
           ? `-destination 'id=${device}'`
@@ -337,7 +342,17 @@ export class SnapshotRunner {
           this.push(`[snapshot] [${deviceLabel}] ${lang}: no test logs directory at ${testLogsDir}`);
         }
       }
-    }
+    };
+
+    const queue = [...snapDevices];
+    const workers = Array.from({ length: Math.max(1, concurrency) }, async () => {
+      while (queue.length > 0) {
+        const device = queue.shift();
+        if (device === undefined) return;
+        await runDeviceLanguages(device);
+      }
+    });
+    await Promise.all(workers);
 
     return screenshots;
   }
