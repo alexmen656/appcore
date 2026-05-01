@@ -403,6 +403,7 @@ export class SnapshotRunner {
     const collected: string[] = [];
     const langBase = lang.split("-")[0];
     const langPrefix = `${langBase}__`;
+    const deviceTag = (UDID_RE.test(device) ? device.slice(0, 8) : device).replace(/[^a-zA-Z0-9]/g, "_");
 
     for (const xcName of xcResults) {
       const xcPath = path.join(testLogsDir, xcName);
@@ -423,7 +424,8 @@ export class SnapshotRunner {
       this.push(`[snapshot] [${deviceLabel}] ${lang}: exporting ${relevant.length} screenshot(s)`);
 
       for (const [payloadId, attName] of relevant) {
-        const cleanName = attName.slice(langPrefix.length) + ".png";
+        const baseName = attName.slice(langPrefix.length);
+        const cleanName = `${baseName}__${deviceTag}.png`;
         const outPath = path.join(this.tmpDir, `snap-${this.runId}-${cleanName}.png`);
         try {
           await execAsync(
