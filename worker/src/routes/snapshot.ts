@@ -62,33 +62,57 @@ snapshotRouter.get("/snapshot/:runId/stream", (req: Request, res: Response) => {
   res.setHeader("X-Accel-Buffering", "no");
   res.flushHeaders();
 
+  let closed = false;
+
   const send = (event: string, data: unknown) => {
-    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    if (closed) return;
+    try {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    } catch (err) {
+      closed = true;
+      console.error(`[snapshot] SSE write error: ${err}`);
+    }
   };
 
   for (const line of job.logs) send("log", line);
 
   if (job.result) {
     send("result", job.result);
-    res.end();
+    if (!closed) res.end();
     return;
   }
 
   const onLine = (line: string) => send("log", line);
   const onResult = (result: unknown) => {
     send("result", result);
-    res.end();
+    if (!closed) res.end();
   };
 
   job.emitter.on("line", onLine);
   job.emitter.once("result", onResult);
 
   const heartbeat = setInterval(() => {
-    res.write(`: ping ${Date.now()}\n\n`);
+    if (!closed) {
+      try {
+        res.write(`: ping ${Date.now()}\n\n`);
+      } catch (err) {
+        closed = true;
+        clearInterval(heartbeat);
+        console.error(`[snapshot] SSE heartbeat error: ${err}`);
+      }
+    }
   }, 15_000);
   heartbeat.unref?.();
 
   req.on("close", () => {
+    closed = true;
+    clearInterval(heartbeat);
+    job.emitter.off("line", onLine);
+    job.emitter.off("result", onResult);
+  });
+
+  res.on("error", () => {
+    closed = true;
     clearInterval(heartbeat);
     job.emitter.off("line", onLine);
     job.emitter.off("result", onResult);

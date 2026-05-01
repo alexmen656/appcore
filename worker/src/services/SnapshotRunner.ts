@@ -42,6 +42,16 @@ export class SnapshotRunner {
   private readonly errors: string[] = [];
   private readonly xcresultLogs: Array<{ filename: string; sizeBytes: number }> = [];
 
+  private sanitizeTag(text: string, allowDots = false): string {
+    const pattern = allowDots ? /[^a-zA-Z0-9._-]/g : /[^a-zA-Z0-9]/g;
+    return text.replace(pattern, "_");
+  }
+
+  private getDeviceTag(device: string, allowDots = false): string {
+    const truncated = UDID_RE.test(device) ? device.slice(0, 8) : device;
+    return this.sanitizeTag(truncated, allowDots);
+  }
+
   constructor(
     runId: string,
     params: SnapshotParams,
@@ -81,6 +91,13 @@ export class SnapshotRunner {
     this.sweepOldArtifacts();
     this.push(`[repo] Cloning repo${branch ? ` @${branch}` : ""} ...`);
 
+    if (!/^https:\/\/[^\s"'`$();|&<>]+$/.test(repoUrl)) {
+      throw new Error(`Refusing to clone unsafe repoUrl: ${repoUrl}`);
+    }
+    if (branch && !/^[A-Za-z0-9._\-/]+$/.test(branch)) {
+      throw new Error(`Refusing to clone unsafe branch ref: ${branch}`);
+    }
+
     await execAsync(
       `git clone --depth 1 ${branch ? `--branch ${branch}` : ""} "${repoUrl.replace("https://", `https://x-access-token:${accessToken}@`)}" "${this.tmpDir}"`,
       { timeout: 120_000 },
@@ -89,25 +106,24 @@ export class SnapshotRunner {
     this.push(`[repo] Clone complete`);
 
     const workDir = resolveRepoWorkDir(this.tmpDir, iosDir, this.logs);
-
-    let descriptions: Record<string, string> = {};
-    let frameConfig: Record<string, string> = {};
-    let effectiveDevices = DEFAULT_DEVICES;
-    let effectiveLanguages = DEFAULT_LANGUAGES;
-    let appearance: "light" | "dark" = "light";
-    let scheme = appName;
-    let concurrency = 2;
-
     const configFile = findConfigFile(workDir);
-
-    if (configFile) {
-      ({ descriptions, frameConfig, effectiveDevices, effectiveLanguages, appearance, scheme, concurrency } =
-        this.loadConfig(configFile, workDir, scheme, effectiveDevices, effectiveLanguages));
-    } else {
-      this.push(
-        `[config] No config.json found - using defaults (scheme: ${scheme}, devices: ${effectiveDevices.join(", ")})`,
-      );
-    }
+    const { descriptions, frameConfig, effectiveDevices, effectiveLanguages, appearance, scheme, concurrency } =
+      configFile
+        ? this.loadConfig(configFile, workDir, appName, DEFAULT_DEVICES, DEFAULT_LANGUAGES)
+        : (() => {
+            this.push(
+              `[config] No config.json found - using defaults (scheme: ${appName}, devices: ${DEFAULT_DEVICES.join(", ")})`,
+            );
+            return {
+              descriptions: {},
+              frameConfig: {},
+              effectiveDevices: DEFAULT_DEVICES,
+              effectiveLanguages: DEFAULT_LANGUAGES,
+              appearance: "light" as const,
+              scheme: appName,
+              concurrency: 2,
+            };
+          })();
 
     const simInfo = await SnapshotRunner.getIosSimulatorInfo();
     this.push(`[snapshot] Detected iOS simulator version: ${simInfo?.version ?? "unknown"}`);
@@ -123,8 +139,9 @@ export class SnapshotRunner {
         : `-project "${scheme}.xcodeproj"`;
 
     const effectiveConcurrency = Math.max(1, Math.min(concurrency, snapDevices.length));
+
     this.push(
-      `[snapshot] Running xcodebuild for ${snapDevices.length} device(s) (concurrency: ${effectiveConcurrency}):\n           - ${snapDevices.join("\n           - ")}`,
+      `[snapshot] Running xcodebuild for ${plural(snapDevices.length, "device")} (concurrency: ${effectiveConcurrency}):\n           - ${snapDevices.join("\n           - ")}`
     );
 
     await this.bootSimulators(snapDevices, appearance);
@@ -175,13 +192,15 @@ export class SnapshotRunner {
     scheme: string;
     concurrency: number;
   } {
-    let descriptions: Record<string, string> = {};
-    let frameConfig: Record<string, string> = {};
-    let effectiveDevices = defaultDevices;
-    let effectiveLanguages = defaultLanguages;
-    let appearance: "light" | "dark" = "light";
-    let scheme = defaultScheme;
-    let concurrency = 1;
+    const result = {
+      descriptions: {} as Record<string, string>,
+      frameConfig: {} as Record<string, string>,
+      effectiveDevices: defaultDevices,
+      effectiveLanguages: defaultLanguages,
+      appearance: "light" as const,
+      scheme: defaultScheme,
+      concurrency: 2,
+    };
 
     try {
       const parsed = JSON.parse(fs.readFileSync(configFile, "utf8"));
@@ -192,36 +211,35 @@ export class SnapshotRunner {
         if (sanitized !== cfg.scheme) {
           this.push(`[config] Warning: scheme name sanitized from "${cfg.scheme}" to "${sanitized}"`);
         }
-        scheme = sanitized;
+        result.scheme = sanitized;
       }
 
-      if (Array.isArray(cfg.devices) && cfg.devices.length) effectiveDevices = cfg.devices;
-      if (Array.isArray(cfg.languages) && cfg.languages.length) effectiveLanguages = cfg.languages;
-      if (cfg.appearance === "dark" || cfg.appearance === "light") appearance = cfg.appearance;
+      if (Array.isArray(cfg.devices) && cfg.devices.length) result.effectiveDevices = cfg.devices;
+      if (Array.isArray(cfg.languages) && cfg.languages.length) result.effectiveLanguages = cfg.languages;
+      if (cfg.appearance === "dark" || cfg.appearance === "light") result.appearance = cfg.appearance;
       if (Number.isFinite(cfg.concurrency) && cfg.concurrency >= 1) {
-        concurrency = Math.floor(cfg.concurrency);
+        result.concurrency = Math.floor(cfg.concurrency);
       }
 
       const { bgColor1, bgColor2, textColor } = cfg;
       if (bgColor1 || bgColor2 || textColor) {
-        frameConfig = Object.fromEntries(
+        result.frameConfig = Object.fromEntries(
           Object.entries({ bgColor1, bgColor2, textColor }).filter(([, v]) => v != null),
         ) as Record<string, string>;
       }
 
       const { _config: _, ...rest } = parsed;
-      descriptions = rest;
-
-      const descCount = Object.keys(descriptions).length;
+      result.descriptions = rest;
+      const descCount = Object.keys(result.descriptions).length;
 
       this.push(
         [
           `[config] Loaded config.json from ${path.relative(workDir, configFile)}`,
-          `  - scheme: ${scheme}`,
-          `  - devices: ${effectiveDevices.join(", ")}`,
-          `  - languages: ${effectiveLanguages.join(", ")}`,
-          `  - appearance: ${appearance}`,
-          `  - concurrency: ${concurrency}`,
+          `  - scheme: ${result.scheme}`,
+          `  - devices: ${result.effectiveDevices.join(", ")}`,
+          `  - languages: ${result.effectiveLanguages.join(", ")}`,
+          `  - appearance: ${result.appearance}`,
+          `  - concurrency: ${result.concurrency}`,
           `  - ${plural(descCount, "description")}`,
         ].join("\n"),
       );
@@ -229,7 +247,7 @@ export class SnapshotRunner {
       this.push(`[config] Warning: could not parse ${path.relative(workDir, configFile)}`);
     }
 
-    return { descriptions, frameConfig, effectiveDevices, effectiveLanguages, appearance, scheme, concurrency };
+    return result;
   }
 
   // ---------------------------------------------------------------------------
@@ -308,14 +326,6 @@ export class SnapshotRunner {
 
         this.push(`[snapshot] [${deviceLabel}] ${lang} — running UI tests ...`);
 
-        if (UDID_RE.test(device)) {
-          try {
-            await execAsync(`xcrun simctl shutdown "${device}"`, { timeout: 30_000 });
-          } catch {
-            // already shut down
-          }
-        }
-
         const testFailed = await this.runXcodebuild(
           scheme,
           projectArg,
@@ -352,8 +362,8 @@ export class SnapshotRunner {
         await runDeviceLanguages(device);
       }
     });
-    await Promise.all(workers);
 
+    await Promise.all(workers);
     return screenshots;
   }
 
@@ -379,6 +389,7 @@ export class SnapshotRunner {
         env: { ...process.env, ...(envVars ?? {}) },
         maxBuffer: 10 * 1024 * 1024,
       });
+
       SnapshotRunner.filterXcodebuildOutput(stdout).forEach((l) => this.push(l));
       this.push(`[snapshot] [${deviceLabel}] ${lang}: finished in ${Math.round((Date.now() - testStart) / 1000)}s`);
       return false;
@@ -403,7 +414,7 @@ export class SnapshotRunner {
     const collected: string[] = [];
     const langBase = lang.split("-")[0];
     const langPrefix = `${langBase}__`;
-    const deviceTag = (UDID_RE.test(device) ? device.slice(0, 8) : device).replace(/[^a-zA-Z0-9]/g, "_");
+    const deviceTag = this.getDeviceTag(device);
 
     for (const xcName of xcResults) {
       const xcPath = path.join(testLogsDir, xcName);
@@ -421,12 +432,13 @@ export class SnapshotRunner {
       );
 
       const relevant = [...nameMap.entries()].filter(([, name]) => name.startsWith(langPrefix));
-      this.push(`[snapshot] [${deviceLabel}] ${lang}: exporting ${relevant.length} screenshot(s)`);
+      this.push(`[snapshot] [${deviceLabel}] ${lang}: exporting ${plural(relevant.length, "screenshot")}`);
 
       for (const [payloadId, attName] of relevant) {
-        const baseName = attName.slice(langPrefix.length);
+        const baseName = path.basename(attName.slice(langPrefix.length));
         const cleanName = `${baseName}__${deviceTag}.png`;
-        const outPath = path.join(this.tmpDir, `snap-${this.runId}-${cleanName}.png`);
+        const outPath = path.join(this.tmpDir, `snap-${this.runId}-${cleanName}`);
+
         try {
           await execAsync(
             `xcrun xcresulttool export --legacy --path "${xcPath}" --output-path "${outPath}" --type file --id "${payloadId}"`,
@@ -466,12 +478,13 @@ export class SnapshotRunner {
     lang: string,
     deviceLabel: string,
   ): Promise<void> {
-    const tag = (UDID_RE.test(device) ? device.slice(0, 8) : device).replace(/[^a-zA-Z0-9._-]/g, "_");
-    const safeLang = lang.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const safeXcName = xcName.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const tag = this.getDeviceTag(device, true);
+    const safeLang = this.sanitizeTag(lang, true);
+    const safeXcName = this.sanitizeTag(xcName, true);
     const zipName = `${tag}-${safeLang}-${safeXcName}.zip`;
     fs.mkdirSync(this.artifactsDir, { recursive: true });
     const zipPath = path.join(this.artifactsDir, zipName);
+
     try {
       await execAsync(`zip -rq "${zipPath}" "${path.basename(xcPath)}"`, {
         cwd: path.dirname(xcPath),
@@ -510,66 +523,50 @@ export class SnapshotRunner {
       throw new Error("xcresulttool get failed for all flag variants");
     };
 
-    const extractAttachments = (node: unknown): void => {
-      if (!node || typeof node !== "object") return;
-      if (Array.isArray(node)) {
-        node.forEach(extractAttachments);
-        return;
-      }
-      const obj = node as Record<string, unknown>;
+    const asObj = (v: unknown): Record<string, unknown> | null =>
+      v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
+    const asArr = (v: unknown): unknown[] | null =>
+      Array.isArray(v) ? v : ((asObj(v)?._values as unknown[] | undefined) ?? null);
+    const asStr = (v: unknown): string | undefined =>
+      typeof v === "string" ? v : (asObj(v)?._value as string | undefined);
 
-      const typeName = (obj._type as any)?._name;
-      if (typeName === "ActionTestAttachment" || (typeof obj.payloadRef === "object" && obj.payloadRef !== null)) {
-        const rawName = obj.name;
-        const name = typeof rawName === "string" ? rawName : (rawName as any)?._value;
-        const ref = obj.payloadRef as any;
-        const payloadId: string | undefined = typeof ref?.id === "string" ? ref.id : ref?.id?._value;
-        if (typeof name === "string" && typeof payloadId === "string" && name.length > 0) {
+    const extractAttachments = (node: unknown): void => {
+      const arr = asArr(node);
+      if (arr) arr.forEach(extractAttachments);
+
+      const obj = asObj(node);
+      if (!obj) return;
+
+      const typeName = asStr(asObj(obj._type)?._name);
+      const payloadRef = asObj(obj.payloadRef);
+
+      if ((typeName === "ActionTestAttachment" || payloadRef) && obj.name && payloadRef?.id) {
+        const name = asStr(obj.name);
+        const payloadId = asStr(payloadRef.id);
+        if (name && payloadId && name.length > 0) {
           map.set(payloadId.replace(/\.(png|jpg|jpeg)$/i, ""), name);
         }
       }
 
       for (const val of Object.values(obj)) {
-        if (!val || typeof val !== "object") continue;
-        const v = val as any;
-        if (Array.isArray(v)) {
-          v.forEach(extractAttachments);
-          continue;
-        }
-        if (Array.isArray(v._values)) {
-          v._values.forEach(extractAttachments);
-          continue;
-        }
-        extractAttachments(val);
+        if (val && typeof val === "object") extractAttachments(val);
       }
     };
 
     const collectRefIds = (root: unknown, key: string): string[] => {
       const ids: string[] = [];
       const walk = (n: unknown): void => {
-        if (!n || typeof n !== "object") return;
-        if (Array.isArray(n)) {
-          n.forEach(walk);
-          return;
-        }
-        const o = n as Record<string, unknown>;
-        if (key in o) {
-          const ref = o[key] as any;
-          const id = typeof ref?.id === "string" ? ref.id : ref?.id?._value;
-          if (typeof id === "string") ids.push(id);
-        }
-        for (const val of Object.values(o)) {
-          if (!val || typeof val !== "object") continue;
-          const v = val as any;
-          if (Array.isArray(v)) {
-            v.forEach(walk);
-            continue;
-          }
-          if (Array.isArray(v._values)) {
-            v._values.forEach(walk);
-            continue;
-          }
-          walk(val);
+        const arr = asArr(n);
+        if (arr) arr.forEach(walk);
+
+        const obj = asObj(n);
+        if (!obj) return;
+
+        const id = asStr(asObj(obj[key])?.id);
+        if (id) ids.push(id);
+
+        for (const val of Object.values(obj)) {
+          if (val && typeof val === "object") walk(val);
         }
       };
       walk(root);
@@ -580,19 +577,18 @@ export class SnapshotRunner {
     extractAttachments(root);
 
     for (const refId of collectRefIds(root, "testsRef")) {
-      let sub: unknown;
       try {
-        sub = await getJson(refId);
+        const sub = await getJson(refId);
+        extractAttachments(sub);
+        for (const summaryId of collectRefIds(sub, "summaryRef")) {
+          try {
+            extractAttachments(await getJson(summaryId));
+          } catch {
+            /* ignore */
+          }
+        }
       } catch {
         continue;
-      }
-      extractAttachments(sub);
-      for (const summaryId of collectRefIds(sub, "summaryRef")) {
-        try {
-          extractAttachments(await getJson(summaryId));
-        } catch {
-          /* ignore */
-        }
       }
     }
 
@@ -619,7 +615,7 @@ export class SnapshotRunner {
 
   private copyDebugArtifacts(): void {
     try {
-      const debugDir = "/tmp/last-snapshot-debug";
+      const debugDir = `/tmp/last-snapshot-debug-${this.runId}`;
       fs.rmSync(debugDir, { recursive: true, force: true });
       fs.mkdirSync(debugDir, { recursive: true });
 
@@ -651,6 +647,7 @@ export class SnapshotRunner {
   private sweepOldArtifacts(): void {
     const ttlMs = 24 * 60 * 60 * 1000;
     const now = Date.now();
+
     try {
       for (const entry of fs.readdirSync(this.logsDir, { withFileTypes: true })) {
         if (!entry.isDirectory()) continue;
@@ -676,27 +673,32 @@ export class SnapshotRunner {
     if (!output) return [];
     const lines = output.split("\n").filter(Boolean);
     const interesting = lines.filter((l) => LOG_INTERESTING_RE.test(l));
+
     if (interesting.length <= maxLines) return interesting;
     const dropped = interesting.length - maxLines;
-    return [`[snapshot] (truncated ${dropped} earlier filtered lines)`, ...interesting.slice(-maxLines)];
+    return [`[snapshot] (truncated ${plural(dropped, "line")} earlier filtered)`, ...interesting.slice(-maxLines)];
   }
 
   static async getIosSimulatorInfo(): Promise<{
     version: string;
     devices: Array<{ name: string; udid: string }>;
   } | null> {
+    type Runtime = { identifier: string; platform: string; version: string; isAvailable: boolean };
+    type Device = { name: string; udid: string; isAvailable: boolean };
+    type SimctlList = { runtimes: Runtime[]; devices: Record<string, Device[]> };
+
     try {
       const { stdout } = await execAsync("xcrun simctl list --json");
-      const data = JSON.parse(stdout) as any;
+      const data = JSON.parse(stdout) as SimctlList;
       const runtime = data.runtimes
-        .filter((r: any) => r.platform === "iOS" && r.isAvailable)
-        .sort((a: any, b: any) => b.version.localeCompare(a.version, undefined, { numeric: true }))[0];
+        .filter((r) => r.platform === "iOS" && r.isAvailable)
+        .sort((a, b) => b.version.localeCompare(a.version, undefined, { numeric: true }))[0];
 
       if (!runtime) return null;
 
       const devices = (data.devices[runtime.identifier] ?? [])
-        .filter((d: any) => d.isAvailable)
-        .map((d: any) => ({ name: d.name, udid: d.udid }));
+        .filter((d) => d.isAvailable)
+        .map((d) => ({ name: d.name, udid: d.udid }));
       return { version: runtime.version, devices };
     } catch {
       return null;
@@ -711,6 +713,7 @@ export class SnapshotRunner {
       .replace(/\s*\([^)]*\)\s*$/, "")
       .trim()
       .toLowerCase();
+
     return (
       find((d) => d.name === requested) ??
       find((d) => d.name.toLowerCase() === lower) ??
