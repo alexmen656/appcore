@@ -31,10 +31,7 @@ const RP_ID = env.WEBAUTHN_RP_ID;
 const RP_NAME = env.WEBAUTHN_RP_NAME;
 const ORIGIN = env.WEBAUTHN_ORIGIN;
 
-const challengeStore = new Map<
-  string,
-  { challenge: string; expires: number }
->();
+const challengeStore = new Map<string, { challenge: string; expires: number }>();
 setInterval(
   () => {
     const now = Date.now();
@@ -72,18 +69,14 @@ authRouter.post("/register", async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 12);
     const displayName = name ?? email.split("@")[0];
 
-    let invite = inviteToken
-      ? await prisma.teamInvite.findUnique({ where: { token: inviteToken } })
-      : null;
+    let invite = inviteToken ? await prisma.teamInvite.findUnique({ where: { token: inviteToken } }) : null;
 
     if (invite && (invite.acceptedAt || invite.expiresAt < new Date())) {
       invite = null;
     }
 
     if (invite && invite.email.toLowerCase() !== email.toLowerCase()) {
-      res
-        .status(403)
-        .json({ error: "This invite is for a different email address" });
+      res.status(403).json({ error: "This invite is for a different email address" });
       return;
     }
 
@@ -199,9 +192,7 @@ authRouter.post("/accept-invite", requireAuth, async (req, res) => {
       return;
     }
     if (invite.email !== req.user!.email) {
-      res
-        .status(403)
-        .json({ error: "This invite is for a different email address" });
+      res.status(403).json({ error: "This invite is for a different email address" });
       return;
     }
 
@@ -268,6 +259,7 @@ authRouter.patch("/profile", requireAuth, async (req, res) => {
   try {
     const { name, email } = req.body as { name?: string; email?: string };
     const updates: { name?: string; email?: string } = {};
+
     if (typeof name === "string") updates.name = name.trim();
     if (typeof email === "string") {
       const trimmed = email.trim().toLowerCase();
@@ -275,19 +267,23 @@ authRouter.patch("/profile", requireAuth, async (req, res) => {
         res.status(400).json({ error: "Invalid email address" });
         return;
       }
+      
       const existing = await prisma.user.findFirst({
         where: { email: trimmed, NOT: { id: req.user!.userId } },
       });
+
       if (existing) {
         res.status(409).json({ error: "Email already in use" });
         return;
       }
       updates.email = trimmed;
     }
+
     if (Object.keys(updates).length === 0) {
       res.status(400).json({ error: "Nothing to update" });
       return;
     }
+
     const user = await prisma.user.update({
       where: { id: req.user!.userId },
       data: updates,
@@ -327,13 +323,13 @@ authRouter.delete("/users/:id", requireAuth, async (req, res) => {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
-    const userId = Array.isArray(req.params.id)
-      ? req.params.id[0]
-      : req.params.id;
+
+    const userId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     if (userId === req.user!.userId) {
       res.status(400).json({ error: "Cannot delete yourself" });
       return;
     }
+
     await prisma.user.delete({ where: { id: userId } });
     res.json({ ok: true });
   } catch (err) {
@@ -347,6 +343,7 @@ authRouter.post("/passkey/register-options", requireAuth, async (req, res) => {
       where: { id: req.user!.userId },
       include: { passkeys: true },
     });
+
     if (!user) {
       res.status(404).json({ error: "User not found" });
       return;
@@ -389,9 +386,7 @@ authRouter.post("/passkey/register-verify", requireAuth, async (req, res) => {
 
     const stored = challengeStore.get(`reg:${req.user!.userId}`);
     if (!stored || stored.expires < Date.now()) {
-      res
-        .status(400)
-        .json({ error: "Challenge expired, start registration again" });
+      res.status(400).json({ error: "Challenge expired, start registration again" });
       return;
     }
 
@@ -409,8 +404,7 @@ authRouter.post("/passkey/register-verify", requireAuth, async (req, res) => {
 
     challengeStore.delete(`reg:${req.user!.userId}`);
 
-    const { credential, credentialDeviceType, credentialBackedUp } =
-      verification.registrationInfo;
+    const { credential, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
 
     await prisma.passkeyCredential.create({
       data: {
@@ -442,6 +436,7 @@ authRouter.post("/passkey/login-options", async (req, res) => {
         where: { email },
         include: { passkeys: true },
       });
+      
       if (user && user.passkeys.length > 0) {
         allowCredentials = user.passkeys.map((p) => ({
           id: p.credentialId,

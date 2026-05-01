@@ -141,4 +141,3 @@ actionsRouter.post("/competitor-intel", async (req, res) => {
     res.status(500).json({ error: String(err) });
   }
 });
-

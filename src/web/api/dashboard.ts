@@ -16,52 +16,38 @@ dashboardRouter.get("/", async (req, res) => {
       include: { snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 } },
     });
 
-    if (
-      ownApp &&
-      req.user!.role !== "ADMIN" &&
-      (!ownApp.teamId || ownApp.teamId !== req.user!.teamId)
-    ) {
+    if (ownApp && req.user!.role !== "ADMIN" && (!ownApp.teamId || ownApp.teamId !== req.user!.teamId)) {
       res.status(403).json({ error: "Not authorized" });
       return;
     }
 
     const appId = ownApp?.id;
 
-    const [
-      competitorCount,
-      snapshotCount,
-      keywordCount,
-      rankingCount,
-      pendingSuggestions,
-      appliedSuggestions,
-    ] = await Promise.all([
-      appId
-        ? prisma.competitorRelation.count({
-            where: { OR: [{ appId }, { competitorId: appId }] },
-          })
-        : Promise.resolve(0),
-      appId
-        ? prisma.appSnapshot.count({ where: { appId } })
-        : Promise.resolve(0),
-      appId
-        ? prisma.keyword.count({
-            where: { rankings: { some: { appId } } },
-          })
-        : Promise.resolve(0),
-      appId
-        ? prisma.keywordRanking.count({ where: { appId } })
-        : Promise.resolve(0),
-      activeBundleId
-        ? prisma.aSOSuggestion.count({
-            where: { status: "PENDING", appBundleId: activeBundleId },
-          })
-        : Promise.resolve(0),
-      activeBundleId
-        ? prisma.aSOSuggestion.count({
-            where: { status: "APPLIED", appBundleId: activeBundleId },
-          })
-        : Promise.resolve(0)
-    ]);
+    const [competitorCount, snapshotCount, keywordCount, rankingCount, pendingSuggestions, appliedSuggestions] =
+      await Promise.all([
+        appId
+          ? prisma.competitorRelation.count({
+              where: { OR: [{ appId }, { competitorId: appId }] },
+            })
+          : Promise.resolve(0),
+        appId ? prisma.appSnapshot.count({ where: { appId } }) : Promise.resolve(0),
+        appId
+          ? prisma.keyword.count({
+              where: { rankings: { some: { appId } } },
+            })
+          : Promise.resolve(0),
+        appId ? prisma.keywordRanking.count({ where: { appId } }) : Promise.resolve(0),
+        activeBundleId
+          ? prisma.aSOSuggestion.count({
+              where: { status: "PENDING", appBundleId: activeBundleId },
+            })
+          : Promise.resolve(0),
+        activeBundleId
+          ? prisma.aSOSuggestion.count({
+              where: { status: "APPLIED", appBundleId: activeBundleId },
+            })
+          : Promise.resolve(0),
+      ]);
 
     const recentSuggestions = await prisma.aSOSuggestion.findMany({
       where: activeBundleId ? { appBundleId: activeBundleId } : {},
@@ -102,11 +88,7 @@ dashboardRouter.get("/", async (req, res) => {
         aiProvider: settings.aiProvider,
         hasOpenAI: !!settings.openaiApiKey,
         hasAnthropic: !!settings.anthropicApiKey,
-        hasASC: !!(
-          settings.ascIssuerId &&
-          settings.ascKeyId &&
-          settings.ascPrivateKey
-        ),
+        hasASC: !!(settings.ascIssuerId && settings.ascKeyId && settings.ascPrivateKey),
         hasSearchAds: !!env.APPLE_ADS_CLIENT_ID,
       },
       recentSuggestions: recentSuggestions.map((s) => ({

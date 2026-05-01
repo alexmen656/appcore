@@ -1,11 +1,7 @@
 import { Router } from "express";
 import { prisma } from "../../config";
 import { getEffectiveSettings } from "../../config";
-import {
-  requireAuth,
-  verifyAppOwnership,
-  verifyAppOwnershipByBundleId,
-} from "../auth";
+import { requireAuth, verifyAppOwnership, verifyAppOwnershipByBundleId } from "../auth";
 import { ensureAccentColor } from "../../services/utils/icon-accent";
 
 export const appsRouter = Router();
@@ -29,9 +25,7 @@ appsRouter.get("/", async (req, res) => {
             OR: [{ appId: activeApp.id }, { competitorId: activeApp.id }],
           },
         });
-        const relatedIds = rels.map((r) =>
-          r.appId === activeApp.id ? r.competitorId : r.appId,
-        );
+        const relatedIds = rels.map((r) => (r.appId === activeApp.id ? r.competitorId : r.appId));
         whereClause = {
           OR: [{ id: activeApp.id }, { id: { in: relatedIds } }],
         };
@@ -352,10 +346,12 @@ appsRouter.get("/:id/signing", requireAuth, async (req, res) => {
         signingTeamId: true,
       },
     });
+
     if (!app) {
       res.status(404).json({ error: "App not found" });
       return;
     }
+    
     res.json({
       hasCert: !!app.signingCertP12,
       hasProfile: !!app.signingProvisioningProfile,

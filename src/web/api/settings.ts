@@ -9,9 +9,7 @@ settingsRouter.use(requireAuth);
 settingsRouter.get("/", async (req, res) => {
   try {
     const teamId = req.user!.teamId;
-    const settings = teamId
-      ? await prisma.teamSettings.findUnique({ where: { teamId } })
-      : null;
+    const settings = teamId ? await prisma.teamSettings.findUnique({ where: { teamId } }) : null;
 
     res.json(
       settings
@@ -93,8 +91,7 @@ settingsRouter.put("/", async (req, res) => {
     if (ascKeyId !== undefined) data.ascKeyId = ascKeyId || null;
     if (ascPrivateKey !== undefined && ascPrivateKey !== "••••••••")
       data.ascPrivateKey = ascPrivateKey ? encrypt(ascPrivateKey) : null;
-    if (ascVendorNumber !== undefined)
-      data.ascVendorNumber = ascVendorNumber || null;
+    if (ascVendorNumber !== undefined) data.ascVendorNumber = ascVendorNumber || null;
     if (openaiApiKey !== undefined && openaiApiKey !== "••••••••")
       data.openaiApiKey = openaiApiKey ? encrypt(openaiApiKey) : null;
     if (anthropicApiKey !== undefined && anthropicApiKey !== "••••••••")

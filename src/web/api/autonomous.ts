@@ -16,9 +16,7 @@ autonomousRouter.get("/:appId/analyze", async (req, res) => {
     const app = await verifyAppOwnership(req, res, appId);
     if (!app) return;
 
-    logger.info(
-      `[API] Autonomous analysis requested for app "${app.name}" by user ${userId}`,
-    );
+    logger.info(`[API] Autonomous analysis requested for app "${app.name}" by user ${userId}`);
 
     const memory = new ASOMemory();
     const brain = new ASOBrain(memory);
@@ -64,104 +62,85 @@ autonomousRouter.get("/:appId/experiments", async (req, res) => {
 
     res.json({ success: true, appId, count: experiments.length, experiments });
   } catch (err) {
-    logger.error(
-      `[API] Autonomous experiments list error: ${(err as Error).message}`,
-    );
+    logger.error(`[API] Autonomous experiments list error: ${(err as Error).message}`);
     res.status(500).json({ error: (err as Error).message });
   }
 });
 
-autonomousRouter.post(
-  "/:appId/experiments/:expId/approve",
-  async (req, res) => {
-    try {
-      const { appId, expId } = req.params;
-      const owned = await verifyAppOwnership(req, res, appId);
-      if (!owned) return;
+autonomousRouter.post("/:appId/experiments/:expId/approve", async (req, res) => {
+  try {
+    const { appId, expId } = req.params;
+    const owned = await verifyAppOwnership(req, res, appId);
+    if (!owned) return;
 
-      const experiment = await prisma.asoExperiment.findFirst({
-        where: { id: expId, appId },
-      });
+    const experiment = await prisma.asoExperiment.findFirst({
+      where: { id: expId, appId },
+    });
 
-      if (!experiment) {
-        res.status(404).json({ error: "Experiment not found" });
-        return;
-      }
-
-      if (
-        experiment.status !== AsoExperimentStatus.PENDING &&
-        experiment.status !== AsoExperimentStatus.APPROVED
-      ) {
-        res.status(400).json({
-          error: `Cannot approve experiment with status "${experiment.status}"`,
-        });
-        return;
-      }
-
-      await prisma.asoExperiment.update({
-        where: { id: expId },
-        data: { status: AsoExperimentStatus.APPROVED },
-      });
-
-      const executor = new ASOExecutor();
-      const result = await executor.deployExperiment(expId, req.user!.userId);
-
-      logger.info(
-        `[API] Experiment ${expId} approved and deployed by user ${req.user!.userId}`,
-      );
-
-      res.json(result);
-    } catch (err) {
-      logger.error(
-        `[API] Autonomous approve error: ${(err as Error).message}`,
-      );
-      res.status(500).json({ error: (err as Error).message });
+    if (!experiment) {
+      res.status(404).json({ error: "Experiment not found" });
+      return;
     }
-  },
-);
 
-autonomousRouter.post(
-  "/:appId/experiments/:expId/reject",
-  async (req, res) => {
-    try {
-      const { appId, expId } = req.params;
-      const owned = await verifyAppOwnership(req, res, appId);
-      if (!owned) return;
-
-      const experiment = await prisma.asoExperiment.findFirst({
-        where: { id: expId, appId },
+    if (experiment.status !== AsoExperimentStatus.PENDING && experiment.status !== AsoExperimentStatus.APPROVED) {
+      res.status(400).json({
+        error: `Cannot approve experiment with status "${experiment.status}"`,
       });
-
-      if (!experiment) {
-        res.status(404).json({ error: "Experiment not found" });
-        return;
-      }
-
-      if (experiment.status === AsoExperimentStatus.DEPLOYED) {
-        res.status(400).json({
-          error: "Cannot reject an already deployed experiment",
-        });
-        return;
-      }
-
-      const updated = await prisma.asoExperiment.update({
-        where: { id: expId },
-        data: { status: AsoExperimentStatus.REJECTED },
-      });
-
-      logger.info(
-        `[API] Experiment ${expId} rejected by user ${req.user!.userId}`,
-      );
-
-      res.json({ success: true, experiment: updated });
-    } catch (err) {
-      logger.error(
-        `[API] Autonomous reject error: ${(err as Error).message}`,
-      );
-      res.status(500).json({ error: (err as Error).message });
+      return;
     }
-  },
-);
+
+    await prisma.asoExperiment.update({
+      where: { id: expId },
+      data: { status: AsoExperimentStatus.APPROVED },
+    });
+
+    const executor = new ASOExecutor();
+    const result = await executor.deployExperiment(expId, req.user!.userId);
+
+    logger.info(`[API] Experiment ${expId} approved and deployed by user ${req.user!.userId}`);
+
+    res.json(result);
+  } catch (err) {
+    logger.error(`[API] Autonomous approve error: ${(err as Error).message}`);
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
+
+autonomousRouter.post("/:appId/experiments/:expId/reject", async (req, res) => {
+  try {
+    const { appId, expId } = req.params;
+    const owned = await verifyAppOwnership(req, res, appId);
+    if (!owned) return;
+
+    const experiment = await prisma.asoExperiment.findFirst({
+      where: { id: expId, appId },
+    });
+
+    if (!experiment) {
+      res.status(404).json({ error: "Experiment not found" });
+      return;
+    }
+
+    if (experiment.status === AsoExperimentStatus.DEPLOYED) {
+      res.status(400).json({
+        error: "Cannot reject an already deployed experiment",
+      });
+      return;
+    }
+
+    const updated = await prisma.asoExperiment.update({
+      where: { id: expId },
+      data: { status: AsoExperimentStatus.REJECTED },
+    });
+
+    logger.info(`[API] Experiment ${expId} rejected by user ${req.user!.userId}`);
+
+    res.json({ success: true, experiment: updated });
+  } catch (err) {
+    logger.error(`[API] Autonomous reject error: ${(err as Error).message}`);
+    res.status(500).json({ error: (err as Error).message });
+  }
+});
 
 autonomousRouter.get("/:appId/report", async (req, res) => {
   try {
@@ -174,9 +153,7 @@ autonomousRouter.get("/:appId/report", async (req, res) => {
 
     res.json({ success: true, report });
   } catch (err) {
-    logger.error(
-      `[API] Autonomous report error: ${(err as Error).message}`,
-    );
+    logger.error(`[API] Autonomous report error: ${(err as Error).message}`);
     res.status(500).json({ error: (err as Error).message });
   }
 });

@@ -337,6 +337,7 @@ oauthRouter.post("/authorize", express.urlencoded({ extended: false }), async (r
         },
       },
     });
+    
     if (!user || !user.passwordHash) {
       redirectToForm("Invalid email or password");
       return;
@@ -424,13 +425,16 @@ oauthRouter.post(
       res.status(500).json({ error: "server_error" });
       return;
     }
+
     if (!client) {
       res.status(401).json({ error: "invalid_client" });
       return;
     }
+
     const secretValid = client.clientSecret.startsWith("$2")
       ? await bcrypt.compare(client_secret, client.clientSecret)
       : client.clientSecret === client_secret;
+
     if (!secretValid) {
       res.status(401).json({ error: "invalid_client" });
       return;

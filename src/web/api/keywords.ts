@@ -106,9 +106,7 @@ keywordsRouter.get("/", async (req, res) => {
     }
 
     const previousRankMap = new Map(previousRankings.map((r) => [r.keywordId, r.rank]));
-    const countMap = new Map(
-      ourRankingCounts.map((r) => [r.keywordId, r._count.id]),
-    );
+    const countMap = new Map(ourRankingCounts.map((r) => [r.keywordId, r._count.id]));
 
     const result = keywords.map((k) => {
       // Old single-top-competitor logic — kept for reference, replaced by topCompetitors below.
@@ -137,10 +135,7 @@ keywordsRouter.get("/", async (req, res) => {
 
       const currentRank = k.rankings[0]?.rank ?? null;
       const previousRank = previousRankMap.get(k.id) ?? null;
-      const rankTrend =
-        currentRank != null && previousRank != null
-          ? previousRank - currentRank
-          : null;
+      const rankTrend = currentRank != null && previousRank != null ? previousRank - currentRank : null;
 
       return {
         id: k.id,
@@ -218,16 +213,12 @@ keywordsRouter.post("/", async (req, res) => {
       update: {},
     });
 
-    const ownApp = activeBundleId
-      ? await prisma.app.findUnique({ where: { bundleId: activeBundleId } })
-      : null;
+    const ownApp = activeBundleId ? await prisma.app.findUnique({ where: { bundleId: activeBundleId } }) : null;
 
     if (ownApp) {
       const isAdmin = req.user!.role === "ADMIN";
       if (!isAdmin && (!ownApp.teamId || ownApp.teamId !== req.user!.teamId)) {
-        res
-          .status(403)
-          .json({ error: "Not authorized to add keywords to this app" });
+        res.status(403).json({ error: "Not authorized to add keywords to this app" });
         return;
       }
 

@@ -127,10 +127,7 @@ router.get("/devices", async (req: Request, res: Response) => {
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    const where =
-      req.user?.role === "ADMIN"
-        ? { isActive: true }
-        : { isActive: true, userId };
+    const where = req.user?.role === "ADMIN" ? { isActive: true } : { isActive: true, userId };
     const devices = await prisma.deviceToken.findMany({
       where,
       orderBy: { createdAt: "desc" },

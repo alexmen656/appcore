@@ -10,10 +10,12 @@ async function verifySuggestionAccess(req: Request, res: Response, suggestionId:
   const suggestion = await prisma.aSOSuggestion.findUnique({
     where: { id: suggestionId },
   });
+
   if (!suggestion) {
     res.status(404).json({ error: "Not found" });
     return null;
   }
+
   if (suggestion.appBundleId) {
     const app = await verifyAppOwnershipByBundleId(req, res, suggestion.appBundleId);
     if (!app) return null;
@@ -25,6 +27,7 @@ suggestionsRouter.get("/", async (req, res) => {
   try {
     const { status, locale, type, limit, bundleId } = req.query;
     const where: any = {};
+
     if (status) where.status = String(status).toUpperCase();
     if (locale) where.locale = String(locale);
     if (type) where.type = String(type).toUpperCase();
@@ -44,6 +47,7 @@ suggestionsRouter.get("/", async (req, res) => {
     for (const s of suggestions) {
       const loc = s.locale || "en-US";
       if (!grouped[loc]) grouped[loc] = [];
+
       grouped[loc].push({
         id: s.id,
         type: s.type,
@@ -84,7 +88,6 @@ async function updateSuggestionStatus(req: Request, res: Response, status: "APPR
 }
 
 suggestionsRouter.post("/:id/approve", (req, res) => updateSuggestionStatus(req, res, "APPROVED"));
-
 suggestionsRouter.post("/:id/reject", (req, res) => updateSuggestionStatus(req, res, "REJECTED"));
 
 suggestionsRouter.post("/:id/apply", async (req, res) => {
@@ -93,19 +96,22 @@ suggestionsRouter.post("/:id/apply", async (req, res) => {
     if (!suggestion) return;
 
     const settings = await getEffectiveSettings(req.user!.userId);
+
     if (!settings.ascIssuerId || !settings.ascKeyId || !settings.ascPrivateKey) {
       return res.status(400).json({ error: "App Store Connect credentials not configured." });
     }
+
     const { AppStoreConnectClient } = await import("../../services/appstore-connect");
     const asc = new AppStoreConnectClient({
       issuerId: settings.ascIssuerId,
       keyId: settings.ascKeyId,
       privateKey: settings.ascPrivateKey,
     });
-    const locale = suggestion.locale || "en-US";
 
+    const locale = suggestion.locale || "en-US";
     const changes: Record<string, string> = {};
     const typeKey = suggestion.type.toLowerCase();
+    
     if (typeKey === "title") changes.name = suggestion.suggestedValue;
     else if (typeKey === "subtitle") changes.subtitle = suggestion.suggestedValue;
     else if (typeKey === "keywords") changes.keywords = suggestion.suggestedValue;

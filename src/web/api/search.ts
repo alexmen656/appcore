@@ -14,9 +14,7 @@ searchRouter.get("/", async (req, res) => {
     }
 
     const activeBundleId = req.query.bundleId as string | undefined;
-    const ownApp = activeBundleId
-      ? await prisma.app.findUnique({ where: { bundleId: activeBundleId } })
-      : null;
+    const ownApp = activeBundleId ? await prisma.app.findUnique({ where: { bundleId: activeBundleId } }) : null;
 
     const results: {
       id: string;
@@ -39,8 +37,7 @@ searchRouter.get("/", async (req, res) => {
       results.push({
         id: `keyword-${kw.id}`,
         label: kw.term,
-        sublabel:
-          kw.popularity != null ? `Popularity ${kw.popularity}` : undefined,
+        sublabel: kw.popularity != null ? `Popularity ${kw.popularity}` : undefined,
         category: "Keywords",
         to: "/keywords",
         icon: "keyword",
@@ -51,19 +48,13 @@ searchRouter.get("/", async (req, res) => {
     const teamId = req.user!.teamId;
     const apps = await prisma.app.findMany({
       where: {
-        OR: [
-          { name: { contains: q, mode: "insensitive" } },
-          { bundleId: { contains: q, mode: "insensitive" } },
-        ],
+        OR: [{ name: { contains: q, mode: "insensitive" } }, { bundleId: { contains: q, mode: "insensitive" } }],
         ...(isAdmin
           ? {}
           : {
               AND: [
                 {
-                  OR: [
-                    { isOwnApp: false },
-                    ...(teamId ? [{ teamId }] : []),
-                  ],
+                  OR: [{ isOwnApp: false }, ...(teamId ? [{ teamId }] : [])],
                 },
               ],
             }),
@@ -93,7 +84,7 @@ searchRouter.get("/", async (req, res) => {
       take: 5,
       orderBy: { createdAt: "desc" },
     });
-    
+
     for (const s of suggestions) {
       results.push({
         id: `suggestion-${s.id}`,

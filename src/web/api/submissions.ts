@@ -22,9 +22,7 @@ submissionsRouter.get("/preview", ...requireBundleAccess("query"), async (req, r
     res.json(preview);
   } catch (err) {
     logger.error("Submission preview failed", err);
-    res
-      .status(500)
-      .json({ error: String(err instanceof Error ? err.message : err) });
+    res.status(500).json({ error: String(err instanceof Error ? err.message : err) });
   }
 });
 
@@ -39,30 +37,22 @@ submissionsRouter.post("/metadata", ...requireBundleAccess("body"), async (req, 
 
     res.json({
       ok: true,
-      message:
-        "Fastlane metadata submission started. Check status for progress.",
+      message: "Fastlane metadata submission started. Check status for progress.",
     });
 
     fl.submit("metadata", overrides)
       .then(async (result) => {
         if (result.ok) {
-          logger.info(
-            `Fastlane metadata submit completed (job ${result.jobId})`,
-          );
+          logger.info(`Fastlane metadata submit completed (job ${result.jobId})`);
           await submissionUpdate(bundleId || "App", "", "METADATA_SUBMITTED");
         } else {
-          logger.error(
-            `Fastlane metadata submit failed (job ${result.jobId})`,
-            result.errors,
-          );
+          logger.error(`Fastlane metadata submit failed (job ${result.jobId})`, result.errors);
           await submissionUpdate(bundleId || "App", "", "METADATA_FAILED");
         }
       })
       .catch((err) => logger.error("Fastlane metadata submit error", err));
   } catch (err) {
-    res
-      .status(500)
-      .json({ error: String(err instanceof Error ? err.message : err) });
+    res.status(500).json({ error: String(err instanceof Error ? err.message : err) });
   }
 });
 
@@ -82,35 +72,25 @@ submissionsRouter.post("/review", ...requireBundleAccess("body"), async (req, re
     fl.submit("submit_for_review")
       .then(async (result) => {
         if (result.ok) {
-          logger.info(
-            `Fastlane submit-for-review completed (job ${result.jobId})`,
-          );
+          logger.info(`Fastlane submit-for-review completed (job ${result.jobId})`);
           await submissionUpdate(bundleId || "App", "", "SUBMITTED_FOR_REVIEW");
         } else {
-          logger.error(
-            `Fastlane submit-for-review failed (job ${result.jobId})`,
-            result.errors,
-          );
+          logger.error(`Fastlane submit-for-review failed (job ${result.jobId})`, result.errors);
           await submissionUpdate(bundleId || "App", "", "SUBMISSION_FAILED");
         }
       })
       .catch((err) => logger.error("Fastlane submit-for-review error", err));
   } catch (err) {
-    res
-      .status(500)
-      .json({ error: String(err instanceof Error ? err.message : err) });
+    res.status(500).json({ error: String(err instanceof Error ? err.message : err) });
   }
 });
 
 submissionsRouter.get("/status", requireAuth, async (_req, res) => {
   try {
-    const { getLatestSubmission, getActiveSubmission } =
-      await import("../../services/fastlane");
+    const { getLatestSubmission, getActiveSubmission } = await import("../../services/fastlane");
     const jobId = _req.query.jobId as string | undefined;
 
-    const submission = jobId
-      ? getActiveSubmission(jobId)
-      : getLatestSubmission();
+    const submission = jobId ? getActiveSubmission(jobId) : getLatestSubmission();
 
     if (!submission) {
       res.json({ active: false, logs: [], errors: [], status: "idle" });
@@ -118,8 +98,7 @@ submissionsRouter.get("/status", requireAuth, async (_req, res) => {
     }
 
     res.json({
-      active:
-        submission.status === "preparing" || submission.status === "running",
+      active: submission.status === "preparing" || submission.status === "running",
       jobId: submission.jobId,
       status: submission.status,
       logs: submission.logs.slice(-100),
@@ -127,9 +106,7 @@ submissionsRouter.get("/status", requireAuth, async (_req, res) => {
       startedAt: submission.startedAt,
     });
   } catch (err) {
-    res
-      .status(500)
-      .json({ error: String(err instanceof Error ? err.message : err) });
+    res.status(500).json({ error: String(err instanceof Error ? err.message : err) });
   }
 });
 
@@ -140,8 +117,10 @@ submissionsRouter.get("/build-info", ...requireBundleAccess("query"), async (req
       res.status(400).json({ error: "Invalid bundleId" });
       return;
     }
+    
     const jsonPath = path.join(BUILDS_BASE_DIR, bundleId, "latest.json");
     const resolved = path.resolve(jsonPath);
+
     if (!resolved.startsWith(path.resolve(BUILDS_BASE_DIR) + path.sep)) {
       res.status(400).json({ error: "Invalid bundleId" });
       return;
@@ -161,10 +140,7 @@ submissionsRouter.get("/build-info", ...requireBundleAccess("query"), async (req
       );
       const result = data.results?.[0];
       if (result?.artworkUrl100) {
-        iconUrl = (result.artworkUrl100 as string).replace(
-          "100x100bb",
-          "200x200bb",
-        );
+        iconUrl = (result.artworkUrl100 as string).replace("100x100bb", "200x200bb");
       }
     } catch {
       // icon is optional
@@ -173,8 +149,6 @@ submissionsRouter.get("/build-info", ...requireBundleAccess("query"), async (req
     res.json({ build: { ...build, iconUrl } });
   } catch (err) {
     logger.error("build-info failed", err);
-    res
-      .status(500)
-      .json({ error: String(err instanceof Error ? err.message : err) });
+    res.status(500).json({ error: String(err instanceof Error ? err.message : err) });
   }
 });

@@ -85,9 +85,7 @@ bossRouter.post("/send", async (req, res) => {
   const { queue } = req.body as { queue?: string };
 
   if (!queue || !VALID_QUEUES.includes(queue)) {
-    res
-      .status(400)
-      .json({ error: `queue must be one of: ${VALID_QUEUES.join(", ")}` });
+    res.status(400).json({ error: `queue must be one of: ${VALID_QUEUES.join(", ")}` });
     return;
   }
 
@@ -98,9 +96,7 @@ bossRouter.post("/send", async (req, res) => {
 
   try {
     await bossScheduler.triggerDispatch(queue);
-    logger.info(
-      `[BOSS API] Manual dispatch for "${queue}" by user ${req.user!.userId}`,
-    );
+    logger.info(`[BOSS API] Manual dispatch for "${queue}" by user ${req.user!.userId}`);
     res.json({ ok: true, message: `Dispatching ${queue}…` });
   } catch (err) {
     logger.error("[BOSS API] /send failed", { error: err });
@@ -116,9 +112,7 @@ bossRouter.delete("/jobs", async (req, res) => {
   const queue = (req.query.queue as string) || undefined;
 
   if (queue && !VALID_QUEUES.includes(queue)) {
-    res
-      .status(400)
-      .json({ error: `queue must be one of: ${VALID_QUEUES.join(", ")}` });
+    res.status(400).json({ error: `queue must be one of: ${VALID_QUEUES.join(", ")}` });
     return;
   }
 
@@ -129,9 +123,7 @@ bossRouter.delete("/jobs", async (req, res) => {
 
   try {
     await bossScheduler.cancelAllJobs(queue);
-    logger.info(
-      `[BOSS API] Deleted all jobs${queue ? ` for queue "${queue}"` : ""} by user ${req.user!.userId}`,
-    );
+    logger.info(`[BOSS API] Deleted all jobs${queue ? ` for queue "${queue}"` : ""} by user ${req.user!.userId}`);
     res.json({
       ok: true,
       message: queue ? `All jobs in "${queue}" deleted` : "All jobs deleted",

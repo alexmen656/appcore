@@ -140,9 +140,7 @@ router.get("/dashboard", async (_req: Request, res: Response) => {
 
   const toChartData = (rows: { day: Date | string; count: number }[]) =>
     rows.map((r) => ({
-      date: (r.day instanceof Date ? r.day : new Date(r.day as string))
-        .toISOString()
-        .split("T")[0],
+      date: (r.day instanceof Date ? r.day : new Date(r.day as string)).toISOString().split("T")[0],
       count: Number(r.count),
     }));
 
@@ -174,9 +172,15 @@ router.get("/dashboard", async (_req: Request, res: Response) => {
 });
 
 const VALID_QUEUES = [
-  "scrape", "track-keywords", "sync-analytics", "extract-keywords",
-  "discover-keywords", "discover-competitors", "analyze",
-  "sync-metadata", "competitor-intel",
+  "scrape",
+  "track-keywords",
+  "sync-analytics",
+  "extract-keywords",
+  "discover-keywords",
+  "discover-competitors",
+  "analyze",
+  "sync-metadata",
+  "competitor-intel",
 ];
 
 router.get("/boss/jobs", async (req: Request, res: Response) => {
@@ -259,12 +263,8 @@ router.get("/:model", async (req: Request, res: Response) => {
   }
 
   const page = Math.max(1, parseInt(req.query.page as string) || 1);
-  const pageSize = Math.min(
-    100,
-    Math.max(1, parseInt(req.query.pageSize as string) || 25),
-  );
-  const search =
-    typeof req.query.search === "string" ? req.query.search.trim() : "";
+  const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize as string) || 25));
+  const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
   const skip = (page - 1) * pageSize;
 
   let where: any = {};
