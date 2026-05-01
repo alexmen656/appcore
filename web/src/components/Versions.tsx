@@ -232,17 +232,20 @@ function LocaleFlag({ locale, className }: { locale: string; className?: string 
   );
 }
 
-const DEVICE_PATTERNS: [RegExp, string][] = [
-  [/6\.9|69[_-]?inch|iphone[_-]?15[_-]?pro/i, 'iPhone 6.9"'],
-  [/6\.7|67[_-]?inch|iphone[_-]?1[45]/i, 'iPhone 6.7"'],
-  [/6\.5|65[_-]?inch|xs[_-]?max|xsmax/i, 'iPhone 6.5"'],
-  [/5\.5|55[_-]?inch|iphone[_-]?8[_-]?plus|plus/i, 'iPhone 5.5"'],
-  [/ipad[_-]?pro[_-]?13|13[_-]?inch/i, 'iPad 13"'],
-  [/ipad[_-]?pro[_-]?12|12\.9/i, 'iPad 12.9"'],
-  [/ipad/i, "iPad"],
-];
-
 function getDeviceLabel(url: string): string {
+  const DEVICE_PATTERNS: [RegExp, string][] = [
+    [/iphone[_-]?6\.9/i, 'iPhone 6.9"'],
+    [/iphone[_-]?6\.7/i, 'iPhone 6.7"'],
+    [/iphone[_-]?6\.5/i, 'iPhone 6.5"'],
+    [/iphone[_-]?6\.3/i, 'iPhone 6.3"'],
+    [/iphone[_-]?5\.5/i, 'iPhone 5.5"'],
+    [/iphone[_-]?4\.7/i, 'iPhone 4.7"'],
+    [/ipad[_-]?13/i, 'iPad 13"'],
+    [/ipad[_-]?12\.9/i, 'iPad 12.9"'],
+    [/ipad[_-]?11/i, 'iPad 11"'],
+    [/ipad/i, "iPad"],
+  ];
+
   const filename = decodeURIComponent(url.split("/").pop() ?? url);
   for (const [re, label] of DEVICE_PATTERNS) {
     if (re.test(filename)) return label;

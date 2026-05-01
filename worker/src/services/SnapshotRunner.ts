@@ -41,6 +41,7 @@ export class SnapshotRunner {
   private readonly logs: string[] = [];
   private readonly errors: string[] = [];
   private readonly xcresultLogs: Array<{ filename: string; sizeBytes: number }> = [];
+  private readonly deviceNameMap: Map<string, string> = new Map();
 
   private sanitizeTag(text: string, allowDots = false): string {
     const pattern = allowDots ? /[^a-zA-Z0-9._-]/g : /[^a-zA-Z0-9]/g;
@@ -50,6 +51,64 @@ export class SnapshotRunner {
   private getDeviceTag(device: string, allowDots = false): string {
     const truncated = UDID_RE.test(device) ? device.slice(0, 8) : device;
     return this.sanitizeTag(truncated, allowDots);
+  }
+
+  private getDeviceNameWithSize(device: string): string {
+    const deviceName = this.deviceNameMap.get(device) ?? device;
+
+    const screenSizes: Record<string, string> = {
+      "iPhone 16 Pro Max": "6.9",
+      "iPhone 16 Pro": "6.3",
+      "iPhone 16": "6.3",
+      "iPhone 16 Plus": "6.7",
+      "iPhone 15 Pro Max": "6.7",
+      "iPhone 15 Pro": "6.1",
+      "iPhone 15": "6.1",
+      "iPhone 15 Plus": "6.7",
+      "iPhone 14 Pro Max": "6.7",
+      "iPhone 14 Pro": "6.1",
+      "iPhone 14": "6.1",
+      "iPhone 14 Plus": "6.7",
+      "iPhone 13 Pro Max": "6.7",
+      "iPhone 13 Pro": "6.1",
+      "iPhone 13": "6.1",
+      "iPhone 13 mini": "5.4",
+      "iPhone 12 Pro Max": "6.7",
+      "iPhone 12 Pro": "6.1",
+      "iPhone 12": "6.1",
+      "iPhone 12 mini": "5.4",
+      "iPhone 11 Pro Max": "6.5",
+      "iPhone 11 Pro": "5.8",
+      "iPhone 11": "6.1",
+      "iPhone SE": "4.7",
+    };
+
+    let deviceType = "";
+    let screenSize = "";
+
+    if (deviceName.includes("iPad")) {
+      deviceType = "ipad";
+      const sizeMatch = deviceName.match(/\((\d+(?:\.\d+)?)-inch\)/);
+
+      if (sizeMatch) {
+        screenSize = sizeMatch[1];
+      }
+    } else if (deviceName.includes("iPhone")) {
+      deviceType = "iphone";
+
+      for (const [name, size] of Object.entries(screenSizes)) {
+        if (deviceName.includes(name)) {
+          screenSize = size;
+          break;
+        }
+      }
+    }
+
+    if (!screenSize) {
+      screenSize = "unknown";
+    }
+
+    return `${deviceType}_${screenSize}`.toLowerCase();
   }
 
   constructor(
@@ -141,7 +200,7 @@ export class SnapshotRunner {
     const effectiveConcurrency = Math.max(1, Math.min(concurrency, snapDevices.length));
 
     this.push(
-      `[snapshot] Running xcodebuild for ${plural(snapDevices.length, "device")} (concurrency: ${effectiveConcurrency}):\n           - ${snapDevices.join("\n           - ")}`
+      `[snapshot] Running xcodebuild for ${plural(snapDevices.length, "device")} (concurrency: ${effectiveConcurrency}):\n           - ${snapDevices.join("\n           - ")}`,
     );
 
     await this.bootSimulators(snapDevices, appearance);
@@ -273,6 +332,7 @@ export class SnapshotRunner {
       }
 
       const matched = simInfo.devices.find((s) => s.udid === udid) ?? { name: d };
+      this.deviceNameMap.set(udid, matched.name);
       this.push(
         matched.name !== d
           ? `[snapshot] Device "${d}" → "${matched.name}" (${udid})`
@@ -436,7 +496,8 @@ export class SnapshotRunner {
 
       for (const [payloadId, attName] of relevant) {
         const baseName = path.basename(attName.slice(langPrefix.length));
-        const cleanName = `${baseName}__${deviceTag}.png`;
+        const deviceNameWithSize = this.getDeviceNameWithSize(device);
+        const cleanName = `${baseName}__${deviceNameWithSize}.png`;
         const outPath = path.join(this.tmpDir, `snap-${this.runId}-${cleanName}`);
 
         try {
