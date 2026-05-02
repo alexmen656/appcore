@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request, type Response, type RequestHandler } from "express";
 import axios from "../../services/utils/http";
 import { prisma, logger, getEffectiveSettings } from "../../config";
 import { requireAuth, verifyAppOwnershipByBundleId } from "../auth";
@@ -11,8 +11,51 @@ ascRouter.use(requireAuth);
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
+const EDITABLE_STATES = new Set([
+  "PREPARE_FOR_SUBMISSION",
+  "DEVELOPER_REJECTED",
+  "REJECTED",
+  "METADATA_REJECTED",
+  "WAITING_FOR_REVIEW",
+  "PENDING_DEVELOPER_RELEASE",
+]);
+
 function isFresh(syncedAt: Date): boolean {
   return Date.now() - syncedAt.getTime() < CACHE_TTL_MS;
+}
+
+function handle(label: string, fn: (req: Request, res: Response) => Promise<void>): RequestHandler {
+  return async (req, res) => {
+    try {
+      await fn(req, res);
+    } catch (err: any) {
+      logger.error(`ASC ${label} failed`, err);
+      res.status(500).json({ error: err.message ?? String(err) });
+    }
+  };
+}
+
+async function tryCreateLocalization<T>(
+  label: string,
+  locale: string,
+  fn: () => Promise<T>,
+  swallowCodes: number[] = [],
+): Promise<T | null> {
+  try {
+    return await fn();
+  } catch (err: any) {
+    const msg: string = err?.message ?? "";
+    if (msg.includes("409")) {
+      logger.info(`${label}: locale ${locale} already exists in ASC (409), will try fallback lookup`);
+      return null;
+    }
+    const swallowed = swallowCodes.find((c) => msg.includes(String(c)));
+    if (swallowed) {
+      logger.warn(`${label}: locale ${locale} creation returned ${swallowed} — ${msg.split("\n")[0]}`);
+      return null;
+    }
+    throw err;
+  }
 }
 
 async function upsertVersionsToDb(
@@ -194,8 +237,9 @@ async function ascClientForUser(userId: string): Promise<AppStoreConnectClient> 
   return new AppStoreConnectClient();
 }
 
-ascRouter.get("/apps", async (req, res) => {
-  try {
+ascRouter.get(
+  "/apps",
+  handle("listApps", async (req, res) => {
     const apps = await ascClientForUser(req.user!.userId).then((c) => c.listApps());
     const iconMap = new Map<string, string>();
 
@@ -223,14 +267,12 @@ ascRouter.get("/apps", async (req, res) => {
         iconUrl: iconMap.get(a.id) ?? null,
       })),
     );
-  } catch (err: any) {
-    logger.error("ASC listApps failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.post("/import", async (req, res) => {
-  try {
+ascRouter.post(
+  "/import",
+  handle("import", async (req, res) => {
     const { ascId, bundleId, name } = req.body as {
       ascId?: string;
       bundleId?: string;
@@ -283,49 +325,32 @@ ascRouter.post("/import", async (req, res) => {
     await new AppStoreScraper(app.country, undefined, bundleId).runFullScrapeJob();
 
     logger.info(`Post-import scrape completed for ${bundleId}`);
-  } catch (err: any) {
-    logger.error("ASC import failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.get("/versions/list", async (req, res) => {
-  try {
+ascRouter.get(
+  "/versions/list",
+  handle("listVersions", async (req, res) => {
     const bundleId = (req.query.bundleId as string) || undefined;
     if (bundleId) {
       const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
       if (!owned) return;
     }
 
-    const editableStates = new Set([
-      "PREPARE_FOR_SUBMISSION",
-      "DEVELOPER_REJECTED",
-      "REJECTED",
-      "METADATA_REJECTED",
-      "WAITING_FOR_REVIEW",
-      "PENDING_DEVELOPER_RELEASE",
-    ]);
-
     const refresh = req.query.refresh === "true";
     if (!refresh && bundleId) {
-      const recent = await prisma.appStoreVersion.findFirst({
-        where: {
-          bundleId,
-          syncedAt: { gte: new Date(Date.now() - CACHE_TTL_MS) },
-        },
+      const cached = await prisma.appStoreVersion.findMany({
+        where: { bundleId },
+        orderBy: { syncedAt: "desc" },
       });
-      if (recent) {
-        const cached = await prisma.appStoreVersion.findMany({
-          where: { bundleId },
-          orderBy: { syncedAt: "desc" },
-        });
+      if (cached.length > 0 && isFresh(cached[0].syncedAt)) {
         res.json(
           cached.map((v) => ({
             versionId: v.id,
             versionString: v.versionString,
             appStoreState: v.appStoreState,
             platform: v.platform,
-            isEditable: editableStates.has(v.appStoreState),
+            isEditable: EDITABLE_STATES.has(v.appStoreState),
           })),
         );
         return;
@@ -348,32 +373,21 @@ ascRouter.get("/versions/list", async (req, res) => {
         versionString: v.attributes.versionString,
         appStoreState: v.attributes.appStoreState,
         platform: v.attributes.platform,
-        isEditable: editableStates.has(v.attributes.appStoreState),
+        isEditable: EDITABLE_STATES.has(v.attributes.appStoreState),
       })),
     );
-  } catch (err: any) {
-    logger.error("ASC listVersions failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.get("/versions", async (req, res) => {
-  try {
+ascRouter.get(
+  "/versions",
+  handle("getVersions", async (req, res) => {
     const bundleId = (req.query.bundleId as string) || undefined;
     const versionId = (req.query.versionId as string) || undefined;
     if (bundleId) {
       const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
       if (!owned) return;
     }
-
-    const editableStates = new Set([
-      "PREPARE_FOR_SUBMISSION",
-      "DEVELOPER_REJECTED",
-      "REJECTED",
-      "METADATA_REJECTED",
-      "WAITING_FOR_REVIEW",
-      "PENDING_DEVELOPER_RELEASE",
-    ]);
 
     const refresh = req.query.refresh === "true";
     if (!refresh) {
@@ -388,7 +402,7 @@ ascRouter.get("/versions", async (req, res) => {
         cached = await prisma.appStoreVersion.findFirst({
           where: {
             bundleId,
-            appStoreState: { in: [...editableStates] },
+            appStoreState: { in: [...EDITABLE_STATES] },
             syncedAt: { gte: new Date(Date.now() - CACHE_TTL_MS) },
           },
           include: { localizations: true },
@@ -414,7 +428,7 @@ ascRouter.get("/versions", async (req, res) => {
           versionId: cached.id,
           versionString: cached.versionString,
           appStoreState: cached.appStoreState,
-          isEditable: editableStates.has(cached.appStoreState),
+          isEditable: EDITABLE_STATES.has(cached.appStoreState),
           copyright: cached.copyright ?? "",
           ageRating: cached.ageRating ?? undefined,
           reviewerFirstName: cached.reviewerFirstName ?? "",
@@ -472,7 +486,7 @@ ascRouter.get("/versions", async (req, res) => {
       if (!version) version = await asc.getLiveVersion(app.id);
     }
 
-    const isEditable = version ? editableStates.has(version.attributes.appStoreState) : false;
+    const isEditable = version ? EDITABLE_STATES.has(version.attributes.appStoreState) : false;
 
     let versionLocalizations: any[] = [];
     if (version) {
@@ -519,14 +533,12 @@ ascRouter.get("/versions", async (req, res) => {
       copyright: version?.attributes.copyright ?? "",
       localizations,
     });
-  } catch (err: any) {
-    logger.error("ASC getVersions failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.patch("/versions/metadata", async (req, res) => {
-  try {
+ascRouter.patch(
+  "/versions/metadata",
+  handle("updateMetadata", async (req, res) => {
     const {
       bundleId,
       versionId: bodyVersionId,
@@ -601,14 +613,12 @@ ascRouter.patch("/versions/metadata", async (req, res) => {
     await matchedGroup.update(matchedGroup.localizationId);
     await invalidateVersionCache(bundleId);
     res.json({ ok: true, field, value });
-  } catch (err: any) {
-    logger.error("ASC updateMetadata failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.get("/versions/reviewer-info", async (req, res) => {
-  try {
+ascRouter.get(
+  "/versions/reviewer-info",
+  handle("getReviewerInfo", async (req, res) => {
     const versionId = req.query.versionId as string;
     const bundleId = req.query.bundleId as string;
     if (!versionId || !bundleId) {
@@ -642,14 +652,12 @@ ascRouter.get("/versions/reviewer-info", async (req, res) => {
       reviewerDemoPassword: cached?.reviewerDemoPassword ?? "",
       reviewDetailId: cached?.reviewDetailId ?? null,
     });
-  } catch (err: any) {
-    logger.error("ASC getReviewerInfo failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.patch("/versions/reviewer-info", async (req, res) => {
-  try {
+ascRouter.patch(
+  "/versions/reviewer-info",
+  handle("updateReviewerInfo", async (req, res) => {
     const {
       bundleId,
       versionId,
@@ -713,14 +721,12 @@ ascRouter.patch("/versions/reviewer-info", async (req, res) => {
     });
 
     res.json({ ok: true });
-  } catch (err: any) {
-    logger.error("ASC updateReviewerInfo failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.post("/versions/reviewer-info/sync", async (req, res) => {
-  try {
+ascRouter.post(
+  "/versions/reviewer-info/sync",
+  handle("syncReviewerInfo", async (req, res) => {
     const { bundleId, versionId } = req.body as {
       bundleId?: string;
       versionId?: string;
@@ -761,14 +767,12 @@ ascRouter.post("/versions/reviewer-info/sync", async (req, res) => {
       reviewerDemoUsername: detail?.demoAccountName ?? "",
       reviewerDemoPassword: detail?.demoAccountPassword ?? "",
     });
-  } catch (err: any) {
-    logger.error("ASC syncReviewerInfo failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.post("/versions/localizations", async (req, res) => {
-  try {
+ascRouter.post(
+  "/versions/localizations",
+  handle("createLocalization", async (req, res) => {
     const { bundleId, versionId, locale, name } = req.body as {
       bundleId?: string;
       versionId: string;
@@ -800,31 +804,19 @@ ascRouter.post("/versions/localizations", async (req, res) => {
       return;
     }
 
-    const tryCreate = async <T>(
-      label: string,
-      fn: () => Promise<T>,
-      swallowCodes: number[] = [],
-    ): Promise<T | null> => {
-      try {
-        return await fn();
-      } catch (err: any) {
-        const msg: string = err?.message ?? "";
-        if (msg.includes("409")) {
-          logger.info(`${label}: locale ${locale} already exists in ASC (409), will try fallback lookup`);
-          return null;
-        }
-        const swallowed = swallowCodes.find((c) => msg.includes(String(c)));
-        if (swallowed) {
-          logger.warn(`${label}: locale ${locale} creation returned ${swallowed} — ${msg.split("\n")[0]}`);
-          return null;
-        }
-        throw err;
-      }
-    };
-
     const [appInfoLoc, versionLoc] = await Promise.all([
-      tryCreate("appInfoLocalization", () => asc.createAppInfoLocalization(appInfoId, locale, name), [500, 422]),
-      tryCreate("versionLocalization", () => asc.createVersionLocalization(versionId, locale), [500, 422]),
+      tryCreateLocalization(
+        "appInfoLocalization",
+        locale,
+        () => asc.createAppInfoLocalization(appInfoId, locale, name),
+        [500, 422],
+      ),
+      tryCreateLocalization(
+        "versionLocalization",
+        locale,
+        () => asc.createVersionLocalization(versionId, locale),
+        [500, 422],
+      ),
     ]);
 
     let appInfoLocalizationId = appInfoLoc?.id ?? null;
@@ -855,14 +847,12 @@ ascRouter.post("/versions/localizations", async (req, res) => {
       appInfoLocalizationId,
       versionLocalizationId,
     });
-  } catch (err: any) {
-    logger.error("ASC createLocalization failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.delete("/versions/localizations", async (req, res) => {
-  try {
+ascRouter.delete(
+  "/versions/localizations",
+  handle("deleteLocalization", async (req, res) => {
     const { bundleId, appInfoLocalizationId, versionLocalizationId } = req.body as {
       bundleId?: string;
       appInfoLocalizationId?: string;
@@ -888,14 +878,12 @@ ascRouter.delete("/versions/localizations", async (req, res) => {
 
     await invalidateVersionCache(bundleId);
     res.json({ ok: true });
-  } catch (err: any) {
-    logger.error("ASC deleteLocalization failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.post("/versions/localizations/translate", async (req, res) => {
-  try {
+ascRouter.post(
+  "/versions/localizations/translate",
+  handle("translateLocalization", async (req, res) => {
     const { targetLocale, sourceLocale, sourceFields } = req.body as {
       targetLocale: string;
       sourceLocale: string;
@@ -921,14 +909,12 @@ ascRouter.post("/versions/localizations/translate", async (req, res) => {
 
     const fields = await analyzer.translateLocalization(sourceLocale, targetLocale, sourceFields);
     res.json({ ok: true, fields });
-  } catch (err: any) {
-    logger.error("ASC translateLocalization failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.post("/versions", async (req, res) => {
-  try {
+ascRouter.post(
+  "/versions",
+  handle("createVersion", async (req, res) => {
     const { bundleId, versionString, releaseType } = req.body as {
       bundleId?: string;
       versionString: string;
@@ -962,14 +948,12 @@ ascRouter.post("/versions", async (req, res) => {
       platform: version.attributes.platform,
       isEditable: true,
     });
-  } catch (err: any) {
-    logger.error("ASC createVersion failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.get("/subscriptions/groups", async (req, res) => {
-  try {
+ascRouter.get(
+  "/subscriptions/groups",
+  handle("listSubscriptionGroups", async (req, res) => {
     const bundleId = (req.query.bundleId as string) || undefined;
     if (bundleId) {
       const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
@@ -982,7 +966,7 @@ ascRouter.get("/subscriptions/groups", async (req, res) => {
       return;
     }
 
-    const { data: resp } = await (asc as any).client.get(`/apps/${app.id}/subscriptionGroups`, {
+    const { data: resp } = await asc.client.get(`/apps/${app.id}/subscriptionGroups`, {
       params: {
         include: "subscriptions",
         "fields[subscriptionGroups]": "referenceName,subscriptions",
@@ -1017,14 +1001,12 @@ ascRouter.get("/subscriptions/groups", async (req, res) => {
     }));
 
     res.json(groups);
-  } catch (err: any) {
-    logger.error("ASC listSubscriptionGroups failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.post("/subscriptions/groups", async (req, res) => {
-  try {
+ascRouter.post(
+  "/subscriptions/groups",
+  handle("createSubscriptionGroup", async (req, res) => {
     const { bundleId, referenceName } = req.body as {
       bundleId?: string;
       referenceName?: string;
@@ -1044,7 +1026,7 @@ ascRouter.post("/subscriptions/groups", async (req, res) => {
       return;
     }
 
-    const { data: resp } = await (asc as any).client.post("/subscriptionGroups", {
+    const { data: resp } = await asc.client.post("/subscriptionGroups", {
       data: {
         type: "subscriptionGroups",
         attributes: { referenceName },
@@ -1059,14 +1041,12 @@ ascRouter.post("/subscriptions/groups", async (req, res) => {
       referenceName: resp.data.attributes?.referenceName ?? referenceName,
       subscriptions: [],
     });
-  } catch (err: any) {
-    logger.error("ASC createSubscriptionGroup failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.patch("/subscriptions/groups/:id", async (req, res) => {
-  try {
+ascRouter.patch(
+  "/subscriptions/groups/:id",
+  handle("updateSubscriptionGroup", async (req, res) => {
     const { id } = req.params;
     const { referenceName } = req.body as { referenceName?: string };
     if (!referenceName) {
@@ -1074,7 +1054,7 @@ ascRouter.patch("/subscriptions/groups/:id", async (req, res) => {
       return;
     }
     const asc = await ascClientForUser(req.user!.userId);
-    await (asc as any).client.patch(`/subscriptionGroups/${id}`, {
+    await asc.client.patch(`/subscriptionGroups/${id}`, {
       data: {
         type: "subscriptionGroups",
         id,
@@ -1082,26 +1062,22 @@ ascRouter.patch("/subscriptions/groups/:id", async (req, res) => {
       },
     });
     res.json({ ok: true });
-  } catch (err: any) {
-    logger.error("ASC updateSubscriptionGroup failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.delete("/subscriptions/groups/:id", async (req, res) => {
-  try {
+ascRouter.delete(
+  "/subscriptions/groups/:id",
+  handle("deleteSubscriptionGroup", async (req, res) => {
     const { id } = req.params;
     const asc = await ascClientForUser(req.user!.userId);
-    await (asc as any).client.delete(`/subscriptionGroups/${id}`);
+    await asc.client.delete(`/subscriptionGroups/${id}`);
     res.json({ ok: true });
-  } catch (err: any) {
-    logger.error("ASC deleteSubscriptionGroup failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.post("/subscriptions", async (req, res) => {
-  try {
+ascRouter.post(
+  "/subscriptions",
+  handle("createSubscription", async (req, res) => {
     const { groupId, name, productId, familySharable, subscriptionPeriod, groupLevel, reviewNote } = req.body as {
       groupId?: string;
       name?: string;
@@ -1119,7 +1095,7 @@ ascRouter.post("/subscriptions", async (req, res) => {
     }
 
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await (asc as any).client.post("/subscriptions", {
+    const { data: resp } = await asc.client.post("/subscriptions", {
       data: {
         type: "subscriptions",
         attributes: {
@@ -1146,14 +1122,12 @@ ascRouter.post("/subscriptions", async (req, res) => {
       reviewNote: resp.data.attributes?.reviewNote ?? null,
       groupLevel: resp.data.attributes?.groupLevel ?? null,
     });
-  } catch (err: any) {
-    logger.error("ASC createSubscription failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.patch("/subscriptions/:id", async (req, res) => {
-  try {
+ascRouter.patch(
+  "/subscriptions/:id",
+  handle("updateSubscription", async (req, res) => {
     const { id } = req.params;
     const { name, familySharable, subscriptionPeriod, reviewNote, groupLevel } = req.body as {
       name?: string;
@@ -1171,33 +1145,29 @@ ascRouter.patch("/subscriptions/:id", async (req, res) => {
     if (groupLevel !== undefined) attributes.groupLevel = groupLevel;
 
     const asc = await ascClientForUser(req.user!.userId);
-    await (asc as any).client.patch(`/subscriptions/${id}`, {
+    await asc.client.patch(`/subscriptions/${id}`, {
       data: { type: "subscriptions", id, attributes },
     });
     res.json({ ok: true });
-  } catch (err: any) {
-    logger.error("ASC updateSubscription failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.delete("/subscriptions/:id", async (req, res) => {
-  try {
+ascRouter.delete(
+  "/subscriptions/:id",
+  handle("deleteSubscription", async (req, res) => {
     const { id } = req.params;
     const asc = await ascClientForUser(req.user!.userId);
-    await (asc as any).client.delete(`/subscriptions/${id}`);
+    await asc.client.delete(`/subscriptions/${id}`);
     res.json({ ok: true });
-  } catch (err: any) {
-    logger.error("ASC deleteSubscription failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.get("/subscriptions/:id/localizations", async (req, res) => {
-  try {
+ascRouter.get(
+  "/subscriptions/:id/localizations",
+  handle("listSubscriptionLocalizations", async (req, res) => {
     const { id } = req.params;
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await (asc as any).client.get(`/subscriptions/${id}/subscriptionLocalizations`, {
+    const { data: resp } = await asc.client.get(`/subscriptions/${id}/subscriptionLocalizations`, {
       params: {
         "fields[subscriptionLocalizations]": "name,locale,description,state",
         limit: 200,
@@ -1212,14 +1182,12 @@ ascRouter.get("/subscriptions/:id/localizations", async (req, res) => {
         state: l.attributes?.state ?? "",
       })),
     );
-  } catch (err: any) {
-    logger.error("ASC listSubscriptionLocalizations failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.post("/subscriptions/localizations", async (req, res) => {
-  try {
+ascRouter.post(
+  "/subscriptions/localizations",
+  handle("createSubscriptionLocalization", async (req, res) => {
     const { subscriptionId, locale, name, description } = req.body as {
       subscriptionId?: string;
       locale?: string;
@@ -1231,7 +1199,7 @@ ascRouter.post("/subscriptions/localizations", async (req, res) => {
       return;
     }
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await (asc as any).client.post("/subscriptionLocalizations", {
+    const { data: resp } = await asc.client.post("/subscriptionLocalizations", {
       data: {
         type: "subscriptionLocalizations",
         attributes: { locale, name, ...(description ? { description } : {}) },
@@ -1249,14 +1217,12 @@ ascRouter.post("/subscriptions/localizations", async (req, res) => {
       description: resp.data.attributes?.description ?? description ?? "",
       state: resp.data.attributes?.state ?? "",
     });
-  } catch (err: any) {
-    logger.error("ASC createSubscriptionLocalization failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.patch("/subscriptions/localizations/:id", async (req, res) => {
-  try {
+ascRouter.patch(
+  "/subscriptions/localizations/:id",
+  handle("updateSubscriptionLocalization", async (req, res) => {
     const { id } = req.params;
     const { name, description } = req.body as {
       name?: string;
@@ -1266,34 +1232,30 @@ ascRouter.patch("/subscriptions/localizations/:id", async (req, res) => {
     if (name !== undefined) attributes.name = name;
     if (description !== undefined) attributes.description = description;
     const asc = await ascClientForUser(req.user!.userId);
-    await (asc as any).client.patch(`/subscriptionLocalizations/${id}`, {
+    await asc.client.patch(`/subscriptionLocalizations/${id}`, {
       data: { type: "subscriptionLocalizations", id, attributes },
     });
     res.json({ ok: true });
-  } catch (err: any) {
-    logger.error("ASC updateSubscriptionLocalization failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.delete("/subscriptions/localizations/:id", async (req, res) => {
-  try {
+ascRouter.delete(
+  "/subscriptions/localizations/:id",
+  handle("deleteSubscriptionLocalization", async (req, res) => {
     const { id } = req.params;
     const asc = await ascClientForUser(req.user!.userId);
-    await (asc as any).client.delete(`/subscriptionLocalizations/${id}`);
+    await asc.client.delete(`/subscriptionLocalizations/${id}`);
     res.json({ ok: true });
-  } catch (err: any) {
-    logger.error("ASC deleteSubscriptionLocalization failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.get("/subscriptions/:id/price-points", async (req, res) => {
-  try {
+ascRouter.get(
+  "/subscriptions/:id/price-points",
+  handle("listSubscriptionPricePoints", async (req, res) => {
     const { id } = req.params;
     const territory = (req.query.territory as string) || undefined;
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await (asc as any).client.get(`/subscriptions/${id}/pricePoints`, {
+    const { data: resp } = await asc.client.get(`/subscriptions/${id}/pricePoints`, {
       params: {
         include: "territory",
         "fields[subscriptionPricePoints]": "customerPrice,proceeds,territory",
@@ -1317,17 +1279,15 @@ ascRouter.get("/subscriptions/:id/price-points", async (req, res) => {
         };
       }),
     );
-  } catch (err: any) {
-    logger.error("ASC listSubscriptionPricePoints failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.get("/subscriptions/:id/prices", async (req, res) => {
-  try {
+ascRouter.get(
+  "/subscriptions/:id/prices",
+  handle("listSubscriptionPrices", async (req, res) => {
     const { id } = req.params;
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await (asc as any).client.get(`/subscriptions/${id}/prices`, {
+    const { data: resp } = await asc.client.get(`/subscriptions/${id}/prices`, {
       params: {
         include: "territory,subscriptionPricePoint",
         "fields[subscriptionPrices]": "startDate,preserved,territory,subscriptionPricePoint",
@@ -1361,14 +1321,12 @@ ascRouter.get("/subscriptions/:id/prices", async (req, res) => {
         };
       }),
     );
-  } catch (err: any) {
-    logger.error("ASC listSubscriptionPrices failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.post("/subscriptions/prices", async (req, res) => {
-  try {
+ascRouter.post(
+  "/subscriptions/prices",
+  handle("createSubscriptionPrice", async (req, res) => {
     const { subscriptionId, pricePointId, territory, startDate, preserveCurrentPrice } = req.body as {
       subscriptionId?: string;
       pricePointId?: string;
@@ -1381,7 +1339,7 @@ ascRouter.post("/subscriptions/prices", async (req, res) => {
       return;
     }
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await (asc as any).client.post("/subscriptionPrices", {
+    const { data: resp } = await asc.client.post("/subscriptionPrices", {
       data: {
         type: "subscriptionPrices",
         attributes: {
@@ -1400,29 +1358,25 @@ ascRouter.post("/subscriptions/prices", async (req, res) => {
       },
     });
     res.status(201).json({ id: resp.data.id, ok: true });
-  } catch (err: any) {
-    logger.error("ASC createSubscriptionPrice failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.delete("/subscriptions/prices/:id", async (req, res) => {
-  try {
+ascRouter.delete(
+  "/subscriptions/prices/:id",
+  handle("deleteSubscriptionPrice", async (req, res) => {
     const { id } = req.params;
     const asc = await ascClientForUser(req.user!.userId);
-    await (asc as any).client.delete(`/subscriptionPrices/${id}`);
+    await asc.client.delete(`/subscriptionPrices/${id}`);
     res.json({ ok: true });
-  } catch (err: any) {
-    logger.error("ASC deleteSubscriptionPrice failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.get("/subscriptions/:id/review-screenshot", async (req, res) => {
-  try {
+ascRouter.get(
+  "/subscriptions/:id/review-screenshot",
+  handle("getSubscriptionReviewScreenshot", async (req, res) => {
     const { id } = req.params;
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await (asc as any).client.get(`/subscriptions/${id}/appStoreReviewScreenshot`, {
+    const { data: resp } = await asc.client.get(`/subscriptions/${id}/appStoreReviewScreenshot`, {
       params: {
         "fields[subscriptionAppStoreReviewScreenshots]":
           "fileName,fileSize,sourceFileChecksum,imageAsset,assetToken,assetType,uploadOperations,assetDeliveryState",
@@ -1448,14 +1402,12 @@ ascRouter.get("/subscriptions/:id/review-screenshot", async (req, res) => {
       width: asset?.width ?? null,
       height: asset?.height ?? null,
     });
-  } catch (err: any) {
-    logger.error("ASC getSubscriptionReviewScreenshot failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.post("/subscriptions/:id/review-screenshot", async (req, res) => {
-  try {
+ascRouter.post(
+  "/subscriptions/:id/review-screenshot",
+  handle("createSubscriptionReviewScreenshot", async (req, res) => {
     const { id } = req.params;
     const { fileName, fileSize, fileData } = req.body as {
       fileName?: string;
@@ -1469,7 +1421,7 @@ ascRouter.post("/subscriptions/:id/review-screenshot", async (req, res) => {
 
     const asc = await ascClientForUser(req.user!.userId);
 
-    const { data: createResp } = await (asc as any).client.post("/subscriptionAppStoreReviewScreenshots", {
+    const { data: createResp } = await asc.client.post("/subscriptionAppStoreReviewScreenshots", {
       data: {
         type: "subscriptionAppStoreReviewScreenshots",
         attributes: { fileName, fileSize },
@@ -1490,7 +1442,7 @@ ascRouter.post("/subscriptions/:id/review-screenshot", async (req, res) => {
       });
     }
 
-    await (asc as any).client.patch(`/subscriptionAppStoreReviewScreenshots/${screenshotId}`, {
+    await asc.client.patch(`/subscriptionAppStoreReviewScreenshots/${screenshotId}`, {
       data: {
         type: "subscriptionAppStoreReviewScreenshots",
         id: screenshotId,
@@ -1499,35 +1451,31 @@ ascRouter.post("/subscriptions/:id/review-screenshot", async (req, res) => {
     });
 
     res.status(201).json({ id: screenshotId, ok: true });
-  } catch (err: any) {
-    logger.error("ASC createSubscriptionReviewScreenshot failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.delete("/subscriptions/review-screenshots/:id", async (req, res) => {
-  try {
+ascRouter.delete(
+  "/subscriptions/review-screenshots/:id",
+  handle("deleteSubscriptionReviewScreenshot", async (req, res) => {
     const { id } = req.params;
     const asc = await ascClientForUser(req.user!.userId);
-    await (asc as any).client.delete(`/subscriptionAppStoreReviewScreenshots/${id}`);
+    await asc.client.delete(`/subscriptionAppStoreReviewScreenshots/${id}`);
     res.json({ ok: true });
-  } catch (err: any) {
-    logger.error("ASC deleteSubscriptionReviewScreenshot failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
 async function getGameCenterDetailId(asc: AppStoreConnectClient, appId: string): Promise<string | null> {
   try {
-    const { data: resp } = await (asc as any).client.get(`/apps/${appId}/gameCenterDetail`);
+    const { data: resp } = await asc.client.get(`/apps/${appId}/gameCenterDetail`);
     return resp.data?.id ?? null;
   } catch {
     return null;
   }
 }
 
-ascRouter.get("/gamecenter/leaderboards", async (req, res) => {
-  try {
+ascRouter.get(
+  "/gamecenter/leaderboards",
+  handle("gamecenter leaderboards", async (req, res) => {
     const bundleId = (req.query.bundleId as string) || undefined;
     if (bundleId) {
       const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
@@ -1544,7 +1492,7 @@ ascRouter.get("/gamecenter/leaderboards", async (req, res) => {
       res.json({ leaderboards: [], gcDetailId: null, gcEnabled: false });
       return;
     }
-    const { data: resp } = await (asc as any).client.get(`/gameCenterDetails/${gcDetailId}/gameCenterLeaderboards`, {
+    const { data: resp } = await asc.client.get(`/gameCenterDetails/${gcDetailId}/gameCenterLeaderboards`, {
       params: {
         "fields[gameCenterLeaderboards]":
           "referenceName,vendorIdentifier,defaultFormatter,archived,scoreSortType,submissionType",
@@ -1561,14 +1509,12 @@ ascRouter.get("/gamecenter/leaderboards", async (req, res) => {
       submissionType: lb.attributes?.submissionType ?? "INDIVIDUAL",
     }));
     res.json({ leaderboards, gcDetailId, gcEnabled: true });
-  } catch (err: any) {
-    logger.error("ASC gamecenter leaderboards failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.post("/gamecenter/leaderboards", async (req, res) => {
-  try {
+ascRouter.post(
+  "/gamecenter/leaderboards",
+  handle("create leaderboard", async (req, res) => {
     const { bundleId, gcDetailId, referenceName, vendorIdentifier, defaultFormatter, scoreSortType, submissionType } =
       req.body as {
         bundleId?: string;
@@ -1590,7 +1536,7 @@ ascRouter.post("/gamecenter/leaderboards", async (req, res) => {
       return;
     }
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await (asc as any).client.post("/gameCenterLeaderboards", {
+    const { data: resp } = await asc.client.post("/gameCenterLeaderboards", {
       data: {
         type: "gameCenterLeaderboards",
         attributes: {
@@ -1616,14 +1562,12 @@ ascRouter.post("/gamecenter/leaderboards", async (req, res) => {
       scoreSortType: resp.data.attributes?.scoreSortType ?? scoreSortType ?? "HIGH_TO_LOW",
       submissionType: resp.data.attributes?.submissionType ?? submissionType ?? "INDIVIDUAL",
     });
-  } catch (err: any) {
-    logger.error("ASC create leaderboard failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.patch("/gamecenter/leaderboards/:id", async (req, res) => {
-  try {
+ascRouter.patch(
+  "/gamecenter/leaderboards/:id",
+  handle("update leaderboard", async (req, res) => {
     const { id } = req.params;
     const { bundleId, referenceName, archived } = req.body as {
       bundleId?: string;
@@ -1640,18 +1584,16 @@ ascRouter.patch("/gamecenter/leaderboards/:id", async (req, res) => {
     const attrs: Record<string, unknown> = {};
     if (referenceName !== undefined) attrs.referenceName = referenceName;
     if (archived !== undefined) attrs.archived = archived;
-    await (asc as any).client.patch(`/gameCenterLeaderboards/${id}`, {
+    await asc.client.patch(`/gameCenterLeaderboards/${id}`, {
       data: { type: "gameCenterLeaderboards", id, attributes: attrs },
     });
     res.json({ ok: true });
-  } catch (err: any) {
-    logger.error("ASC update leaderboard failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.delete("/gamecenter/leaderboards/:id", async (req, res) => {
-  try {
+ascRouter.delete(
+  "/gamecenter/leaderboards/:id",
+  handle("delete leaderboard", async (req, res) => {
     const { id } = req.params;
     const bundleId = req.query.bundleId as string | undefined;
     if (!bundleId) {
@@ -1661,16 +1603,14 @@ ascRouter.delete("/gamecenter/leaderboards/:id", async (req, res) => {
     const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
     if (!owned) return;
     const asc = await ascClientForUser(req.user!.userId);
-    await (asc as any).client.delete(`/gameCenterLeaderboards/${id}`);
+    await asc.client.delete(`/gameCenterLeaderboards/${id}`);
     res.json({ ok: true });
-  } catch (err: any) {
-    logger.error("ASC delete leaderboard failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.get("/gamecenter/leaderboards/:id/localizations", async (req, res) => {
-  try {
+ascRouter.get(
+  "/gamecenter/leaderboards/:id/localizations",
+  handle("leaderboard localizations", async (req, res) => {
     const { id } = req.params;
     const bundleId = req.query.bundleId as string | undefined;
     if (bundleId) {
@@ -1678,7 +1618,7 @@ ascRouter.get("/gamecenter/leaderboards/:id/localizations", async (req, res) => 
       if (!owned) return;
     }
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await (asc as any).client.get(`/gameCenterLeaderboards/${id}/localizations`, {
+    const { data: resp } = await asc.client.get(`/gameCenterLeaderboards/${id}/localizations`, {
       params: {
         "fields[gameCenterLeaderboardLocalizations]": "locale,name,formatterSuffix,formatterSuffixSingular",
       },
@@ -1691,14 +1631,12 @@ ascRouter.get("/gamecenter/leaderboards/:id/localizations", async (req, res) => 
       formatterSuffixSingular: l.attributes?.formatterSuffixSingular ?? "",
     }));
     res.json(localizations);
-  } catch (err: any) {
-    logger.error("ASC leaderboard localizations failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.post("/gamecenter/leaderboard-localizations", async (req, res) => {
-  try {
+ascRouter.post(
+  "/gamecenter/leaderboard-localizations",
+  handle("create leaderboard localization", async (req, res) => {
     const { bundleId, leaderboardId, locale, name, formatterSuffix, formatterSuffixSingular } = req.body as {
       bundleId?: string;
       leaderboardId: string;
@@ -1721,7 +1659,7 @@ ascRouter.post("/gamecenter/leaderboard-localizations", async (req, res) => {
     const attrs: Record<string, string> = { locale, name };
     if (formatterSuffix) attrs.formatterSuffix = formatterSuffix;
     if (formatterSuffixSingular) attrs.formatterSuffixSingular = formatterSuffixSingular;
-    const { data: resp } = await (asc as any).client.post("/gameCenterLeaderboardLocalizations", {
+    const { data: resp } = await asc.client.post("/gameCenterLeaderboardLocalizations", {
       data: {
         type: "gameCenterLeaderboardLocalizations",
         attributes: attrs,
@@ -1739,14 +1677,12 @@ ascRouter.post("/gamecenter/leaderboard-localizations", async (req, res) => {
       formatterSuffix: resp.data.attributes?.formatterSuffix ?? "",
       formatterSuffixSingular: resp.data.attributes?.formatterSuffixSingular ?? "",
     });
-  } catch (err: any) {
-    logger.error("ASC create leaderboard localization failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.patch("/gamecenter/leaderboard-localizations/:id", async (req, res) => {
-  try {
+ascRouter.patch(
+  "/gamecenter/leaderboard-localizations/:id",
+  handle("update leaderboard localization", async (req, res) => {
     const { id } = req.params;
     const { bundleId, name, formatterSuffix, formatterSuffixSingular } = req.body as {
       bundleId?: string;
@@ -1765,7 +1701,7 @@ ascRouter.patch("/gamecenter/leaderboard-localizations/:id", async (req, res) =>
     if (name !== undefined) attrs.name = name;
     if (formatterSuffix !== undefined) attrs.formatterSuffix = formatterSuffix;
     if (formatterSuffixSingular !== undefined) attrs.formatterSuffixSingular = formatterSuffixSingular;
-    await (asc as any).client.patch(`/gameCenterLeaderboardLocalizations/${id}`, {
+    await asc.client.patch(`/gameCenterLeaderboardLocalizations/${id}`, {
       data: {
         type: "gameCenterLeaderboardLocalizations",
         id,
@@ -1773,14 +1709,12 @@ ascRouter.patch("/gamecenter/leaderboard-localizations/:id", async (req, res) =>
       },
     });
     res.json({ ok: true });
-  } catch (err: any) {
-    logger.error("ASC update leaderboard localization failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.delete("/gamecenter/leaderboard-localizations/:id", async (req, res) => {
-  try {
+ascRouter.delete(
+  "/gamecenter/leaderboard-localizations/:id",
+  handle("delete leaderboard localization", async (req, res) => {
     const { id } = req.params;
     const bundleId = req.query.bundleId as string | undefined;
     if (!bundleId) {
@@ -1790,16 +1724,14 @@ ascRouter.delete("/gamecenter/leaderboard-localizations/:id", async (req, res) =
     const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
     if (!owned) return;
     const asc = await ascClientForUser(req.user!.userId);
-    await (asc as any).client.delete(`/gameCenterLeaderboardLocalizations/${id}`);
+    await asc.client.delete(`/gameCenterLeaderboardLocalizations/${id}`);
     res.json({ ok: true });
-  } catch (err: any) {
-    logger.error("ASC delete leaderboard localization failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.get("/gamecenter/achievements", async (req, res) => {
-  try {
+ascRouter.get(
+  "/gamecenter/achievements",
+  handle("gamecenter achievements", async (req, res) => {
     const bundleId = (req.query.bundleId as string) || undefined;
     if (bundleId) {
       const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
@@ -1816,7 +1748,7 @@ ascRouter.get("/gamecenter/achievements", async (req, res) => {
       res.json({ achievements: [], gcDetailId: null, gcEnabled: false });
       return;
     }
-    const { data: resp } = await (asc as any).client.get(`/gameCenterDetails/${gcDetailId}/gameCenterAchievements`, {
+    const { data: resp } = await asc.client.get(`/gameCenterDetails/${gcDetailId}/gameCenterAchievements`, {
       params: {
         "fields[gameCenterAchievements]": "referenceName,vendorIdentifier,points,showBeforeEarned,repeatable,archived",
         limit: 200,
@@ -1832,14 +1764,12 @@ ascRouter.get("/gamecenter/achievements", async (req, res) => {
       archived: a.attributes?.archived ?? false,
     }));
     res.json({ achievements, gcDetailId, gcEnabled: true });
-  } catch (err: any) {
-    logger.error("ASC gamecenter achievements failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.post("/gamecenter/achievements", async (req, res) => {
-  try {
+ascRouter.post(
+  "/gamecenter/achievements",
+  handle("create achievement", async (req, res) => {
     const { bundleId, gcDetailId, referenceName, vendorIdentifier, points, showBeforeEarned, repeatable } =
       req.body as {
         bundleId?: string;
@@ -1857,7 +1787,7 @@ ascRouter.post("/gamecenter/achievements", async (req, res) => {
     const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
     if (!owned) return;
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await (asc as any).client.post("/gameCenterAchievements", {
+    const { data: resp } = await asc.client.post("/gameCenterAchievements", {
       data: {
         type: "gameCenterAchievements",
         attributes: { referenceName, vendorIdentifier, points, showBeforeEarned, repeatable },
@@ -1866,7 +1796,7 @@ ascRouter.post("/gamecenter/achievements", async (req, res) => {
         },
       },
     });
-    res.json({
+    res.status(201).json({
       id: resp.data.id,
       referenceName: resp.data.attributes?.referenceName ?? referenceName,
       vendorIdentifier: resp.data.attributes?.vendorIdentifier ?? vendorIdentifier,
@@ -1875,14 +1805,12 @@ ascRouter.post("/gamecenter/achievements", async (req, res) => {
       repeatable: resp.data.attributes?.repeatable ?? repeatable,
       archived: false,
     });
-  } catch (err: any) {
-    logger.error("ASC create achievement failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.patch("/gamecenter/achievements/:id", async (req, res) => {
-  try {
+ascRouter.patch(
+  "/gamecenter/achievements/:id",
+  handle("update achievement", async (req, res) => {
     const { id } = req.params;
     const { bundleId, referenceName, points, showBeforeEarned, repeatable, archived } = req.body as {
       bundleId?: string;
@@ -1905,18 +1833,16 @@ ascRouter.patch("/gamecenter/achievements/:id", async (req, res) => {
     if (showBeforeEarned !== undefined) attrs.showBeforeEarned = showBeforeEarned;
     if (repeatable !== undefined) attrs.repeatable = repeatable;
     if (archived !== undefined) attrs.archived = archived;
-    await (asc as any).client.patch(`/gameCenterAchievements/${id}`, {
+    await asc.client.patch(`/gameCenterAchievements/${id}`, {
       data: { type: "gameCenterAchievements", id, attributes: attrs },
     });
     res.json({ ok: true });
-  } catch (err: any) {
-    logger.error("ASC update achievement failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.delete("/gamecenter/achievements/:id", async (req, res) => {
-  try {
+ascRouter.delete(
+  "/gamecenter/achievements/:id",
+  handle("delete achievement", async (req, res) => {
     const { id } = req.params;
     const bundleId = req.query.bundleId as string | undefined;
     if (!bundleId) {
@@ -1926,16 +1852,14 @@ ascRouter.delete("/gamecenter/achievements/:id", async (req, res) => {
     const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
     if (!owned) return;
     const asc = await ascClientForUser(req.user!.userId);
-    await (asc as any).client.delete(`/gameCenterAchievements/${id}`);
+    await asc.client.delete(`/gameCenterAchievements/${id}`);
     res.json({ ok: true });
-  } catch (err: any) {
-    logger.error("ASC delete achievement failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.get("/gamecenter/achievements/:id/localizations", async (req, res) => {
-  try {
+ascRouter.get(
+  "/gamecenter/achievements/:id/localizations",
+  handle("achievement localizations", async (req, res) => {
     const { id } = req.params;
     const bundleId = req.query.bundleId as string | undefined;
     if (bundleId) {
@@ -1943,7 +1867,7 @@ ascRouter.get("/gamecenter/achievements/:id/localizations", async (req, res) => 
       if (!owned) return;
     }
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await (asc as any).client.get(`/gameCenterAchievements/${id}/localizations`, {
+    const { data: resp } = await asc.client.get(`/gameCenterAchievements/${id}/localizations`, {
       params: {
         "fields[gameCenterAchievementLocalizations]": "locale,name,afterEarnedDescription,beforeEarnedDescription",
         limit: 200,
@@ -1957,14 +1881,12 @@ ascRouter.get("/gamecenter/achievements/:id/localizations", async (req, res) => 
       beforeEarnedDescription: l.attributes?.beforeEarnedDescription ?? "",
     }));
     res.json(locs);
-  } catch (err: any) {
-    logger.error("ASC achievement localizations failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.post("/gamecenter/achievement-localizations", async (req, res) => {
-  try {
+ascRouter.post(
+  "/gamecenter/achievement-localizations",
+  handle("create achievement localization", async (req, res) => {
     const { bundleId, achievementId, locale, name, afterEarnedDescription, beforeEarnedDescription } = req.body as {
       bundleId?: string;
       achievementId: string;
@@ -1980,7 +1902,7 @@ ascRouter.post("/gamecenter/achievement-localizations", async (req, res) => {
     const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
     if (!owned) return;
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await (asc as any).client.post("/gameCenterAchievementLocalizations", {
+    const { data: resp } = await asc.client.post("/gameCenterAchievementLocalizations", {
       data: {
         type: "gameCenterAchievementLocalizations",
         attributes: { locale, name, afterEarnedDescription, beforeEarnedDescription },
@@ -1989,21 +1911,19 @@ ascRouter.post("/gamecenter/achievement-localizations", async (req, res) => {
         },
       },
     });
-    res.json({
+    res.status(201).json({
       id: resp.data.id,
       locale: resp.data.attributes?.locale ?? locale,
       name: resp.data.attributes?.name ?? name,
       afterEarnedDescription: resp.data.attributes?.afterEarnedDescription ?? afterEarnedDescription ?? "",
       beforeEarnedDescription: resp.data.attributes?.beforeEarnedDescription ?? beforeEarnedDescription ?? "",
     });
-  } catch (err: any) {
-    logger.error("ASC create achievement localization failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.patch("/gamecenter/achievement-localizations/:id", async (req, res) => {
-  try {
+ascRouter.patch(
+  "/gamecenter/achievement-localizations/:id",
+  handle("update achievement localization", async (req, res) => {
     const { id } = req.params;
     const { bundleId, name, afterEarnedDescription, beforeEarnedDescription } = req.body as {
       bundleId?: string;
@@ -2022,18 +1942,16 @@ ascRouter.patch("/gamecenter/achievement-localizations/:id", async (req, res) =>
     if (name !== undefined) attrs.name = name;
     if (afterEarnedDescription !== undefined) attrs.afterEarnedDescription = afterEarnedDescription;
     if (beforeEarnedDescription !== undefined) attrs.beforeEarnedDescription = beforeEarnedDescription;
-    await (asc as any).client.patch(`/gameCenterAchievementLocalizations/${id}`, {
+    await asc.client.patch(`/gameCenterAchievementLocalizations/${id}`, {
       data: { type: "gameCenterAchievementLocalizations", id, attributes: attrs },
     });
     res.json({ ok: true });
-  } catch (err: any) {
-    logger.error("ASC update achievement localization failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.delete("/gamecenter/achievement-localizations/:id", async (req, res) => {
-  try {
+ascRouter.delete(
+  "/gamecenter/achievement-localizations/:id",
+  handle("delete achievement localization", async (req, res) => {
     const { id } = req.params;
     const bundleId = req.query.bundleId as string | undefined;
     if (!bundleId) {
@@ -2043,16 +1961,14 @@ ascRouter.delete("/gamecenter/achievement-localizations/:id", async (req, res) =
     const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
     if (!owned) return;
     const asc = await ascClientForUser(req.user!.userId);
-    await (asc as any).client.delete(`/gameCenterAchievementLocalizations/${id}`);
+    await asc.client.delete(`/gameCenterAchievementLocalizations/${id}`);
     res.json({ ok: true });
-  } catch (err: any) {
-    logger.error("ASC delete achievement localization failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.get("/gamecenter/challenges", async (req, res) => {
-  try {
+ascRouter.get(
+  "/gamecenter/challenges",
+  handle("gamecenter challenges", async (req, res) => {
     const bundleId = (req.query.bundleId as string) || undefined;
     if (bundleId) {
       const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
@@ -2069,7 +1985,7 @@ ascRouter.get("/gamecenter/challenges", async (req, res) => {
       res.json({ challenges: [], gcDetailId: null, gcEnabled: false });
       return;
     }
-    const { data: resp } = await (asc as any).client.get(`/gameCenterDetails/${gcDetailId}/gameCenterLeaderboardSets`, {
+    const { data: resp } = await asc.client.get(`/gameCenterDetails/${gcDetailId}/gameCenterLeaderboardSets`, {
       params: {
         "fields[gameCenterLeaderboardSets]": "referenceName,vendorIdentifier",
         limit: 200,
@@ -2081,14 +1997,12 @@ ascRouter.get("/gamecenter/challenges", async (req, res) => {
       vendorIdentifier: c.attributes?.vendorIdentifier ?? "",
     }));
     res.json({ challenges, gcDetailId, gcEnabled: true });
-  } catch (err: any) {
-    logger.error("ASC gamecenter challenges failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.post("/gamecenter/challenges", async (req, res) => {
-  try {
+ascRouter.post(
+  "/gamecenter/challenges",
+  handle("create challenge", async (req, res) => {
     const { bundleId, gcDetailId, referenceName, vendorIdentifier } = req.body as {
       bundleId?: string;
       gcDetailId: string;
@@ -2102,7 +2016,7 @@ ascRouter.post("/gamecenter/challenges", async (req, res) => {
     const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
     if (!owned) return;
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await (asc as any).client.post("/gameCenterLeaderboardSets", {
+    const { data: resp } = await asc.client.post("/gameCenterLeaderboardSets", {
       data: {
         type: "gameCenterLeaderboardSets",
         attributes: { referenceName, vendorIdentifier },
@@ -2111,19 +2025,17 @@ ascRouter.post("/gamecenter/challenges", async (req, res) => {
         },
       },
     });
-    res.json({
+    res.status(201).json({
       id: resp.data.id,
       referenceName: resp.data.attributes?.referenceName ?? referenceName,
       vendorIdentifier: resp.data.attributes?.vendorIdentifier ?? vendorIdentifier,
     });
-  } catch (err: any) {
-    logger.error("ASC create challenge failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.patch("/gamecenter/challenges/:id", async (req, res) => {
-  try {
+ascRouter.patch(
+  "/gamecenter/challenges/:id",
+  handle("update challenge", async (req, res) => {
     const { id } = req.params;
     const { bundleId, referenceName } = req.body as {
       bundleId?: string;
@@ -2138,18 +2050,16 @@ ascRouter.patch("/gamecenter/challenges/:id", async (req, res) => {
     const asc = await ascClientForUser(req.user!.userId);
     const attrs: Record<string, unknown> = {};
     if (referenceName !== undefined) attrs.referenceName = referenceName;
-    await (asc as any).client.patch(`/gameCenterLeaderboardSets/${id}`, {
+    await asc.client.patch(`/gameCenterLeaderboardSets/${id}`, {
       data: { type: "gameCenterLeaderboardSets", id, attributes: attrs },
     });
     res.json({ ok: true });
-  } catch (err: any) {
-    logger.error("ASC update challenge failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.delete("/gamecenter/challenges/:id", async (req, res) => {
-  try {
+ascRouter.delete(
+  "/gamecenter/challenges/:id",
+  handle("delete challenge", async (req, res) => {
     const { id } = req.params;
     const bundleId = req.query.bundleId as string | undefined;
     if (!bundleId) {
@@ -2159,16 +2069,14 @@ ascRouter.delete("/gamecenter/challenges/:id", async (req, res) => {
     const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
     if (!owned) return;
     const asc = await ascClientForUser(req.user!.userId);
-    await (asc as any).client.delete(`/gameCenterLeaderboardSets/${id}`);
+    await asc.client.delete(`/gameCenterLeaderboardSets/${id}`);
     res.json({ ok: true });
-  } catch (err: any) {
-    logger.error("ASC delete challenge failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.get("/gamecenter/challenges/:id/localizations", async (req, res) => {
-  try {
+ascRouter.get(
+  "/gamecenter/challenges/:id/localizations",
+  handle("challenge localizations", async (req, res) => {
     const { id } = req.params;
     const bundleId = req.query.bundleId as string | undefined;
     if (bundleId) {
@@ -2176,7 +2084,7 @@ ascRouter.get("/gamecenter/challenges/:id/localizations", async (req, res) => {
       if (!owned) return;
     }
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await (asc as any).client.get(`/gameCenterLeaderboardSets/${id}/localizations`, {
+    const { data: resp } = await asc.client.get(`/gameCenterLeaderboardSets/${id}/localizations`, {
       params: {
         "fields[gameCenterLeaderboardSetLocalizations]": "locale,name",
         limit: 200,
@@ -2188,14 +2096,12 @@ ascRouter.get("/gamecenter/challenges/:id/localizations", async (req, res) => {
       name: l.attributes?.name ?? "",
     }));
     res.json(locs);
-  } catch (err: any) {
-    logger.error("ASC challenge localizations failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.post("/gamecenter/challenge-localizations", async (req, res) => {
-  try {
+ascRouter.post(
+  "/gamecenter/challenge-localizations",
+  handle("create challenge localization", async (req, res) => {
     const { bundleId, challengeId, locale, name } = req.body as {
       bundleId?: string;
       challengeId: string;
@@ -2209,7 +2115,7 @@ ascRouter.post("/gamecenter/challenge-localizations", async (req, res) => {
     const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
     if (!owned) return;
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await (asc as any).client.post("/gameCenterLeaderboardSetLocalizations", {
+    const { data: resp } = await asc.client.post("/gameCenterLeaderboardSetLocalizations", {
       data: {
         type: "gameCenterLeaderboardSetLocalizations",
         attributes: { locale, name },
@@ -2218,19 +2124,17 @@ ascRouter.post("/gamecenter/challenge-localizations", async (req, res) => {
         },
       },
     });
-    res.json({
+    res.status(201).json({
       id: resp.data.id,
       locale: resp.data.attributes?.locale ?? locale,
       name: resp.data.attributes?.name ?? name,
     });
-  } catch (err: any) {
-    logger.error("ASC create challenge localization failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.patch("/gamecenter/challenge-localizations/:id", async (req, res) => {
-  try {
+ascRouter.patch(
+  "/gamecenter/challenge-localizations/:id",
+  handle("update challenge localization", async (req, res) => {
     const { id } = req.params;
     const { bundleId, name } = req.body as { bundleId?: string; name?: string };
     if (!bundleId) {
@@ -2242,18 +2146,16 @@ ascRouter.patch("/gamecenter/challenge-localizations/:id", async (req, res) => {
     const asc = await ascClientForUser(req.user!.userId);
     const attrs: Record<string, unknown> = {};
     if (name !== undefined) attrs.name = name;
-    await (asc as any).client.patch(`/gameCenterLeaderboardSetLocalizations/${id}`, {
+    await asc.client.patch(`/gameCenterLeaderboardSetLocalizations/${id}`, {
       data: { type: "gameCenterLeaderboardSetLocalizations", id, attributes: attrs },
     });
     res.json({ ok: true });
-  } catch (err: any) {
-    logger.error("ASC update challenge localization failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
-ascRouter.delete("/gamecenter/challenge-localizations/:id", async (req, res) => {
-  try {
+ascRouter.delete(
+  "/gamecenter/challenge-localizations/:id",
+  handle("delete challenge localization", async (req, res) => {
     const { id } = req.params;
     const bundleId = req.query.bundleId as string | undefined;
     if (!bundleId) {
@@ -2263,13 +2165,10 @@ ascRouter.delete("/gamecenter/challenge-localizations/:id", async (req, res) => 
     const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
     if (!owned) return;
     const asc = await ascClientForUser(req.user!.userId);
-    await (asc as any).client.delete(`/gameCenterLeaderboardSetLocalizations/${id}`);
+    await asc.client.delete(`/gameCenterLeaderboardSetLocalizations/${id}`);
     res.json({ ok: true });
-  } catch (err: any) {
-    logger.error("ASC delete challenge localization failed", err);
-    res.status(500).json({ error: err.message ?? String(err) });
-  }
-});
+  }),
+);
 
 ascRouter.get("/supported-locales", async (req, res) => {
   res.json(Object.keys(LOCALE_MAP));

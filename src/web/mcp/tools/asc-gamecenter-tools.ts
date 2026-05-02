@@ -38,7 +38,7 @@ function json(data: unknown) {
 
 async function getGameCenterDetailId(asc: any, appId: string): Promise<string | null> {
   try {
-    const { data: resp } = await (asc as any).client.get(`/apps/${appId}/gameCenterDetail`);
+    const { data: resp } = await asc.client.get(`/apps/${appId}/gameCenterDetail`);
     return resp.data?.id ?? null;
   } catch {
     return null;
@@ -83,7 +83,7 @@ export function registerAscGameCenterTools(server: McpServer, userId: string) {
           return json({ leaderboards: [], gcEnabled: false });
         }
 
-        const { data: resp } = await (asc as any).client.get(
+        const { data: resp } = await asc.client.get(
           `/gameCenterDetails/${gcDetailId}/gameCenterLeaderboards`,
           {
             params: {
@@ -181,7 +181,7 @@ export function registerAscGameCenterTools(server: McpServer, userId: string) {
 
       try {
         const asc = await createAscClient(settings);
-        const { data: resp } = await (asc as any).client.post("/gameCenterLeaderboards", {
+        const { data: resp } = await asc.client.post("/gameCenterLeaderboards", {
           data: {
             type: "gameCenterLeaderboards",
             attributes: {
@@ -234,7 +234,7 @@ export function registerAscGameCenterTools(server: McpServer, userId: string) {
         const attrs: Record<string, unknown> = {};
         if (referenceName !== undefined) attrs.referenceName = referenceName;
         if (archived !== undefined) attrs.archived = archived;
-        await (asc as any).client.patch(`/gameCenterLeaderboards/${leaderboardId}`, {
+        await asc.client.patch(`/gameCenterLeaderboards/${leaderboardId}`, {
           data: {
             type: "gameCenterLeaderboards",
             id: leaderboardId,
@@ -262,7 +262,7 @@ export function registerAscGameCenterTools(server: McpServer, userId: string) {
 
       try {
         const asc = await createAscClient(settings);
-        await (asc as any).client.delete(`/gameCenterLeaderboards/${leaderboardId}`);
+        await asc.client.delete(`/gameCenterLeaderboards/${leaderboardId}`);
         return json({ ok: true });
       } catch (err: any) {
         return ascError(err);
@@ -286,7 +286,7 @@ export function registerAscGameCenterTools(server: McpServer, userId: string) {
 
       try {
         const asc = await createAscClient(settings);
-        const { data: resp } = await (asc as any).client.get(`/gameCenterLeaderboards/${leaderboardId}/localizations`, {
+        const { data: resp } = await asc.client.get(`/gameCenterLeaderboards/${leaderboardId}/localizations`, {
           params: {
             "fields[gameCenterLeaderboardLocalizations]": "locale,name,formatterSuffix,formatterSuffixSingular",
           },
@@ -331,7 +331,7 @@ export function registerAscGameCenterTools(server: McpServer, userId: string) {
         const attrs: Record<string, string> = { locale, name };
         if (formatterSuffix) attrs.formatterSuffix = formatterSuffix;
         if (formatterSuffixSingular) attrs.formatterSuffixSingular = formatterSuffixSingular;
-        const { data: resp } = await (asc as any).client.post("/gameCenterLeaderboardLocalizations", {
+        const { data: resp } = await asc.client.post("/gameCenterLeaderboardLocalizations", {
           data: {
             type: "gameCenterLeaderboardLocalizations",
             attributes: attrs,
@@ -378,7 +378,7 @@ export function registerAscGameCenterTools(server: McpServer, userId: string) {
         if (name !== undefined) attrs.name = name;
         if (formatterSuffix !== undefined) attrs.formatterSuffix = formatterSuffix;
         if (formatterSuffixSingular !== undefined) attrs.formatterSuffixSingular = formatterSuffixSingular;
-        await (asc as any).client.patch(`/gameCenterLeaderboardLocalizations/${localizationId}`, {
+        await asc.client.patch(`/gameCenterLeaderboardLocalizations/${localizationId}`, {
           data: {
             type: "gameCenterLeaderboardLocalizations",
             id: localizationId,
@@ -408,7 +408,7 @@ export function registerAscGameCenterTools(server: McpServer, userId: string) {
 
       try {
         const asc = await createAscClient(settings);
-        await (asc as any).client.delete(`/gameCenterLeaderboardLocalizations/${localizationId}`);
+        await asc.client.delete(`/gameCenterLeaderboardLocalizations/${localizationId}`);
         return json({ ok: true });
       } catch (err: any) {
         return ascError(err);

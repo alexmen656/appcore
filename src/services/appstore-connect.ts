@@ -54,7 +54,7 @@ export interface ASCCredentials {
 }
 
 export class AppStoreConnectClient {
-  private client: AxiosInstance;
+  public client: AxiosInstance;
   private token: string | null = null;
   private tokenExpiry: number = 0;
   private readonly issuerId: string;

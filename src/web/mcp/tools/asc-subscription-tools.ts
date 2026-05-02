@@ -75,7 +75,7 @@ export function registerAscSubscriptionTools(
           };
         }
 
-        const { data: resp } = await (asc as any).client.get(
+        const { data: resp } = await asc.client.get(
           `/apps/${app.id}/subscriptionGroups`,
           {
             params: {
@@ -159,7 +159,7 @@ export function registerAscSubscriptionTools(
           };
         }
 
-        const { data: resp } = await (asc as any).client.post(
+        const { data: resp } = await asc.client.post(
           "/subscriptionGroups",
           {
             data: {
@@ -203,7 +203,7 @@ export function registerAscSubscriptionTools(
 
       try {
         const asc = await createAscClient(settings);
-        await (asc as any).client.patch(`/subscriptionGroups/${groupId}`, {
+        await asc.client.patch(`/subscriptionGroups/${groupId}`, {
           data: {
             type: "subscriptionGroups",
             id: groupId,
@@ -235,7 +235,7 @@ export function registerAscSubscriptionTools(
 
       try {
         const asc = await createAscClient(settings);
-        await (asc as any).client.delete(`/subscriptionGroups/${groupId}`);
+        await asc.client.delete(`/subscriptionGroups/${groupId}`);
         return json({ ok: true });
       } catch (err: any) {
         return ascError(err);
@@ -302,7 +302,7 @@ export function registerAscSubscriptionTools(
 
       try {
         const asc = await createAscClient(settings);
-        const { data: resp } = await (asc as any).client.post(
+        const { data: resp } = await asc.client.post(
           "/subscriptions",
           {
             data: {
@@ -398,7 +398,7 @@ export function registerAscSubscriptionTools(
         if (groupLevel !== undefined) attributes.groupLevel = groupLevel;
         if (reviewNote !== undefined) attributes.reviewNote = reviewNote;
 
-        await (asc as any).client.patch(`/subscriptions/${subscriptionId}`, {
+        await asc.client.patch(`/subscriptions/${subscriptionId}`, {
           data: { type: "subscriptions", id: subscriptionId, attributes },
         });
         return json({ ok: true });
@@ -426,7 +426,7 @@ export function registerAscSubscriptionTools(
 
       try {
         const asc = await createAscClient(settings);
-        await (asc as any).client.delete(`/subscriptions/${subscriptionId}`);
+        await asc.client.delete(`/subscriptions/${subscriptionId}`);
         return json({ ok: true });
       } catch (err: any) {
         return ascError(err);
@@ -453,7 +453,7 @@ export function registerAscSubscriptionTools(
 
       try {
         const asc = await createAscClient(settings);
-        const { data: resp } = await (asc as any).client.get(
+        const { data: resp } = await asc.client.get(
           `/subscriptions/${subscriptionId}/subscriptionLocalizations`,
           {
             params: {
@@ -506,7 +506,7 @@ export function registerAscSubscriptionTools(
 
       try {
         const asc = await createAscClient(settings);
-        const { data: resp } = await (asc as any).client.post(
+        const { data: resp } = await asc.client.post(
           "/subscriptionLocalizations",
           {
             data: {
@@ -563,7 +563,7 @@ export function registerAscSubscriptionTools(
         if (name !== undefined) attributes.name = name;
         if (description !== undefined) attributes.description = description;
 
-        await (asc as any).client.patch(
+        await asc.client.patch(
           `/subscriptionLocalizations/${localizationId}`,
           {
             data: {
@@ -599,7 +599,7 @@ export function registerAscSubscriptionTools(
 
       try {
         const asc = await createAscClient(settings);
-        await (asc as any).client.delete(
+        await asc.client.delete(
           `/subscriptionLocalizations/${localizationId}`,
         );
         return json({ ok: true });
@@ -635,7 +635,7 @@ export function registerAscSubscriptionTools(
 
       try {
         const asc = await createAscClient(settings);
-        const { data: resp } = await (asc as any).client.get(
+        const { data: resp } = await asc.client.get(
           `/subscriptions/${subscriptionId}/pricePoints`,
           {
             params: {
@@ -690,7 +690,7 @@ export function registerAscSubscriptionTools(
 
       try {
         const asc = await createAscClient(settings);
-        const { data: resp } = await (asc as any).client.get(
+        const { data: resp } = await asc.client.get(
           `/subscriptions/${subscriptionId}/prices`,
           {
             params: {
@@ -787,7 +787,7 @@ export function registerAscSubscriptionTools(
 
       try {
         const asc = await createAscClient(settings);
-        const { data: resp } = await (asc as any).client.post(
+        const { data: resp } = await asc.client.post(
           "/subscriptionPrices",
           {
             data: {
@@ -845,7 +845,7 @@ export function registerAscSubscriptionTools(
 
       try {
         const asc = await createAscClient(settings);
-        await (asc as any).client.delete(`/subscriptionPrices/${priceId}`);
+        await asc.client.delete(`/subscriptionPrices/${priceId}`);
         return json({ ok: true });
       } catch (err: any) {
         return ascError(err);
