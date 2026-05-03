@@ -1,6 +1,6 @@
 import { prisma, logger } from "../config";
 import type { EffectiveSettings } from "../config";
-import { AIClient, queryOllama } from "./ai-client";
+import { AIClient } from "./ai-client"; //queryOllama
 import type { AIResponse } from "./ai-client";
 import { SuggestionType, SuggestionStatus } from "@prisma/client";
 import { LOCALE_MAP, LocaleConfig } from "./utils/country_lang";
@@ -16,8 +16,9 @@ function getLocaleConfig(locale: string): LocaleConfig {
   );
 }
 
-const TRANSLATION_POLISH_MODEL = "qwen2.5:7b";
-const TRANSLATION_REVIEW_MODEL = "llama3.1:8b";
+// const TRANSLATION_POLISH_MODEL = "qwen2.5:7b";
+// const TRANSLATION_REVIEW_MODEL = "llama3.1:8b";
+const TRANSLATION_OPENAI_MODEL = "gpt-5.5";
 
 function parseTranslationJson(content: string): Record<string, string> | null {
   try {
@@ -81,6 +82,58 @@ export class AIAnalyzer {
     if (fieldsToTranslate.length === 0) return {};
     const hasKeywords = "keywords" in sourceFields;
 
+    const systemPrompt = `
+    You are a native ${targetConfig.language} App Store copywriter for the ${targetConfig.market} market.
+    You have been given the ${sourceConfig.language} source for reference only — to understand the meaning, structure and tone. Do NOT translate word-for-word. 
+    Write the ${targetConfig.language} version as if you were briefed on what the app does and wrote the copy fresh in ${targetConfig.language} from the start.
+
+    Quality bar:
+    - Native, idiomatic phrasing. Fix awkward word order, literal translations, stiffness.
+    - Match the marketing register of top apps in the ${targetConfig.market} App Store: clear, punchy, benefit-driven.
+    - Cultural fit: localize idioms, examples and tone — do not translate them word-for-word.
+    - Preserve meaning, feature claims and any concrete numbers/units. Never invent facts.
+    - Keep brand names, trademarks and proper nouns untranslated. Keep emojis and formatting (line breaks, bullet markers) exactly as in the source.
+
+    Strict App Store rules (hard limits):
+    - name: max 30 characters
+    - subtitle: max 30 characters
+    - keywords: max 100 characters TOTAL, comma-separated, NO spaces after commas (spaces allowed inside multi-word phrases). No duplicates of words used in name/subtitle. No generic filler ("app", "the"), no plurals of words already covered, no special characters (#, @), no competitor or trademarked names.
+    - description: max 4000 characters. PRESERVE the full length, structure and every detail of the source. Translate paragraph-for-paragraph. Do NOT summarize, shorten, merge or drop anything.
+    - promotionalText: max 170 characters
+    - whatsNew: max 4000 characters. PRESERVE the full length and every detail. Do NOT summarize.
+
+    Output:
+    - Return a single JSON object with EXACTLY the same keys as the input — no extra keys, no missing keys.
+    - Values are the final, ready-to-publish ${targetConfig.language} text.
+    - No markdown fences, no comments, no explanations.`;
+
+    const keywordHint = hasKeywords
+      ? `\nFor "keywords": output search terms a native ${targetConfig.promptLang} user would actually type in the ${targetConfig.market} App Store — not literal translations of the source keywords. Stay ≤100 chars total, comma-separated, no spaces after commas.`
+      : "";
+
+    const userPrompt = `
+    Translate and localize the following App Store metadata from ${sourceConfig.language} into ${targetConfig.language} for the ${targetConfig.market} market. Return JSON only, with the same keys as the input.${keywordHint}
+
+    INPUT:
+    ${JSON.stringify(Object.fromEntries(fieldsToTranslate), null, 2)}`;
+
+    logger.info(`Translation (single ${TRANSLATION_OPENAI_MODEL} pass) ${sourceLocale} → ${targetLocale}`);
+
+    const response = await this.ai.query(systemPrompt, userPrompt, {
+      openaiModel: TRANSLATION_OPENAI_MODEL,
+      temperature: 0.8,
+      maxTokens: 8000,
+      jsonMode: true,
+    });
+
+    const parsed = parseTranslationJson(response.content);
+    if (!parsed) {
+      logger.warn("Translation produced no valid JSON", { content: response.content.substring(0, 500) });
+      return {};
+    }
+    return parsed;
+
+    /* --- previous 3-stage local Ollama pipeline (kept for reference) ---
     const constraintsBlock = `
       App Store length & format rules:
       - name / title: max 30 characters
@@ -155,6 +208,7 @@ export class AIAnalyzer {
     );
 
     return parseTranslationJson(stage3.content) ?? polished;
+    --- end of previous 3-stage local Ollama pipeline --- */
   }
 
   async analyzeAndSuggest(locales?: string[]): Promise<Map<string, ASOAnalysis>> {
