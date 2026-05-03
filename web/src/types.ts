@@ -347,6 +347,7 @@ export interface VersionsData {
   reviewerDemoUsername?: string;
   reviewerDemoPassword?: string;
   reviewDetailId?: string | null;
+  translatingLocales?: string[];
   localizations: VersionLocalization[];
 }
 

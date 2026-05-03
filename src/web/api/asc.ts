@@ -1,10 +1,15 @@
 import { Router, type Request, type Response, type RequestHandler } from "express";
 import axios from "../../services/utils/http";
-import { prisma, logger, getEffectiveSettings } from "../../config";
+import { prisma, logger } from "../../config";
 import { requireAuth, verifyAppOwnershipByBundleId } from "../auth";
 import { AppStoreConnectClient } from "../../services/appstore-connect";
-import { AIAnalyzer } from "../../services/ai-analyzer";
 import { LOCALE_MAP } from "../../services/utils/country_lang";
+import { bossScheduler } from "../../jobs/boss";
+import {
+  QUEUE_NAME as TRANSLATE_LOCALIZATION_QUEUE,
+  type TranslateLocalizationData,
+} from "../../jobs/workers/translate-localization.worker";
+import * as translationTracker from "../../jobs/translation-tracker";
 
 export const ascRouter = Router();
 ascRouter.use(requireAuth);
@@ -429,6 +434,7 @@ ascRouter.get(
           versionString: cached.versionString,
           appStoreState: cached.appStoreState,
           isEditable: EDITABLE_STATES.has(cached.appStoreState),
+          translatingLocales: translationTracker.getLocales(cached.id),
           copyright: cached.copyright ?? "",
           ageRating: cached.ageRating ?? undefined,
           reviewerFirstName: cached.reviewerFirstName ?? "",
@@ -530,6 +536,7 @@ ascRouter.get(
       versionString: version?.attributes.versionString ?? null,
       appStoreState: version?.attributes.appStoreState ?? null,
       isEditable,
+      translatingLocales: version ? translationTracker.getLocales(version.id) : [],
       copyright: version?.attributes.copyright ?? "",
       localizations,
     });
@@ -884,7 +891,18 @@ ascRouter.delete(
 ascRouter.post(
   "/versions/localizations/translate",
   handle("translateLocalization", async (req, res) => {
-    const { targetLocale, sourceLocale, sourceFields } = req.body as {
+    const {
+      bundleId,
+      versionId,
+      targetLocale,
+      sourceLocale,
+      sourceFields,
+      appInfoLocalizationId,
+      versionLocalizationId,
+      extraFields,
+    } = req.body as {
+      bundleId?: string;
+      versionId?: string;
       targetLocale: string;
       sourceLocale: string;
       sourceFields: {
@@ -895,20 +913,75 @@ ascRouter.post(
         promotionalText?: string;
         whatsNew?: string;
       };
+      appInfoLocalizationId?: string | null;
+      versionLocalizationId?: string | null;
+      extraFields?: {
+        privacyPolicyUrl?: string;
+        supportUrl?: string;
+        marketingUrl?: string;
+      };
     };
 
-    if (!targetLocale || !sourceLocale || !sourceFields) {
+    if (!bundleId || !versionId || !targetLocale || !sourceLocale || !sourceFields) {
       res.status(400).json({
-        error: "targetLocale, sourceLocale, and sourceFields are required",
+        error: "bundleId, versionId, targetLocale, sourceLocale, and sourceFields are required",
       });
       return;
     }
 
-    const settings = await getEffectiveSettings(req.user!.userId);
-    const analyzer = new AIAnalyzer("", settings);
+    const ownedApp = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!ownedApp) return;
 
-    const fields = await analyzer.translateLocalization(sourceLocale, targetLocale, sourceFields);
-    res.json({ ok: true, fields });
+    const teamId = req.user!.teamId;
+    if (!teamId) {
+      res.status(400).json({ error: "No team associated with user" });
+      return;
+    }
+
+    if (translationTracker.isTranslating(versionId, targetLocale)) {
+      res.status(409).json({ error: `Translation for ${targetLocale} already in progress` });
+      return;
+    }
+
+    // Mark as translating immediately so the UI can lock without waiting for the worker
+    // to pick up the job (the worker re-adds defensively).
+    translationTracker.add(versionId, targetLocale);
+
+    const data: TranslateLocalizationData = {
+      teamId,
+      bundleId,
+      versionId,
+      sourceLocale,
+      targetLocale,
+      appInfoLocalizationId: appInfoLocalizationId ?? null,
+      versionLocalizationId: versionLocalizationId ?? null,
+      sourceFields,
+      extraFields,
+    };
+
+    try {
+      await bossScheduler.sendJob(TRANSLATE_LOCALIZATION_QUEUE, data);
+    } catch (err) {
+      translationTracker.remove(versionId, targetLocale);
+      throw err;
+    }
+
+    res.json({ ok: true, queued: true, locale: targetLocale });
+  }),
+);
+
+ascRouter.get(
+  "/versions/translations/status",
+  handle("translationStatus", async (req, res) => {
+    const versionId = req.query.versionId as string | undefined;
+    if (!versionId) {
+      res.status(400).json({ error: "versionId required" });
+      return;
+    }
+    res.json({
+      versionId,
+      translatingLocales: translationTracker.getLocales(versionId),
+    });
   }),
 );
 

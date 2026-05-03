@@ -2,20 +2,11 @@ import { PgBoss } from "pg-boss";
 import { logger } from "../config";
 import { env } from "../config/env";
 import { prisma } from "../config/database";
-import {
-  QUEUE_NAME as TRACK_KEYWORDS_QUEUE,
-  handler as trackKeywordsHandler,
-} from "./workers/track-keywords.worker";
+import { QUEUE_NAME as TRACK_KEYWORDS_QUEUE, handler as trackKeywordsHandler } from "./workers/track-keywords.worker";
 import type { TrackKeywordsData } from "./workers/track-keywords.worker";
-import {
-  QUEUE_NAME as SCRAPE_QUEUE,
-  handler as scrapeHandler,
-} from "./workers/scrape.worker";
+import { QUEUE_NAME as SCRAPE_QUEUE, handler as scrapeHandler } from "./workers/scrape.worker";
 import type { ScrapeData } from "./workers/scrape.worker";
-import {
-  QUEUE_NAME as SYNC_ANALYTICS_QUEUE,
-  handler as syncAnalyticsHandler,
-} from "./workers/sync-analytics.worker";
+import { QUEUE_NAME as SYNC_ANALYTICS_QUEUE, handler as syncAnalyticsHandler } from "./workers/sync-analytics.worker";
 import type { SyncAnalyticsData } from "./workers/sync-analytics.worker";
 import {
   QUEUE_NAME as EXTRACT_KEYWORDS_QUEUE,
@@ -32,19 +23,17 @@ import {
   handler as discoverCompetitorsHandler,
 } from "./workers/discover-competitors.worker";
 import type { DiscoverCompetitorsData } from "./workers/discover-competitors.worker";
-import {
-  QUEUE_NAME as ANALYZE_QUEUE,
-  handler as analyzeHandler,
-} from "./workers/analyze.worker";
+import { QUEUE_NAME as ANALYZE_QUEUE, handler as analyzeHandler } from "./workers/analyze.worker";
 import type { AnalyzeData } from "./workers/analyze.worker";
-import {
-  QUEUE_NAME as SYNC_METADATA_QUEUE,
-  handler as syncMetadataHandler,
-} from "./workers/sync-metadata.worker";
+import { QUEUE_NAME as SYNC_METADATA_QUEUE, handler as syncMetadataHandler } from "./workers/sync-metadata.worker";
 import {
   QUEUE_NAME as COMPETITOR_INTEL_QUEUE,
   handler as competitorIntelHandler,
 } from "./workers/competitor-intel.worker";
+import {
+  QUEUE_NAME as TRANSLATE_LOCALIZATION_QUEUE,
+  handler as translateLocalizationHandler,
+} from "./workers/translate-localization.worker";
 
 async function loadTeamApps() {
   return prisma.team.findMany({
@@ -59,9 +48,7 @@ export class BossScheduler {
 
   constructor() {
     this.boss = new PgBoss({ connectionString: env.DATABASE_URL });
-    this.boss.on("error", (err: Error) =>
-      logger.error("[BOSS] Unexpected error", { error: err }),
-    );
+    this.boss.on("error", (err: Error) => logger.error("[BOSS] Unexpected error", { error: err }));
   }
 
   private _running = false;
@@ -90,6 +77,7 @@ export class BossScheduler {
       `${ANALYZE_QUEUE}/dispatch`,
       SYNC_METADATA_QUEUE,
       COMPETITOR_INTEL_QUEUE,
+      TRANSLATE_LOCALIZATION_QUEUE,
     ];
     for (const q of allQueues) {
       await this.boss.createQueue(q);
@@ -107,22 +95,15 @@ export class BossScheduler {
             country: app.country,
           };
           await this.boss.send(TRACK_KEYWORDS_QUEUE, data);
-          logger.info(
-            `[BOSS] Enqueued ${TRACK_KEYWORDS_QUEUE} for ${app.bundleId}`,
-          );
+          logger.info(`[BOSS] Enqueued ${TRACK_KEYWORDS_QUEUE} for ${app.bundleId}`);
         }
       }
     });
     await this.boss.work(TRACK_KEYWORDS_QUEUE, trackKeywordsHandler);
-    await this.boss.schedule(
-      `${TRACK_KEYWORDS_QUEUE}/dispatch`,
-      "0 */2 * * *",
-      {},
-      { tz: "Europe/Berlin" },
-    );
+    await this.boss.schedule(`${TRACK_KEYWORDS_QUEUE}/dispatch`, "0 */2 * * *", {}, { tz: "Europe/Berlin" });
 
     // ── scrape ──────────────────────────────────────────────────────────────
-   /* await this.boss.work(`${SCRAPE_QUEUE}/dispatch`, async () => {
+    /* await this.boss.work(`${SCRAPE_QUEUE}/dispatch`, async () => {
       const teams = await loadTeamApps();
       for (const team of teams) {
         for (const app of team.apps) {
@@ -155,9 +136,7 @@ export class BossScheduler {
             ascAppId: app.trackId.toString(),
           };
           await this.boss.send(SYNC_ANALYTICS_QUEUE, data);
-          logger.info(
-            `[BOSS] Enqueued ${SYNC_ANALYTICS_QUEUE} for ${app.bundleId}`,
-          );
+          logger.info(`[BOSS] Enqueued ${SYNC_ANALYTICS_QUEUE} for ${app.bundleId}`);
         }
       }
     });
@@ -264,8 +243,11 @@ export class BossScheduler {
     // ── competitor-intel (manual only) ───────────────────────────────────────
     await this.boss.work(COMPETITOR_INTEL_QUEUE, competitorIntelHandler);
 
+    // ── translate-localization (manual only) ─────────────────────────────────
+    await this.boss.work(TRANSLATE_LOCALIZATION_QUEUE, translateLocalizationHandler);
+
     logger.info(
-      `[BOSS] Scheduler started — queues: ${TRACK_KEYWORDS_QUEUE}, ${SCRAPE_QUEUE}, ${SYNC_ANALYTICS_QUEUE}, ${EXTRACT_KEYWORDS_QUEUE}, ${DISCOVER_KEYWORDS_QUEUE}, ${DISCOVER_COMPETITORS_QUEUE}, ${ANALYZE_QUEUE}, ${SYNC_METADATA_QUEUE}, ${COMPETITOR_INTEL_QUEUE}`,
+      `[BOSS] Scheduler started — queues: ${TRACK_KEYWORDS_QUEUE}, ${SCRAPE_QUEUE}, ${SYNC_ANALYTICS_QUEUE}, ${EXTRACT_KEYWORDS_QUEUE}, ${DISCOVER_KEYWORDS_QUEUE}, ${DISCOVER_COMPETITORS_QUEUE}, ${ANALYZE_QUEUE}, ${SYNC_METADATA_QUEUE}, ${COMPETITOR_INTEL_QUEUE}, ${TRANSLATE_LOCALIZATION_QUEUE}`,
     );
     this._running = true;
   }
@@ -275,7 +257,6 @@ export class BossScheduler {
     this._running = false;
     logger.info("[BOSS] Scheduler stopped");
   }
-
 
   async triggerDispatch(queue: string): Promise<void> {
     await this.boss.send(`${queue}/dispatch`, {});

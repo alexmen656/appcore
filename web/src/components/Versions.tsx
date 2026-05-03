@@ -1100,6 +1100,8 @@ export default function Versions({ addToast }: Props) {
   const [showLogs, setShowLogs] = useState(false);
   const logEndRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [translatingLocales, setTranslatingLocales] = useState<string[]>([]);
+  const translationPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     setActiveLocale(null);
@@ -1140,8 +1142,54 @@ export default function Versions({ addToast }: Props) {
   useEffect(() => {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
+      if (translationPollRef.current) clearInterval(translationPollRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    setTranslatingLocales(data?.translatingLocales ?? []);
+  }, [data?.translatingLocales, data?.versionId]);
+
+  useEffect(() => {
+    const versionId = data?.versionId;
+    if (!versionId) return;
+    if (translatingLocales.length === 0) {
+      if (translationPollRef.current) {
+        clearInterval(translationPollRef.current);
+        translationPollRef.current = null;
+      }
+      return;
+    }
+    if (translationPollRef.current) return;
+
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/asc/versions/translations/status?versionId=${encodeURIComponent(versionId)}`, {
+          headers: authHeaders(),
+        });
+        if (!res.ok) return;
+        const { translatingLocales: latest } = (await res.json()) as { translatingLocales: string[] };
+        setTranslatingLocales((prev) => {
+          const finished = prev.filter((l) => !latest.includes(l));
+          if (finished.length > 0) {
+            for (const loc of finished) addToast(`Translation finished for ${loc}`, "success");
+            refetch();
+          }
+          return latest;
+        });
+      } catch {
+        /* ignore */
+      }
+    };
+    translationPollRef.current = setInterval(poll, 3000);
+    poll();
+    return () => {
+      if (translationPollRef.current) {
+        clearInterval(translationPollRef.current);
+        translationPollRef.current = null;
+      }
+    };
+  }, [data?.versionId, translatingLocales.length, addToast, refetch]);
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [submitStatus?.logs?.length]);
@@ -1199,7 +1247,6 @@ export default function Versions({ addToast }: Props) {
         const sourceLoc = data.localizations.find((l) => l.locale === "en-US") ?? data.localizations[0];
 
         if (sourceLoc && (created.appInfoLocalizationId || created.versionLocalizationId)) {
-          addToast(`Language ${locale} added - translating with AI…`, "info");
           try {
             const translateRes = await fetch("/api/asc/versions/localizations/translate", {
               method: "POST",
@@ -1208,8 +1255,12 @@ export default function Versions({ addToast }: Props) {
                 ...authHeaders(),
               },
               body: JSON.stringify({
+                bundleId: getActiveBundleId(),
+                versionId: data.versionId,
                 targetLocale: locale,
                 sourceLocale: sourceLoc.locale,
+                appInfoLocalizationId: created.appInfoLocalizationId ?? null,
+                versionLocalizationId: created.versionLocalizationId ?? null,
                 sourceFields: {
                   name: sourceLoc.name || data.appName || "",
                   subtitle: sourceLoc.subtitle ?? "",
@@ -1218,44 +1269,17 @@ export default function Versions({ addToast }: Props) {
                   promotionalText: sourceLoc.promotionalText ?? "",
                   whatsNew: sourceLoc.whatsNew ?? "",
                 },
+                extraFields: {
+                  privacyPolicyUrl: sourceLoc.privacyPolicyUrl ?? "",
+                  supportUrl: sourceLoc.supportUrl ?? "",
+                  marketingUrl: sourceLoc.marketingUrl ?? "",
+                },
               }),
             });
 
             if (translateRes.ok) {
-              const { fields } = await translateRes.json();
-              const mergedFields: Record<string, string> = {
-                ...(fields as Record<string, string>),
-              };
-              if (sourceLoc.privacyPolicyUrl) mergedFields.privacyPolicyUrl = sourceLoc.privacyPolicyUrl;
-              if (sourceLoc.supportUrl) mergedFields.supportUrl = sourceLoc.supportUrl;
-              if (sourceLoc.marketingUrl) mergedFields.marketingUrl = sourceLoc.marketingUrl;
-              const appInfoFields = ["name", "subtitle", "privacyPolicyUrl"];
-              const savePromises = Object.entries(mergedFields)
-                .filter(([, v]) => v && v.trim())
-                .map(([field, value]) => {
-                  const isAppInfoField = appInfoFields.includes(field);
-                  if (isAppInfoField && !created.appInfoLocalizationId) return null;
-                  if (!isAppInfoField && !created.versionLocalizationId) return null;
-                  return fetch("/api/asc/versions/metadata", {
-                    method: "PATCH",
-                    headers: {
-                      "Content-Type": "application/json",
-                      ...authHeaders(),
-                    },
-                    body: JSON.stringify({
-                      bundleId: getActiveBundleId(),
-                      appInfoLocalizationId: isAppInfoField ? created.appInfoLocalizationId : undefined,
-                      versionLocalizationId: !isAppInfoField ? created.versionLocalizationId : undefined,
-                      field,
-                      value,
-                    }),
-                  });
-                })
-                .filter(Boolean);
-
-              await Promise.allSettled(savePromises);
-              await new Promise((r) => setTimeout(r, 1500));
-              addToast(`Language ${locale} added and pre-filled with AI`, "success");
+              setTranslatingLocales((prev) => (prev.includes(locale) ? prev : [...prev, locale]));
+              addToast(`Language ${locale} added - translating with AI in background…`, "info");
             } else {
               addToast(`Language ${locale} added`, "success");
             }
@@ -1370,6 +1394,7 @@ export default function Versions({ addToast }: Props) {
 
   const activeLoc = data.localizations.find((l) => l.locale === activeLocale) ?? data.localizations[0];
   const isActive = submitStatus?.active === true;
+  const isActiveLocaleTranslating = activeLoc ? translatingLocales.includes(activeLoc.locale) : false;
   const canSubmitForReview =
     data.isEditable && (data.appStoreState === "PREPARE_FOR_SUBMISSION" || data.appStoreState === "DEVELOPER_REJECTED");
 
@@ -1464,42 +1489,46 @@ export default function Versions({ addToast }: Props) {
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 flex-wrap flex-1 min-w-0">
                   {[...data.localizations]
                     .sort((a, b) => getLocaleName(a.locale).localeCompare(getLocaleName(b.locale)))
-                    .map((loc) => (
-                      <div key={loc.locale} className="relative group">
-                        <button
-                          onClick={() => setActiveLocale(loc.locale)}
-                          className={`flex items-center gap-2 px-3.5 py-[7px] rounded-xl transition-all whitespace-nowrap ${
-                            loc.locale === activeLocale
-                              ? "bg-[#111827] dark:bg-[#e8eaf0] border text-white dark:text-[#111827] shadow-sm"
-                              : "bg-[#fafbfc] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] ${textPrimary} hover:border-[#d1d5db] dark:hover:border-[#3a4050]"
-                          }`}
-                        >
-                          <LocaleFlag locale={loc.locale} />
-                          <span className="text-[13px] font-medium">{getLocaleName(loc.locale)}</span>
-                        </button>
-                        {data.isEditable && data.localizations.length > 1 && (
+                    .map((loc) => {
+                      const localeTranslating = translatingLocales.includes(loc.locale);
+                      return (
+                        <div key={loc.locale} className="relative group">
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeLocale(loc);
-                            }}
-                            disabled={removingLocale === loc.locale}
-                            className={`absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm ${
+                            onClick={() => setActiveLocale(loc.locale)}
+                            className={`flex items-center gap-2 px-3.5 py-[7px] rounded-xl transition-all whitespace-nowrap ${
                               loc.locale === activeLocale
-                                ? "bg-white/20 hover:bg-white/40 text-white"
-                                : "bg-[#f3f4f6] dark:bg-[#2a2f3d] hover:bg-red-100 dark:hover:bg-red-900/30 text-[#9ca3af] hover:text-[#D94412]"
+                                ? "bg-[#111827] dark:bg-[#e8eaf0] border text-white dark:text-[#111827] shadow-sm"
+                                : "bg-[#fafbfc] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] ${textPrimary} hover:border-[#d1d5db] dark:hover:border-[#3a4050]"
                             }`}
-                            title="Remove language"
                           >
-                            {removingLocale === loc.locale ? (
-                              <div className="spinner !w-2.5 !h-2.5" />
-                            ) : (
-                              <X className="w-2 h-2" />
-                            )}
+                            <LocaleFlag locale={loc.locale} />
+                            <span className="text-[13px] font-medium">{getLocaleName(loc.locale)}</span>
+                            {localeTranslating && <div className="spinner !w-3 !h-3" />}
                           </button>
-                        )}
-                      </div>
-                    ))}
+                          {data.isEditable && data.localizations.length > 1 && !localeTranslating && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeLocale(loc);
+                              }}
+                              disabled={removingLocale === loc.locale}
+                              className={`absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm ${
+                                loc.locale === activeLocale
+                                  ? "bg-white/20 hover:bg-white/40 text-white"
+                                  : "bg-[#f3f4f6] dark:bg-[#2a2f3d] hover:bg-red-100 dark:hover:bg-red-900/30 text-[#9ca3af] hover:text-[#D94412]"
+                              }`}
+                              title="Remove language"
+                            >
+                              {removingLocale === loc.locale ? (
+                                <div className="spinner !w-2.5 !h-2.5" />
+                              ) : (
+                                <X className="w-2 h-2" />
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
                 </div>
                 {data.isEditable && data.versionId && (
                   <div ref={addLocaleRef} className="relative shrink-0 self-start">
@@ -1549,7 +1578,11 @@ export default function Versions({ addToast }: Props) {
                 <div className={`text-[11px] ${textMuted} mt-0.5`}>Locale: {activeLoc.locale}</div>
               </div>
             </div>
-            {data.isEditable ? (
+            {isActiveLocaleTranslating ? (
+              <span className={`${badgeOutline("running")} uppercase tracking-wide flex items-center gap-1.5`}>
+                <div className="spinner !w-3 !h-3" /> Translating…
+              </span>
+            ) : data.isEditable ? (
               <span className={`${badgeOutline("editable")} uppercase tracking-wide`}>Editable</span>
             ) : (
               <span className={`${badgeOutline("")} uppercase tracking-wide`}>Read-only</span>
@@ -1565,7 +1598,7 @@ export default function Versions({ addToast }: Props) {
               field={field}
               value={(activeLoc as any)[field.key] ?? ""}
               localization={activeLoc}
-              isEditable={data.isEditable || field.key === "promotionalText"}
+              isEditable={!isActiveLocaleTranslating && (data.isEditable || field.key === "promotionalText")}
               onSave={handleSave}
             />
           ))}
