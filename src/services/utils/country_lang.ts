@@ -430,8 +430,8 @@ export const LOCALE_MAP: Record<string, LocaleConfig> = {
     market: "Indian",
     ollamaModel: "qwen2.5:7b",
   },
-  sl: {
-    locale: "sl",
+  "sl-SI": {
+    locale: "sl-SI",
     language: "Slovenščina",
     promptLang: "Slovenian",
     market: "Slovenian",

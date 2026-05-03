@@ -121,6 +121,15 @@ export function useApi<T>(path: string, deps: any[] = [], skipBundleId = false) 
   return { data, loading, error, refetch };
 }
 
+export async function apiGet<T = any>(path: string): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, { headers: authHeaders() });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function apiPost<T = any>(path: string, body?: any): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: "POST",
@@ -147,10 +156,29 @@ export async function apiPut<T = any>(path: string, body?: any): Promise<T> {
   return res.json();
 }
 
-export async function apiDelete(path: string): Promise<void> {
+export async function apiPatch<T = any>(path: string, body?: any): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function apiDelete(path: string, body?: any): Promise<void> {
   const res = await fetch(`${BASE}${path}`, {
     method: "DELETE",
-    headers: authHeaders(),
+    headers: body
+      ? { "Content-Type": "application/json", ...authHeaders() }
+      : authHeaders(),
+    body: body ? JSON.stringify(body) : undefined,
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
 }

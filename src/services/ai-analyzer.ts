@@ -121,7 +121,7 @@ export class AIAnalyzer {
 
     const response = await this.ai.query(systemPrompt, userPrompt, {
       openaiModel: TRANSLATION_OPENAI_MODEL,
-      temperature: 0.8,
+      temperature: 1,
       maxTokens: 8000,
       jsonMode: true,
     });

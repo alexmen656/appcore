@@ -40,7 +40,6 @@ export async function handler([job]: Job<TranslateLocalizationData>[]): Promise<
   } = job;
 
   logger.info(`[BOSS] Starting "${QUEUE_NAME}" job ${id} — ${bundleId} ${sourceLocale} → ${targetLocale}`);
-
   tracker.add(versionId, targetLocale);
 
   try {
@@ -50,13 +49,19 @@ export async function handler([job]: Job<TranslateLocalizationData>[]): Promise<
       return;
     }
 
-    const analyzer = new AIAnalyzer(bundleId, settings);
-    const translated = await analyzer.translateLocalization(sourceLocale, targetLocale, sourceFields);
+    const translated = await new AIAnalyzer(bundleId, settings).translateLocalization(
+      sourceLocale,
+      targetLocale,
+      sourceFields,
+    );
+    const appInfoUpdates: Record<string, string> = {};
+    const versionUpdates: Record<string, string> = {};
 
-    const merged: Record<string, string> = { ...translated };
-    if (extraFields?.privacyPolicyUrl) merged.privacyPolicyUrl = extraFields.privacyPolicyUrl;
-    if (extraFields?.supportUrl) merged.supportUrl = extraFields.supportUrl;
-    if (extraFields?.marketingUrl) merged.marketingUrl = extraFields.marketingUrl;
+    for (const [field, value] of Object.entries({ ...translated, ...(extraFields ?? {}) })) {
+      const trimmed = value?.trim();
+      if (!trimmed) continue;
+      (APP_INFO_FIELDS.has(field) ? appInfoUpdates : versionUpdates)[field] = trimmed;
+    }
 
     const asc = new AppStoreConnectClient({
       issuerId: settings.ascIssuerId,
@@ -64,35 +69,38 @@ export async function handler([job]: Job<TranslateLocalizationData>[]): Promise<
       privateKey: settings.ascPrivateKey,
     });
 
-    const appInfoUpdates: Record<string, string> = {};
-    const versionUpdates: Record<string, string> = {};
-    for (const [field, value] of Object.entries(merged)) {
-      if (!value || !value.trim()) continue;
-      if (APP_INFO_FIELDS.has(field)) appInfoUpdates[field] = value;
-      else versionUpdates[field] = value;
-    }
-
+    const persistedUpdates: Record<string, string> = {};
     if (appInfoLocalizationId && Object.keys(appInfoUpdates).length > 0) {
-      try {
-        await asc.updateAppInfoLocalization(appInfoLocalizationId, appInfoUpdates);
-      } catch (err) {
-        logger.error(`[BOSS] ${QUEUE_NAME} failed to update app info ${appInfoLocalizationId}`, {
-          error: err instanceof Error ? err.message : err,
-        });
-      }
+      await asc.updateAppInfoLocalization(appInfoLocalizationId, appInfoUpdates);
+      Object.assign(persistedUpdates, appInfoUpdates);
     }
-
     if (versionLocalizationId && Object.keys(versionUpdates).length > 0) {
-      try {
-        await asc.updateVersionLocalization(versionLocalizationId, versionUpdates);
-      } catch (err) {
-        logger.error(`[BOSS] ${QUEUE_NAME} failed to update version loc ${versionLocalizationId}`, {
-          error: err instanceof Error ? err.message : err,
-        });
-      }
+      await asc.updateVersionLocalization(versionLocalizationId, versionUpdates);
+      Object.assign(persistedUpdates, versionUpdates);
     }
 
-    await prisma.appStoreVersion.update({ where: { id: versionId }, data: { syncedAt: new Date(0) } }).catch(() => {});
+    if (Object.keys(persistedUpdates).length > 0) {
+      await prisma.appStoreVersionLocalization.upsert({
+        where: { versionId_locale: { versionId, locale: targetLocale } },
+        create: {
+          versionId,
+          locale: targetLocale,
+          appInfoLocalizationId: appInfoLocalizationId ?? null,
+          versionLocalizationId: versionLocalizationId ?? null,
+          ...persistedUpdates,
+        },
+        update: {
+          appInfoLocalizationId: appInfoLocalizationId ?? null,
+          versionLocalizationId: versionLocalizationId ?? null,
+          ...persistedUpdates,
+        },
+      });
+    }
+
+    await prisma.appStoreVersion.update({
+      where: { id: versionId },
+      data: { syncedAt: new Date(0) },
+    });
 
     logger.info(`[BOSS] "${QUEUE_NAME}" job ${id} completed (${targetLocale})`);
   } finally {

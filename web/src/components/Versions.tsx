@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { useApi, apiPost, authHeaders, getActiveBundleId } from "../hooks/useApi";
+import { useApi, apiGet, apiPost, apiPatch, apiDelete, getActiveBundleId } from "../hooks/useApi";
 import {
   badgeOutline,
   borderDefault,
@@ -18,6 +18,8 @@ import { useClickOutside } from "../hooks/useClickOutside";
 import {
   Send,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Upload,
   RefreshCw,
   RefreshCcw,
@@ -124,9 +126,9 @@ function LocaleFlag({ locale, className }: { locale: string; className?: string 
       }}
     />
   );
-} /*aspect-[3/2]*/
+}
 
-const DEVICE_PATTERNS: [RegExp, string][] = [
+const DEVICES: [RegExp, string][] = [
   [/iphone[_-]?6\.9/i, 'iPhone 6.9"'],
   [/iphone[_-]?6\.7/i, 'iPhone 6.7"'],
   [/iphone[_-]?6\.5/i, 'iPhone 6.5"'],
@@ -142,7 +144,7 @@ const DEVICE_PATTERNS: [RegExp, string][] = [
 function getDeviceLabel(url: string): string {
   const filename = decodeURIComponent(url.split("/").pop() ?? url);
 
-  for (const [re, label] of DEVICE_PATTERNS) {
+  for (const [re, label] of DEVICES) {
     if (re.test(filename)) return label;
   }
   return "Other";
@@ -488,6 +490,7 @@ function InlineEditField({
     setDraft(value);
     setEditing(false);
   }, [value]);
+
   useEffect(() => {
     if (editing) inputRef.current?.focus();
   }, [editing]);
@@ -664,24 +667,28 @@ function ScreenshotsPanel({
   const [orderOverride, setOrderOverride] = useState<Record<string, string[]>>({});
   const [draggingUrl, setDraggingUrl] = useState<string | null>(null);
   const [dragOverUrl, setDragOverUrl] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     setOrderOverride({});
   }, [data?.job?.id]);
 
+  useEffect(() => {
+    if (!previewUrl) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPreviewUrl(null);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [previewUrl]);
+
   const deleteScreenshot = async (jobId: string, url: string) => {
     if (!confirm("Remove this screenshot?")) return;
     setDeleting(url);
     try {
-      const res = await fetch(`/api/github/screenshots/framed/${jobId}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ url }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error ?? `HTTP ${res.status}`);
-      }
+      await apiDelete(`/github/screenshots/framed/${jobId}`, { url });
       addToast("Screenshot removed", "success");
       refetch();
     } catch (err: any) {
@@ -693,15 +700,7 @@ function ScreenshotsPanel({
 
   const persistOrder = async (jobId: string, locale: string, urls: string[]) => {
     try {
-      const res = await fetch(`/api/github/screenshots/framed/${jobId}/reorder`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ locale, urls }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error ?? `HTTP ${res.status}`);
-      }
+      await apiPatch(`/github/screenshots/framed/${jobId}/reorder`, { locale, urls });
     } catch (err: any) {
       addToast(`Failed to reorder: ${err.message}`, "error");
       setOrderOverride((prev) => {
@@ -728,22 +727,12 @@ function ScreenshotsPanel({
     grouped.get(label)!.push(url);
   }
 
-  const DEVICE_ORDER = [
-    'iPhone 6.9"',
-    'iPhone 6.7"',
-    'iPhone 6.5"',
-    'iPhone 5.5"',
-    'iPad 13"',
-    'iPad 12.9"',
-    "iPad",
-    "Other",
-  ];
+  const deviceOrder = (label: string) => {
+    const idx = DEVICES.findIndex(([, l]) => l === label);
+    return idx === -1 ? 99 : idx;
+  };
 
-  const sortedGroups = [...grouped.entries()].sort(
-    ([a], [b]) =>
-      (DEVICE_ORDER.indexOf(a) === -1 ? 99 : DEVICE_ORDER.indexOf(a)) -
-      (DEVICE_ORDER.indexOf(b) === -1 ? 99 : DEVICE_ORDER.indexOf(b)),
-  );
+  const sortedGroups = [...grouped.entries()].sort(([a], [b]) => deviceOrder(a) - deviceOrder(b));
 
   const handleDrop = (targetUrl: string) => {
     const sourceUrl = draggingUrl;
@@ -763,92 +752,177 @@ function ScreenshotsPanel({
     persistOrder(job.id, effectiveLocale, next);
   };
 
+  const previewIndex = previewUrl ? screenshots.indexOf(previewUrl) : -1;
+  const previewLabel = previewUrl ? getDeviceLabel(previewUrl) : "";
+  const showPreviousPreview = () => {
+    if (previewIndex <= -1 || screenshots.length === 0) return;
+    setPreviewUrl(screenshots[(previewIndex - 1 + screenshots.length) % screenshots.length]);
+  };
+  const showNextPreview = () => {
+    if (previewIndex <= -1 || screenshots.length === 0) return;
+    setPreviewUrl(screenshots[(previewIndex + 1) % screenshots.length]);
+  };
+
   return (
-    <div className="pb-5 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
-      <div className="flex items-center justify-between mb-4">
-        <div className="text-[14px] font-bold">Screenshots</div>
-        <span className={`text-[11px] ${textMuted} font-mono`}>
-          {job.commitSha.slice(0, 7)}
-          {job.branch ? ` · ${job.branch}` : ""}
-          {job.framedByLocale ? ` · ${job.framedByLocale}` : ""}
-        </span>
+    <>
+      <div className="pb-5 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
+        <div className="flex items-center justify-between mb-4">
+          <div className="text-[14px] font-bold">Screenshots</div>
+          <span className={`text-[11px] ${textSecondary} font-mono`}>
+            {job.commitSha.slice(0, 7)}
+            {job.branch ? ` · ${job.branch}` : ""}
+            {effectiveLocale ? ` · ${effectiveLocale}` : ""}
+          </span>
+        </div>
+
+        {screenshots.length === 0 ? (
+          <p className="text-[12px] text-[#9ca3af] py-3 text-center">No screenshots for {effectiveLocale}.</p>
+        ) : (
+          <div className="flex flex-col gap-5">
+            {sortedGroups.map(([label, urls]) => (
+              <div key={label}>
+                <div className="flex items-center gap-2 mb-2.5">
+                  <div className={`text-[11px] font-bold ${textMuted}`}>{label}</div>
+                  <span className="text-[10px] text-[#c8cdd3] dark:text-[#3a4050]">- max 10</span>
+                </div>
+                <div className="flex gap-3 overflow-x-auto pb-1">
+                  {urls.map((url) => {
+                    const isDragging = draggingUrl === url;
+                    const isDropTarget =
+                      dragOverUrl === url &&
+                      draggingUrl &&
+                      draggingUrl !== url &&
+                      getDeviceLabel(draggingUrl) === label;
+                    return (
+                      <div
+                        key={url}
+                        draggable
+                        onDragStart={(e) => {
+                          setDraggingUrl(url);
+                          e.dataTransfer.effectAllowed = "move";
+                        }}
+                        onDragEnd={() => {
+                          setDraggingUrl(null);
+                          setDragOverUrl(null);
+                        }}
+                        onDragOver={(e) => {
+                          if (!draggingUrl || draggingUrl === url) return;
+                          if (getDeviceLabel(draggingUrl) !== label) return;
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = "move";
+                          if (dragOverUrl !== url) setDragOverUrl(url);
+                        }}
+                        onDragLeave={() => {
+                          if (dragOverUrl === url) setDragOverUrl(null);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          handleDrop(url);
+                        }}
+                        className={`relative shrink-0 group/img cursor-grab active:cursor-grabbing transition-all ${
+                          isDragging ? "opacity-40" : ""
+                        } ${isDropTarget ? "ring-2 ring-[#D94412] ring-offset-2 rounded-xl" : ""}`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setPreviewUrl(url)}
+                          className="block text-left"
+                          aria-label={`Open ${label} screenshot preview`}
+                        >
+                          <img
+                            src={url}
+                            alt={`${label} screenshot`}
+                            draggable={false}
+                            className="h-[200px] w-auto rounded-xl border border-[#eef0f3] object-cover shadow-sm group-hover/img:shadow-md group-hover/img:opacity-90 transition-all"
+                          />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            deleteScreenshot(job.id, url);
+                          }}
+                          disabled={deleting === url}
+                          title="Remove screenshot"
+                          className="absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center rounded-full bg-black/60 text-white opacity-0 group-hover/img:opacity-100 hover:bg-red-600 transition-all disabled:opacity-50"
+                        >
+                          {deleting === url ? <div className="spinner !w-3.5 !h-3.5" /> : <X className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {screenshots.length === 0 ? (
-        <p className="text-[12px] text-[#9ca3af] py-3 text-center">No screenshots for {effectiveLocale}.</p>
-      ) : (
-        <div className="flex flex-col gap-5">
-          {sortedGroups.map(([label, urls]) => (
-            <div key={label}>
-              <div className="flex items-center gap-2 mb-2.5">
-                <div className={`text-[10px] font-bold uppercase tracking-widest ${textMuted}`}>{label}</div>
-                <span className="text-[10px] text-[#c8cdd3] dark:text-[#3a4050]">- max 10</span>
-              </div>
-              <div className="flex gap-3 overflow-x-auto pb-1">
-                {urls.map((url) => {
-                  const isDragging = draggingUrl === url;
-                  const isDropTarget =
-                    dragOverUrl === url && draggingUrl && draggingUrl !== url && getDeviceLabel(draggingUrl) === label;
-                  return (
-                    <div
-                      key={url}
-                      draggable
-                      onDragStart={(e) => {
-                        setDraggingUrl(url);
-                        e.dataTransfer.effectAllowed = "move";
-                      }}
-                      onDragEnd={() => {
-                        setDraggingUrl(null);
-                        setDragOverUrl(null);
-                      }}
-                      onDragOver={(e) => {
-                        if (!draggingUrl || draggingUrl === url) return;
-                        if (getDeviceLabel(draggingUrl) !== label) return;
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                        if (dragOverUrl !== url) setDragOverUrl(url);
-                      }}
-                      onDragLeave={() => {
-                        if (dragOverUrl === url) setDragOverUrl(null);
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        handleDrop(url);
-                      }}
-                      className={`relative shrink-0 group/img cursor-grab active:cursor-grabbing transition-all ${
-                        isDragging ? "opacity-40" : ""
-                      } ${isDropTarget ? "ring-2 ring-[#D94412] ring-offset-2 rounded-xl" : ""}`}
-                    >
-                      <a href={url} target="_blank" rel="noopener noreferrer">
-                        <img
-                          src={url}
-                          alt={`${label} screenshot`}
-                          draggable={false}
-                          className="h-[200px] w-auto rounded-xl border border-[#eef0f3] object-cover shadow-sm group-hover/img:shadow-md group-hover/img:opacity-90 transition-all"
-                        />
-                      </a>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          deleteScreenshot(job.id, url);
-                        }}
-                        disabled={deleting === url}
-                        title="Remove screenshot"
-                        className="absolute top-1.5 right-1.5 w-7 h-7 flex items-center justify-center rounded-full bg-black/60 text-white opacity-0 group-hover/img:opacity-100 hover:bg-red-600 transition-all disabled:opacity-50"
-                      >
-                        {deleting === url ? <div className="spinner !w-3.5 !h-3.5" /> : <X className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
+      {previewUrl && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 px-4 py-6"
+          onClick={() => setPreviewUrl(null)}
+        >
+          <div className="absolute top-4 left-4 right-4 flex items-center justify-between gap-4 text-white">
+            <div className="min-w-0">
+              <div className="text-[13px] font-semibold truncate">{previewLabel}</div>
+              {effectiveLocale && (
+                <div className="text-[11px] text-white/60 font-mono">
+                  {effectiveLocale}
+                  {previewIndex > -1 ? ` · ${previewIndex + 1}/${screenshots.length}` : ""}
+                </div>
+              )}
             </div>
-          ))}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setPreviewUrl(null);
+              }}
+              className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+              aria-label="Close screenshot preview"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {screenshots.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  showPreviousPreview();
+                }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                aria-label="Previous screenshot"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  showNextPreview();
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                aria-label="Next screenshot"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </>
+          )}
+
+          <img
+            src={previewUrl}
+            alt={`${previewLabel} screenshot preview`}
+            className="max-h-[88vh] max-w-[92vw] rounded-xl object-contain shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -896,19 +970,11 @@ function ReviewerInfoPanel({
     if (!data.versionId) return;
     setSaving(true);
     try {
-      const res = await fetch("/api/asc/versions/reviewer-info", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({
-          bundleId: getActiveBundleId(),
-          versionId: data.versionId,
-          ...form,
-        }),
+      await apiPatch("/asc/versions/reviewer-info", {
+        bundleId: getActiveBundleId(),
+        versionId: data.versionId,
+        ...form,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error ?? `HTTP ${res.status}`);
-      }
       addToast("Reviewer info saved to App Store Connect", "success");
       setDirty(false);
       onRefetch();
@@ -923,18 +989,10 @@ function ReviewerInfoPanel({
     if (!data.versionId) return;
     setSyncing(true);
     try {
-      const res = await fetch("/api/asc/versions/reviewer-info/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({
-          bundleId: getActiveBundleId(),
-          versionId: data.versionId,
-        }),
+      await apiPost("/asc/versions/reviewer-info/sync", {
+        bundleId: getActiveBundleId(),
+        versionId: data.versionId,
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error ?? `HTTP ${res.status}`);
-      }
       addToast("Reviewer info synced from App Store Connect", "success");
       onRefetch();
     } catch (err: any) {
@@ -1082,8 +1140,9 @@ function ReviewerInfoPanel({
 export default function Versions({ addToast }: Props) {
   const { versionId } = useParams<{ versionId: string }>();
   const apiPath = versionId ? `/asc/versions?versionId=${encodeURIComponent(versionId)}` : "/asc/versions";
-  const { data, loading, error, refetch } = useApi<VersionsData>(apiPath, [versionId ?? ""]);
+  const { data: fetchedData, loading, error, refetch } = useApi<VersionsData>(apiPath, [versionId ?? ""]);
   const { data: ascLocales } = useApi<string[]>("/asc/supported-locales", [], true);
+  const [data, setData] = useState<VersionsData | null>(null);
   const [activeLocale, setActiveLocale] = useState<string | null>(null);
   const [showAddLocale, setShowAddLocale] = useState(false);
   const [addingLocale, setAddingLocale] = useState(false);
@@ -1105,7 +1164,12 @@ export default function Versions({ addToast }: Props) {
 
   useEffect(() => {
     setActiveLocale(null);
+    setData(null);
   }, [versionId]);
+
+  useEffect(() => {
+    setData(fetchedData);
+  }, [fetchedData]);
 
   useEffect(() => {
     if (data?.localizations?.length && !activeLocale) {
@@ -1116,17 +1180,14 @@ export default function Versions({ addToast }: Props) {
 
   const pollStatus = useCallback(async () => {
     try {
-      const res = await fetch("/api/submissions/status", {
-        headers: authHeaders(),
-      });
-      if (res.ok) {
-        const s = await res.json();
-        setSubmitStatus(s);
-        if (!s.active && pollRef.current) {
-          clearInterval(pollRef.current);
-          pollRef.current = null;
-          refetch();
-        }
+      const s = await apiGet<{ active: boolean; status: string; logs: string[]; errors: string[]; jobId?: string }>(
+        "/submissions/status",
+      );
+      setSubmitStatus(s);
+      if (!s.active && pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+        refetch();
       }
     } catch {
       /* ignore */
@@ -1164,11 +1225,9 @@ export default function Versions({ addToast }: Props) {
 
     const poll = async () => {
       try {
-        const res = await fetch(`/api/asc/versions/translations/status?versionId=${encodeURIComponent(versionId)}`, {
-          headers: authHeaders(),
-        });
-        if (!res.ok) return;
-        const { translatingLocales: latest } = (await res.json()) as { translatingLocales: string[] };
+        const { translatingLocales: latest } = await apiGet<{ translatingLocales: string[] }>(
+          `/asc/versions/translations/status?versionId=${encodeURIComponent(versionId)}`,
+        );
         setTranslatingLocales((prev) => {
           const finished = prev.filter((l) => !latest.includes(l));
           if (finished.length > 0) {
@@ -1228,61 +1287,56 @@ export default function Versions({ addToast }: Props) {
       setAddingLocale(true);
       setShowAddLocale(false);
       try {
-        const res = await fetch("/api/asc/versions/localizations", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...authHeaders() },
-          body: JSON.stringify({
+        const created = await apiPost<{ appInfoLocalizationId?: string | null; versionLocalizationId?: string | null }>(
+          "/asc/versions/localizations",
+          {
             bundleId: getActiveBundleId(),
             versionId: data.versionId,
             locale,
             name: data.appName,
-          }),
-        });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error ?? `HTTP ${res.status}`);
-        }
-
-        const created = await res.json();
+          },
+        );
         const sourceLoc = data.localizations.find((l) => l.locale === "en-US") ?? data.localizations[0];
+        const newLocalization: VersionLocalization = {
+          locale,
+          appInfoLocalizationId: created.appInfoLocalizationId ?? null,
+          versionLocalizationId: created.versionLocalizationId ?? null,
+          name: data.appName,
+          subtitle: "",
+          keywords: "",
+          description: "",
+          whatsNew: "",
+          promotionalText: "",
+          supportUrl: "",
+          privacyPolicyUrl: "",
+          marketingUrl: "",
+        };
 
         if (sourceLoc && (created.appInfoLocalizationId || created.versionLocalizationId)) {
           try {
-            const translateRes = await fetch("/api/asc/versions/localizations/translate", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                ...authHeaders(),
+            await apiPost("/asc/versions/localizations/translate", {
+              bundleId: getActiveBundleId(),
+              versionId: data.versionId,
+              targetLocale: locale,
+              sourceLocale: sourceLoc.locale,
+              appInfoLocalizationId: created.appInfoLocalizationId ?? null,
+              versionLocalizationId: created.versionLocalizationId ?? null,
+              sourceFields: {
+                name: sourceLoc.name || data.appName || "",
+                subtitle: sourceLoc.subtitle ?? "",
+                keywords: sourceLoc.keywords ?? "",
+                description: sourceLoc.description ?? "",
+                promotionalText: sourceLoc.promotionalText ?? "",
+                whatsNew: sourceLoc.whatsNew ?? "",
               },
-              body: JSON.stringify({
-                bundleId: getActiveBundleId(),
-                versionId: data.versionId,
-                targetLocale: locale,
-                sourceLocale: sourceLoc.locale,
-                appInfoLocalizationId: created.appInfoLocalizationId ?? null,
-                versionLocalizationId: created.versionLocalizationId ?? null,
-                sourceFields: {
-                  name: sourceLoc.name || data.appName || "",
-                  subtitle: sourceLoc.subtitle ?? "",
-                  keywords: sourceLoc.keywords ?? "",
-                  description: sourceLoc.description ?? "",
-                  promotionalText: sourceLoc.promotionalText ?? "",
-                  whatsNew: sourceLoc.whatsNew ?? "",
-                },
-                extraFields: {
-                  privacyPolicyUrl: sourceLoc.privacyPolicyUrl ?? "",
-                  supportUrl: sourceLoc.supportUrl ?? "",
-                  marketingUrl: sourceLoc.marketingUrl ?? "",
-                },
-              }),
+              extraFields: {
+                privacyPolicyUrl: sourceLoc.privacyPolicyUrl ?? "",
+                supportUrl: sourceLoc.supportUrl ?? "",
+                marketingUrl: sourceLoc.marketingUrl ?? "",
+              },
             });
-
-            if (translateRes.ok) {
-              setTranslatingLocales((prev) => (prev.includes(locale) ? prev : [...prev, locale]));
-              addToast(`Language ${locale} added - translating with AI in background…`, "info");
-            } else {
-              addToast(`Language ${locale} added`, "success");
-            }
+            setTranslatingLocales((prev) => (prev.includes(locale) ? prev : [...prev, locale]));
+            addToast(`Language ${locale} added - translating with AI in background…`, "info");
           } catch {
             addToast(`Language ${locale} added`, "success");
           }
@@ -1290,7 +1344,16 @@ export default function Versions({ addToast }: Props) {
           addToast(`Language ${locale} added`, "success");
         }
 
-        refetch();
+        setData((current) =>
+          current && current.versionId === data.versionId
+            ? {
+                ...current,
+                localizations: current.localizations.some((loc) => loc.locale === locale)
+                  ? current.localizations.map((loc) => (loc.locale === locale ? { ...loc, ...newLocalization } : loc))
+                  : [...current.localizations, newLocalization],
+              }
+            : current,
+        );
         setActiveLocale(locale);
       } catch (err: any) {
         addToast(`Failed to add language: ${err.message}`, "error");
@@ -1298,7 +1361,7 @@ export default function Versions({ addToast }: Props) {
         setAddingLocale(false);
       }
     },
-    [data, addToast, refetch],
+    [data, addToast],
   );
 
   const removeLocale = useCallback(
@@ -1307,50 +1370,53 @@ export default function Versions({ addToast }: Props) {
       if (!confirm(`Remove ${getLocaleName(loc.locale)} (${loc.locale})?`)) return;
       setRemovingLocale(loc.locale);
       try {
-        const res = await fetch("/api/asc/versions/localizations", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json", ...authHeaders() },
-          body: JSON.stringify({
-            bundleId: getActiveBundleId(),
-            appInfoLocalizationId: loc.appInfoLocalizationId ?? undefined,
-            versionLocalizationId: loc.versionLocalizationId ?? undefined,
-          }),
+        await apiDelete("/asc/versions/localizations", {
+          bundleId: getActiveBundleId(),
+          appInfoLocalizationId: loc.appInfoLocalizationId ?? undefined,
+          versionLocalizationId: loc.versionLocalizationId ?? undefined,
         });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error ?? `HTTP ${res.status}`);
-        }
         addToast(`Language ${loc.locale} removed`, "success");
-        if (activeLocale === loc.locale)
-          setActiveLocale(data.localizations.find((l) => l.locale !== loc.locale)?.locale ?? null);
-        refetch();
+        const nextActiveLocale = data.localizations.find((l) => l.locale !== loc.locale)?.locale ?? null;
+        setData((current) =>
+          current && current.versionId === data.versionId
+            ? {
+                ...current,
+                localizations: current.localizations.filter((l) => l.locale !== loc.locale),
+                translatingLocales: current.translatingLocales?.filter((l) => l !== loc.locale),
+              }
+            : current,
+        );
+        setTranslatingLocales((prev) => prev.filter((l) => l !== loc.locale));
+        if (activeLocale === loc.locale) setActiveLocale(nextActiveLocale);
       } catch (err: any) {
         addToast(`Failed to remove language: ${err.message}`, "error");
       } finally {
         setRemovingLocale(null);
       }
     },
-    [data, activeLocale, addToast, refetch],
+    [data, activeLocale, addToast],
   );
 
   const handleSave = useCallback(
     async (field: string, value: string, loc: VersionLocalization) => {
       try {
-        const res = await fetch("/api/asc/versions/metadata", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json", ...authHeaders() },
-          body: JSON.stringify({
-            bundleId: getActiveBundleId(),
-            appInfoLocalizationId: loc.appInfoLocalizationId,
-            versionLocalizationId: loc.versionLocalizationId,
-            field,
-            value,
-          }),
+        await apiPatch("/asc/versions/metadata", {
+          bundleId: getActiveBundleId(),
+          appInfoLocalizationId: loc.appInfoLocalizationId,
+          versionLocalizationId: loc.versionLocalizationId,
+          field,
+          value,
         });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err.error ?? `HTTP ${res.status}`);
-        }
+        setData((current) =>
+          current
+            ? {
+                ...current,
+                localizations: current.localizations.map((l) =>
+                  l.locale === loc.locale ? { ...l, [field]: value } : l,
+                ),
+              }
+            : current,
+        );
         addToast(`${field} updated`, "success");
         refetch();
       } catch (err: any) {
@@ -1370,7 +1436,7 @@ export default function Versions({ addToast }: Props) {
     );
   }
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <div className="flex items-center justify-center py-20 gap-3 text-gray-400 dark:text-[#5c6478]">
         <div className="spinner" /> Loading version data…
@@ -1487,48 +1553,61 @@ export default function Versions({ addToast }: Props) {
             <div className="-mx-5 -mt-5 px-5 pt-4 pb-4 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
               <div className="flex items-start gap-2">
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 flex-wrap flex-1 min-w-0">
-                  {[...data.localizations]
-                    .sort((a, b) => getLocaleName(a.locale).localeCompare(getLocaleName(b.locale)))
-                    .map((loc) => {
-                      const localeTranslating = translatingLocales.includes(loc.locale);
-                      return (
-                        <div key={loc.locale} className="relative group">
-                          <button
-                            onClick={() => setActiveLocale(loc.locale)}
-                            className={`flex items-center gap-2 px-3.5 py-[7px] rounded-xl transition-all whitespace-nowrap ${
-                              loc.locale === activeLocale
-                                ? "bg-[#111827] dark:bg-[#e8eaf0] border text-white dark:text-[#111827] shadow-sm"
-                                : "bg-[#fafbfc] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] ${textPrimary} hover:border-[#d1d5db] dark:hover:border-[#3a4050]"
-                            }`}
-                          >
-                            <LocaleFlag locale={loc.locale} />
-                            <span className="text-[13px] font-medium">{getLocaleName(loc.locale)}</span>
-                            {localeTranslating && <div className="spinner !w-3 !h-3" />}
-                          </button>
-                          {data.isEditable && data.localizations.length > 1 && !localeTranslating && (
+                  {(() => {
+                    const isFirstVersion = data.localizations.every(
+                      (l) => !(typeof l.whatsNew === "string" && l.whatsNew.trim().length > 0),
+                    );
+                    return [...data.localizations]
+                      .sort((a, b) => getLocaleName(a.locale).localeCompare(getLocaleName(b.locale)))
+                      .map((loc) => {
+                        const localeTranslating = translatingLocales.includes(loc.locale);
+                        const isComplete = FIELD_META.every((f) => {
+                          if (isFirstVersion && f.key === "whatsNew") return true;
+                          const v = loc[f.key];
+                          return typeof v === "string" && v.trim().length > 0;
+                        });
+                        const isActive = loc.locale === activeLocale;
+                        return (
+                          <div key={loc.locale} className="relative group">
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                removeLocale(loc);
-                              }}
-                              disabled={removingLocale === loc.locale}
-                              className={`absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm ${
-                                loc.locale === activeLocale
-                                  ? "bg-white/20 hover:bg-white/40 text-white"
-                                  : "bg-[#f3f4f6] dark:bg-[#2a2f3d] hover:bg-red-100 dark:hover:bg-red-900/30 text-[#9ca3af] hover:text-[#D94412]"
+                              onClick={() => setActiveLocale(loc.locale)}
+                              className={`flex items-center gap-2 px-3.5 py-[7px] rounded-xl transition-all whitespace-nowrap ${
+                                isActive
+                                  ? "bg-[#111827] dark:bg-[#e8eaf0] border text-white dark:text-[#111827] shadow-sm"
+                                  : isComplete
+                                    ? `bg-emerald-50/70 dark:bg-emerald-900/15 border border-emerald-200/60 dark:border-emerald-800/40 ${textPrimary} hover:border-emerald-300 dark:hover:border-emerald-700/60`
+                                    : `bg-[#fafbfc] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] ${textPrimary} hover:border-[#d1d5db] dark:hover:border-[#3a4050]`
                               }`}
-                              title="Remove language"
                             >
-                              {removingLocale === loc.locale ? (
-                                <div className="spinner !w-2.5 !h-2.5" />
-                              ) : (
-                                <X className="w-2 h-2" />
-                              )}
+                              <LocaleFlag locale={loc.locale} />
+                              <span className="text-[13px] font-medium">{getLocaleName(loc.locale)}</span>
+                              {localeTranslating && <div className="spinner !w-3 !h-3" />}
                             </button>
-                          )}
-                        </div>
-                      );
-                    })}
+                            {data.isEditable && data.localizations.length > 1 && !localeTranslating && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeLocale(loc);
+                                }}
+                                disabled={removingLocale === loc.locale}
+                                className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm ${
+                                  loc.locale === activeLocale
+                                    ? "bg-white/20 hover:bg-white/40 text-white"
+                                    : "bg-[#f3f4f6] dark:bg-[#2a2f3d] hover:bg-red-100 dark:hover:bg-red-900/30 text-[#9ca3af] hover:text-[#D94412]"
+                                }`}
+                                title="Remove language"
+                              >
+                                {removingLocale === loc.locale ? (
+                                  <div className="spinner !w-3.5 !h-3.5" />
+                                ) : (
+                                  <X className="w-3 h-3" />
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      });
+                  })()}
                 </div>
                 {data.isEditable && data.versionId && (
                   <div ref={addLocaleRef} className="relative shrink-0 self-start">
@@ -1610,20 +1689,12 @@ export default function Versions({ addToast }: Props) {
                 value={data.copyright ?? ""}
                 isEditable={data.isEditable}
                 onSave={async (val) => {
-                  const res = await fetch("/api/asc/versions/metadata", {
-                    method: "PATCH",
-                    headers: {
-                      "Content-Type": "application/json",
-                      ...authHeaders(),
-                    },
-                    body: JSON.stringify({
-                      bundleId: getActiveBundleId(),
-                      versionId: data.versionId,
-                      field: "copyright",
-                      value: val,
-                    }),
+                  await apiPatch("/asc/versions/metadata", {
+                    bundleId: getActiveBundleId(),
+                    versionId: data.versionId,
+                    field: "copyright",
+                    value: val,
                   });
-                  if (!res.ok) throw new Error(`HTTP ${res.status}`);
                   addToast("Copyright updated", "success");
                   refetch();
                 }}
