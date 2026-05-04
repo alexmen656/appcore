@@ -52,7 +52,7 @@ const STATIC_ITEMS: SearchItem[] = [
     id: "agents",
     label: "Agents",
     category: "Pages",
-    to: "/agents",
+    to: "/settings/agents",
     icon: "page",
   },
   {

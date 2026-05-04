@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { Fragment, useState, useEffect, useCallback } from "react";
 import { textPrimary } from "../styles";
 import { authHeaders } from "../hooks/useApi";
 import { Pencil, Plus, X, LayoutGrid, Trash2 } from "lucide-react";
@@ -418,129 +418,137 @@ export default function Team({
           </p>
         </div>
 
-        <div className="grid grid-cols-[2fr_1fr_2fr_auto] gap-4 px-5 py-2.5 bg-[#f7f8fa] dark:bg-[#161b24] border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-[#5c6478]">
-            Member
-          </span>
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-[#5c6478]">
-            Role
-          </span>
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-[#5c6478]">
-            App Access
-          </span>
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-[#5c6478]">
-            Actions
-          </span>
-        </div>
-
-        <div className="divide-y divide-[#f3f4f6] dark:divide-[#2a2f3d]">
-          {(data?.members ?? []).map((m) => {
-            const isMe = m.userId === currentUserId;
-            const isEditing = editingId === m.id;
-            const showAppAccess = m.role === "MEMBER" || m.role === "VIEWER";
-            return (
-              <div key={m.id}>
-                <div className="grid grid-cols-[2fr_1fr_2fr_auto] gap-4 items-center px-5 py-4">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#D94412] to-[#c80b24] flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm">
-                      {(m.name ?? m.email).charAt(0).toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-[#1a1a2e] dark:text-[#e8eaf0] truncate flex items-center gap-1.5">
-                        {m.name ?? m.email}
-                        {isMe && (
-                          <span className="text-[10px] font-normal px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-[#252b38] text-gray-400 dark:text-[#5c6478]">
-                            you
-                          </span>
-                        )}
+        <table className="w-full table-fixed border-collapse">
+          <thead>
+            <tr className="bg-[#f7f8fa] dark:bg-[#161b24] border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
+              <th className="w-[40%] text-left px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-[#5c6478]">
+                Member
+              </th>
+              <th className="w-[15%] text-left px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-[#5c6478]">
+                Role
+              </th>
+              <th className="w-[30%] text-left px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-[#5c6478]">
+                App Access
+              </th>
+              <th className="w-[15%] text-right px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-[#5c6478]">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#f3f4f6] dark:divide-[#2a2f3d]">
+            {(data?.members ?? []).map((m) => {
+              const isMe = m.userId === currentUserId;
+              const isEditing = editingId === m.id;
+              const showAppAccess = m.role === "MEMBER" || m.role === "VIEWER";
+              return (
+                <Fragment key={m.id}>
+                  <tr className="align-middle">
+                    <td className="px-5 py-4 align-middle">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#D94412] to-[#c80b24] flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm">
+                          {(m.name ?? m.email).charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-[#1a1a2e] dark:text-[#e8eaf0] truncate flex items-center gap-1.5">
+                            {m.name ?? m.email}
+                            {isMe && (
+                              <span className="text-[10px] font-normal px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-[#252b38] text-gray-400 dark:text-[#5c6478]">
+                                you
+                              </span>
+                            )}
+                          </div>
+                          {m.name && (
+                            <div className="text-[11px] text-gray-400 dark:text-[#5c6478] truncate">{m.email}</div>
+                          )}
+                        </div>
                       </div>
-                      {m.name && (
-                        <div className="text-[11px] text-gray-400 dark:text-[#5c6478] truncate">{m.email}</div>
-                      )}
-                    </div>
-                  </div>
+                    </td>
 
-                  <div>
-                    {isEditing ? (
-                      <div className="flex items-center gap-1.5">
-                        <select
-                          value={editRole}
-                          onChange={(e) => setEditRole(e.target.value as TeamRole)}
-                          className={`px-2 py-1.5 text-xs rounded-lg border border-[#e5e7eb] dark:border-[#2a2f3d] bg-white dark:bg-[#252b38] ${textPrimary} focus:outline-none focus:border-[#D94412]`}
-                        >
-                          <option value="VIEWER">Viewer</option>
-                          <option value="MEMBER">Member</option>
-                          <option value="ADMIN">Admin</option>
-                          <option value="OWNER">Owner</option>
-                        </select>
-                        <button
-                          onClick={() => handleUpdateRole(m.id)}
-                          className="px-2 py-1.5 rounded-lg bg-[#D94412] text-white text-xs font-semibold hover:bg-[#c80b24] transition-all"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => setEditingId(null)}
-                          className="px-2 py-1.5 rounded-lg border border-[#e5e7eb] dark:border-[#2a2f3d] text-xs text-gray-500 dark:text-[#8b93a5]"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    ) : (
-                      <span
-                        className={`inline-flex text-[11px] font-semibold px-2.5 py-1 rounded-full ${ROLE_COLORS[m.role]}`}
-                      >
-                        {ROLE_LABELS[m.role]}
-                      </span>
-                    )}
-                  </div>
-
-                  <div>
-                    {showAppAccess ? (
-                      <AppIconStack apps={allApps} selectedIds={memberAppIds[m.id] ?? []} />
-                    ) : (
-                      <span className="text-xs text-gray-400 dark:text-[#5c6478] italic">Full access</span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-1 justify-end">
-                    {canManage && !isMe && (
-                      <>
-                        <button
-                          onClick={() => {
-                            setEditingId(m.id);
-                            setEditRole(m.role);
-                          }}
-                          className="p-1.5 rounded-lg text-gray-400 dark:text-[#5c6478] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] hover:bg-gray-100 dark:hover:bg-[#252b38] transition-all"
-                          title="Change role"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        {showAppAccess && (
-                          <button
-                            onClick={() =>
-                              appAccessMemberId === m.id ? setAppAccessMemberId(null) : handleOpenAppAccess(m.id)
-                            }
-                            className={`p-1.5 rounded-lg transition-all ${appAccessMemberId === m.id ? "text-[#D94412] bg-[#fef2f3] dark:bg-[#2a1f23]" : "text-gray-400 dark:text-[#5c6478] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] hover:bg-gray-100 dark:hover:bg-[#252b38]"}`}
-                            title="Manage app access"
+                    <td className="px-5 py-4 align-middle">
+                      {isEditing ? (
+                        <div className="flex items-center gap-1.5">
+                          <select
+                            value={editRole}
+                            onChange={(e) => setEditRole(e.target.value as TeamRole)}
+                            className={`px-2 py-1.5 text-xs rounded-lg border border-[#e5e7eb] dark:border-[#2a2f3d] bg-white dark:bg-[#252b38] ${textPrimary} focus:outline-none focus:border-[#D94412]`}
                           >
-                            <LayoutGrid className="w-3.5 h-3.5" />
+                            <option value="VIEWER">Viewer</option>
+                            <option value="MEMBER">Member</option>
+                            <option value="ADMIN">Admin</option>
+                            <option value="OWNER">Owner</option>
+                          </select>
+                          <button
+                            onClick={() => handleUpdateRole(m.id)}
+                            className="px-2 py-1.5 rounded-lg bg-[#D94412] text-white text-xs font-semibold hover:bg-[#c80b24] transition-all"
+                          >
+                            Save
                           </button>
-                        )}
-                        <button
-                          onClick={() => handleRemove(m.id, m.email)}
-                          className="p-1.5 rounded-lg text-gray-400 dark:text-[#5c6478] hover:text-red-500 hover:bg-red-50 dark:hover:bg-[#2a1f23] transition-all"
-                          title="Remove member"
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="px-2 py-1.5 rounded-lg border border-[#e5e7eb] dark:border-[#2a2f3d] text-xs text-gray-500 dark:text-[#8b93a5]"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <span
+                          className={`inline-flex text-[11px] font-semibold px-2.5 py-1 rounded-full ${ROLE_COLORS[m.role]}`}
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
+                          {ROLE_LABELS[m.role]}
+                        </span>
+                      )}
+                    </td>
 
-                {appAccessMemberId === m.id && (
-                  <div className="mx-5 mb-4 p-4 bg-[#f7f8fa] dark:bg-[#161b24] border border-[#e5e7eb] dark:border-[#2a2f3d] rounded-xl">
+                    <td className="px-5 py-4 align-middle">
+                      {showAppAccess ? (
+                        <AppIconStack apps={allApps} selectedIds={memberAppIds[m.id] ?? []} />
+                      ) : (
+                        <span className="text-xs text-gray-400 dark:text-[#5c6478] italic">Full access</span>
+                      )}
+                    </td>
+
+                    <td className="px-5 py-4 align-middle">
+                      <div className="flex items-center gap-1 justify-end">
+                        {canManage && !isMe && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setEditingId(m.id);
+                                setEditRole(m.role);
+                              }}
+                              className="p-1.5 rounded-lg text-gray-400 dark:text-[#5c6478] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] hover:bg-gray-100 dark:hover:bg-[#252b38] transition-all"
+                              title="Change role"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            {showAppAccess && (
+                              <button
+                                onClick={() =>
+                                  appAccessMemberId === m.id ? setAppAccessMemberId(null) : handleOpenAppAccess(m.id)
+                                }
+                                className={`p-1.5 rounded-lg transition-all ${appAccessMemberId === m.id ? "text-[#D94412] bg-[#fef2f3] dark:bg-[#2a1f23]" : "text-gray-400 dark:text-[#5c6478] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] hover:bg-gray-100 dark:hover:bg-[#252b38]"}`}
+                                title="Manage app access"
+                              >
+                                <LayoutGrid className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleRemove(m.id, m.email)}
+                              className="p-1.5 rounded-lg text-gray-400 dark:text-[#5c6478] hover:text-red-500 hover:bg-red-50 dark:hover:bg-[#2a1f23] transition-all"
+                              title="Remove member"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+
+                  {appAccessMemberId === m.id && (
+                    <tr key={`${m.id}-access`}>
+                      <td colSpan={4} className="px-5 pb-4">
+                        <div className="p-4 bg-[#f7f8fa] dark:bg-[#161b24] border border-[#e5e7eb] dark:border-[#2a2f3d] rounded-xl">
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <p className="text-sm font-semibold text-[#1a1a2e] dark:text-[#e8eaf0]">
@@ -609,21 +617,24 @@ export default function Team({
                         >
                           Cancel
                         </button>
-                        <button
-                          onClick={() => handleSaveAppAccess(m.id)}
-                          disabled={savingAppAccess}
-                          className="px-3.5 py-1.5 rounded-lg bg-[#D94412] text-white text-xs font-semibold hover:bg-[#c80b24] transition-all disabled:opacity-50"
-                        >
-                          {savingAppAccess ? "…" : "Save"}
-                        </button>
+                            <button
+                              onClick={() => handleSaveAppAccess(m.id)}
+                              disabled={savingAppAccess}
+                              className="px-3.5 py-1.5 rounded-lg bg-[#D94412] text-white text-xs font-semibold hover:bg-[#c80b24] transition-all disabled:opacity-50"
+                            >
+                              {savingAppAccess ? "…" : "Save"}
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
       {(data?.pendingInvites ?? []).length > 0 && (
@@ -665,18 +676,40 @@ export default function Team({
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {(["OWNER", "ADMIN", "MEMBER", "VIEWER"] as TeamRole[]).map((r) => (
-          <div
-            key={r}
-            className="p-3.5 bg-white dark:bg-[#1c2028] border border-[#e5e7eb] dark:border-[#2a2f3d] rounded-xl shadow-sm"
-          >
-            <span className={`inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-full ${ROLE_COLORS[r]}`}>
-              {ROLE_LABELS[r]}
-            </span>
-            <p className="mt-2 text-[11px] text-gray-400 dark:text-[#5c6478] leading-snug">{ROLE_DESCRIPTIONS[r]}</p>
-          </div>
-        ))}
+      <div className="bg-white dark:bg-[#1c2028] border border-[#e5e7eb] dark:border-[#2a2f3d] rounded-2xl overflow-hidden shadow-sm">
+        <div className="px-5 py-3 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-[#5c6478]">
+            Roles
+          </p>
+        </div>
+        <table className="w-full table-fixed border-collapse">
+          <thead>
+            <tr className="bg-[#f7f8fa] dark:bg-[#161b24] border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
+              <th className="w-[25%] text-left px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-[#5c6478]">
+                Role
+              </th>
+              <th className="text-left px-5 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-[#5c6478]">
+                Description
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#f3f4f6] dark:divide-[#2a2f3d]">
+            {(["OWNER", "ADMIN", "MEMBER", "VIEWER"] as TeamRole[]).map((r) => (
+              <tr key={r} className="align-middle">
+                <td className="px-5 py-3 align-middle">
+                  <span
+                    className={`inline-flex text-[11px] font-semibold px-2.5 py-1 rounded-full ${ROLE_COLORS[r]}`}
+                  >
+                    {ROLE_LABELS[r]}
+                  </span>
+                </td>
+                <td className="px-5 py-3 align-middle text-[12px] text-gray-500 dark:text-[#8b93a5]">
+                  {ROLE_DESCRIPTIONS[r]}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

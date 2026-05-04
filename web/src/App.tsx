@@ -64,6 +64,8 @@ import {
   DollarSign,
   Trophy,
   Swords,
+  User as UserIcon,
+  ArrowLeft,
 } from "lucide-react";
 
 const sidebarLinks = [
@@ -406,36 +408,12 @@ function HeaderProfileMenu({
           </div>
           <div className="h-px bg-[#e5e7eb] dark:bg-[#2a2f3d] mx-3 my-1" />
           <NavLink
-            to="/profile"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors text-[13px] text-[#1a1a2e] dark:text-[#e8eaf0] font-medium"
-          >
-            <SettingsIcon className="w-4 h-4 text-gray-400 dark:text-[#5c6478] shrink-0" />
-            Profile Settings
-          </NavLink>
-          <NavLink
             to="/settings"
             onClick={() => setOpen(false)}
             className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors text-[13px] text-[#1a1a2e] dark:text-[#e8eaf0] font-medium"
           >
             <SettingsIcon className="w-4 h-4 text-gray-400 dark:text-[#5c6478] shrink-0" />
-            Team Settings
-          </NavLink>
-          <NavLink
-            to="/agents"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors text-[13px] text-[#1a1a2e] dark:text-[#e8eaf0] font-medium"
-          >
-            <Bot className="w-4 h-4 text-gray-400 dark:text-[#5c6478] shrink-0" />
-            Agents
-          </NavLink>
-          <NavLink
-            to="/team"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors text-[13px] text-[#1a1a2e] dark:text-[#e8eaf0] font-medium"
-          >
-            <Users className="w-4 h-4 text-gray-400 dark:text-[#5c6478] shrink-0" />
-            Team
+            Settings
           </NavLink>
           <button
             onClick={() => {
@@ -946,9 +924,41 @@ function MonetizationSidebarSection({ navLinkClass }: { navLinkClass: (p: { isAc
   );
 }
 
+function SettingsSidebar({ navLinkClass }: { navLinkClass: (p: { isActive: boolean }) => string }) {
+  const navigate = useNavigate();
+  const settingsLinks = [
+    { to: "/settings/profile", label: "Profile", icon: UserIcon },
+    { to: "/settings/team-settings", label: "Team Settings", icon: SettingsIcon },
+    { to: "/settings/team", label: "Team", icon: Users },
+    { to: "/settings/agents", label: "Agents", icon: Bot },
+  ];
+
+  return (
+    <nav className="px-2 pt-1 flex-1 flex flex-col">
+      <button
+        onClick={() => navigate("/dashboard")}
+        className="flex items-center gap-2 px-3 py-[9px] mb-2 rounded-lg text-sm font-medium text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] transition-all"
+      >
+        <ArrowLeft className="w-[18px] h-[18px] opacity-60" />
+        Back
+      </button>
+      <div className="px-3 pb-2 text-[12px] font-semibold text-gray-400 dark:text-[#5c6478]">
+        Settings
+      </div>
+      {settingsLinks.map((link) => (
+        <NavLink key={link.to} to={link.to} className={navLinkClass}>
+          <link.icon />
+          {link.label}
+        </NavLink>
+      ))}
+    </nav>
+  );
+}
+
 export default function App() {
   const { data: dash } = useApi<DashboardData>("/dashboard");
   const { toasts, addToast } = useToast();
+  const location = useLocation();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -956,6 +966,7 @@ export default function App() {
   const [dark, setDark] = useState(() => {
     return localStorage.getItem("theme") === "dark";
   });
+  const inSettings = location.pathname.startsWith("/settings");
 
   useEffect(() => {
     if (dark) {
@@ -1076,34 +1087,40 @@ export default function App() {
       </header>
       <div className="flex flex-1 min-h-0">
         <aside className="w-[250px] min-w-[250px] bg-[var(--shell-bg)] flex flex-col overflow-y-auto transition-colors">
-          <AppSwitcher current={dash?.app ?? null} addToast={addToast} />
-          <nav className="px-2 pt-1 flex-1 flex flex-col">
-            {sidebarLinks.slice(0, 1).map((link) => (
-              <NavLink key={link.to} to={link.to} className={navLinkClass}>
-                {link.icon && <link.icon />}
-                {link.label}
-              </NavLink>
-            ))}
-            <AnalyticsSidebarSection navLinkClass={navLinkClass} />
-            {sidebarLinks.slice(1).map((link) => (
-              <NavLink key={link.to} to={link.to} className={navLinkClass}>
-                {link.icon && <link.icon />}
-                {link.label}
-              </NavLink>
-            ))}
-            <MonetizationSidebarSection navLinkClass={navLinkClass} />
-            <VersionsSidebarSection navLinkClass={navLinkClass} />
-            <MoreSidebarSection navLinkClass={navLinkClass} />
-            <div className="mt-auto pb-3">
-              <div className="h-px bg-[#eef0f3] dark:bg-[#2a2f3d] mx-1 mb-2 mt-1" />
-              {sidebarOperations.map((link) => (
-                <NavLink key={link.to} to={link.to} className={navLinkClass}>
-                  {link.icon && <link.icon />}
-                  {link.label}
-                </NavLink>
-              ))}
-            </div>
-          </nav>
+          {inSettings ? (
+            <SettingsSidebar navLinkClass={navLinkClass} />
+          ) : (
+            <>
+              <AppSwitcher current={dash?.app ?? null} addToast={addToast} />
+              <nav className="px-2 pt-1 flex-1 flex flex-col">
+                {sidebarLinks.slice(0, 1).map((link) => (
+                  <NavLink key={link.to} to={link.to} className={navLinkClass}>
+                    {link.icon && <link.icon />}
+                    {link.label}
+                  </NavLink>
+                ))}
+                <AnalyticsSidebarSection navLinkClass={navLinkClass} />
+                {sidebarLinks.slice(1).map((link) => (
+                  <NavLink key={link.to} to={link.to} className={navLinkClass}>
+                    {link.icon && <link.icon />}
+                    {link.label}
+                  </NavLink>
+                ))}
+                <MonetizationSidebarSection navLinkClass={navLinkClass} />
+                <VersionsSidebarSection navLinkClass={navLinkClass} />
+                <MoreSidebarSection navLinkClass={navLinkClass} />
+                <div className="mt-auto pb-3">
+                  <div className="h-px bg-[#eef0f3] dark:bg-[#2a2f3d] mx-1 mb-2 mt-1" />
+                  {sidebarOperations.map((link) => (
+                    <NavLink key={link.to} to={link.to} className={navLinkClass}>
+                      {link.icon && <link.icon />}
+                      {link.label}
+                    </NavLink>
+                  ))}
+                </div>
+              </nav>
+            </>
+          )}
         </aside>
 
         <main className="relative z-30 flex-1 overflow-y-auto overscroll-contain px-7 py-6 bg-white dark:bg-[#0f1117] rounded-tl-2xl border-t border-l border-[rgba(16,24,40,0.06)] dark:border-[rgba(255,255,255,0.05)] shadow-[-4px_-4px_14px_-8px_rgba(16,24,40,0.05),0_-6px_16px_-8px_rgba(16,24,40,0.07)] dark:shadow-[-4px_-4px_14px_-8px_rgba(0,0,0,0.3),0_-6px_16px_-8px_rgba(0,0,0,0.35)]">
@@ -1126,15 +1143,16 @@ export default function App() {
             <Route path="/game-center/leaderboards" element={<GameCenterLeaderboards addToast={addToast} />} />
             <Route path="/game-center/achievements" element={<GameCenterAchievements addToast={addToast} />} />
             <Route path="/game-center/challenges" element={<GameCenterChallenges addToast={addToast} />} />
-            <Route path="/agents" element={<Agents addToast={addToast} />} />
             <Route path="/logs" element={<Actions addToast={addToast} />} />
-            <Route path="/settings" element={<Settings addToast={addToast} />} />
             <Route path="/app-settings" element={<AppSettings addToast={addToast} />} />
+            <Route path="/settings" element={<Navigate to="/settings/profile" replace />} />
             <Route
-              path="/profile"
+              path="/settings/profile"
               element={<ProfileSettings user={user} onUserUpdate={(u) => setUser(u)} addToast={addToast} />}
             />
-            <Route path="/team" element={<Team addToast={addToast} currentUserId={user.id} />} />
+            <Route path="/settings/team-settings" element={<Settings addToast={addToast} />} />
+            <Route path="/settings/team" element={<Team addToast={addToast} currentUserId={user.id} />} />
+            <Route path="/settings/agents" element={<Agents addToast={addToast} />} />
             <Route path="/invite/:token" element={<InviteAccept onAuth={(u) => setUser(u)} />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>

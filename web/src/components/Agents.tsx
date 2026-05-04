@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useApi, apiPut, apiPost, apiDelete } from "../hooks/useApi";
+import { useApi, apiPut, apiDelete } from "../hooks/useApi";
 import SectionCard from "./settings/SectionCard";
 import type { McpConfig, OAuthClient } from "../types";
 import { TD, TH, borderDefault, btnSecSm, pageTitle, textMuted, textPrimary } from "../styles";
@@ -11,7 +11,7 @@ interface Props {
 const MCP_TOOLS = [
   {
     name: "list_apps",
-    desc: "Discover all managed apps with bundle IDs and live stats — start here for multi-app workflows",
+    desc: "Discover all managed apps with bundle IDs and live stats - start here for multi-app workflows",
   },
   {
     name: "get_app_info",
@@ -135,8 +135,8 @@ export default function Agents({ addToast }: Props) {
             <div className={`text-sm font-medium ${textPrimary}`}>MCP Server Status</div>
             <div className={`text-xs ${textMuted} mt-0.5`}>
               {config?.mcpEnabled
-                ? `Active — endpoint available at ${mcpUrl}`
-                : "Disabled — no MCP connections are accepted"}
+                ? `Active - endpoint available at ${mcpUrl}`
+                : "Disabled - no MCP connections are accepted"}
             </div>
           </div>
           <button
