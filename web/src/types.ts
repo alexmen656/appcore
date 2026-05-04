@@ -329,10 +329,18 @@ export interface VersionLocalization {
   marketingUrl?: string;
 }
 
+export interface VersionLocalizationSummary {
+  locale: string;
+  appInfoLocalizationId: string | null;
+  versionLocalizationId: string | null;
+  isComplete: boolean;
+}
+
 export interface VersionsData {
   appId: string;
   appName: string;
   bundleId: string;
+  primaryLocale?: string | null;
   versionId: string | null;
   versionString: string | null;
   appStoreState: string | null;
@@ -348,6 +356,7 @@ export interface VersionsData {
   reviewerDemoPassword?: string;
   reviewDetailId?: string | null;
   translatingLocales?: string[];
+  localizationSummaries: VersionLocalizationSummary[];
   localizations: VersionLocalization[];
 }
 

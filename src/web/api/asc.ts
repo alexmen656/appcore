@@ -25,8 +25,70 @@ const EDITABLE_STATES = new Set([
   "PENDING_DEVELOPER_RELEASE",
 ]);
 
+const VERSION_LOCALIZATION_FIELDS = [
+  "name",
+  "subtitle",
+  "keywords",
+  "description",
+  "promotionalText",
+  "whatsNew",
+  "supportUrl",
+  "privacyPolicyUrl",
+  "marketingUrl",
+] as const;
+
 function isFresh(syncedAt: Date): boolean {
   return Date.now() - syncedAt.getTime() < CACHE_TTL_MS;
+}
+
+function isFirstVersionLocalizationSet(localizations: Array<{ whatsNew?: string | null }>): boolean {
+  return localizations.every((l) => !(typeof l.whatsNew === "string" && l.whatsNew.trim().length > 0));
+}
+
+function isLocalizationComplete(loc: Record<string, string | null | undefined>, isFirstVersion: boolean): boolean {
+  return VERSION_LOCALIZATION_FIELDS.every((field) => {
+    if (isFirstVersion && field === "whatsNew") return true;
+    const value = loc[field];
+    return typeof value === "string" && value.trim().length > 0;
+  });
+}
+
+function toLocalizationResponse(l: any) {
+  return {
+    locale: l.locale,
+    appInfoLocalizationId: l.appInfoLocalizationId,
+    versionLocalizationId: l.versionLocalizationId,
+    name: l.name,
+    subtitle: l.subtitle,
+    description: l.description,
+    keywords: l.keywords,
+    whatsNew: l.whatsNew,
+    promotionalText: l.promotionalText,
+    supportUrl: l.supportUrl,
+    marketingUrl: l.marketingUrl,
+    privacyPolicyUrl: l.privacyPolicyUrl,
+  };
+}
+
+function toLocalizationSummaries(localizations: any[]) {
+  const isFirstVersion = isFirstVersionLocalizationSet(localizations);
+  return localizations.map((l) => ({
+    locale: l.locale,
+    appInfoLocalizationId: l.appInfoLocalizationId,
+    versionLocalizationId: l.versionLocalizationId,
+    isComplete: isLocalizationComplete(l, isFirstVersion),
+  }));
+}
+
+function pickInitialLocale(
+  localizations: Array<{ locale: string }>,
+  requestedLocale?: string,
+  primaryLocale?: string | null,
+): string | null {
+  if (requestedLocale && localizations.some((l) => l.locale === requestedLocale)) return requestedLocale;
+  if (primaryLocale && localizations.some((l) => l.locale === primaryLocale)) return primaryLocale;
+  if (localizations.some((l) => l.locale === "en-US")) return "en-US";
+  return localizations[0]?.locale ?? null;
 }
 
 function handle(label: string, fn: (req: Request, res: Response) => Promise<void>): RequestHandler {
@@ -211,6 +273,13 @@ async function upsertVersionDetailToDb(
       }),
     ),
   );
+
+  await prisma.appStoreVersionLocalization.deleteMany({
+    where: {
+      versionId: version.id,
+      locale: { notIn: localizations.map((loc) => loc.locale) },
+    },
+  });
 }
 
 async function invalidateVersionCache(bundleId: string): Promise<void> {
@@ -389,6 +458,7 @@ ascRouter.get(
   handle("getVersions", async (req, res) => {
     const bundleId = (req.query.bundleId as string) || undefined;
     const versionId = (req.query.versionId as string) || undefined;
+    const requestedLocale = (req.query.locale as string) || undefined;
     if (bundleId) {
       const owned = await verifyAppOwnershipByBundleId(req, res, bundleId);
       if (!owned) return;
@@ -426,10 +496,21 @@ ascRouter.get(
       }
 
       if (cached && cached.localizations.length > 0) {
+        let primaryLocale: string | null = null;
+        if (!requestedLocale && bundleId) {
+          const asc = await ascClientForUser(req.user!.userId);
+          const app = await asc.getApp(bundleId).catch(() => null);
+          primaryLocale = app?.attributes.primaryLocale ?? null;
+        }
+        const selectedLocale = pickInitialLocale(cached.localizations, requestedLocale, primaryLocale);
+        const selectedLocalizations = selectedLocale
+          ? cached.localizations.filter((l: any) => l.locale === selectedLocale)
+          : [];
         res.json({
           appId: cached.ascAppId,
           appName: cached.appName,
           bundleId: cached.bundleId,
+          primaryLocale,
           versionId: cached.id,
           versionString: cached.versionString,
           appStoreState: cached.appStoreState,
@@ -445,20 +526,8 @@ ascRouter.get(
           reviewerDemoUsername: cached.reviewerDemoUsername ?? "",
           reviewerDemoPassword: cached.reviewerDemoPassword ?? "",
           reviewDetailId: cached.reviewDetailId ?? null,
-          localizations: cached.localizations.map((l: any) => ({
-            locale: l.locale,
-            appInfoLocalizationId: l.appInfoLocalizationId,
-            versionLocalizationId: l.versionLocalizationId,
-            name: l.name,
-            subtitle: l.subtitle,
-            description: l.description,
-            keywords: l.keywords,
-            whatsNew: l.whatsNew,
-            promotionalText: l.promotionalText,
-            supportUrl: l.supportUrl,
-            marketingUrl: l.marketingUrl,
-            privacyPolicyUrl: l.privacyPolicyUrl,
-          })),
+          localizationSummaries: toLocalizationSummaries(cached.localizations),
+          localizations: selectedLocalizations.map(toLocalizationResponse),
         });
         return;
       }
@@ -523,6 +592,7 @@ ascRouter.get(
     }
 
     const localizations = Array.from(localeMap.values());
+    const selectedLocale = pickInitialLocale(localizations, requestedLocale, app.attributes.primaryLocale);
 
     if (version) {
       await upsertVersionDetailToDb(app.attributes.bundleId, app.id, app.attributes.name, version, localizations);
@@ -532,13 +602,15 @@ ascRouter.get(
       appId: app.id,
       appName: app.attributes.name,
       bundleId: app.attributes.bundleId,
+      primaryLocale: app.attributes.primaryLocale ?? null,
       versionId: version?.id ?? null,
       versionString: version?.attributes.versionString ?? null,
       appStoreState: version?.attributes.appStoreState ?? null,
       isEditable,
       translatingLocales: version ? translationTracker.getLocales(version.id) : [],
       copyright: version?.attributes.copyright ?? "",
-      localizations,
+      localizationSummaries: toLocalizationSummaries(localizations),
+      localizations: selectedLocale ? localizations.filter((l) => l.locale === selectedLocale) : [],
     });
   }),
 );
@@ -551,6 +623,7 @@ ascRouter.patch(
       versionId: bodyVersionId,
       appInfoLocalizationId,
       versionLocalizationId,
+      locale,
       field,
       value,
     } = req.body as {
@@ -558,6 +631,7 @@ ascRouter.patch(
       versionId?: string;
       appInfoLocalizationId?: string;
       versionLocalizationId?: string;
+      locale?: string;
       field: string;
       value: string;
     };
@@ -587,7 +661,6 @@ ascRouter.patch(
           data: { copyright: value || null },
         })
         .catch(() => {});
-      await invalidateVersionCache(bundleId);
       res.json({ ok: true, field, value });
       return;
     }
@@ -618,8 +691,33 @@ ascRouter.patch(
       return;
     }
     await matchedGroup.update(matchedGroup.localizationId);
-    await invalidateVersionCache(bundleId);
-    res.json({ ok: true, field, value });
+    const localizationWhere = {
+      OR: [
+        appInfoLocalizationId ? { appInfoLocalizationId } : undefined,
+        versionLocalizationId ? { versionLocalizationId } : undefined,
+        bodyVersionId && locale ? { versionId: bodyVersionId, locale } : undefined,
+      ].filter(Boolean) as any[],
+    };
+    await prisma.appStoreVersionLocalization
+      .updateMany({
+        where: localizationWhere,
+        data: { [field]: value },
+      })
+      .catch(() => {});
+
+    const updatedLocalization = await prisma.appStoreVersionLocalization.findFirst({
+      where: localizationWhere,
+    });
+    let localizationSummary: ReturnType<typeof toLocalizationSummaries>[number] | null = null;
+    if (updatedLocalization) {
+      const localizations = await prisma.appStoreVersionLocalization.findMany({
+        where: { versionId: updatedLocalization.versionId },
+      });
+      localizationSummary =
+        toLocalizationSummaries(localizations).find((l) => l.locale === updatedLocalization.locale) ?? null;
+    }
+
+    res.json({ ok: true, field, value, localizationSummary });
   }),
 );
 

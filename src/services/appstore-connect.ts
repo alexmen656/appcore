@@ -125,17 +125,22 @@ export class AppStoreConnectClient {
     return data.data?.[0] ?? null;
   }
 
-  async getAppInfoLocalizations(appId: string, appInfoId?: string): Promise<ASCAppInfoLocalization[]> {
+  async getAppInfoLocalizations(appId: string, appInfoId?: string, locale?: string): Promise<ASCAppInfoLocalization[]> {
     let resolvedAppInfoId = appInfoId;
     if (!resolvedAppInfoId) {
       resolvedAppInfoId = (await this.getAppInfoId(appId)) ?? undefined;
     }
     if (!resolvedAppInfoId) return [];
 
+    const params: Record<string, string> = {
+      "fields[appInfoLocalizations]": "locale,name,subtitle,privacyPolicyUrl",
+    };
+    if (locale) {
+      params["filter[locale]"] = locale;
+    }
+
     const { data } = await this.client.get(`/appInfos/${resolvedAppInfoId}/appInfoLocalizations`, {
-      params: {
-        "fields[appInfoLocalizations]": "locale,name,subtitle,privacyPolicyUrl",
-      },
+      params,
     });
 
     return data.data ?? [];

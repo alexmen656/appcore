@@ -19,8 +19,13 @@ export function authHeaders(): HeadersInit {
   return t ? { Authorization: `Bearer ${t}` } : {};
 }
 
-function buildUrl(path: string): string {
+type ApiQuery = Record<string, string | number | boolean | null | undefined>;
+
+function buildUrl(path: string, query?: ApiQuery): string {
   const url = new URL(`${BASE}${path}`, window.location.origin);
+  for (const [key, value] of Object.entries(query ?? {})) {
+    if (value !== undefined && value !== null) url.searchParams.set(key, String(value));
+  }
   const bundleId = getActiveBundleId();
   if (bundleId) url.searchParams.set("bundleId", bundleId);
   return url.toString().replace(window.location.origin, "");
@@ -121,8 +126,8 @@ export function useApi<T>(path: string, deps: any[] = [], skipBundleId = false) 
   return { data, loading, error, refetch };
 }
 
-export async function apiGet<T = any>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, { headers: authHeaders() });
+export async function apiGet<T = any>(path: string, query?: ApiQuery): Promise<T> {
+  const res = await fetch(buildUrl(path, query), { headers: authHeaders() });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
     throw new Error(err.error || `HTTP ${res.status}`);
