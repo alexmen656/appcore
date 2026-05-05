@@ -6,6 +6,7 @@ import { frameWithFastlane } from "./frame-screenshots";
 import { workerClient } from "./worker-client";
 import { postCommitStatus } from "./github";
 import { generateScreenshotSublines, type ScreenshotSublines } from "./screenshot-subline-generator";
+import { AppStoreConnectClient } from "./appstore-connect";
 import { Prisma } from "@prisma/client";
 import { createJobLogEmitter } from "./log-bus";
 
@@ -13,6 +14,23 @@ const GITHUB_STATUS_DESC_MAX_LEN = 140;
 const VALID_LOCALE_RE = /^[a-zA-Z]{2,8}(?:-[a-zA-Z]{2,8})?$/;
 
 type ScreenshotJobWithApp = Prisma.ScreenshotJobGetPayload<{ include: { app: true } }>;
+
+type VersionLocale = {
+  locale: string;
+  name?: string;
+  subtitle?: string;
+};
+
+const EDITABLE_VERSION_STATES = new Set([
+  "PREPARE_FOR_SUBMISSION",
+  "DEVELOPER_REJECTED",
+  "REJECTED",
+  "METADATA_REJECTED",
+  "WAITING_FOR_REVIEW",
+  "WAITING_FOR_EXPORT_COMPLIANCE",
+  "PENDING_DEVELOPER_RELEASE",
+  "IN_REVIEW",
+]);
 
 export async function runScreenshotGeneration(jobId: string): Promise<void> {
   const job = await prisma.screenshotJob.findUnique({
@@ -187,16 +205,23 @@ async function runWorkerScreenshotGeneration(
     const hasDescriptions = Object.keys(effectiveDescriptions).length > 0;
     let sublines: ScreenshotSublines = {};
 
+    const targetVersionLocales = await resolveLatestVersionLocales(job, log);
+    const targetLocales =
+      targetVersionLocales.length > 0
+        ? targetVersionLocales.map((loc) => loc.locale)
+        : detectedLocales.length > 0
+          ? detectedLocales
+          : ["en-US"];
+    const versionLocaleMap = Object.fromEntries(targetVersionLocales.map((loc) => [loc.locale, loc]));
+
+    log(`[framing] Target locales: ${targetLocales.join(", ")}`);
+
     if (hasDescriptions && screenshotUrls.length > 0) {
       log(
         `[framing] Generating AI sublines for ${Object.keys(effectiveDescriptions).length} screen${Object.keys(effectiveDescriptions).length === 1 ? "" : "s"}...`,
       );
       try {
-        sublines = await generateScreenshotSublines(
-          job.appId,
-          effectiveDescriptions,
-          detectedLocales.length > 0 ? detectedLocales : ["en-US"],
-        );
+        sublines = await generateScreenshotSublines(job.appId, effectiveDescriptions, targetLocales);
         log(
           `[framing] AI sublines generated for ${Object.keys(sublines).length} locale${Object.keys(sublines).length === 1 ? "" : "s"}`,
         );
@@ -217,7 +242,18 @@ async function runWorkerScreenshotGeneration(
       },
     });
 
-    await frameScreenshots(jobId, job, outputDir, effectiveDescriptions, hasDescriptions, sublines, frameConfig, log);
+    await frameScreenshots(
+      jobId,
+      job,
+      outputDir,
+      effectiveDescriptions,
+      hasDescriptions,
+      sublines,
+      frameConfig,
+      targetLocales,
+      versionLocaleMap,
+      log,
+    );
 
     await prisma.screenshotJob.update({
       where: { id: jobId },
@@ -265,6 +301,139 @@ async function runWorkerScreenshotGeneration(
   }
 }
 
+function compareVersionStrings(a: string, b: string): number {
+  const aParts = a
+    .split(/[^\d]+/)
+    .filter(Boolean)
+    .map(Number);
+  const bParts = b
+    .split(/[^\d]+/)
+    .filter(Boolean)
+    .map(Number);
+  const len = Math.max(aParts.length, bParts.length);
+
+  for (let i = 0; i < len; i += 1) {
+    const diff = (aParts[i] ?? 0) - (bParts[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+
+  return a.localeCompare(b);
+}
+
+function uniqueValidLocales(locales: VersionLocale[]): VersionLocale[] {
+  const seen = new Set<string>();
+  const result: VersionLocale[] = [];
+
+  for (const loc of locales) {
+    if (!VALID_LOCALE_RE.test(loc.locale) || seen.has(loc.locale)) continue;
+    seen.add(loc.locale);
+    result.push(loc);
+  }
+
+  return result;
+}
+
+async function resolveLatestVersionLocales(
+  job: ScreenshotJobWithApp,
+  log: (msg: string) => void,
+): Promise<VersionLocale[]> {
+  const versions = await prisma.appStoreVersion.findMany({
+    where: { bundleId: job.app.bundleId },
+    include: { localizations: true },
+  });
+
+  const ranked = versions
+    .filter((v) => v.localizations.length > 0)
+    .sort((a, b) => {
+      const versionDiff = compareVersionStrings(b.versionString, a.versionString);
+      if (versionDiff !== 0) return versionDiff;
+
+      const stateDiff =
+        Number(EDITABLE_VERSION_STATES.has(b.appStoreState)) - Number(EDITABLE_VERSION_STATES.has(a.appStoreState));
+      if (stateDiff !== 0) return stateDiff;
+
+      return b.syncedAt.getTime() - a.syncedAt.getTime();
+    });
+
+  const cached = ranked[0];
+  if (cached) {
+    const locales = uniqueValidLocales(
+      cached.localizations.map((loc) => ({
+        locale: loc.locale,
+        name: loc.name,
+        subtitle: loc.subtitle,
+      })),
+    );
+
+    log(`[framing] Using ${locales.length} locale(s) from App Store version ${cached.versionString}`);
+    return locales;
+  }
+
+  if (!job.app.teamId || !job.app.trackId) {
+    log("[framing] No cached App Store version locales found - using captured screenshot locales");
+    return [];
+  }
+
+  const teamSettings = await getTeamSettings(job.app.teamId);
+  const privateKey = decryptNullable(teamSettings?.ascPrivateKey);
+  
+  if (!teamSettings?.ascIssuerId || !teamSettings.ascKeyId || !privateKey) {
+    log("[framing] No ASC credentials available for version locale refresh - using captured screenshot locales");
+    return [];
+  }
+
+  try {
+    const asc = new AppStoreConnectClient({
+      issuerId: teamSettings.ascIssuerId,
+      keyId: teamSettings.ascKeyId,
+      privateKey,
+    });
+    const ascAppId = String(job.app.trackId);
+    const versionsFromAsc = await asc.listVersions(ascAppId);
+    const latestVersion = versionsFromAsc.sort((a, b) =>
+      compareVersionStrings(b.attributes.versionString, a.attributes.versionString),
+    )[0];
+
+    if (!latestVersion) {
+      log("[framing] ASC returned no versions - using captured screenshot locales");
+      return [];
+    }
+
+    const [versionLocalizations, appInfoLocalizations] = await Promise.all([
+      asc.getVersionLocalizations(latestVersion.id),
+      asc.getAppInfoLocalizations(ascAppId).catch(() => []),
+    ]);
+
+    const locales = uniqueValidLocales(
+      versionLocalizations.map((loc) => {
+        const appInfo = new Map(appInfoLocalizations.map((loc) => [loc.attributes.locale, loc])).get(
+          loc.attributes.locale,
+        );
+        return {
+          locale: loc.attributes.locale,
+          name: appInfo?.attributes.name,
+          subtitle: appInfo?.attributes.subtitle,
+        };
+      }),
+    );
+
+    log(`[framing] Refreshed ${locales.length} locale(s) from ASC version ${latestVersion.attributes.versionString}`);
+    return locales;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    log(`[framing] Could not refresh version locales from ASC - using captured screenshot locales: ${msg}`);
+    return [];
+  }
+}
+
+function pickSourceLocale(targetLocale: string, sourceLocales: string[]): string | null {
+  if (sourceLocales.includes(targetLocale)) return targetLocale;
+  if (sourceLocales.includes("en-US")) return "en-US";
+  if (sourceLocales.includes("en")) return "en";
+
+  return sourceLocales.find((locale) => locale.toLowerCase().startsWith("en-")) ?? sourceLocales[0] ?? null;
+}
+
 async function frameScreenshots(
   jobId: string,
   job: ScreenshotJobWithApp,
@@ -273,17 +442,36 @@ async function frameScreenshots(
   hasDescriptions: boolean,
   sublines: ScreenshotSublines,
   frameConfig: Record<string, string>,
+  targetLocales: string[],
+  versionLocales: Record<string, VersionLocale>,
   log: (msg: string) => void,
 ): Promise<void> {
   try {
     const rawEntries = await fs.promises.readdir(path.join(outputDir, "raw"), { withFileTypes: true }).catch(() => []);
-    const sourceDirs = rawEntries.filter((e) => e.isDirectory()).map((e) => path.join(outputDir, "raw", e.name));
+    const sourceLocaleDirs = new Map(
+      rawEntries.filter((e) => e.isDirectory()).map((e) => [e.name, path.join(outputDir, "raw", e.name)]),
+    );
+    const sourceLocales = [...sourceLocaleDirs.keys()];
     const framedByLocale: Record<string, string[]> = {};
 
-    for (const srcDir of sourceDirs) {
-      const locale = path.basename(srcDir);
+    for (const locale of targetLocales) {
+      const sourceLocale = pickSourceLocale(locale, sourceLocales);
+      if (!sourceLocale) {
+        log(`[framing] ${locale}: no raw screenshots available`);
+        continue;
+      }
+
+      const srcDir = sourceLocaleDirs.get(sourceLocale);
+      if (!srcDir) continue;
+
+      if (sourceLocale !== locale) {
+        log(`[framing] ${locale}: using ${sourceLocale} screenshots with localized text`);
+      }
+
       const localeSublines = sublines[locale] ?? sublines["en-US"] ?? {};
       let outputPaths: string[];
+      const versionLocale = versionLocales[locale];
+      const defaultSubtitle = versionLocale?.subtitle || versionLocale?.name || job.app.currentSubtitle || job.app.name;
 
       const bgOptions = {
         bgColor1: frameConfig.bgColor1,
@@ -296,7 +484,7 @@ async function frameScreenshots(
           srcDir,
           path.join(outputDir, "framed", locale),
           {
-            subtitle: job.app.name,
+            subtitle: defaultSubtitle,
             ...bgOptions,
           },
           path.join(outputDir, "unframed", locale),
@@ -310,7 +498,7 @@ async function frameScreenshots(
         for (const filename of files) {
           const base = filename.replace(/\.[^.]+$/, "");
           const descKey = Object.keys(descriptions).find((k) => base === k || base.startsWith(k + "_"));
-          const subtitle = descKey ? (localeSublines[descKey] ?? descriptions[descKey]) : job.app.name;
+          const subtitle = descKey ? (localeSublines[descKey] ?? descriptions[descKey]) : defaultSubtitle;
           const singleDir = path.join(srcDir, ".frametmp_" + base);
 
           await fs.promises.mkdir(singleDir, { recursive: true });
