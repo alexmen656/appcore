@@ -47,7 +47,7 @@ interface LocaleEntry {
   marketingUrl: string;
 }
 
-const SCREENSHOT_FALLBACK_LOCALES = ["en-US", "en-GB"];
+const FALLBACK_LOCALES = ["en-US", "en-GB"];
 
 interface ActiveSubmission {
   jobId: string;
@@ -164,7 +164,6 @@ export class FastlaneService {
       );
 
       submission.status = "running";
-
       const screenshots = await this.loadFramedScreenshots();
 
       if (screenshots) {
@@ -172,13 +171,13 @@ export class FastlaneService {
           `Loaded ${Object.values(screenshots).reduce((n, a) => n + a.length, 0)} framed screenshot(s) across ${Object.keys(screenshots).length} locale(s)`,
         );
 
-        const fallbackLocale = SCREENSHOT_FALLBACK_LOCALES.find((l) => screenshots[l]) ?? Object.keys(screenshots)[0];
+        const fallbackLocale = FALLBACK_LOCALES.find((l) => screenshots[l]) ?? Object.keys(screenshots)[0];
         if (fallbackLocale) {
           for (const locale of Object.keys(localeData)) {
             if (!screenshots[locale]) {
               screenshots[locale] = screenshots[fallbackLocale];
               submission.logs.push(
-                `[Screenshots] No screenshots for "${locale}" — using "${fallbackLocale}" as fallback`,
+                `[Screenshots] No screenshots for "${locale}" - using "${fallbackLocale}" as fallback`,
               );
             }
           }
@@ -257,14 +256,12 @@ export class FastlaneService {
       const screenshots: Record<string, Array<{ filename: string; data: string }>> = {};
 
       for (const [locale, urls] of Object.entries(framedByLocale)) {
-        if (locale === "default") continue;
         const images: Array<{ filename: string; data: string }> = [];
 
         for (const url of urls) {
-          const filePath = path.isAbsolute(url) ? url : path.join(process.cwd(), url);
           try {
-            const data = await fs.promises.readFile(filePath);
-            images.push({ filename: path.basename(filePath), data: data.toString("base64") });
+            const data = await fs.promises.readFile(path.join(process.cwd(), url));
+            images.push({ filename: path.basename(path.join(process.cwd(), url)), data: data.toString("base64") });
           } catch {
             // file not accessible, skip
           }

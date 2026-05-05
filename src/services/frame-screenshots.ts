@@ -16,18 +16,9 @@ export async function frameWithFastlane(
   options: FrameOptions,
   unframedOutputDir?: string,
 ): Promise<string[]> {
-  return frameWithWorker(inputDir, outputDir, options, unframedOutputDir);
-}
-
-async function frameWithWorker(
-  inputDir: string,
-  outputDir: string,
-  options: FrameOptions,
-  unframedOutputDir?: string,
-): Promise<string[]> {
   const srcFiles = fs
     .readdirSync(inputDir)
-    .filter((f) => /\.(png|jpg|jpeg)$/i.test(f))
+    .filter((f) => /\.(png)$/i.test(f))
     .map((f) => path.join(inputDir, f))
     .filter((f) => fs.statSync(f).isFile());
 
@@ -63,16 +54,4 @@ async function frameWithWorker(
   }
 
   return outputPaths;
-}
-
-export function findImageFiles(dir: string, results: string[] = []): string[] {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory() && entry.name !== "framed") {
-      findImageFiles(full, results);
-    } else if (/\.(png|jpg|jpeg)$/i.test(entry.name)) {
-      results.push(full);
-    }
-  }
-  return results;
 }

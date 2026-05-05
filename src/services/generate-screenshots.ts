@@ -12,6 +12,7 @@ import { createJobLogEmitter } from "./log-bus";
 
 const GITHUB_STATUS_DESC_MAX_LEN = 140;
 const VALID_LOCALE_RE = /^[a-zA-Z]{2,8}(?:-[a-zA-Z]{2,8})?$/;
+const FRAME_LOCALE_CONCURRENCY = 4;
 
 type ScreenshotJobWithApp = Prisma.ScreenshotJobGetPayload<{ include: { app: true } }>;
 
@@ -106,7 +107,8 @@ async function runWorkerScreenshotGeneration(
       try {
         const decryptedVars = decryptNullable(job.app.snapshotEnvVars);
         if (!decryptedVars) throw new Error("Failed to decrypt snapshotEnvVars");
-        const parsed: Array<{ key: string; value: string }> = JSON.parse(decryptedVars);
+
+        const parsed = JSON.parse(decryptedVars) as Array<{ key: string; value: string }>;
         envVars = Object.fromEntries(parsed.map(({ key, value }) => [key, value]));
         log(`[config] Loaded ${parsed.length} UI test environment variable(s)`);
       } catch {
@@ -166,6 +168,7 @@ async function runWorkerScreenshotGeneration(
       const logsDir = path.join(outputDir, "logs");
       await fs.promises.mkdir(logsDir, { recursive: true });
       let saved = 0;
+      
       for (const archive of result.xcresultLogs) {
         const safeFilename = path.basename(archive.filename);
         if (!safeFilename || !/^[a-zA-Z0-9_\-. ]+$/.test(safeFilename)) {
@@ -376,7 +379,7 @@ async function resolveLatestVersionLocales(
 
   const teamSettings = await getTeamSettings(job.app.teamId);
   const privateKey = decryptNullable(teamSettings?.ascPrivateKey);
-  
+
   if (!teamSettings?.ascIssuerId || !teamSettings.ascKeyId || !privateKey) {
     log("[framing] No ASC credentials available for version locale refresh - using captured screenshot locales");
     return [];
@@ -434,6 +437,21 @@ function pickSourceLocale(targetLocale: string, sourceLocales: string[]): string
   return sourceLocales.find((locale) => locale.toLowerCase().startsWith("en-")) ?? sourceLocales[0] ?? null;
 }
 
+async function runConcurrent<T>(items: T[], concurrency: number, worker: (item: T) => Promise<void>): Promise<void> {
+  const queue = [...items];
+  const workerCount = Math.max(1, Math.min(concurrency, items.length));
+
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (queue.length > 0) {
+        const item = queue.shift();
+        if (item === undefined) return;
+        await worker(item);
+      }
+    }),
+  );
+}
+
 async function frameScreenshots(
   jobId: string,
   job: ScreenshotJobWithApp,
@@ -447,31 +465,32 @@ async function frameScreenshots(
   log: (msg: string) => void,
 ): Promise<void> {
   try {
+    const framedByLocale: Record<string, string[]> = {};
     const rawEntries = await fs.promises.readdir(path.join(outputDir, "raw"), { withFileTypes: true }).catch(() => []);
     const sourceLocaleDirs = new Map(
       rawEntries.filter((e) => e.isDirectory()).map((e) => [e.name, path.join(outputDir, "raw", e.name)]),
     );
-    const sourceLocales = [...sourceLocaleDirs.keys()];
-    const framedByLocale: Record<string, string[]> = {};
 
-    for (const locale of targetLocales) {
-      const sourceLocale = pickSourceLocale(locale, sourceLocales);
+    log(`[framing] Framing locales with concurrency ${FRAME_LOCALE_CONCURRENCY}`);
+
+    await runConcurrent(targetLocales, FRAME_LOCALE_CONCURRENCY, async (locale) => {
+      const sourceLocale = pickSourceLocale(locale, [...sourceLocaleDirs.keys()]);
       if (!sourceLocale) {
         log(`[framing] ${locale}: no raw screenshots available`);
-        continue;
+        return;
       }
 
       const srcDir = sourceLocaleDirs.get(sourceLocale);
-      if (!srcDir) continue;
+      if (!srcDir) return;
 
       if (sourceLocale !== locale) {
         log(`[framing] ${locale}: using ${sourceLocale} screenshots with localized text`);
       }
 
-      const localeSublines = sublines[locale] ?? sublines["en-US"] ?? {};
-      let outputPaths: string[];
       const versionLocale = versionLocales[locale];
+      const localeSublines = sublines[locale] ?? sublines["en-US"] ?? {};
       const defaultSubtitle = versionLocale?.subtitle || versionLocale?.name || job.app.currentSubtitle || job.app.name;
+      let outputPaths: string[];
 
       const bgOptions = {
         bgColor1: frameConfig.bgColor1,
@@ -492,14 +511,14 @@ async function frameScreenshots(
       } else {
         outputPaths = [];
         const allEntries = await fs.promises.readdir(srcDir);
-        const files = allEntries.filter((f) => /\.(png|jpg|jpeg)$/i.test(f));
-        log(`[framing] srcDir=${srcDir} all=${allEntries.join(", ") || "(none)"} png=${files.join(", ") || "(none)"}`);
+        const files = allEntries.filter((f) => /\.(png)$/i.test(f));
 
         for (const filename of files) {
           const base = filename.replace(/\.[^.]+$/, "");
           const descKey = Object.keys(descriptions).find((k) => base === k || base.startsWith(k + "_"));
           const subtitle = descKey ? (localeSublines[descKey] ?? descriptions[descKey]) : defaultSubtitle;
-          const singleDir = path.join(srcDir, ".frametmp_" + base);
+          const safeLocale = locale.replace(/[^a-zA-Z0-9_-]/g, "_");
+          const singleDir = path.join(srcDir, `.frametmp_${safeLocale}_${base}`);
 
           await fs.promises.mkdir(singleDir, { recursive: true });
           await fs.promises.copyFile(path.join(srcDir, filename), path.join(singleDir, filename));
@@ -526,7 +545,7 @@ async function frameScreenshots(
         (p) => "/screenshots/" + path.relative(path.join(process.cwd(), "screenshots"), p).replace(/\\/g, "/"),
       );
       framedByLocale[locale] = (framedByLocale[locale] ?? []).concat(urls);
-    }
+    });
 
     await prisma.screenshotJob.update({
       where: { id: jobId },
