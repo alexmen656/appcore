@@ -13,6 +13,10 @@ const SIZE_REMAP: Record<string, { w: number; h: number }> = {
 };
 
 type LayoutMode = "center" | "top" | "bottom";
+type FontCandidate = {
+  test: RegExp;
+  paths: string[];
+};
 
 interface FrameitRequest {
   images: Array<{ filename: string; data: string }>;
@@ -35,11 +39,77 @@ interface FramefileSection {
   title: { text: string; color: string; font: string; font_size: number };
 }
 
+const BUNDLED_FRAMEIT_FONT = path.join(__dirname, "ArialRoundedBold.ttf");
+const FRAMEIT_FONT_NAME = "FrameitTextFont";
+
+const FONT_CANDIDATES: FontCandidate[] = [
+  {
+    test: /[\u0900-\u097F\u0980-\u09FF\u0A00-\u0A7F\u0A80-\u0AFF\u0B00-\u0B7F\u0B80-\u0BFF\u0C00-\u0C7F\u0C80-\u0CFF\u0D00-\u0D7F\u0D80-\u0DFF]/u,
+    paths: [
+      "/System/Library/Fonts/SFIndia.ttc",
+      "/System/Library/Fonts/Kohinoor.ttc",
+      "/System/Library/Fonts/KohinoorGujarati.ttc",
+      "/System/Library/Fonts/KohinoorTelugu.ttc",
+      "/System/Library/Fonts/NotoSansKannada.ttc",
+      "/System/Library/Fonts/NotoSansOriya.ttc",
+      "/System/Library/Fonts/Supplemental/Devanagari Sangam MN.ttc",
+      "/System/Library/Fonts/Supplemental/Tamil Sangam MN.ttc",
+      "/System/Library/Fonts/Supplemental/Malayalam Sangam MN.ttc",
+    ],
+  },
+  {
+    test: /[\u4E00-\u9FFF\u3400-\u4DBF\u3040-\u30FF]/u,
+    paths: [
+      "/System/Library/Fonts/STHeiti Medium.ttc",
+      "/System/Library/Fonts/Hiragino Sans GB.ttc",
+      "/System/Library/Fonts/CJKSymbolsFallback.ttc",
+    ],
+  },
+  {
+    test: /[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/u,
+    paths: ["/System/Library/Fonts/AppleSDGothicNeo.ttc"],
+  },
+  {
+    test: /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/u,
+    paths: [
+      "/System/Library/Fonts/SFArabicRounded.ttf",
+      "/System/Library/Fonts/SFArabic.ttf",
+      "/System/Library/Fonts/GeezaPro.ttc",
+    ],
+  },
+  {
+    test: /[\u0E00-\u0E7F]/u,
+    paths: ["/System/Library/Fonts/Supplemental/Krungthep.ttf"],
+  },
+  {
+    test: /[\u0590-\u05FF]/u,
+    paths: ["/System/Library/Fonts/Supplemental/Raanana.ttc", "/System/Library/Fonts/ArialHB.ttc"],
+  },
+];
+
+function pickFrameitFont(text: string): string {
+  for (const candidate of FONT_CANDIDATES) {
+    if (!candidate.test.test(text)) continue;
+    const found = candidate.paths.find((fontPath) => fs.existsSync(fontPath));
+    if (found) return found;
+  }
+
+  return BUNDLED_FRAMEIT_FONT;
+}
+
+function copyFrameitFont(sourcePath: string, targetDir: string): string {
+  const ext = path.extname(sourcePath) || ".ttf";
+  const localName = `${FRAMEIT_FONT_NAME}${ext}`;
+  fs.copyFileSync(sourcePath, path.join(targetDir, localName));
+  return `./${localName}`;
+}
+
 function buildTitleSection(
   title: string | undefined,
   subtitle: string | undefined,
   textColor: string,
   layoutMode: LayoutMode,
+  font: string,
   background?: string,
 ): FramefileSection {
   return {
@@ -51,7 +121,7 @@ function buildTitleSection(
     title: {
       text: title ?? subtitle ?? " ",
       color: textColor,
-      font: "./ArialRoundedBold.ttf",
+      font,
       font_size: 150,
     },
   };
@@ -127,9 +197,10 @@ frameitRouter.post("/frameit", async (req: Request, res: Response) => {
     </svg>`;
 
     await sharp(Buffer.from(svg)).jpeg({ quality: 95 }).toFile(path.join(tmpDir, "background.jpg"));
-    fs.copyFileSync(path.join(__dirname, "ArialRoundedBold.ttf"), path.join(tmpDir, "ArialRoundedBold.ttf"));
+    const fontSourcePath = pickFrameitFont(`${title ?? ""} ${subtitle ?? ""}`);
+    const frameitFont = copyFrameitFont(fontSourcePath, tmpDir);
 
-    const defaultSection = buildTitleSection(title, subtitle, textColor, layoutMode, "./background.jpg");
+    const defaultSection = buildTitleSection(title, subtitle, textColor, layoutMode, frameitFont, "./background.jpg");
 
     fs.writeFileSync(
       path.join(tmpDir, "Framefile.json"),
@@ -146,9 +217,9 @@ frameitRouter.post("/frameit", async (req: Request, res: Response) => {
         fs.copyFileSync(src, path.join(tmpDirNoBg, basename + ".png"));
       }
     }
-    fs.copyFileSync(path.join(tmpDir, "ArialRoundedBold.ttf"), path.join(tmpDirNoBg, "ArialRoundedBold.ttf"));
-
-    const defaultSectionNoBg = buildTitleSection(title, subtitle, textColor, layoutMode);
+    
+    const frameitFontNoBg = copyFrameitFont(fontSourcePath, tmpDirNoBg);
+    const defaultSectionNoBg = buildTitleSection(title, subtitle, textColor, layoutMode, frameitFontNoBg);
 
     fs.writeFileSync(
       path.join(tmpDirNoBg, "Framefile.json"),
