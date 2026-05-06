@@ -3,7 +3,7 @@
   Marteso
 </h1>
 
-Marteso is a platform which combines iOS CI&CD pipeline with ASO tools. The core is the screenshot pipeline which automatically generates screenshots and valid signed binaries on every GitHub push, basically like Vercel but for iOS apps.
+Marteso is a platform which combines iOS CI&CD pipeline with ASO tools. The core is the screenshot pipeline which automatically generates screenshots and valid signed binaries on every GitHub push, basically like Vercel but for iOS apps. Marteso is still WIP.
 
 ## Demo
 
@@ -21,16 +21,16 @@ App: [marteso.com](https://marteso.com)
 
 ## Important Features
 
-- Analytics: Shows Impressions, Page Views and Dwonloads by country and date
-- Keywords: Tracks your App ranking and discovers new keywords with Ai based on competitors text, category etc.
+- Analytics: Shows Impressions, Page Views and Downloads by country and date
+- Keywords: Tracks your App ranking and discovers new keywords with AI based on competitors text, category etc.
 - Competitors: Tracks your App competitors and gathers intel about them:
   - Summarized Reviews
   - Tracking of Metadata changes
-- Suggestions: Suggests better metadata based on tracked keywords and competitors (doesb't work that great yet)
-- Monetization: Manages Subscriptios and One time purchases (one time pruchases not implemented yet)
-- Versions: Metdata managament with auto translate feature
-- More/Gamecenter: Management of game center related stuff like leaderbaords, achievements and challenges (experiment)
-- Team: Marteso supports Teams although roles arent fully implemented yet, but you can already invite other users
+- Suggestions: Suggests better metadata based on tracked keywords and competitors (doesn't work that great yet)
+- Monetization: Manages Subscriptions and One-time purchases (one-time purchases not implemented yet)
+- Versions: Metadata management with auto-translate feature
+- More/Game Center: Management of Game Center related stuff like leaderboards, achievements and challenges (experiment)
+- Team: Marteso supports Teams although roles aren't fully implemented yet, but you can already invite other users
 - MCP Agents support
 
 ## Secondary/Specific Features
@@ -38,7 +38,7 @@ App: [marteso.com](https://marteso.com)
 - Passkeys
 - Autonomous mode (planned)
 - admin panel
-- ios app for notifications
+- iOS app for notifications
 
 ## Architecture
 
@@ -167,7 +167,7 @@ cd docs && npm run build
 
 ### Docs
 
-- Technology: Docosaurus
+- Technology: Docusaurus
 - link: `/docs`
 
 ### Landing
@@ -182,18 +182,18 @@ cd docs && npm run build
 
 ### Worker
 
-- Technology: TypeScript - manages ios stuff which needs MacOs/Xcode
+- Technology: TypeScript - manages iOS stuff which needs macOS/Xcode
 
 #### important
 
 - Setup DHCP lease
-- Disable mac minis 1 minute auto sleep
-- Should be on smae network (security) although there is a secret for communication
-- recommended: Atleast 16gb of ram - ImageMagic and iOS simulators need a lot of Ram and should be latest Version of MacOs
+- Disable Mac Minis 1 minute auto sleep
+- Should be on same network (security) although there is a secret for communication
+- recommended: At least 16GB of RAM - ImageMagick and iOS simulators need a lot of RAM and should be latest version of macOS
 
 ### iOS App
 
-- Technology: Swift - Not upodate atm - mostly used for push notifications
+- Technology: Swift - Not up to date atm - mostly used for push notifications
 
 ## Fastlane Worker
 
@@ -218,7 +218,7 @@ Scheduled jobs:
 - keyword tracking
 - analytics sync
 
-Manual jobs (should be scheduled but because of Ai costs disabled atm):
+Manual jobs (should be scheduled but because of AI costs disabled atm):
 
 - metadata sync
 - competitor intel
