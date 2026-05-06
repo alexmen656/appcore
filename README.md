@@ -4,18 +4,26 @@ Marteso is a platform which combines iOS CI&CD pipeline with ASO tool. The core 
 
 ## Demo
 
-marteso.com
+App: [marteso.com](https://marteso.com)
 
-## 4 parts
+## 6 parts
 
-- Admin: ShadCN
+- Admin: React + Shadcn
+  link: /admin
 - Docs: Docosaurus
+  link: /docs
 - Landing: Astro
-- Main App: React, TS
+  link: /
+- Main App: Reac (frontend), TypeScript (backend)
+  link: /app
+- Worker: TypeScript - manages ios stuff which needs MacOs/Xcode
+- iOS App: Swift - Not upodate atm - mostly used for push notifications
 
 ## AI transparency
 
 I used AI mainly for debugging Xcode-related code around the screenshots pipeline, and also for parts of the landing page. I also used it for the MCP server, since recreating all web API endpoints again in a different format for the AI is mostly just repetitive busywork.
+
+iOS app
 
 ## Credits
 
