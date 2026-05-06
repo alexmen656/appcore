@@ -33,7 +33,6 @@ export class SnapshotRunner {
   private readonly params: SnapshotParams;
   private readonly emitLog: (line: string) => void;
   private readonly finish: (result: SnapshotJobResult) => void;
-
   private readonly tmpDir: string;
   private readonly logsDir: string;
   private readonly logFile: string;
@@ -51,6 +50,10 @@ export class SnapshotRunner {
   private getDeviceTag(device: string, allowDots = false): string {
     const truncated = UDID_RE.test(device) ? device.slice(0, 8) : device;
     return this.sanitizeTag(truncated, allowDots);
+  }
+
+  private getDeviceLabel(device: string): string {
+    return this.deviceNameMap.get(device) ?? (UDID_RE.test(device) ? device.slice(0, 8) + "..." : device);
   }
 
   private getDeviceNameWithSize(device: string): string {
@@ -121,7 +124,6 @@ export class SnapshotRunner {
     this.params = params;
     this.emitLog = emitLog;
     this.finish = finish;
-
     this.tmpDir = path.join(os.tmpdir(), `worker-snapshot-${runId}`);
     this.logsDir = path.join(process.cwd(), "logs", "snapshots");
     this.logFile = path.join(this.logsDir, `snapshot-${runId}.log`);
@@ -376,7 +378,7 @@ export class SnapshotRunner {
         const [langCode, regionCode] = lang.split("-");
         const localeId = regionCode ? `${langCode}_${regionCode}` : langCode;
 
-        const deviceLabel = UDID_RE.test(device) ? device.slice(0, 8) + "…" : device;
+        const deviceLabel = this.getDeviceLabel(device);
         const destination = UDID_RE.test(device)
           ? `-destination 'id=${device}'`
           : `-destination 'platform=iOS Simulator,name=${device}'`;
@@ -384,7 +386,7 @@ export class SnapshotRunner {
         const derivedDataPath = path.join(this.tmpDir, `DerivedData-${device.replace(/[^a-zA-Z0-9]/g, "_")}`);
         const testLogsDir = path.join(derivedDataPath, "Logs", "Test");
 
-        this.push(`[snapshot] [${deviceLabel}] ${lang} — running UI tests ...`);
+        this.push(`[snapshot] [${deviceLabel}] ${lang} - running UI tests ...`);
 
         const testFailed = await this.runXcodebuild(
           scheme,
@@ -441,7 +443,6 @@ export class SnapshotRunner {
     try {
       const testStart = Date.now();
       const xcodebuildCmd = `xcodebuild ${projectArg} -scheme "${scheme}" ${destination} -derivedDataPath "${derivedDataPath}" -parallel-testing-enabled NO TEST_RUNNER_XCUITESTS_LANGUAGE=${lang} TEST_RUNNER_XCUITESTS_LOCALE=${localeId} build test`;
-      this.push(`[snapshot] Command: ${xcodebuildCmd}`);
 
       const { stdout } = await execAsync(`${xcodebuildCmd} 2>&1`, {
         cwd: workDir,
@@ -486,10 +487,6 @@ export class SnapshotRunner {
         this.push(`[snapshot] Warning: could not parse xcresult JSON for ${xcName}: ${e}`);
         continue;
       }
-
-      this.push(
-        `[snapshot] [${deviceLabel}] ${lang}: attachment names: ${[...nameMap.values()].join(", ") || "(none)"}`,
-      );
 
       const relevant = [...nameMap.entries()].filter(([, name]) => name.startsWith(langPrefix));
       this.push(`[snapshot] [${deviceLabel}] ${lang}: exporting ${plural(relevant.length, "screenshot")}`);

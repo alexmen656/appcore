@@ -58,8 +58,7 @@ function buildTitleSection(
 }
 
 frameitRouter.post("/frameit", async (req: Request, res: Response) => {
-  const body = req.body as FrameitRequest;
-  const { images, options } = body;
+  const { images, options } = req.body as FrameitRequest;
 
   if (!images || images.length === 0) {
     res.status(400).json({ error: "No images provided" });
@@ -164,7 +163,13 @@ frameitRouter.post("/frameit", async (req: Request, res: Response) => {
         const result = await execAsync(`${fastlaneBin} frameit 2>&1`, {
           cwd: dir,
           timeout: 300_000,
-          env: { ...process.env, FASTLANE_DISABLE_COLORS: "1" },
+          env: {
+            ...process.env,
+            FASTLANE_DISABLE_COLORS: "1",
+            LANG: "en_US.UTF-8",
+            LC_ALL: "en_US.UTF-8",
+            LC_CTYPE: "en_US.UTF-8",
+          },
           maxBuffer: 10 * 1024 * 1024,
         });
         output = result.stdout ?? "";

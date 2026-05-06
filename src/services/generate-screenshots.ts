@@ -20,6 +20,7 @@ type VersionLocale = {
   locale: string;
   name?: string;
   subtitle?: string;
+  keywords?: string;
 };
 
 const EDITABLE_VERSION_STATES = new Set([
@@ -224,7 +225,7 @@ async function runWorkerScreenshotGeneration(
         `[framing] Generating AI sublines for ${Object.keys(effectiveDescriptions).length} screen${Object.keys(effectiveDescriptions).length === 1 ? "" : "s"}...`,
       );
       try {
-        sublines = await generateScreenshotSublines(job.appId, effectiveDescriptions, targetLocales);
+        sublines = await generateScreenshotSublines(job.appId, effectiveDescriptions, targetLocales, targetVersionLocales);
         log(
           `[framing] AI sublines generated for ${Object.keys(sublines).length} locale${Object.keys(sublines).length === 1 ? "" : "s"}`,
         );
@@ -365,6 +366,7 @@ async function resolveLatestVersionLocales(
         locale: loc.locale,
         name: loc.name,
         subtitle: loc.subtitle,
+        keywords: loc.keywords,
       })),
     );
 
@@ -407,15 +409,19 @@ async function resolveLatestVersionLocales(
       asc.getAppInfoLocalizations(ascAppId).catch(() => []),
     ]);
 
+    const appInfoByLocale = new Map<string, (typeof appInfoLocalizations)[number]>();
+    for (const loc of appInfoLocalizations) {
+      appInfoByLocale.set(loc.attributes.locale, loc);
+    }
+
     const locales = uniqueValidLocales(
       versionLocalizations.map((loc) => {
-        const appInfo = new Map(appInfoLocalizations.map((loc) => [loc.attributes.locale, loc])).get(
-          loc.attributes.locale,
-        );
+        const appInfo = appInfoByLocale.get(loc.attributes.locale);
         return {
           locale: loc.attributes.locale,
           name: appInfo?.attributes.name,
           subtitle: appInfo?.attributes.subtitle,
+          keywords: loc.attributes.keywords,
         };
       }),
     );
@@ -516,7 +522,7 @@ async function frameScreenshots(
         for (const filename of files) {
           const base = filename.replace(/\.[^.]+$/, "");
           const descKey = Object.keys(descriptions).find((k) => base === k || base.startsWith(k + "_"));
-          const subtitle = descKey ? (localeSublines[descKey] ?? descriptions[descKey]) : defaultSubtitle;
+          const subtitle = descKey ? (localeSublines[descKey] ?? defaultSubtitle) : defaultSubtitle;
           const safeLocale = locale.replace(/[^a-zA-Z0-9_-]/g, "_");
           const singleDir = path.join(srcDir, `.frametmp_${safeLocale}_${base}`);
 
@@ -533,6 +539,7 @@ async function frameScreenshots(
               },
               path.join(outputDir, "unframed", locale),
             );
+            
             log(`[framing] ${filename} → ${paths.length} path(s)`);
             outputPaths.push(...paths);
           } finally {
