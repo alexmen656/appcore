@@ -11,13 +11,13 @@ App: [marteso.com](https://marteso.com)
 
 ## Screenshots
 
-| Admin                                     | Landing                                       | Main App                                        |
-| ----------------------------------------- | --------------------------------------------- | ----------------------------------------------- |
-| <!-- ![Admin](readme_files/admin.png) --> | <!-- ![Landing](readme_files/landing.png) --> | <!-- ![Main App](readme_files/main-app.png) --> |
+| Admin                            | Landing                              |
+| -------------------------------- | ------------------------------------ |
+| ![Admin](readme_files/admin.png) | ![Landing](readme_files/landing.png) |
 
-| Worker                                      | Docs                                    | iOS App                                       |
-| ------------------------------------------- | --------------------------------------- | --------------------------------------------- |
-| <!-- ![Worker](readme_files/worker.png) --> | <!-- ![Docs](readme_files/docs.png) --> | <!-- ![iOS App](readme_files/ios-app.png) --> |
+| Main App                          | Docs                           |
+| --------------------------------- | ------------------------------ |
+| ![Main App](readme_files/app.png) | ![Docs](readme_files/docs.png) |
 
 ## Important Features
 
@@ -52,6 +52,14 @@ Marteso consists of a main server, web dashboard, admin panel, landing page, doc
 - Worker: macOS-only Fastlane/Xcode worker for screenshots, frameit, deliver and IPA builds
 - iOS App: Companion app for push notifications
 
+## Prerequisites
+
+- Node.js 22+
+- PostgreSQL
+- macOS + Xcode for Worker/iOS screenshot features
+- Fastlane for Worker features
+- Apple Developer account for App Store Connect features
+
 ## Local Development
 
 ```bash
@@ -81,6 +89,15 @@ cd landing && npm run dev
 cd docs && npm start -- --port 3030
 ```
 
+## Development URLs
+
+- Main server: `http://localhost:3100`
+- Landing: `http://localhost:4321`
+- Web App: `http://localhost:5173/app`
+- Admin: `http://localhost:5174/admin`
+- Docs: `http://localhost:3030/docs`
+- Worker: `http://localhost:3200`
+
 ## Environment
 
 Required:
@@ -100,6 +117,26 @@ Optional integrations:
 
 Use `.env.example` as the starting point.
 
+## Database
+
+Marteso uses PostgreSQL with Prisma.
+
+```bash
+npm run db:generate
+npm run db:migrate
+npm run db:studio
+```
+
+## Build
+
+```bash
+npm run build
+npm run web:build
+npm run admin:build
+cd landing && npm run build
+cd docs && npm run build
+```
+
 ## Routes
 
 - `/` Landing page
@@ -108,6 +145,18 @@ Use `.env.example` as the starting point.
 - `/docs` Documentation
 - `/api/*` Backend API
 - `/mcp` MCP endpoint
+
+## Repository Structure
+
+- `src/` Main server, API routes, jobs, services and MCP server
+- `web/` Main React dashboard
+- `admin/` Internal admin panel
+- `landing/` Astro marketing site
+- `docs/` Docusaurus documentation
+- `worker/` macOS Fastlane worker
+- `Marteso/` iOS companion app and UI tests
+- `prisma/` Database schema and migrations
+- `readme_files/` README assets
 
 ## 6 parts
 
@@ -186,6 +235,17 @@ Manual jobs (should be scheduled but because of Ai costs disabled atm):
 - OpenAI / Anthropic for AI suggestions and analysis
 - Ollama (experimental)
 - MCP server for AI agent access
+
+## Security
+
+Do not commit `.env`, Apple private keys, certificates, provisioning profiles, APNs keys or signing secrets. Production should set `JWT_SECRET` and `ENCRYPTION_KEY` explicitly.
+
+## Known Notes
+
+- Root `npm run dev` does not start landing/docs.
+- Worker features require macOS, Xcode and simulators.
+- Some App Store Connect features need valid team credentials and app access.
+- Game Center and autonomous features are experimental.
 
 ## Project Status
 
