@@ -9,6 +9,19 @@ Marteso is a platform which combines iOS CI&CD pipeline with ASO tools. The core
 
 App: [marteso.com](https://marteso.com)
 
+Demo Credentials:
+
+- Email: `demo@marteso.com`
+- Password: `demo1234`
+
+There are 3 apps:
+
+- Pi Digits has the most analytics data to showcase
+- RowTally showcases the subscription page
+- CalcBlitz showcases Versions because of many localizations
+
+Note: If you're getting error 500 or 429 there is unfortunately nothing I can do since Apple's rate limiting is very aggressive.
+
 ## Screenshots
 
 | Admin                            | Landing                              |
