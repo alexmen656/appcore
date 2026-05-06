@@ -1,22 +1,42 @@
+## Marteso
+
+Marteso is a platform which combines iOS CI&CD pipeline with ASO tool. The core is the screenshot pipeline which automatically generates screenshots and valid signed binary on every GitHub push, basically like Vercel but for iOS apps.
+
+## Demo
+
+marteso.com
+
+## 4 parts
+
+- Admin: ShadCN
+- Docs: Docosaurus
+- Landing: Astro
+- Main App: React, TS
+
+## AI transparency
+
+I used AI mainly for debugging Xcode-related code around the screenshots pipeline, and also for parts of the landing page. I also used it for the MCP server, since recreating all web API endpoints again in a different format for the AI is mostly just repetitive busywork.
+
+## Credits
+
+Main App's Design partly inspired by RevenueCat
+Landing page design partly inspired by Linear and Vercel
+
 Notes form testing:
 Files must be called Fastfile and Snapfile not Fastfile.txt - Important
 
-we need much better docs for snapshot files etc - how to add them 
+we need much better docs for snapshot files etc - how to add them
 
-
--- I need to cahnge how account are handled maybe same as ASC so a team with account, wehn new account is created we create a team + teamm owners account 
-
+-- I need to cahnge how account are handled maybe same as ASC so a team with account, wehn new account is created we create a team + teamm owners account
 
 Big issues:
 If an app has a min deployment target like ios 26 and iphone 16 pro as device in config our screenshots pipeline failes since we don't have an iphone 16pro with ios26 just one with 18.5 but we have 17 pro with ios26
 
 So solution would be to have all devices with newest ios
 
-
 dont start build process when certificates are missing
 
 fastlane is broken it makes ios 26.3.1 to 26.3 whoch dont matches our simulators
-
 
 This is summarized by Claude:
 
@@ -29,6 +49,7 @@ All patches apply to both the dev machine (`2.232.0`) and the Mac Mini worker (`
 **File:** `deliver/lib/deliver/upload_metadata.rb` line 688
 
 **Change** (two lines in `review_attachment_file`):
+
 ```ruby
 # before
 app_store_review_detail = version.fetch_app_store_review_detail
@@ -50,6 +71,7 @@ return if app_store_review_detail.nil? # first-time submission: review detail no
 In 2.232.2 the local variable `app_store_review_attachments` is referenced but never assigned, so every metadata upload crashes with `NameError: undefined local variable or method 'app_store_review_attachments'`.
 
 **Change:** After the `return if app_store_review_detail.nil?` line, add:
+
 ```ruby
 app_store_review_attachments = (app_store_review_detail.fetch_app_store_review_attachments rescue []) || []
 ```
@@ -74,6 +96,7 @@ IPHONE_16_PRO_MAX = Device.new("iphone16-pro-max", "Apple iPhone 16 Pro Max", 13
 ```
 
 Also add the `NATURAL_TITANIUM` color constant to the `Color` module (line ~94):
+
 ```ruby
 NATURAL_TITANIUM = "Natural Titanium"
 ```
@@ -94,6 +117,7 @@ if screenshot.device.id.to_s.include?("iphone-14") || screenshot.device.id.to_s.
 #### 2c. Device frame images
 
 Add the PNG frame files to `~/.fastlane/frameit/latest/` on each machine:
+
 - `Apple iPhone 16 Black.png`
 - `Apple iPhone 16 Plus Black.png`
 - `Apple iPhone 16 Pro Natural Titanium.png`
@@ -101,16 +125,8 @@ Add the PNG frame files to `~/.fastlane/frameit/latest/` on each machine:
 
 These are downloaded automatically by `fastlane frameit` on first run, but may need to be copied manually between machines if offline.
 
-
-
-
 notes:
 we need to disable mac minis 1 minute auto sleep
-
-
-
-
-
 
 Binary build was skipped or failed (non-fatal, screenshots continue)
 Saved 15 screenshot(s) from worker to /home/ubuntu/appcore/screenshots/cmndfj2ft0001oictn8nnh7xw
@@ -126,19 +142,16 @@ Top level ::Parts is deprecated, require 'multipart/post' and use `Multipart::Po
 [19:00:49]: # If you don't have homebrew: http://brew.sh
 [19:00:49]: #############################################################
 /opt/homebrew/Cellar/fastlane/2.232.2/libexec/gems/fastlane-2.232.2/fastlane_core/lib/fastlane_core/ui/interface.rb:141:in 'FastlaneCore::Interface#user_error!': Install ImageMagick and start frameit again! (FastlaneCore::Interface::FastlaneError)
-	from /opt/homebrew/Cellar/fastlane/2.232.2/libexec/gems/fastlane-2.232.2/fastlane_core/lib/fastlane_core/ui/ui.rb:17:in 'FastlaneCore::UI.method_missing'
-	from /opt/homebrew/Cellar/fastlane/2.232.2/libexec/gems/fastlane-2.232.2/frameit/lib/frameit/dependency_checker.rb:18:in 'Frameit::DependencyChecker.check_image_magick'
-	from /opt/homebrew/Cellar/fastlane/2.232.2/libexec/gems/fastlane-2.232.2/frameit/lib/frameit/dependency_checker.rb:8:in 'Frameit::DependencyChecker.check_dependencies'
-	from /opt/homebrew/Cellar/fastlane/2.232.2/libexec/gems/fastlane-2.232.2/frameit/lib/frameit/commands_generator.rb:20:in 'Frameit::CommandsGenerator.start'
-	from /opt/homebrew/Cellar/fastlane/2.232.2/libexec/gems/fastlane-2.232.2/fastlane/lib/fastlane/cli_tools_distributor.rb:124:in 'Fastlane::CLIToolsDistributor.take_off'
-	from /opt/homebrew/Cellar/fastlane/2.232.2/libexec/gems/fastlane-2.232.2/bin/fastlane:23:in '<top (required)>'
-	from /opt/homebrew/Cellar/ruby/4.0.2/lib/ruby/4.0.0/rubygems.rb:304:in 'Kernel#load'
-	from /opt/homebrew/Cellar/ruby/4.0.2/lib/ruby/4.0.0/rubygems.rb:304:in 'Gem.activate_and_load_bin_path'
-	from /opt/homebrew/Cellar/fastlane/2.232.2/libexec/bin/fastlane:25:in '<main>'
-
+from /opt/homebrew/Cellar/fastlane/2.232.2/libexec/gems/fastlane-2.232.2/fastlane_core/lib/fastlane_core/ui/ui.rb:17:in 'FastlaneCore::UI.method_missing'
+from /opt/homebrew/Cellar/fastlane/2.232.2/libexec/gems/fastlane-2.232.2/frameit/lib/frameit/dependency_checker.rb:18:in 'Frameit::DependencyChecker.check_image_magick'
+from /opt/homebrew/Cellar/fastlane/2.232.2/libexec/gems/fastlane-2.232.2/frameit/lib/frameit/dependency_checker.rb:8:in 'Frameit::DependencyChecker.check_dependencies'
+from /opt/homebrew/Cellar/fastlane/2.232.2/libexec/gems/fastlane-2.232.2/frameit/lib/frameit/commands_generator.rb:20:in 'Frameit::CommandsGenerator.start'
+from /opt/homebrew/Cellar/fastlane/2.232.2/libexec/gems/fastlane-2.232.2/fastlane/lib/fastlane/cli_tools_distributor.rb:124:in 'Fastlane::CLIToolsDistributor.take_off'
+from /opt/homebrew/Cellar/fastlane/2.232.2/libexec/gems/fastlane-2.232.2/bin/fastlane:23:in '<top (required)>'
+from /opt/homebrew/Cellar/ruby/4.0.2/lib/ruby/4.0.0/rubygems.rb:304:in 'Kernel#load'
+from /opt/homebrew/Cellar/ruby/4.0.2/lib/ruby/4.0.0/rubygems.rb:304:in 'Gem.activate_and_load_bin_path'
+from /opt/homebrew/Cellar/fastlane/2.232.2/libexec/bin/fastlane:25:in '<main>'
 
 ## important
-setup dhcp lease
 
-## Credits
-Design partly inspired by RevenueCat
+setup dhcp lease
