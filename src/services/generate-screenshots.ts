@@ -9,19 +9,11 @@ import { generateScreenshotSublines, type ScreenshotSublines } from "./screensho
 import { AppStoreConnectClient } from "./appstore-connect";
 import { Prisma } from "@prisma/client";
 import { createJobLogEmitter } from "./log-bus";
+import { normalizeLocale } from "./utils/country_lang";
 
 const GITHUB_STATUS_DESC_MAX_LEN = 140;
-const VALID_LOCALE_RE = /^[a-zA-Z]{2,8}(?:-[a-zA-Z]{2,8})?$/;
 const FRAME_LOCALE_CONCURRENCY = 4;
-
-type ScreenshotJobWithApp = Prisma.ScreenshotJobGetPayload<{ include: { app: true } }>;
-
-type VersionLocale = {
-  locale: string;
-  name?: string;
-  subtitle?: string;
-  keywords?: string;
-};
+const SAFE_FILENAME_RE = /^[a-zA-Z0-9_\-. ]+$/;
 
 const EDITABLE_VERSION_STATES = new Set([
   "PREPARE_FOR_SUBMISSION",
@@ -33,6 +25,15 @@ const EDITABLE_VERSION_STATES = new Set([
   "PENDING_DEVELOPER_RELEASE",
   "IN_REVIEW",
 ]);
+
+type ScreenshotJobWithApp = Prisma.ScreenshotJobGetPayload<{ include: { app: true } }>;
+
+type VersionLocale = {
+  locale: string;
+  name?: string;
+  subtitle?: string;
+  keywords?: string;
+};
 
 export async function runScreenshotGeneration(jobId: string): Promise<void> {
   const job = await prisma.screenshotJob.findUnique({
@@ -81,6 +82,7 @@ async function runWorkerScreenshotGeneration(
     if (!teamSettings?.githubAccessToken) {
       throw new Error("No GitHub access token available");
     }
+
     if (!job.app.githubRepoFullName) {
       throw new Error("No GitHub repo linked to this app");
     }
@@ -142,48 +144,54 @@ async function runWorkerScreenshotGeneration(
     const detectedLocales: string[] = [];
 
     for (const [locale, images] of Object.entries(result.screenshots)) {
-      if (!VALID_LOCALE_RE.test(locale)) {
+      const normalizedLoc = normalizeLocale(locale);
+
+      if (!normalizedLoc) {
         log(`[snapshot] Skipping invalid locale: ${locale}`);
         continue;
       }
 
-      await fs.promises.mkdir(path.join(outputDir, "raw", locale), { recursive: true });
+      await fs.promises.mkdir(path.join(outputDir, "raw", normalizedLoc), { recursive: true });
 
       for (const img of images) {
-        const safeFilename = path.basename(img.filename);
-        if (!safeFilename || !/^[a-zA-Z0-9_\-. ]+$/.test(safeFilename)) {
+        const safeFilename = safeSnapshotFilename(img.filename);
+        if (!safeFilename) {
           log(`[snapshot] Skipping suspicious filename: ${img.filename}`);
           continue;
         }
-        await fs.promises.writeFile(path.join(outputDir, "raw", locale, safeFilename), Buffer.from(img.data, "base64"));
-        screenshotUrls.push(`/screenshots/${jobId}/raw/${locale}/${safeFilename}`);
+
+        await fs.promises.writeFile(
+          path.join(outputDir, "raw", normalizedLoc, safeFilename),
+          Buffer.from(img.data, "base64"),
+        );
+        screenshotUrls.push(`/screenshots/${jobId}/raw/${normalizedLoc}/${safeFilename}`);
       }
 
-      detectedLocales.push(locale);
+      detectedLocales.push(normalizedLoc);
     }
     log(
       `[snapshot] Saved ${screenshotUrls.length} screenshot${screenshotUrls.length === 1 ? "" : "s"} from worker: ${screenshotUrls.join(", ")} (outputDir=${outputDir})`,
     );
 
     if (result.xcresultLogs && result.xcresultLogs.length > 0) {
-      const logsDir = path.join(outputDir, "logs");
-      await fs.promises.mkdir(logsDir, { recursive: true });
+      await fs.promises.mkdir(path.join(outputDir, "logs"), { recursive: true });
       let saved = 0;
-      
+
       for (const archive of result.xcresultLogs) {
-        const safeFilename = path.basename(archive.filename);
-        if (!safeFilename || !/^[a-zA-Z0-9_\-. ]+$/.test(safeFilename)) {
+        const safeFilename = safeSnapshotFilename(archive.filename);
+        if (!safeFilename) {
           log(`[snapshot] Skipping suspicious xcresult filename: ${archive.filename}`);
           continue;
         }
+
         if (!archive.data) {
           log(`[snapshot] Skipping xcresult ${safeFilename}: no data (download failed)`);
           continue;
         }
-        await fs.promises.writeFile(path.join(logsDir, safeFilename), Buffer.from(archive.data, "base64"));
+        await fs.promises.writeFile(path.join(outputDir, "logs", safeFilename), Buffer.from(archive.data, "base64"));
         saved += 1;
       }
-      log(`[snapshot] Saved ${saved} xcresult archive(s) to ${logsDir}`);
+      log(`[snapshot] Saved ${saved} xcresult archive(s)`);
     }
 
     const descriptions = result.descriptions ?? {};
@@ -225,7 +233,12 @@ async function runWorkerScreenshotGeneration(
         `[framing] Generating AI sublines for ${Object.keys(effectiveDescriptions).length} screen${Object.keys(effectiveDescriptions).length === 1 ? "" : "s"}...`,
       );
       try {
-        sublines = await generateScreenshotSublines(job.appId, effectiveDescriptions, targetLocales, targetVersionLocales);
+        sublines = await generateScreenshotSublines(
+          job.appId,
+          effectiveDescriptions,
+          targetLocales,
+          targetVersionLocales,
+        );
         log(
           `[framing] AI sublines generated for ${Object.keys(sublines).length} locale${Object.keys(sublines).length === 1 ? "" : "s"}`,
         );
@@ -305,6 +318,11 @@ async function runWorkerScreenshotGeneration(
   }
 }
 
+function safeSnapshotFilename(filename: string): string | null {
+  const basename = path.basename(filename);
+  return basename && SAFE_FILENAME_RE.test(basename) ? basename : null;
+}
+
 function compareVersionStrings(a: string, b: string): number {
   const aParts = a
     .split(/[^\d]+/)
@@ -329,9 +347,10 @@ function uniqueValidLocales(locales: VersionLocale[]): VersionLocale[] {
   const result: VersionLocale[] = [];
 
   for (const loc of locales) {
-    if (!VALID_LOCALE_RE.test(loc.locale) || seen.has(loc.locale)) continue;
-    seen.add(loc.locale);
-    result.push(loc);
+    const normalizedLoc = normalizeLocale(loc.locale);
+    if (!normalizedLoc || seen.has(normalizedLoc)) continue;
+    seen.add(normalizedLoc);
+    result.push({ ...loc, locale: normalizedLoc });
   }
 
   return result;
@@ -539,7 +558,7 @@ async function frameScreenshots(
               },
               path.join(outputDir, "unframed", locale),
             );
-            
+
             log(`[framing] ${filename} → ${paths.length} path(s)`);
             outputPaths.push(...paths);
           } finally {

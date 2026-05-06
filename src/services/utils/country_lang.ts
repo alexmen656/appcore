@@ -459,3 +459,13 @@ export const LOCALE_MAP: Record<string, LocaleConfig> = {
     ollamaModel: "qwen2.5:7b",
   },
 };
+
+const LOCALE_MAP_LOWERCASE = new Map(Object.keys(LOCALE_MAP).map((locale) => [locale.toLowerCase(), locale]));
+
+export function normalizeLocale(locale: string): string | null {
+  return LOCALE_MAP_LOWERCASE.get(locale.toLowerCase()) ?? null;
+}
+
+export function isValidLocale(locale: string): boolean {
+  return normalizeLocale(locale) !== null;
+}
