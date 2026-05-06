@@ -1,7 +1,7 @@
-<h2>
-  <img src="readme_files/logo.svg" alt="Marteso logo" width="32">
+<h1>
+  <img src="readme_files/logo.svg" alt="Marteso logo" width="36" style="padding-left: 12px;">
   Marteso
-</h2>
+</h1>
 
 Marteso is a platform which combines iOS CI&CD pipeline with ASO tool. The core is the screenshot pipeline which automatically generates screenshots and valid signed binary on every GitHub push, basically like Vercel but for iOS apps.
 
