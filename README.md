@@ -1,16 +1,17 @@
 <h1>
-  <img src="readme_files/logo.svg" alt="Marteso logo" width="36" style="padding-left: 12px;">
+  <img src="readme_files/logo.svg" alt="Marteso logo" width="36">
   Marteso
 </h1>
 
 Marteso is a platform which combines iOS CI&CD pipeline with ASO tools. The core is the screenshot pipeline which automatically generates screenshots and valid signed binaries on every GitHub push, basically like Vercel but for iOS apps.
 
-Important Features:
+## Important Features
+
 - Analytics: Shows Impressions, Page Views and Dwonloads by country and date
 - Keywords: Tracks your App ranking and discovers new keywords with Ai based on competitors text, category etc.
 - Competitors: Tracks your App competitors and gathers intel about them:
-	- Summarized Reviews
-	- Tracking of Metadata changes
+  - Summarized Reviews
+  - Tracking of Metadata changes
 - Suggestions: Suggests better metadata based on tracked keywords and competitors (doesb't work that great yet)
 - Monetization: Manages Subscriptios and One time purchases (one time pruchases not implemented yet)
 - Versions: Metdata managament with auto translate feature
@@ -18,11 +19,12 @@ Important Features:
 - Team: Marteso supports Teams although roles arent fully implemented yet, but you can already invite other users
 - MCP Agents support
 
+## Secondary/Specific Features
 
-
-Secondary/Specific Features:
-Passkeys
-Autonomous mode (planned)
+- Passkeys
+- Autonomous mode (planned)
+- admin panel
+- ios app for notifications
 
 ## Demo
 
@@ -42,31 +44,27 @@ App: [marteso.com](https://marteso.com)
 
 ### Admin
 
-React + Shadcn
-
-link: `/admin`
+- React + Shadcn
+- link: `/admin`
 
 ### Docs
 
-Technology: Docosaurus
-
-link: `/docs`
+- Technology: Docosaurus
+- link: `/docs`
 
 ### Landing
 
-Technology: Astro
-
-link: `/`
+- Technology: Astro
+- link: `/`
 
 ### Main App
 
-Technology: Reac (frontend), TypeScript (backend)
-
-link: `/app`
+- Technology: React (frontend), TypeScript (backend)
+- link: `/app`
 
 ### Worker
 
-Technology: TypeScript - manages ios stuff which needs MacOs/Xcode
+- Technology: TypeScript - manages ios stuff which needs MacOs/Xcode
 
 #### important
 
@@ -77,13 +75,14 @@ Technology: TypeScript - manages ios stuff which needs MacOs/Xcode
 
 ### iOS App
 
-Technology: Swift - Not upodate atm - mostly used for push notifications
+- Technology: Swift - Not upodate atm - mostly used for push notifications
 
 ## AI transparency
 
 I used AI mainly for debugging Xcode-related code around the screenshots pipeline, and also for parts of the landing page. I also used it for the MCP server, since recreating all web API endpoints again in a different format for the AI is mostly just repetitive busywork.
-Docs - I had no tie to write proper docs yet
-iOS app
+
+- Docs - I had no tie to write proper docs yet
+- iOS app
 
 ## Credits
 
