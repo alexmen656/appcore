@@ -273,10 +273,11 @@ Marteso is actively developed. Some features are experimental or incomplete:
 
 ## AI transparency
 
-I used AI mainly for debugging Xcode-related code around the screenshots pipeline, and also for parts of the landing page. I also used it for the MCP server, since recreating all web API endpoints again in a different format for the AI is mostly just repetitive busywork.
-
-- Docs - I had no time to write proper docs yet
-- iOS app
+- Screenshot pipeline: AI was mainly used for debugging Xcode-related code around screenshot generation.
+- Landing page: Parts of the landing page were built with AI assistance.
+- MCP server: AI was used because recreating all web API endpoints again in a different format for the AI is mostly just repetitive busywork.
+- Docs: All markdown docs are currently written with AI assistance because I had no time to write proper docs yet. This is subject to change in the future.
+- iOS app: The iOS app was developed with strong AI assistance. Its primary goal is sending notifications.
 
 ## Credits
 
