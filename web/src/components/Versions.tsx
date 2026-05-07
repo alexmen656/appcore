@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { useApi, apiGet, apiPost, apiPatch, apiDelete, getActiveBundleId } from "../hooks/useApi";
+import { usePermissions } from "../hooks/usePermissions";
 import {
   badgeOutline,
   borderDefault,
@@ -690,6 +691,7 @@ function ScreenshotsPanel({
   activeLocale: string | null;
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }) {
+  const { canWrite } = usePermissions();
   const { data, loading, refetch } = useApi<{ job: FramedJob | null }>(`/github/screenshots/latest-framed/${appId}`, [
     appId,
   ]);
@@ -715,7 +717,9 @@ function ScreenshotsPanel({
   }, [previewUrl]);
 
   const deleteScreenshot = async (jobId: string, url: string) => {
+    if (!canWrite) return;
     if (!confirm("Remove this screenshot?")) return;
+
     setDeleting(url);
     try {
       await apiDelete(`/github/screenshots/framed/${jobId}`, { url });
@@ -729,6 +733,7 @@ function ScreenshotsPanel({
   };
 
   const persistOrder = async (jobId: string, locale: string, urls: string[]) => {
+    if (!canWrite) return;
     try {
       await apiPatch(`/github/screenshots/framed/${jobId}/reorder`, { locale, urls });
     } catch (err: any) {
@@ -965,6 +970,7 @@ function ReviewerInfoPanel({
   addToast: (msg: string, type: "success" | "error" | "info") => void;
   onRefetch: () => void;
 }) {
+  const { canWrite } = usePermissions();
   const [form, setForm] = useState({
     reviewerFirstName: data.reviewerFirstName ?? "",
     reviewerLastName: data.reviewerLastName ?? "",
@@ -997,7 +1003,7 @@ function ReviewerInfoPanel({
   };
 
   const handleSave = async () => {
-    if (!data.versionId) return;
+    if (!data.versionId || !canWrite) return;
     setSaving(true);
     try {
       await apiPatch("/asc/versions/reviewer-info", {
@@ -1016,7 +1022,7 @@ function ReviewerInfoPanel({
   };
 
   const handleSync = async () => {
-    if (!data.versionId) return;
+    if (!data.versionId || !canWrite) return;
     setSyncing(true);
     try {
       await apiPost("/asc/versions/reviewer-info/sync", {
@@ -1168,6 +1174,7 @@ function ReviewerInfoPanel({
 }
 
 export default function Versions({ addToast }: Props) {
+  const { canWrite } = usePermissions();
   const { versionId } = useParams<{ versionId: string }>();
   const apiPath = versionId ? `/asc/versions?versionId=${encodeURIComponent(versionId)}` : "/asc/versions";
   const { data: fetchedData, loading, error, refetch } = useApi<VersionsData>(apiPath, [versionId ?? ""]);
@@ -1330,6 +1337,10 @@ export default function Versions({ addToast }: Props) {
   }, [submitStatus?.logs?.length]);
 
   const runSubmission = async (kind: "metadata" | "review") => {
+    if (!canWrite) {
+      addToast("Viewer role cannot perform this action", "error");
+      return;
+    }
     setSubmitting(kind);
     setShowLogs(true);
     try {
@@ -1345,6 +1356,10 @@ export default function Versions({ addToast }: Props) {
   };
 
   const syncFromAppStore = async () => {
+    if (!canWrite) {
+      addToast("Viewer role cannot perform this action", "error");
+      return;
+    }
     try {
       const res = await apiPost("/actions/sync", {
         bundleId: getActiveBundleId(),
@@ -1448,6 +1463,7 @@ export default function Versions({ addToast }: Props) {
       if (!data?.versionId) return;
       if (!confirm(`Remove ${getLocaleName(loc.locale)} (${loc.locale})?`)) return;
       setRemovingLocale(loc.locale);
+
       try {
         await apiDelete("/asc/versions/localizations", {
           bundleId: getActiveBundleId(),
@@ -1569,265 +1585,281 @@ export default function Versions({ addToast }: Props) {
             (data.appStoreState === "READY_FOR_SALE" || data.appStoreState === "REPLACED_WITH_NEW_VERSION") && (
               <span className={badgeOutline("readonly")}>Read-only</span>
             )}
+          {!canWrite && <span className={badgeOutline("readonly")}>Viewer</span>}
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <ActionButton
-            canSubmitForReview={canSubmitForReview}
-            submitting={submitting}
-            isActive={isActive}
-            onSubmitForReview={() => runSubmission("review")}
-            onPushMetadata={() => runSubmission("metadata")}
-            onRefetch={refetch}
-            onSync={syncFromAppStore}
-          />
+          {canWrite && (
+            <ActionButton
+              canSubmitForReview={canSubmitForReview}
+              submitting={submitting}
+              isActive={isActive}
+              onSubmitForReview={() => runSubmission("review")}
+              onPushMetadata={() => runSubmission("metadata")}
+              onRefetch={refetch}
+              onSync={syncFromAppStore}
+            />
+          )}
         </div>
       </div>
 
-      {submitStatus && submitStatus.status !== "idle" && (
-        <div className={`${cardCls} mb-5 py-3.5`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              {(() => {
-                const c = SUBMIT_STATUS_COLORS[submitStatus.status] ?? SUBMIT_STATUS_DEFAULT;
-                return (
-                  <>
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${c.dot}`} />
-                    <span className={`text-[13px] font-medium capitalize ${c.text}`}>
-                      Status - {submitStatus.status}
-                    </span>
-                  </>
-                );
-              })()}
-            </div>
-            <button
-              onClick={() => setShowLogs((v) => !v)}
-              className={`text-[11px] ${textMuted} hover:text-[#6b7280] dark:hover:text-[#8b93a5] transition-colors font-medium`}
-            >
-              {showLogs ? "Hide" : "Show"} logs
-            </button>
-          </div>
-          {submitStatus.errors.length > 0 && (
-            <div className="mt-2.5 p-2.5 bg-red-50 rounded-lg border border-red-100">
-              {submitStatus.errors.map((e, i) => (
-                <p key={i} className="text-xs text-red-600">
-                  {e}
-                </p>
-              ))}
-            </div>
-          )}
-          {showLogs && submitStatus.logs.length > 0 && (
-            <div className="mt-3 bg-[#0f0f1a] rounded-xl p-4 max-h-52 overflow-y-auto font-mono text-xs text-gray-400 border border-[#1e1e2e]">
-              {submitStatus.logs.map((line, i) => (
-                <div
-                  key={i}
-                  className={`py-0.5 leading-relaxed ${
-                    line.startsWith("[stderr]")
-                      ? "text-yellow-400"
-                      : line.toLowerCase().includes("error")
-                        ? "text-red-400"
-                        : line.toLowerCase().includes("success") || line.toLowerCase().includes("completed")
-                          ? "text-emerald-400"
-                          : ""
-                  }`}
-                >
-                  {line}
-                </div>
-              ))}
-              <div ref={logEndRef} />
-            </div>
-          )}
+      {!canWrite && (
+        <div className="mb-4 px-3 py-2 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-900/40 text-[12px] text-amber-800 dark:text-amber-300">
+          Viewer role: editing is disabled. Contact a team admin or member to make changes.
         </div>
       )}
 
-      <LatestBuildCard bundleId={data.bundleId} appName={data.appName} />
+      <fieldset disabled={!canWrite} className="contents">
+        {submitStatus && submitStatus.status !== "idle" && (
+          <div className={`${cardCls} mb-5 py-3.5`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                {(() => {
+                  const c = SUBMIT_STATUS_COLORS[submitStatus.status] ?? SUBMIT_STATUS_DEFAULT;
+                  return (
+                    <>
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${c.dot}`} />
+                      <span className={`text-[13px] font-medium capitalize ${c.text}`}>
+                        Status - {submitStatus.status}
+                      </span>
+                    </>
+                  );
+                })()}
+              </div>
+              <button
+                onClick={() => setShowLogs((v) => !v)}
+                className={`text-[11px] ${textMuted} hover:text-[#6b7280] dark:hover:text-[#8b93a5] transition-colors font-medium`}
+              >
+                {showLogs ? "Hide" : "Show"} logs
+              </button>
+            </div>
+            {submitStatus.errors.length > 0 && (
+              <div className="mt-2.5 p-2.5 bg-red-50 rounded-lg border border-red-100">
+                {submitStatus.errors.map((e, i) => (
+                  <p key={i} className="text-xs text-red-600">
+                    {e}
+                  </p>
+                ))}
+              </div>
+            )}
+            {showLogs && submitStatus.logs.length > 0 && (
+              <div className="mt-3 bg-[#0f0f1a] rounded-xl p-4 max-h-52 overflow-y-auto font-mono text-xs text-gray-400 border border-[#1e1e2e]">
+                {submitStatus.logs.map((line, i) => (
+                  <div
+                    key={i}
+                    className={`py-0.5 leading-relaxed ${
+                      line.startsWith("[stderr]")
+                        ? "text-yellow-400"
+                        : line.toLowerCase().includes("error")
+                          ? "text-red-400"
+                          : line.toLowerCase().includes("success") || line.toLowerCase().includes("completed")
+                            ? "text-emerald-400"
+                            : ""
+                    }`}
+                  >
+                    {line}
+                  </div>
+                ))}
+                <div ref={logEndRef} />
+              </div>
+            )}
+          </div>
+        )}
 
-      {activeLoc ? (
-        <div className={`${cardCls} flex flex-col gap-5`}>
-          {(localizationSummaries.length > 1 || data.isEditable) && (
-            <div className="-mx-5 -mt-5 px-5 pt-4 pb-4 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
-              <div className="flex items-start gap-2">
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 flex-wrap flex-1 min-w-0">
-                  {[...localizationSummaries]
-                    .sort((a, b) => getLocaleName(a.locale).localeCompare(getLocaleName(b.locale)))
-                    .map((loc) => {
-                      const localeTranslating = translatingLocales.includes(loc.locale);
-                      const localeLoading = visibleLoadingLocale === loc.locale;
-                      const isComplete = loc.isComplete;
-                      const isActive = loc.locale === activeLocale;
-                      return (
-                        <div key={loc.locale} className="relative group">
-                          <button
-                            onClick={() => selectLocale(loc.locale)}
-                            className={`flex items-center gap-2 px-3.5 py-[7px] rounded-xl transition-all whitespace-nowrap ${
-                              isActive
-                                ? "bg-[#111827] dark:bg-[#e8eaf0] border text-white dark:text-[#111827] shadow-sm"
-                                : isComplete
-                                  ? `bg-emerald-50/70 dark:bg-emerald-900/15 border border-emerald-200/60 dark:border-emerald-800/40 ${textPrimary} hover:border-emerald-300 dark:hover:border-emerald-700/60`
-                                  : `bg-[#fafbfc] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] ${textPrimary} hover:border-[#d1d5db] dark:hover:border-[#3a4050]`
-                            }`}
-                          >
-                            <LocaleFlag locale={loc.locale} />
-                            <span className="text-[13px] font-medium">{getLocaleName(loc.locale)}</span>
-                            {(localeTranslating || localeLoading) && <div className="spinner !w-3 !h-3" />}
-                          </button>
-                          {data.isEditable && localizationSummaries.length > 1 && !localeTranslating && (
+        <LatestBuildCard bundleId={data.bundleId} appName={data.appName} />
+
+        {activeLoc ? (
+          <div className={`${cardCls} flex flex-col gap-5`}>
+            {(localizationSummaries.length > 1 || data.isEditable) && (
+              <div className="-mx-5 -mt-5 px-5 pt-4 pb-4 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
+                <div className="flex items-start gap-2">
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 flex-wrap flex-1 min-w-0">
+                    {[...localizationSummaries]
+                      .sort((a, b) => getLocaleName(a.locale).localeCompare(getLocaleName(b.locale)))
+                      .map((loc) => {
+                        const localeTranslating = translatingLocales.includes(loc.locale);
+                        const localeLoading = visibleLoadingLocale === loc.locale;
+                        const isComplete = loc.isComplete;
+                        const isActive = loc.locale === activeLocale;
+                        return (
+                          <div key={loc.locale} className="relative group">
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                removeLocale({
-                                  ...EMPTY_LOCALIZATION_FIELDS,
-                                  locale: loc.locale,
-                                  appInfoLocalizationId: loc.appInfoLocalizationId,
-                                  versionLocalizationId: loc.versionLocalizationId,
-                                });
-                              }}
-                              disabled={removingLocale === loc.locale}
-                              className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm ${
-                                loc.locale === activeLocale
-                                  ? "bg-white/20 hover:bg-white/40 text-white"
-                                  : "bg-[#f3f4f6] dark:bg-[#2a2f3d] hover:bg-red-100 dark:hover:bg-red-900/30 text-[#9ca3af] hover:text-[#D94412]"
+                              onClick={() => selectLocale(loc.locale)}
+                              className={`flex items-center gap-2 px-3.5 py-[7px] rounded-xl transition-all whitespace-nowrap ${
+                                isActive
+                                  ? "bg-[#111827] dark:bg-[#e8eaf0] border text-white dark:text-[#111827] shadow-sm"
+                                  : isComplete
+                                    ? `bg-emerald-50/70 dark:bg-emerald-900/15 border border-emerald-200/60 dark:border-emerald-800/40 ${textPrimary} hover:border-emerald-300 dark:hover:border-emerald-700/60`
+                                    : `bg-[#fafbfc] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] ${textPrimary} hover:border-[#d1d5db] dark:hover:border-[#3a4050]`
                               }`}
-                              title="Remove language"
                             >
-                              {removingLocale === loc.locale ? (
-                                <div className="spinner !w-3.5 !h-3.5" />
-                              ) : (
-                                <X className="w-3 h-3" />
-                              )}
+                              <LocaleFlag locale={loc.locale} />
+                              <span className="text-[13px] font-medium">{getLocaleName(loc.locale)}</span>
+                              {(localeTranslating || localeLoading) && <div className="spinner !w-3 !h-3" />}
                             </button>
-                          )}
-                        </div>
-                      );
-                    })}
-                </div>
-                {data.isEditable && data.versionId && (
-                  <div ref={addLocaleRef} className="relative shrink-0 self-start">
-                    <button
-                      onClick={() => setShowAddLocale((v) => !v)}
-                      disabled={addingLocale}
-                      className={`flex items-center gap-1.5 px-3 py-[7px] rounded-xl border border-dashed border-[#d1d5db] dark:border-[#3a4050] ${textSecondary} hover:border-[#D94412] hover:text-[#D94412] transition-all text-[13px] font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                      {addingLocale ? <div className="spinner !w-3.5 !h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-                      Add Language
-                    </button>
-                    {showAddLocale && (
-                      <div
-                        className={`absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-xl shadow-lg py-1 min-w-[235px] max-h-64 overflow-y-auto`}
+                            {data.isEditable && localizationSummaries.length > 1 && !localeTranslating && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeLocale({
+                                    ...EMPTY_LOCALIZATION_FIELDS,
+                                    locale: loc.locale,
+                                    appInfoLocalizationId: loc.appInfoLocalizationId,
+                                    versionLocalizationId: loc.versionLocalizationId,
+                                  });
+                                }}
+                                disabled={removingLocale === loc.locale}
+                                className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm ${
+                                  loc.locale === activeLocale
+                                    ? "bg-white/20 hover:bg-white/40 text-white"
+                                    : "bg-[#f3f4f6] dark:bg-[#2a2f3d] hover:bg-red-100 dark:hover:bg-red-900/30 text-[#9ca3af] hover:text-[#D94412]"
+                                }`}
+                                title="Remove language"
+                              >
+                                {removingLocale === loc.locale ? (
+                                  <div className="spinner !w-3.5 !h-3.5" />
+                                ) : (
+                                  <X className="w-3 h-3" />
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+                  {data.isEditable && data.versionId && (
+                    <div ref={addLocaleRef} className="relative shrink-0 self-start">
+                      <button
+                        onClick={() => setShowAddLocale((v) => !v)}
+                        disabled={addingLocale}
+                        className={`flex items-center gap-1.5 px-3 py-[7px] rounded-xl border border-dashed border-[#d1d5db] dark:border-[#3a4050] ${textSecondary} hover:border-[#D94412] hover:text-[#D94412] transition-all text-[13px] font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
-                        {(ascLocales ?? [])
-                          .filter((l) => !localizationSummaries.some((loc) => loc.locale === l))
-                          .sort((a, b) => getLocaleName(a).localeCompare(getLocaleName(b)))
-                          .map((locale) => (
-                            <button
-                              key={locale}
-                              onClick={() => createLocalization(locale)}
-                              className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left`}
-                            >
-                              <span className="flex items-center gap-2">
-                                <LocaleFlag locale={locale} className="w-5 h-4 rounded-xs" />
-                                {getLocaleName(locale)}
-                              </span>
-                              <span className={`text-[11px] font-mono ${textMuted}`}>{locale}</span>
-                            </button>
-                          ))}
-                      </div>
-                    )}
+                        {addingLocale ? <div className="spinner !w-3.5 !h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+                        Add Language
+                      </button>
+                      {showAddLocale && (
+                        <div
+                          className={`absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-xl shadow-lg py-1 min-w-[235px] max-h-64 overflow-y-auto`}
+                        >
+                          {(ascLocales ?? [])
+                            .filter((l) => !localizationSummaries.some((loc) => loc.locale === l))
+                            .sort((a, b) => getLocaleName(a).localeCompare(getLocaleName(b)))
+                            .map((locale) => (
+                              <button
+                                key={locale}
+                                onClick={() => createLocalization(locale)}
+                                className={`w-full flex items-center justify-between gap-2 px-4 py-2 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left`}
+                              >
+                                <span className="flex items-center gap-2">
+                                  <LocaleFlag locale={locale} className="w-5 h-4 rounded-xs" />
+                                  {getLocaleName(locale)}
+                                </span>
+                                <span className={`text-[11px] font-mono ${textMuted}`}>{locale}</span>
+                              </button>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pb-3 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
+              <div className="flex items-start gap-2.5">
+                <LocaleFlag
+                  locale={activeLoc.locale}
+                  className="w-auto h-[17px] rounded-xs object-cover shrink-0 mt-1"
+                />
+                <div>
+                  <div className={`text-[16px] font-semibold ${textPrimary} leading-tight`}>
+                    {getLocaleName(activeLoc.locale)}
+                  </div>
+                  <div className={`text-[11px] ${textMuted} mt-0.5`}>Locale: {activeLoc.locale}</div>
+                </div>
+              </div>
+              {isActiveLocaleTranslating ? (
+                <span className={`${badgeOutline("running")} uppercase tracking-wide flex items-center gap-1.5`}>
+                  <div className="spinner !w-3 !h-3" /> Translating…
+                </span>
+              ) : data.isEditable ? (
+                <span className={`${badgeOutline("editable")} uppercase tracking-wide`}>Editable</span>
+              ) : (
+                <span className={`${badgeOutline("")} uppercase tracking-wide`}>Read-only</span>
+              )}
+            </div>
+            {data.appId && <ScreenshotsPanel appId={data.appId} activeLocale={activeLocale} addToast={addToast} />}
+
+            <div className="text-[14px] font-bold -mb-1">App Metadata</div>
+
+            {FIELD_META.map((field) => (
+              <EditableField
+                key={field.key}
+                field={field}
+                value={(activeLoc as any)[field.key] ?? ""}
+                localization={activeLoc}
+                isEditable={
+                  canWrite && !isActiveLocaleTranslating && (data.isEditable || field.key === "promotionalText")
+                }
+                onSave={handleSave}
+              />
+            ))}
+            <div className="pt-4 border-t border-[#f3f4f6]">
+              <div className={`text-[11px] font-bold uppercase tracking-widest ${textMuted} mb-4`}>Version Info</div>
+              <div className="flex flex-col gap-5">
+                <InlineEditField
+                  label="Copyright"
+                  value={data.copyright ?? ""}
+                  isEditable={canWrite && data.isEditable}
+                  onSave={async (val) => {
+                    await apiPatch("/asc/versions/metadata", {
+                      bundleId: getActiveBundleId(),
+                      versionId: data.versionId,
+                      field: "copyright",
+                      value: val,
+                    });
+                    setData((current) => (current ? { ...current, copyright: val } : current));
+                    addToast("Copyright updated", "success");
+                  }}
+                />
+                {data.ageRating !== undefined && (
+                  <div className="group">
+                    <div className="text-[12px] font-semibold text-[#6b7280] uppercase tracking-wide mb-1.5 flex items-center gap-2">
+                      Age Rating
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-[13px] ${textPrimary} px-3.5 py-[9px] border ${borderDefault} bg-[#fafbfc] dark:bg-[#252b38] rounded-xl`}
+                      >
+                        {data.ageRating || <span className="text-[#c8cdd3] dark:text-[#3a4050] italic">Not set</span>}
+                      </span>
+                      <a
+                        href="https://appstoreconnect.apple.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`text-[11px] ${textMuted} hover:text-[#D94412] transition-colors`}
+                      >
+                        Edit in ASC ↗
+                      </a>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
-          )}
-
-          <div className="flex items-center justify-between pb-3 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
-            <div className="flex items-start gap-2.5">
-              <LocaleFlag locale={activeLoc.locale} className="w-auto h-[17px] rounded-xs object-cover shrink-0 mt-1" />
-              <div>
-                <div className={`text-[16px] font-semibold ${textPrimary} leading-tight`}>
-                  {getLocaleName(activeLoc.locale)}
-                </div>
-                <div className={`text-[11px] ${textMuted} mt-0.5`}>Locale: {activeLoc.locale}</div>
-              </div>
-            </div>
-            {isActiveLocaleTranslating ? (
-              <span className={`${badgeOutline("running")} uppercase tracking-wide flex items-center gap-1.5`}>
-                <div className="spinner !w-3 !h-3" /> Translating…
-              </span>
-            ) : data.isEditable ? (
-              <span className={`${badgeOutline("editable")} uppercase tracking-wide`}>Editable</span>
-            ) : (
-              <span className={`${badgeOutline("")} uppercase tracking-wide`}>Read-only</span>
-            )}
           </div>
-          {data.appId && <ScreenshotsPanel appId={data.appId} activeLocale={activeLocale} addToast={addToast} />}
-
-          <div className="text-[14px] font-bold -mb-1">App Metadata</div>
-
-          {FIELD_META.map((field) => (
-            <EditableField
-              key={field.key}
-              field={field}
-              value={(activeLoc as any)[field.key] ?? ""}
-              localization={activeLoc}
-              isEditable={!isActiveLocaleTranslating && (data.isEditable || field.key === "promotionalText")}
-              onSave={handleSave}
-            />
-          ))}
-          <div className="pt-4 border-t border-[#f3f4f6]">
-            <div className={`text-[11px] font-bold uppercase tracking-widest ${textMuted} mb-4`}>Version Info</div>
-            <div className="flex flex-col gap-5">
-              <InlineEditField
-                label="Copyright"
-                value={data.copyright ?? ""}
-                isEditable={data.isEditable}
-                onSave={async (val) => {
-                  await apiPatch("/asc/versions/metadata", {
-                    bundleId: getActiveBundleId(),
-                    versionId: data.versionId,
-                    field: "copyright",
-                    value: val,
-                  });
-                  setData((current) => (current ? { ...current, copyright: val } : current));
-                  addToast("Copyright updated", "success");
-                }}
-              />
-              {data.ageRating !== undefined && (
-                <div className="group">
-                  <div className="text-[12px] font-semibold text-[#6b7280] uppercase tracking-wide mb-1.5 flex items-center gap-2">
-                    Age Rating
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`text-[13px] ${textPrimary} px-3.5 py-[9px] border ${borderDefault} bg-[#fafbfc] dark:bg-[#252b38] rounded-xl`}
-                    >
-                      {data.ageRating || <span className="text-[#c8cdd3] dark:text-[#3a4050] italic">Not set</span>}
-                    </span>
-                    <a
-                      href="https://appstoreconnect.apple.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`text-[11px] ${textMuted} hover:text-[#D94412] transition-colors`}
-                    >
-                      Edit in ASC ↗
-                    </a>
-                  </div>
-                </div>
-              )}
-            </div>
+        ) : localizationSummaries.length > 0 && activeLocale ? (
+          <div className={`${cardCls} flex items-center justify-center py-12 gap-3 text-gray-400 dark:text-[#5c6478]`}>
+            <div className="spinner" /> Loading {activeLocale}…
           </div>
-        </div>
-      ) : localizationSummaries.length > 0 && activeLocale ? (
-        <div className={`${cardCls} flex items-center justify-center py-12 gap-3 text-gray-400 dark:text-[#5c6478]`}>
-          <div className="spinner" /> Loading {activeLocale}…
-        </div>
-      ) : localizationSummaries.length === 0 ? (
-        <div className={`${cardCls} flex flex-col items-center justify-center py-12 text-center`}>
-          <FileText className="w-10 h-10 text-gray-300 mb-3" />
-          <p className={`text-sm ${textMuted}`}>No localizations found for this version.</p>
-        </div>
-      ) : null}
+        ) : localizationSummaries.length === 0 ? (
+          <div className={`${cardCls} flex flex-col items-center justify-center py-12 text-center`}>
+            <FileText className="w-10 h-10 text-gray-300 mb-3" />
+            <p className={`text-sm ${textMuted}`}>No localizations found for this version.</p>
+          </div>
+        ) : null}
 
-      {data.versionId && <ReviewerInfoPanel data={data} addToast={addToast} onRefetch={refetch} />}
+        {data.versionId && <ReviewerInfoPanel data={data} addToast={addToast} onRefetch={refetch} />}
+      </fieldset>
     </div>
   );
 }
