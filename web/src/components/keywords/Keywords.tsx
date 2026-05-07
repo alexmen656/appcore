@@ -12,6 +12,7 @@ import {
 import { ChevronDown, Search, X } from "lucide-react";
 import { useApi, apiPost, apiDelete, authHeaders, getActiveBundleId } from "../../hooks/useApi";
 import { useClickOutside } from "../../hooks/useClickOutside";
+import { usePermissions } from "../../hooks/usePermissions";
 import { COUNTRIES } from "./KeywordForm";
 import KeywordTable, { Keyword, SortKey } from "./KeywordTable";
 import RankingHistoryChart, { HistoryData } from "./RankingHistoryChart";
@@ -21,6 +22,8 @@ interface Props {
 }
 
 export default function Keywords({ addToast }: Props) {
+  const { canWrite } = usePermissions();
+  const writeTip = !canWrite ? "Viewer role cannot perform this action" : undefined;
   const { data, loading, refetch } = useApi<Keyword[]>("/keywords");
   const [newTerm, setNewTerm] = useState("");
   const [newCountry, setNewCountry] = useState("de");
@@ -86,6 +89,10 @@ export default function Keywords({ addToast }: Props) {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canWrite) {
+      addToast("Viewer role cannot perform this action", "error");
+      return;
+    }
     const terms = newTerm
       .split(",")
       .map((t) => t.trim())
@@ -121,6 +128,10 @@ export default function Keywords({ addToast }: Props) {
   };
 
   const handleDelete = async (id: string, term: string) => {
+    if (!canWrite) {
+      addToast("Viewer role cannot perform this action", "error");
+      return;
+    }
     try {
       await apiDelete(`/keywords/${id}`);
       addToast(`Keyword "${term}" removed`, "info");
@@ -158,7 +169,8 @@ export default function Keywords({ addToast }: Props) {
         <div ref={menuRef} className="relative flex items-stretch">
           <button
             onClick={() => triggerAction("discover-keywords", "Discover Keywords")}
-            disabled={!!running}
+            disabled={!!running || !canWrite}
+            title={writeTip}
             className="inline-flex items-center gap-1.5 pl-3.5 pr-3 py-2 rounded-l-xl text-sm font-semibold bg-[#D94412] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {running === "discover-keywords" ? (
@@ -172,7 +184,8 @@ export default function Keywords({ addToast }: Props) {
           <div className="w-px bg-[#c80b24] opacity-40" />
           <button
             onClick={() => setMenuOpen((o) => !o)}
-            disabled={!!running}
+            disabled={!!running || !canWrite}
+            title={writeTip}
             className="px-2.5 rounded-r-xl bg-[#D94412] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="More actions"
           >

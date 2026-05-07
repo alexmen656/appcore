@@ -14,6 +14,7 @@ import {
 } from "./hooks/useApi";
 import { useClickOutside } from "./hooks/useClickOutside";
 import { useToast, ToastContainer } from "./hooks/useToast";
+import { PermissionsProvider, getPermissions } from "./hooks/usePermissions";
 import Dashboard from "./components/dashboard/Dashboard";
 import Suggestions from "./components/suggestions/Suggestions";
 import Keywords from "./components/keywords/Keywords";
@@ -405,6 +406,11 @@ function HeaderProfileMenu({
           <div className="px-3 pt-2.5 pb-1">
             <div className="text-[16px] font-semibold text-[#1a1a2e] dark:text-[#e8eaf0] truncate">{displayName}</div>
             {user.email && <div className={`text-[12px] ${textMuted} truncate`}>{user.email}</div>}
+            {user.teamRole && (
+              <div className="mt-1.5 inline-flex text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 dark:bg-[#252b38] text-gray-600 dark:text-[#8b93a5]">
+                {user.teamRole}
+              </div>
+            )}
           </div>
           <div className="h-px bg-[#e5e7eb] dark:bg-[#2a2f3d] mx-3 my-1" />
           <NavLink
@@ -942,9 +948,7 @@ function SettingsSidebar({ navLinkClass }: { navLinkClass: (p: { isActive: boole
         <ArrowLeft className="w-[18px] h-[18px] opacity-60" />
         Back
       </button>
-      <div className="px-3 pb-2 text-[12px] font-semibold text-gray-400 dark:text-[#5c6478]">
-        Settings
-      </div>
+      <div className="px-3 pb-2 text-[12px] font-semibold text-gray-400 dark:text-[#5c6478]">Settings</div>
       {settingsLinks.map((link) => (
         <NavLink key={link.to} to={link.to} className={navLinkClass}>
           <link.icon />
@@ -1063,101 +1067,105 @@ export default function App() {
     }`;
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-[var(--shell-bg)] transition-colors">
-      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
-      <ToastContainer toasts={toasts} />
-      <header className="h-[52px] bg-[var(--shell-bg)] flex items-center px-4 shrink-0 z-40 transition-colors">
-        <a href="/app/" className="flex items-center gap-2.5">
-          <img src="/app/logo.svg" alt="Marteso" className="h-[23px] w-auto" />
-          <span className="text-[24px] font-bold tracking-[-0.3px] bg-gradient-to-br from-[#D94412] to-[#C4001E] bg-clip-text text-transparent">
-            marteso
-          </span>
-        </a>
-        <div className="flex-1" />
-        <button
-          onClick={() => setSearchOpen(true)}
-          className="flex items-center gap-2 bg-black/[0.06] dark:bg-white/10 rounded-md px-3 py-1.5 text-sm text-[#6b7280] dark:text-white/50 w-44 mr-3 cursor-pointer select-none hover:bg-black/[0.09] dark:hover:bg-white/[0.15] transition-colors"
-        >
-          <Search className="w-3.5 h-3.5 shrink-0" />
-          <span>Search…</span>
-          <span className="ml-auto text-[10px] bg-black/[0.08] dark:bg-white/20 rounded px-1 py-0.5 font-mono">⌘K</span>
-        </button>
-        <HelpMenu />
-        <HeaderProfileMenu user={user} onLogout={handleLogout} dark={dark} onToggleDark={() => setDark((d) => !d)} />
-      </header>
-      <div className="flex flex-1 min-h-0">
-        <aside className="w-[250px] min-w-[250px] bg-[var(--shell-bg)] flex flex-col overflow-y-auto transition-colors">
-          {inSettings ? (
-            <SettingsSidebar navLinkClass={navLinkClass} />
-          ) : (
-            <>
-              <AppSwitcher current={dash?.app ?? null} addToast={addToast} />
-              <nav className="px-2 pt-1 flex-1 flex flex-col">
-                {sidebarLinks.slice(0, 1).map((link) => (
-                  <NavLink key={link.to} to={link.to} className={navLinkClass}>
-                    {link.icon && <link.icon />}
-                    {link.label}
-                  </NavLink>
-                ))}
-                <AnalyticsSidebarSection navLinkClass={navLinkClass} />
-                {sidebarLinks.slice(1).map((link) => (
-                  <NavLink key={link.to} to={link.to} className={navLinkClass}>
-                    {link.icon && <link.icon />}
-                    {link.label}
-                  </NavLink>
-                ))}
-                <MonetizationSidebarSection navLinkClass={navLinkClass} />
-                <VersionsSidebarSection navLinkClass={navLinkClass} />
-                <MoreSidebarSection navLinkClass={navLinkClass} />
-                <div className="mt-auto pb-3">
-                  <div className="h-px bg-[#eef0f3] dark:bg-[#2a2f3d] mx-1 mb-2 mt-1" />
-                  {sidebarOperations.map((link) => (
+    <PermissionsProvider value={getPermissions(user)}>
+      <div className="flex flex-col h-screen overflow-hidden bg-[var(--shell-bg)] transition-colors">
+        <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
+        <ToastContainer toasts={toasts} />
+        <header className="h-[52px] bg-[var(--shell-bg)] flex items-center px-4 shrink-0 z-40 transition-colors">
+          <a href="/app/" className="flex items-center gap-2.5">
+            <img src="/app/logo.svg" alt="Marteso" className="h-[23px] w-auto" />
+            <span className="text-[24px] font-bold tracking-[-0.3px] bg-gradient-to-br from-[#D94412] to-[#C4001E] bg-clip-text text-transparent">
+              marteso
+            </span>
+          </a>
+          <div className="flex-1" />
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="flex items-center gap-2 bg-black/[0.06] dark:bg-white/10 rounded-md px-3 py-1.5 text-sm text-[#6b7280] dark:text-white/50 w-44 mr-3 cursor-pointer select-none hover:bg-black/[0.09] dark:hover:bg-white/[0.15] transition-colors"
+          >
+            <Search className="w-3.5 h-3.5 shrink-0" />
+            <span>Search…</span>
+            <span className="ml-auto text-[10px] bg-black/[0.08] dark:bg-white/20 rounded px-1 py-0.5 font-mono">
+              ⌘K
+            </span>
+          </button>
+          <HelpMenu />
+          <HeaderProfileMenu user={user} onLogout={handleLogout} dark={dark} onToggleDark={() => setDark((d) => !d)} />
+        </header>
+        <div className="flex flex-1 min-h-0">
+          <aside className="w-[250px] min-w-[250px] bg-[var(--shell-bg)] flex flex-col overflow-y-auto transition-colors">
+            {inSettings ? (
+              <SettingsSidebar navLinkClass={navLinkClass} />
+            ) : (
+              <>
+                <AppSwitcher current={dash?.app ?? null} addToast={addToast} />
+                <nav className="px-2 pt-1 flex-1 flex flex-col">
+                  {sidebarLinks.slice(0, 1).map((link) => (
                     <NavLink key={link.to} to={link.to} className={navLinkClass}>
                       {link.icon && <link.icon />}
                       {link.label}
                     </NavLink>
                   ))}
-                </div>
-              </nav>
-            </>
-          )}
-        </aside>
+                  <AnalyticsSidebarSection navLinkClass={navLinkClass} />
+                  {sidebarLinks.slice(1).map((link) => (
+                    <NavLink key={link.to} to={link.to} className={navLinkClass}>
+                      {link.icon && <link.icon />}
+                      {link.label}
+                    </NavLink>
+                  ))}
+                  <MonetizationSidebarSection navLinkClass={navLinkClass} />
+                  <VersionsSidebarSection navLinkClass={navLinkClass} />
+                  <MoreSidebarSection navLinkClass={navLinkClass} />
+                  <div className="mt-auto pb-3">
+                    <div className="h-px bg-[#eef0f3] dark:bg-[#2a2f3d] mx-1 mb-2 mt-1" />
+                    {sidebarOperations.map((link) => (
+                      <NavLink key={link.to} to={link.to} className={navLinkClass}>
+                        {link.icon && <link.icon />}
+                        {link.label}
+                      </NavLink>
+                    ))}
+                  </div>
+                </nav>
+              </>
+            )}
+          </aside>
 
-        <main className="relative z-30 flex-1 overflow-y-auto overscroll-contain px-7 py-6 bg-white dark:bg-[#0f1117] rounded-tl-2xl border-t border-l border-[rgba(16,24,40,0.06)] dark:border-[rgba(255,255,255,0.05)] shadow-[-4px_-4px_14px_-8px_rgba(16,24,40,0.05),0_-6px_16px_-8px_rgba(16,24,40,0.07)] dark:shadow-[-4px_-4px_14px_-8px_rgba(0,0,0,0.3),0_-6px_16px_-8px_rgba(0,0,0,0.35)]">
-          <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/suggestions" element={<Suggestions addToast={addToast} />} />
-            <Route path="/keywords" element={<Keywords addToast={addToast} />} />
-            <Route path="/competitors" element={<Competitors addToast={addToast} />} />
-            <Route path="/competitors/:id" element={<CompetitorDetailPage addToast={addToast} />} />
-            <Route path="/analytics" element={<Analytics addToast={addToast} />} />
-            <Route path="/analytics/downloads" element={<AnalyticsDownloads />} />
-            <Route path="/analytics/countries" element={<AnalyticsCountries />} />
-            <Route path="/analytics/countries/:country" element={<AnalyticsCountryDetail />} />
-            <Route path="/analytics/reviews" element={<AnalyticsReviews />} />
-            <Route path="/versions/:versionId" element={<Versions addToast={addToast} />} />
-            <Route path="/versions" element={<Versions addToast={addToast} />} />
-            <Route path="/monetization/subscriptions" element={<MonetizationSubscriptions addToast={addToast} />} />
-            <Route path="/monetization/products" element={<MonetizationProducts />} />
-            <Route path="/game-center/leaderboards" element={<GameCenterLeaderboards addToast={addToast} />} />
-            <Route path="/game-center/achievements" element={<GameCenterAchievements addToast={addToast} />} />
-            <Route path="/game-center/challenges" element={<GameCenterChallenges addToast={addToast} />} />
-            <Route path="/logs" element={<Actions addToast={addToast} />} />
-            <Route path="/app-settings" element={<AppSettings addToast={addToast} />} />
-            <Route path="/settings" element={<Navigate to="/settings/profile" replace />} />
-            <Route
-              path="/settings/profile"
-              element={<ProfileSettings user={user} onUserUpdate={(u) => setUser(u)} addToast={addToast} />}
-            />
-            <Route path="/settings/team-settings" element={<Settings addToast={addToast} />} />
-            <Route path="/settings/team" element={<Team addToast={addToast} currentUserId={user.id} />} />
-            <Route path="/settings/agents" element={<Agents addToast={addToast} />} />
-            <Route path="/invite/:token" element={<InviteAccept onAuth={(u) => setUser(u)} />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </main>
+          <main className="relative z-30 flex-1 overflow-y-auto overscroll-contain px-7 py-6 bg-white dark:bg-[#0f1117] rounded-tl-2xl border-t border-l border-[rgba(16,24,40,0.06)] dark:border-[rgba(255,255,255,0.05)] shadow-[-4px_-4px_14px_-8px_rgba(16,24,40,0.05),0_-6px_16px_-8px_rgba(16,24,40,0.07)] dark:shadow-[-4px_-4px_14px_-8px_rgba(0,0,0,0.3),0_-6px_16px_-8px_rgba(0,0,0,0.35)]">
+            <Routes>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/suggestions" element={<Suggestions addToast={addToast} />} />
+              <Route path="/keywords" element={<Keywords addToast={addToast} />} />
+              <Route path="/competitors" element={<Competitors addToast={addToast} />} />
+              <Route path="/competitors/:id" element={<CompetitorDetailPage addToast={addToast} />} />
+              <Route path="/analytics" element={<Analytics addToast={addToast} />} />
+              <Route path="/analytics/downloads" element={<AnalyticsDownloads />} />
+              <Route path="/analytics/countries" element={<AnalyticsCountries />} />
+              <Route path="/analytics/countries/:country" element={<AnalyticsCountryDetail />} />
+              <Route path="/analytics/reviews" element={<AnalyticsReviews />} />
+              <Route path="/versions/:versionId" element={<Versions addToast={addToast} />} />
+              <Route path="/versions" element={<Versions addToast={addToast} />} />
+              <Route path="/monetization/subscriptions" element={<MonetizationSubscriptions addToast={addToast} />} />
+              <Route path="/monetization/products" element={<MonetizationProducts />} />
+              <Route path="/game-center/leaderboards" element={<GameCenterLeaderboards addToast={addToast} />} />
+              <Route path="/game-center/achievements" element={<GameCenterAchievements addToast={addToast} />} />
+              <Route path="/game-center/challenges" element={<GameCenterChallenges addToast={addToast} />} />
+              <Route path="/logs" element={<Actions addToast={addToast} />} />
+              <Route path="/app-settings" element={<AppSettings addToast={addToast} />} />
+              <Route path="/settings" element={<Navigate to="/settings/profile" replace />} />
+              <Route
+                path="/settings/profile"
+                element={<ProfileSettings user={user} onUserUpdate={(u) => setUser(u)} addToast={addToast} />}
+              />
+              <Route path="/settings/team-settings" element={<Settings addToast={addToast} />} />
+              <Route path="/settings/team" element={<Team addToast={addToast} currentUserId={user.id} />} />
+              <Route path="/settings/agents" element={<Agents addToast={addToast} />} />
+              <Route path="/invite/:token" element={<InviteAccept onAuth={(u) => setUser(u)} />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </main>
+        </div>
       </div>
-    </div>
+    </PermissionsProvider>
   );
 }

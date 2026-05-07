@@ -190,12 +190,15 @@ export interface Suggestion {
   appliedAt: string | null;
 }
 
+export type TeamRole = "OWNER" | "ADMIN" | "MEMBER" | "VIEWER";
+
 export interface AuthUser {
   id: string;
   email: string;
   name: string | null;
   role: string;
   teamId: string | null;
+  teamRole: TeamRole | null;
 }
 
 export type AppRole = "OWNER" | "EDITOR" | "VIEWER";

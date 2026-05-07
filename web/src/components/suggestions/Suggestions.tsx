@@ -16,6 +16,7 @@ function LocaleFlag({ locale }: { locale: string }) {
   );
 }
 import { useApi, apiPost, getActiveBundleId } from "../../hooks/useApi";
+import { usePermissions } from "../../hooks/usePermissions";
 import SuggestionCard from "./SuggestionCard";
 import SuggestionDetail from "./SuggestionDetail";
 import type { Suggestion } from "../../types";
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export default function Suggestions({ addToast }: Props) {
+  const { canWrite } = usePermissions();
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const filterQ = [statusFilter && `status=${statusFilter}`, typeFilter && `type=${typeFilter}`]
@@ -66,6 +68,10 @@ export default function Suggestions({ addToast }: Props) {
   const selectedIndex = selectedItem ? items.findIndex((i) => i.id === selectedItem.id) : -1;
 
   const handleAction = async (id: string, action: "approve" | "reject" | "apply") => {
+    if (!canWrite) {
+      addToast("Viewer role cannot perform this action", "error");
+      return;
+    }
     setActing(id);
     try {
       await apiPost(`/suggestions/${id}/${action}`);
@@ -91,7 +97,12 @@ export default function Suggestions({ addToast }: Props) {
       <div className={`w-[300px] shrink-0 flex flex-col border-r ${borderDefault} overflow-hidden`}>
         <div className={`flex items-center justify-between px-4 py-4 border-b ${borderDefault} shrink-0`}>
           <h1 className={`text-[17px] font-semibold ${textPrimary}`}>Suggestions</h1>
-          <button onClick={runAnalyze} disabled={analyzing} className={btnPrimary}>
+          <button
+            onClick={runAnalyze}
+            disabled={analyzing || !canWrite}
+            title={!canWrite ? "Viewer role cannot run actions" : undefined}
+            className={btnPrimary}
+          >
             {analyzing ? (
               <>
                 <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />

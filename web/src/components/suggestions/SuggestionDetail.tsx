@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, Upload } from "lucide-react";
 import { badgeOutline, borderDefault, btnPrimary, textMuted, textSecondary, textPrimary } from "../../styles";
+import { usePermissions } from "../../hooks/usePermissions";
 import type { Suggestion } from "../../types";
 
 interface Props {
@@ -12,6 +13,8 @@ interface Props {
 }
 
 export default function SuggestionDetail({ suggestion: s, index, total, acting, onAction, onNavigate }: Props) {
+  const { canWrite } = usePermissions();
+  const tip = !canWrite ? "Viewer role cannot perform this action" : undefined;
   return (
     <div className="flex flex-col h-full">
       <div className={`flex items-center justify-between gap-4 px-6 py-4 border-b ${borderDefault} shrink-0`}>
@@ -142,12 +145,18 @@ export default function SuggestionDetail({ suggestion: s, index, total, acting, 
         <div className={`px-6 py-4 border-t ${borderDefault} flex items-center gap-2 shrink-0`}>
           {s.status === "PENDING" && (
             <>
-              <button className={btnPrimary} disabled={acting === s.id} onClick={() => onAction(s.id, "approve")}>
+              <button
+                className={btnPrimary}
+                disabled={acting === s.id || !canWrite}
+                title={tip}
+                onClick={() => onAction(s.id, "approve")}
+              >
                 Approve
               </button>
               <button
                 className="inline-flex items-center gap-1.5 px-4 py-[8px] rounded-xl text-[13px] font-medium border border-[#fecaca] dark:border-red-900/40 bg-white dark:bg-[#1c2028] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                disabled={acting === s.id}
+                disabled={acting === s.id || !canWrite}
+                title={tip}
                 onClick={() => onAction(s.id, "reject")}
               >
                 Reject
@@ -156,7 +165,8 @@ export default function SuggestionDetail({ suggestion: s, index, total, acting, 
           )}
           <button
             className={`inline-flex items-center gap-2 pl-3.5 pr-3 py-[8px] rounded-xl text-[13px] font-medium border ${borderDefault} bg-white dark:bg-[#1c2028] ${textPrimary} hover:border-[#D94412] hover:text-[#D94412] transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer`}
-            disabled={acting === s.id}
+            disabled={acting === s.id || !canWrite}
+            title={tip}
             onClick={() => onAction(s.id, "apply")}
           >
             <Upload className="w-4 h-4" />

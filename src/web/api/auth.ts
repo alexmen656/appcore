@@ -119,6 +119,7 @@ authRouter.post("/register", async (req, res) => {
         name: user.name,
         role: user.role,
         teamId,
+        teamRole: "OWNER",
       },
     });
   } catch (err) {
@@ -169,6 +170,7 @@ authRouter.post("/login", async (req, res) => {
         name: user.name,
         role: user.role,
         teamId: membership?.teamId ?? null,
+        teamRole: user.role === "ADMIN" ? "OWNER" : (membership?.role ?? null),
       },
     });
   } catch (err) {
@@ -249,7 +251,12 @@ authRouter.get("/me", requireAuth, async (req, res) => {
       res.status(404).json({ error: "User not found" });
       return;
     }
-    res.json({ ...user, teamId: user.teamMembers[0]?.teamId ?? null });
+    const membership = user.teamMembers[0];
+    res.json({
+      ...user,
+      teamId: membership?.teamId ?? null,
+      teamRole: user.role === "ADMIN" ? "OWNER" : (membership?.role ?? null),
+    });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
@@ -267,7 +274,7 @@ authRouter.patch("/profile", requireAuth, async (req, res) => {
         res.status(400).json({ error: "Invalid email address" });
         return;
       }
-      
+
       const existing = await prisma.user.findFirst({
         where: { email: trimmed, NOT: { id: req.user!.userId } },
       });
@@ -436,7 +443,7 @@ authRouter.post("/passkey/login-options", async (req, res) => {
         where: { email },
         include: { passkeys: true },
       });
-      
+
       if (user && user.passkeys.length > 0) {
         allowCredentials = user.passkeys.map((p) => ({
           id: p.credentialId,

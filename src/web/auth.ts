@@ -5,6 +5,8 @@ import { env, prisma } from "../config";
 
 const JWT_SECRET = env.JWT_SECRET;
 
+export type TeamRoleName = "OWNER" | "ADMIN" | "MEMBER" | "VIEWER";
+
 export interface JwtPayload {
   userId: string;
   email: string;
@@ -25,8 +27,51 @@ declare global {
     interface Request {
       user?: JwtPayload;
       bundleApp?: App;
+      teamRole?: TeamRoleName | null;
     }
   }
+}
+
+const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
+export async function loadTeamRole(req: Request, _res: Response, next: NextFunction) {
+  if (!req.user) return next();
+  if (req.user.role === "ADMIN") {
+    req.teamRole = "OWNER";
+    return next();
+  }
+  if (!req.user.teamId) {
+    req.teamRole = null;
+    return next();
+  }
+  try {
+    const member = await prisma.teamMember.findUnique({
+      where: {
+        teamId_userId: { teamId: req.user.teamId, userId: req.user.userId },
+      },
+      select: { role: true },
+    });
+    req.teamRole = (member?.role as TeamRoleName | undefined) ?? null;
+  } catch {
+    req.teamRole = null;
+  }
+  next();
+}
+
+export function requireWriteRole(req: Request, res: Response, next: NextFunction) {
+  if (!MUTATING_METHODS.has(req.method)) return next();
+  if (req.user?.role === "ADMIN") return next();
+  if (req.teamRole === "VIEWER") {
+    res.status(403).json({ error: "Viewer role cannot perform this action" });
+    return;
+  }
+  next();
+}
+
+export function requireTeamAdminMw(req: Request, res: Response, next: NextFunction) {
+  if (req.user?.role === "ADMIN") return next();
+  if (req.teamRole === "OWNER" || req.teamRole === "ADMIN") return next();
+  res.status(403).json({ error: "Team admin role required" });
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
@@ -47,11 +92,7 @@ export function requireBundleAccess(
   source: "params" | "query" | "body" = "query",
   paramName = "bundleId",
 ): Array<(req: Request, res: Response, next: NextFunction) => void> {
-  const bundleAccessMiddleware = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ) => {
+  const bundleAccessMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     const bundleId = req[source]?.[paramName] as string | undefined;
     if (!bundleId) {
       res.status(400).json({ error: `${paramName} required` });
@@ -65,11 +106,7 @@ export function requireBundleAccess(
   return [requireAuth, bundleAccessMiddleware];
 }
 
-export async function verifyAppOwnership(
-  req: Request,
-  res: Response,
-  appId: string,
-) {
+export async function verifyAppOwnership(req: Request, res: Response, appId: string) {
   const app = await prisma.app.findUnique({ where: { id: appId } });
   if (!app) {
     res.status(404).json({ error: "App not found" });
@@ -83,11 +120,7 @@ export async function verifyAppOwnership(
   return app;
 }
 
-export async function verifyAppOwnershipByBundleId(
-  req: Request,
-  res: Response,
-  bundleId: string,
-) {
+export async function verifyAppOwnershipByBundleId(req: Request, res: Response, bundleId: string) {
   const app = await prisma.app.findUnique({ where: { bundleId } });
   if (!app) {
     res.status(404).json({ error: "App not found" });
@@ -101,10 +134,7 @@ export async function verifyAppOwnershipByBundleId(
   return app;
 }
 
-export async function requireTeamAdmin(
-  req: Request,
-  res: Response,
-): Promise<boolean> {
+export async function requireTeamAdmin(req: Request, res: Response): Promise<boolean> {
   if (req.user!.role === "ADMIN") return true;
   if (!req.user!.teamId) {
     res.status(403).json({ error: "No team" });
@@ -123,11 +153,7 @@ export async function requireTeamAdmin(
   return true;
 }
 
-export async function verifyTeamMemberBelongsToTeam(
-  req: Request,
-  res: Response,
-  memberId: string,
-) {
+export async function verifyTeamMemberBelongsToTeam(req: Request, res: Response, memberId: string) {
   const member = await prisma.teamMember.findUnique({
     where: { id: memberId },
   });

@@ -4,7 +4,9 @@ import fs from "fs";
 import path from "path";
 import { logger, prisma } from "../../config";
 import { env } from "../../config/env";
-import { requireAuth } from "../auth";
+import { requireAuth, loadTeamRole, requireWriteRole } from "../auth";
+
+const writeAuth = [requireAuth, loadTeamRole, requireWriteRole];
 import { encrypt, decryptNullable } from "../../config/encryption";
 import {
   getGitHubOAuthUrl,
@@ -129,7 +131,7 @@ githubRouter.get("/status", requireAuth, async (req: Request, res: Response) => 
   }
 });
 
-githubRouter.post("/disconnect", requireAuth, async (req: Request, res: Response) => {
+githubRouter.post("/disconnect", writeAuth, async (req: Request, res: Response) => {
   try {
     const teamId = req.user!.teamId;
     if (teamId) {
@@ -190,7 +192,7 @@ githubRouter.get("/repo-dirs/:owner/:repo", requireAuth, async (req: Request, re
   }
 });
 
-githubRouter.post("/link", requireAuth, async (req: Request, res: Response) => {
+githubRouter.post("/link", writeAuth, async (req: Request, res: Response) => {
   try {
     const { appId, repoFullName, iosDir } = req.body;
     if (!appId || !repoFullName) {
@@ -207,7 +209,7 @@ githubRouter.post("/link", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-githubRouter.post("/unlink", requireAuth, async (req: Request, res: Response) => {
+githubRouter.post("/unlink", writeAuth, async (req: Request, res: Response) => {
   try {
     const { appId } = req.body;
     if (!appId) {
@@ -272,7 +274,7 @@ githubRouter.get("/snapshot-env/:appId", requireAuth, async (req: Request, res: 
   }
 });
 
-githubRouter.put("/snapshot-env/:appId", requireAuth, async (req: Request, res: Response) => {
+githubRouter.put("/snapshot-env/:appId", writeAuth, async (req: Request, res: Response) => {
   try {
     const owned = await verifyAppOwnership(req, res, req.params.appId as string);
     if (!owned) return;
@@ -532,7 +534,7 @@ async function fetchLatestCommit(repoFullName: string, token: string) {
   };
 }
 
-githubRouter.post("/screenshots/trigger/:appId", requireAuth, async (req: Request, res: Response) => {
+githubRouter.post("/screenshots/trigger/:appId", writeAuth, async (req: Request, res: Response) => {
   try {
     const owned = await verifyAppOwnership(req, res, req.params.appId as string);
     if (!owned) return;
@@ -557,7 +559,7 @@ githubRouter.post("/screenshots/trigger/:appId", requireAuth, async (req: Reques
   }
 });
 
-githubRouter.post("/builds/trigger/:appId", requireAuth, async (req: Request, res: Response) => {
+githubRouter.post("/builds/trigger/:appId", writeAuth, async (req: Request, res: Response) => {
   try {
     const owned = await verifyAppOwnership(req, res, req.params.appId as string);
     if (!owned) return;
@@ -659,7 +661,7 @@ githubRouter.post("/webhook", async (req: Request, res: Response) => {
   }
 });
 
-githubRouter.delete("/screenshots/framed/:jobId", requireAuth, async (req: Request, res: Response) => {
+githubRouter.delete("/screenshots/framed/:jobId", writeAuth, async (req: Request, res: Response) => {
   try {
     const jobId = req.params.jobId as string;
     const { url } = req.body as { url?: string };
@@ -704,7 +706,7 @@ githubRouter.delete("/screenshots/framed/:jobId", requireAuth, async (req: Reque
   }
 });
 
-githubRouter.patch("/screenshots/framed/:jobId/reorder", requireAuth, async (req: Request, res: Response) => {
+githubRouter.patch("/screenshots/framed/:jobId/reorder", writeAuth, async (req: Request, res: Response) => {
   try {
     const jobId = req.params.jobId as string;
     const { locale, urls } = req.body as { locale?: string; urls?: string[] };

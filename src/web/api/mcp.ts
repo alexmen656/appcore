@@ -2,10 +2,10 @@ import { Router } from "express";
 import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "../../config";
-import { requireAuth, requireTeamAdmin } from "../auth";
+import { requireAuth, requireTeamAdmin, loadTeamRole, requireWriteRole } from "../auth";
 
 export const mcpRouter = Router();
-mcpRouter.use(requireAuth);
+mcpRouter.use(requireAuth, loadTeamRole, requireWriteRole);
 
 mcpRouter.get("/config", async (req, res) => {
   try {
@@ -27,7 +27,7 @@ mcpRouter.put("/config", async (req, res) => {
       res.status(403).json({ error: "No team" });
       return;
     }
-    
+
     const data: Record<string, any> = {};
     if (mcpEnabled !== undefined) data.mcpEnabled = Boolean(mcpEnabled);
 

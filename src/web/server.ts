@@ -19,7 +19,7 @@ import { mcpRouter } from "./api/mcp";
 import { oauthRouter } from "./api/oauth";
 import { submissionsRouter } from "./api/submissions";
 import { githubRouter } from "./api/github";
-import { requireAuth } from "./auth";
+import { requireAuth, loadTeamRole, requireWriteRole } from "./auth";
 import { mcpAuth, createMcpHandler } from "./mcp";
 import pushRouter from "./api/push";
 import { autonomousRouter } from "./api/autonomous";
@@ -46,17 +46,10 @@ const allowedOrigins = env.CORS_ORIGIN
 
 app.use((req, res, next) => {
   const p = req.path;
-  if (
-    p.startsWith("/oauth") ||
-    p.startsWith("/mcp") ||
-    p.startsWith("/.well-known")
-  ) {
+  if (p.startsWith("/oauth") || p.startsWith("/mcp") || p.startsWith("/.well-known")) {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-    res.setHeader(
-      "Access-Control-Allow-Headers",
-      "Content-Type,Authorization,MCP-Protocol-Version",
-    );
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization,MCP-Protocol-Version");
     if (req.method === "OPTIONS") {
       res.sendStatus(204);
       return;
@@ -65,8 +58,7 @@ app.use((req, res, next) => {
   }
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin))
-        return callback(null, true);
+      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
       callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
@@ -75,22 +67,22 @@ app.use((req, res, next) => {
 app.use(express.json());
 
 app.use("/api/auth", authRouter);
-app.use("/api/dashboard", requireAuth, dashboardRouter);
-app.use("/api/apps", requireAuth, appsRouter);
-app.use("/api/suggestions", requireAuth, suggestionsRouter);
-app.use("/api/keywords", requireAuth, keywordsRouter);
-app.use("/api/actions", requireAuth, actionsRouter);
-app.use("/api/settings", requireAuth, settingsRouter);
-app.use("/api/asc", requireAuth, ascRouter);
-app.use("/api/analytics", requireAuth, analyticsRouter);
-app.use("/api/boss", requireAuth, bossRouter);
-app.use("/api/submissions", requireAuth, submissionsRouter);
+app.use("/api/dashboard", requireAuth, loadTeamRole, dashboardRouter);
+app.use("/api/apps", requireAuth, loadTeamRole, requireWriteRole, appsRouter);
+app.use("/api/suggestions", requireAuth, loadTeamRole, requireWriteRole, suggestionsRouter);
+app.use("/api/keywords", requireAuth, loadTeamRole, requireWriteRole, keywordsRouter);
+app.use("/api/actions", requireAuth, loadTeamRole, requireWriteRole, actionsRouter);
+app.use("/api/settings", requireAuth, loadTeamRole, settingsRouter);
+app.use("/api/asc", requireAuth, loadTeamRole, requireWriteRole, ascRouter);
+app.use("/api/analytics", requireAuth, loadTeamRole, requireWriteRole, analyticsRouter);
+app.use("/api/boss", requireAuth, loadTeamRole, requireWriteRole, bossRouter);
+app.use("/api/submissions", requireAuth, loadTeamRole, requireWriteRole, submissionsRouter);
 app.use("/api/github", githubRouter);
 app.use("/api/mcp", mcpRouter);
-app.use("/api/push", requireAuth, pushRouter);
-app.use("/api/autonomous", requireAuth, autonomousRouter);
+app.use("/api/push", requireAuth, loadTeamRole, pushRouter);
+app.use("/api/autonomous", requireAuth, loadTeamRole, requireWriteRole, autonomousRouter);
 app.use("/api/team", teamRouter);
-app.use("/api/search", requireAuth, searchRouter);
+app.use("/api/search", requireAuth, loadTeamRole, searchRouter);
 app.use("/api/admin", adminRouter);
 app.use("/oauth", oauthRouter);
 
@@ -129,9 +121,7 @@ const ADMIN_PORT = 5174;
 const docsDist = path.join(process.cwd(), "docs/build");
 if (process.env.NODE_ENV === "production") {
   app.use("/docs", express.static(docsDist));
-  app.get("/docs/*", (_req, res) =>
-    res.sendFile(path.join(docsDist, "index.html")),
-  );
+  app.get("/docs/*", (_req, res) => res.sendFile(path.join(docsDist, "index.html")));
 } else {
   app.use("/docs", (req, res) => {
     const proxyReq = http.request(
@@ -149,28 +139,18 @@ if (process.env.NODE_ENV === "production") {
     );
     req.pipe(proxyReq);
     proxyReq.on("error", () => {
-      res
-        .status(502)
-        .send(
-          "Docs dev server not running — cd docs-site && npm start -- --port 3030",
-        );
+      res.status(502).send("Docs dev server not running — cd docs-site && npm start -- --port 3030");
     });
   });
 }
 
-app.get("/app/logo.svg", (_req, res) =>
-  res.sendFile(path.join(landingPublic, "logo.svg")),
-);
+app.get("/app/logo.svg", (_req, res) => res.sendFile(path.join(landingPublic, "logo.svg")));
 
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(landingDist));
 } else {
   app.use((req, res, next) => {
-    if (
-      req.path.startsWith("/api") ||
-      req.path.startsWith("/app") ||
-      req.path.startsWith("/admin")
-    ) {
+    if (req.path.startsWith("/api") || req.path.startsWith("/app") || req.path.startsWith("/admin")) {
       return next();
     }
     const proxyReq = http.request(
@@ -188,9 +168,7 @@ if (process.env.NODE_ENV === "production") {
     );
     req.pipe(proxyReq);
     proxyReq.on("error", () => {
-      res
-        .status(502)
-        .send("Astro dev server not running — cd landing && npm run dev");
+      res.status(502).send("Astro dev server not running — cd landing && npm run dev");
     });
   });
 }
@@ -218,9 +196,7 @@ if (process.env.NODE_ENV === "production") {
     );
     req.pipe(proxyReq);
     proxyReq.on("error", () => {
-      res
-        .status(502)
-        .send("Admin dev server not running — cd admin && npm run dev");
+      res.status(502).send("Admin dev server not running — cd admin && npm run dev");
     });
   });
 }
@@ -250,9 +226,7 @@ app.listen(PORT, async () => {
     });
     logger.info("APNs push notifications configured");
   } else {
-    logger.warn(
-      "APNs not configured — set APNS_KEY_ID, APNS_TEAM_ID, APNS_KEY_PATH",
-    );
+    logger.warn("APNs not configured — set APNS_KEY_ID, APNS_TEAM_ID, APNS_KEY_PATH");
   }
 });
 

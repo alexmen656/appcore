@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useApi, apiPut } from "../../hooks/useApi";
+import { usePermissions } from "../../hooks/usePermissions";
 import AscCredentialsSection from "./AscCredentialsSection";
 import AiProviderSection from "./AiProviderSection";
 import GitHubSection from "./GitHubSection";
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function Settings({ addToast }: Props) {
+  const { canManageTeam } = usePermissions();
   const { data, loading, refetch } = useApi<SettingsData>("/settings");
   const [form, setForm] = useState<Partial<SettingsData>>({});
   const [saving, setSaving] = useState(false);
@@ -24,6 +26,10 @@ export default function Settings({ addToast }: Props) {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManageTeam) {
+      addToast("Only team admins can change team settings", "error");
+      return;
+    }
     setSaving(true);
     try {
       await apiPut("/settings", form);
@@ -46,25 +52,37 @@ export default function Settings({ addToast }: Props) {
   return (
     <div className="max-w-3xl">
       <h1 className={`${pageTitle} mb-1`}>Team Settings</h1>
-
-      <form onSubmit={handleSave} className="flex flex-col gap-0">
-        <AscCredentialsSection
-          form={form}
-          data={data ?? null}
-          inputCls={inputCls}
-          textareaCls={textareaCls}
-          onChange={set}
-        />
-        <AiProviderSection form={form} data={data ?? null} inputCls={inputCls} onChange={set} />
-        <PresetMetadataSection form={form} inputCls={inputCls} onChange={set} />
-        <GitHubSection />
-
-        <div className="flex justify-end pb-2">
-          <button className={btnPrimary} type="submit" disabled={saving}>
-            {saving ? "Saving…" : "Save Settings"}
-          </button>
+      {!canManageTeam && (
+        <div className="mb-4 px-3 py-2 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-900/40 text-[12px] text-amber-800 dark:text-amber-300">
+          Only team admins can edit these settings.
         </div>
-      </form>
+      )}
+
+      <fieldset disabled={!canManageTeam} className="contents">
+        <form onSubmit={handleSave} className="flex flex-col gap-0">
+          <AscCredentialsSection
+            form={form}
+            data={data ?? null}
+            inputCls={inputCls}
+            textareaCls={textareaCls}
+            onChange={set}
+          />
+          <AiProviderSection form={form} data={data ?? null} inputCls={inputCls} onChange={set} />
+          <PresetMetadataSection form={form} inputCls={inputCls} onChange={set} />
+          <GitHubSection />
+
+          <div className="flex justify-end pb-2">
+            <button
+              className={btnPrimary}
+              type="submit"
+              disabled={saving || !canManageTeam}
+              title={!canManageTeam ? "Only team admins can change team settings" : undefined}
+            >
+              {saving ? "Saving…" : "Save Settings"}
+            </button>
+          </div>
+        </form>
+      </fieldset>
     </div>
   );
 }
