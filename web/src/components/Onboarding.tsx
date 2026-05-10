@@ -144,7 +144,7 @@ export default function Onboarding({ onComplete }: Props) {
     <div className="min-h-screen flex items-center justify-center bg-[#f8f9fb] dark:bg-[#0f1117] px-4">
       <div className="w-full max-w-[520px]">
         <div className="flex items-center gap-2.5 justify-center mb-8">
-          <img src="/app/logo.svg" alt="Marteso" className="h-[22px] w-auto" />
+          <img src="/logo.svg" alt="Marteso" className="h-[22px] w-auto" />
           <span className="text-[24px] font-bold tracking-[-0.3px] bg-gradient-to-br from-[#D94412] to-[#C4001E] bg-clip-text text-transparent">
             marteso
           </span>

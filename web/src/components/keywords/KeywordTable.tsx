@@ -120,7 +120,7 @@ export default function KeywordTable({
               <td className={`${TD} ${textSecondary}`}>
                 <span className="inline-flex items-center gap-1.5">
                   <img
-                    src={`/app/country-flags/${k.country.toLowerCase()}.svg`}
+                    src={`/country-flags/${k.country.toLowerCase()}.svg`}
                     alt={k.country}
                     className="w-4 h-3 rounded-xs object-cover shrink-0"
                   />

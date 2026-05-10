@@ -14,7 +14,7 @@ export async function teamInvite({
   role: string;
   token: string;
 }): Promise<void> {
-  const inviteUrl = `${env.APP_URL}/app/#/invite/${token}`;
+  const inviteUrl = `${env.APP_URL}/invite/${token}`;
   const roleLabel: Record<string, string> = {
     OWNER: "Owner",
     ADMIN: "Admin",

@@ -170,8 +170,8 @@ if (process.env.NODE_ENV === "production") {
 }
 
 const webDist = path.join(__dirname, "../../web/dist");
-app.use("/app", express.static(webDist));
-app.get("/app/*", (_req, res) => {
+app.use(express.static(webDist));
+app.get("*", (_req, res) => {
   res.sendFile(path.join(webDist, "index.html"));
 });
 

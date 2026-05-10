@@ -91,7 +91,7 @@ export default function AnalyticsCountryDetail() {
           <ArrowLeft className="w-4 h-4" />
         </button>
         <img
-          src={`/app/country-flags/${countryCode.toLowerCase()}.svg`}
+          src={`/country-flags/${countryCode.toLowerCase()}.svg`}
           alt={countryCode}
           className="w-7 h-5 rounded-sm object-cover shrink-0"
           onError={(e) => {

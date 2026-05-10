@@ -6,7 +6,7 @@ import { getLocaleFlag, getLocaleName } from "../../utils/localeUtils";
 function LocaleFlag({ locale }: { locale: string }) {
   return (
     <img
-      src={`/app/country-flags/${getLocaleFlag(locale)}.svg`}
+      src={`/country-flags/${getLocaleFlag(locale)}.svg`}
       alt=""
       className="w-4 h-3 rounded-xs object-cover shrink-0"
       onError={(e) => {

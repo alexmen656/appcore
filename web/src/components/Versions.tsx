@@ -149,7 +149,7 @@ function mergeVersionData(current: VersionsData | null, next: VersionsData, upda
 function LocaleFlag({ locale, className }: { locale: string; className?: string }) {
   return (
     <img
-      src={`/app/country-flags/${getLocaleFlag(locale)}.svg`}
+      src={`/country-flags/${getLocaleFlag(locale)}.svg`}
       alt=""
       className={className ?? "h-[14px] w-auto object-contain shrink-0 rounded-xs"}
       onError={(e) => {

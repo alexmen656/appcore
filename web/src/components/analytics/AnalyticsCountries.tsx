@@ -318,7 +318,7 @@ export default function AnalyticsCountries() {
                       <td className={TD}>
                         <div className="flex items-center gap-2">
                           <img
-                            src={`/app/country-flags/${r.country.toLowerCase()}.svg`}
+                            src={`/country-flags/${r.country.toLowerCase()}.svg`}
                             alt={r.country}
                             className="w-5 h-4 rounded-xs object-cover shrink-0"
                             onError={(e) => {

@@ -256,7 +256,7 @@ export default function Analytics({ addToast }: Props) {
       {!loading && !summary?.totalDownloads && (reviews ?? []).length === 0 && (
         <div className="mb-5 px-4 py-3.5 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/40 text-[13px] text-amber-800 dark:text-amber-400">
           <strong>No analytics data yet.</strong> Make sure your{" "}
-          <a href="/app/settings" className="underline font-medium">
+          <a href="/settings" className="underline font-medium">
             Vendor Number
           </a>{" "}
           is configured in Settings, then click <strong>Sync Now</strong>.
@@ -464,7 +464,7 @@ export default function Analytics({ addToast }: Props) {
                         <td className={TD}>
                           <div className="flex items-center gap-2">
                             <img
-                              src={`/app/country-flags/${r.country.toLowerCase()}.svg`}
+                              src={`/country-flags/${r.country.toLowerCase()}.svg`}
                               alt={r.country}
                               className="w-5 h-4 rounded-xs object-cover shrink-0"
                               onError={(e) => {
