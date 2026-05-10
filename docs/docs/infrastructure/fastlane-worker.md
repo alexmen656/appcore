@@ -12,7 +12,7 @@ The Fastlane Worker separates macOS-dependent Fastlane operations (deliver, snap
 
 ```
 ┌─────────────────────────────────────────┐     WireGuard VPN     ┌──────────────────────────┐
-│  Datacenter (marteso.com)               │◄────────────────────►│  Mac Mini (Home)          │
+│  Datacenter (app.marteso.com)           │◄────────────────────►│  Mac Mini (Home)          │
 │                                         │                       │                           │
 │  Main Server (:3100)                    │   HTTP over VPN       │  Fastlane Worker (:3200)  │
 │  ├── API routes                         │──────────────────────►│  ├── /worker/deliver      │
@@ -53,7 +53,7 @@ Address = 10.0.0.50/24
 
 [Peer]
 PublicKey = <server-public-key>
-Endpoint = marteso.com:51820
+Endpoint = app.marteso.com:51820
 AllowedIPs = 10.0.0.1/32
 PersistentKeepalive = 25
 ```

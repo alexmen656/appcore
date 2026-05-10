@@ -7,7 +7,7 @@ Marteso is a platform which combines iOS CI&CD pipeline with ASO tools. The core
 
 ## Demo
 
-App: [marteso.com](https://marteso.com)
+App: [app.marteso.com](https://app.marteso.com)
 
 Demo Credentials:
 

@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -nB 15 \"verifyAppOwnershipByBundleId\" /Users/alexpolan/appcore/src/web/api/asc.ts)"
+    ]
+  }
+}

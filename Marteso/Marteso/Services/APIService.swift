@@ -6,7 +6,7 @@ import Foundation
 final class APIService {
     static let shared = APIService()
 
-    let baseURL = "https://marteso.com"
+    let baseURL = "https://app.marteso.com"
     private(set) var isAuthenticated: Bool = false
 
     private var token: String? {

@@ -11,7 +11,7 @@ const config: Config = {
     v4: true,
   },
 
-  url: 'https://marteso.com',
+  url: 'https://app.marteso.com',
   baseUrl: '/docs/',
 
   onBrokenLinks: 'throw',
