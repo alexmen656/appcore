@@ -88,11 +88,11 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-export function requireBundleAccess(
+export function bundleAccess(
   source: "params" | "query" | "body" = "query",
   paramName = "bundleId",
-): Array<(req: Request, res: Response, next: NextFunction) => void> {
-  const bundleAccessMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+) {
+  return async (req: Request, res: Response, next: NextFunction) => {
     const bundleId = req[source]?.[paramName] as string | undefined;
     if (!bundleId) {
       res.status(400).json({ error: `${paramName} required` });
@@ -103,7 +103,13 @@ export function requireBundleAccess(
     req.bundleApp = app;
     next();
   };
-  return [requireAuth, bundleAccessMiddleware];
+}
+
+export function requireBundleAccess(
+  source: "params" | "query" | "body" = "query",
+  paramName = "bundleId",
+): Array<(req: Request, res: Response, next: NextFunction) => void> {
+  return [requireAuth, bundleAccess(source, paramName)];
 }
 
 export async function verifyAppOwnership(req: Request, res: Response, appId: string) {
