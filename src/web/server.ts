@@ -112,9 +112,6 @@ app.post("/mcp", mcpAuth, createMcpHandler());
 const screenshotsDir = path.join(process.cwd(), "screenshots");
 app.use("/screenshots", express.static(screenshotsDir));
 
-const landingDist = path.join(process.cwd(), "landing/dist");
-const landingPublic = path.join(process.cwd(), "landing/public");
-const ASTRO_PORT = 4321;
 const DOCS_PORT = 3030;
 const ADMIN_PORT = 5174;
 
@@ -140,35 +137,6 @@ if (process.env.NODE_ENV === "production") {
     req.pipe(proxyReq);
     proxyReq.on("error", () => {
       res.status(502).send("Docs dev server not running — cd docs-site && npm start -- --port 3030");
-    });
-  });
-}
-
-app.get("/app/logo.svg", (_req, res) => res.sendFile(path.join(landingPublic, "logo.svg")));
-
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(landingDist));
-} else {
-  app.use((req, res, next) => {
-    if (req.path.startsWith("/api") || req.path.startsWith("/app") || req.path.startsWith("/admin")) {
-      return next();
-    }
-    const proxyReq = http.request(
-      {
-        hostname: "localhost",
-        port: ASTRO_PORT,
-        path: req.url,
-        method: req.method,
-        headers: { ...req.headers, host: `localhost:${ASTRO_PORT}` },
-      },
-      (proxyRes) => {
-        res.writeHead(proxyRes.statusCode ?? 200, proxyRes.headers);
-        proxyRes.pipe(res);
-      },
-    );
-    req.pipe(proxyReq);
-    proxyReq.on("error", () => {
-      res.status(502).send("Astro dev server not running — cd landing && npm run dev");
     });
   });
 }
