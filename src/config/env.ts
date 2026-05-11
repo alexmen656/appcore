@@ -30,10 +30,13 @@ const envSchema = z.object({
   // CORS
   CORS_ORIGIN: z.string().optional(),
 
-  // GitHub OAuth
+  // GitHub OAuth — repo integration (Settings → connect GitHub)
   GITHUB_CLIENT_ID: z.string().optional(),
   GITHUB_CLIENT_SECRET: z.string().optional(),
   GITHUB_WEBHOOK_BASE_URL: z.string().optional(),
+  // GitHub OAuth — Sign in with GitHub (separate app, minimal scopes)
+  GITHUB_AUTH_CLIENT_ID: z.string().optional(),
+  GITHUB_AUTH_CLIENT_SECRET: z.string().optional(),
 
   // Fastlane Worker (MacOS)
   FASTLANE_WORKER_URL: z.string().url().optional(),

@@ -23,7 +23,6 @@ async function passkeySignIn(email: string): Promise<{ token: string; user: Auth
   if (!optRes.ok) throw new Error(optData.error ?? "Failed to start passkey auth");
 
   const assertion = await startAuthentication({ optionsJSON: optData.options });
-
   const verifyRes = await fetch("/api/auth/passkey/login-verify", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -121,6 +120,20 @@ export default function Login({ onAuth }: Props) {
     } catch (err: any) {
       setError(err.message);
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGitHubLogin = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/github/start");
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error ?? "Failed to start GitHub sign-in");
+      window.location.href = data.url;
+    } catch (err: any) {
+      setError(err.message);
       setLoading(false);
     }
   };
@@ -231,24 +244,31 @@ export default function Login({ onAuth }: Props) {
           </button>
         </form>
 
+        <div className="flex items-center gap-3 my-4">
+          <div className="flex-1 h-px bg-[#eef0f3] dark:bg-[#2a2f3d]" />
+          <span className={`text-xs ${textMuted}`}>or</span>
+          <div className="flex-1 h-px bg-[#eef0f3] dark:bg-[#2a2f3d]" />
+        </div>
         {mode === "login" && (
-          <>
-            <div className="flex items-center gap-3 my-4">
-              <div className="flex-1 h-px bg-[#eef0f3] dark:bg-[#2a2f3d]" />
-              <span className={`text-xs ${textMuted}`}>or</span>
-              <div className="flex-1 h-px bg-[#eef0f3] dark:bg-[#2a2f3d]" />
-            </div>
-            <button
-              type="button"
-              disabled={loading}
-              onClick={handlePasskeyLogin}
-              className={`w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border ${borderDefault} bg-white dark:bg-[#1c2028] text-sm font-medium ${textPrimary} hover:bg-[#f8f9fb] dark:hover:bg-[#252b38] transition-colors disabled:opacity-50`}
-            >
-              <PasskeyIcon />
-              Sign in with Passkey
-            </button>
-          </>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={handlePasskeyLogin}
+            className={`w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border ${borderDefault} bg-white dark:bg-[#1c2028] text-sm font-medium ${textPrimary} hover:bg-[#f8f9fb] dark:hover:bg-[#252b38] transition-colors disabled:opacity-50`}
+          >
+            <PasskeyIcon />
+            Sign in with Passkey
+          </button>
         )}
+        <button
+          type="button"
+          disabled={loading}
+          onClick={handleGitHubLogin}
+          className={`mt-2 w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border ${borderDefault} bg-white dark:bg-[#1c2028] text-sm font-medium ${textPrimary} hover:bg-[#f8f9fb] dark:hover:bg-[#252b38] transition-colors disabled:opacity-50`}
+        >
+          <GitHubIcon />
+          {mode === "login" ? "Sign in with GitHub" : "Continue with GitHub"}
+        </button>
 
         <div className={`mt-5 text-center text-sm ${textMuted}`}>
           {mode === "login" ? (
@@ -286,4 +306,12 @@ export default function Login({ onAuth }: Props) {
 
 function PasskeyIcon({ className = "text-current", size = 18 }: { className?: string; size?: number }) {
   return <KeyRound width={size} height={size} className={className} />;
+}
+
+function GitHubIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 .5C5.73.5.67 5.57.67 11.84c0 5.01 3.24 9.25 7.74 10.75.57.1.78-.25.78-.55 0-.27-.01-1-.02-1.96-3.15.69-3.81-1.52-3.81-1.52-.52-1.31-1.27-1.66-1.27-1.66-1.04-.72.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.68 1.25 3.34.95.1-.74.4-1.25.72-1.54-2.51-.29-5.15-1.26-5.15-5.59 0-1.23.44-2.24 1.17-3.04-.12-.29-.51-1.45.11-3.02 0 0 .96-.31 3.15 1.16.92-.26 1.9-.39 2.88-.39.98 0 1.96.13 2.88.39 2.19-1.47 3.15-1.16 3.15-1.16.62 1.57.23 2.73.11 3.02.73.8 1.17 1.81 1.17 3.04 0 4.34-2.65 5.3-5.17 5.58.41.36.78 1.06.78 2.14 0 1.55-.01 2.8-.01 3.18 0 .31.21.66.79.55 4.49-1.5 7.73-5.74 7.73-10.75C23.33 5.57 18.27.5 12 .5z" />
+    </svg>
+  );
 }

@@ -995,6 +995,38 @@ export default function App() {
   }, [dash?.app?.accentColor]);
 
   useEffect(() => {
+    const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : "";
+    if (hash.includes("gh_token=") || hash.includes("gh_error=")) {
+      const params = new URLSearchParams(hash);
+      const ghToken = params.get("gh_token");
+      const ghError = params.get("gh_error");
+      const userEncoded = params.get("user");
+      window.history.replaceState({}, "", window.location.pathname + window.location.search);
+      if (ghError) {
+        setAuthLoading(false);
+        return;
+      }
+      if (ghToken) {
+        setToken(ghToken);
+        if (params.get("gh_new") === "1") {
+          localStorage.setItem("marteso_onboarding", "1");
+          setShowOnboarding(true);
+        }
+        if (userEncoded) {
+          try {
+            const b64 = userEncoded.replace(/-/g, "+").replace(/_/g, "/");
+            const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
+            const decoded = JSON.parse(atob(padded));
+            setUser(decoded);
+            setAuthLoading(false);
+            return;
+          } catch {
+            // fall through to /me fetch
+          }
+        }
+      }
+    }
+
     const token = getToken();
     if (!token) {
       setAuthLoading(false);
