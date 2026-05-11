@@ -1,7 +1,7 @@
 import { Router, type Request, type Response, type RequestHandler } from "express";
 import axios from "../../services/utils/http";
 import { prisma, logger } from "../../config";
-import { requireAuth, bundleAccess } from "../auth";
+import { requireAuth, bundleAccess, loadVersionInBundle, loadVersionLocalizationInBundle } from "../auth";
 import { AppStoreConnectClient } from "../../services/appstore-connect";
 import { LOCALE_MAP } from "../../services/utils/country_lang";
 import { bossScheduler } from "../../jobs/boss";
@@ -463,8 +463,8 @@ ascRouter.get(
     if (!refresh) {
       let cached: any = null;
       if (versionId) {
-        cached = await prisma.appStoreVersion.findUnique({
-          where: { id: versionId },
+        cached = await prisma.appStoreVersion.findFirst({
+          where: { id: versionId, bundleId },
           include: { localizations: true },
         });
         if (cached && !isFresh(cached.syncedAt)) cached = null;
@@ -636,6 +636,7 @@ ascRouter.patch(
       return;
     }
 
+    const bundleId = req.bundleApp!.bundleId;
     const asc = await ascClientForUser(req.user!.userId);
 
     if (field === "copyright") {
@@ -643,6 +644,7 @@ ascRouter.patch(
         res.status(400).json({ error: "versionId required for copyright" });
         return;
       }
+      if (!(await loadVersionInBundle(res, bodyVersionId, bundleId))) return;
       await asc.updateVersionAttributes(bodyVersionId, { copyright: value });
       await prisma.appStoreVersion
         .update({
@@ -658,12 +660,14 @@ ascRouter.patch(
       appInfo: {
         fields: ["name", "subtitle", "privacyPolicyUrl"],
         localizationId: appInfoLocalizationId,
+        kind: "appInfo" as const,
         errorMsg: "appInfoLocalizationId is required for app info localization fields",
         update: (id: string) => asc.updateAppInfoLocalization(id, { [field]: value }),
       },
       version: {
         fields: ["description", "keywords", "whatsNew", "promotionalText", "supportUrl", "marketingUrl"],
         localizationId: versionLocalizationId,
+        kind: "version" as const,
         errorMsg: "versionLocalizationId is required for version fields",
         update: (id: string) => asc.updateVersionLocalization(id, { [field]: value }),
       },
@@ -681,13 +685,28 @@ ascRouter.patch(
       return;
     }
 
+    if (
+      !(await loadVersionLocalizationInBundle(res, {
+        ascLocalizationId: matchedGroup.localizationId,
+        kind: matchedGroup.kind,
+        bundleId,
+      }))
+    ) {
+      return;
+    }
+
     await matchedGroup.update(matchedGroup.localizationId);
     const localizationWhere = {
-      OR: [
-        appInfoLocalizationId ? { appInfoLocalizationId } : undefined,
-        versionLocalizationId ? { versionLocalizationId } : undefined,
-        bodyVersionId && locale ? { versionId: bodyVersionId, locale } : undefined,
-      ].filter(Boolean) as any[],
+      AND: [
+        { version: { bundleId } },
+        {
+          OR: [
+            appInfoLocalizationId ? { appInfoLocalizationId } : undefined,
+            versionLocalizationId ? { versionLocalizationId } : undefined,
+            bodyVersionId && locale ? { versionId: bodyVersionId, locale } : undefined,
+          ].filter(Boolean) as any[],
+        },
+      ],
     };
     await prisma.appStoreVersionLocalization
       .updateMany({
@@ -723,8 +742,8 @@ ascRouter.get(
       return;
     }
 
-    const cached = await prisma.appStoreVersion.findUnique({
-      where: { id: versionId },
+    const cached = await prisma.appStoreVersion.findFirst({
+      where: { id: versionId, bundleId: req.bundleApp!.bundleId },
       select: {
         reviewerFirstName: true,
         reviewerLastName: true,
@@ -779,13 +798,11 @@ ascRouter.patch(
       return;
     }
 
-    const asc = await ascClientForUser(req.user!.userId);
-    const dbVersion = await prisma.appStoreVersion.findUnique({
-      where: { id: versionId },
-      select: { reviewDetailId: true },
-    });
+    const dbVersion = await loadVersionInBundle(res, versionId, req.bundleApp!.bundleId);
+    if (!dbVersion) return;
 
-    const existingDetailId = dbVersion?.reviewDetailId ?? null;
+    const asc = await ascClientForUser(req.user!.userId);
+    const existingDetailId = dbVersion.reviewDetailId ?? null;
 
     const newDetailId = await asc.upsertReviewDetail(versionId, existingDetailId, {
       firstName: reviewerFirstName ?? "",
@@ -827,6 +844,8 @@ ascRouter.post(
       res.status(400).json({ error: "versionId required" });
       return;
     }
+
+    if (!(await loadVersionInBundle(res, versionId, req.bundleApp!.bundleId))) return;
 
     const asc = await ascClientForUser(req.user!.userId);
     const detail = await asc.getReviewDetail(versionId);
@@ -875,6 +894,8 @@ ascRouter.post(
       res.status(400).json({ error: "versionId, locale and name are required" });
       return;
     }
+
+    if (!(await loadVersionInBundle(res, versionId, bundleId))) return;
 
     const asc = await ascClientForUser(req.user!.userId);
     const app = await asc.getApp(bundleId);
@@ -952,6 +973,27 @@ ascRouter.delete(
       return;
     }
 
+    if (
+      appInfoLocalizationId &&
+      !(await loadVersionLocalizationInBundle(res, {
+        ascLocalizationId: appInfoLocalizationId,
+        kind: "appInfo",
+        bundleId,
+      }))
+    ) {
+      return;
+    }
+    if (
+      versionLocalizationId &&
+      !(await loadVersionLocalizationInBundle(res, {
+        ascLocalizationId: versionLocalizationId,
+        kind: "version",
+        bundleId,
+      }))
+    ) {
+      return;
+    }
+
     const asc = await ascClientForUser(req.user!.userId);
     await Promise.all([
       appInfoLocalizationId ? asc.deleteAppInfoLocalization(appInfoLocalizationId) : Promise.resolve(),
@@ -1002,6 +1044,28 @@ ascRouter.post(
       res.status(400).json({
         error: "versionId, targetLocale, sourceLocale, and sourceFields are required",
       });
+      return;
+    }
+
+    if (!(await loadVersionInBundle(res, versionId, bundleId))) return;
+    if (
+      appInfoLocalizationId &&
+      !(await loadVersionLocalizationInBundle(res, {
+        ascLocalizationId: appInfoLocalizationId,
+        kind: "appInfo",
+        bundleId,
+      }))
+    ) {
+      return;
+    }
+    if (
+      versionLocalizationId &&
+      !(await loadVersionLocalizationInBundle(res, {
+        ascLocalizationId: versionLocalizationId,
+        kind: "version",
+        bundleId,
+      }))
+    ) {
       return;
     }
 
@@ -1608,6 +1672,72 @@ async function getGameCenterDetailId(asc: AppStoreConnectClient, appId: string):
   }
 }
 
+async function gcDetailIdForBundle(asc: AppStoreConnectClient, bundleId: string): Promise<string | null> {
+  const app = await asc.getApp(bundleId);
+  if (!app) return null;
+  return getGameCenterDetailId(asc, app.id);
+}
+
+async function verifyGcResource(
+  asc: AppStoreConnectClient,
+  resourcePath: "gameCenterLeaderboards" | "gameCenterAchievements" | "gameCenterLeaderboardSets",
+  resourceId: string,
+  gcDetailId: string,
+): Promise<boolean> {
+  try {
+    const { data: resp } = await asc.client.get(`/${resourcePath}/${resourceId}/relationships/gameCenterDetail`);
+    return resp.data?.id === gcDetailId;
+  } catch {
+    return false;
+  }
+}
+
+const LOCALIZATION_PARENT: Record<
+  string,
+  {
+    locPath: string;
+    parentRel: string;
+    parentPath: "gameCenterLeaderboards" | "gameCenterAchievements" | "gameCenterLeaderboardSets";
+  }
+> = {
+  leaderboard: {
+    locPath: "gameCenterLeaderboardLocalizations",
+    parentRel: "gameCenterLeaderboard",
+    parentPath: "gameCenterLeaderboards",
+  },
+  achievement: {
+    locPath: "gameCenterAchievementLocalizations",
+    parentRel: "gameCenterAchievement",
+    parentPath: "gameCenterAchievements",
+  },
+  challenge: {
+    locPath: "gameCenterLeaderboardSetLocalizations",
+    parentRel: "gameCenterLeaderboardSet",
+    parentPath: "gameCenterLeaderboardSets",
+  },
+};
+
+async function verifyGcLocalization(
+  asc: AppStoreConnectClient,
+  kind: "leaderboard" | "achievement" | "challenge",
+  localizationId: string,
+  gcDetailId: string,
+): Promise<boolean> {
+  const cfg = LOCALIZATION_PARENT[kind];
+  try {
+    const { data: resp } = await asc.client.get(`/${cfg.locPath}/${localizationId}/relationships/${cfg.parentRel}`);
+    const parentId = resp.data?.id;
+    if (!parentId) return false;
+    return verifyGcResource(asc, cfg.parentPath, parentId, gcDetailId);
+  } catch {
+    return false;
+  }
+}
+
+function forbidResource(res: Response) {
+  res.status(404).json({ error: "Resource not found" });
+}
+
 ascRouter.get(
   "/gamecenter/leaderboards",
   bundleAccess("query"),
@@ -1648,20 +1778,23 @@ ascRouter.post(
   "/gamecenter/leaderboards",
   bundleAccess("body"),
   handle("create leaderboard", async (req, res) => {
-    const { gcDetailId, referenceName, vendorIdentifier, defaultFormatter, scoreSortType, submissionType } =
-      req.body as {
-        gcDetailId: string;
-        referenceName: string;
-        vendorIdentifier: string;
-        defaultFormatter?: string;
-        scoreSortType?: string;
-        submissionType?: string;
-      };
-    if (!referenceName || !vendorIdentifier || !gcDetailId) {
-      res.status(400).json({ error: "referenceName, vendorIdentifier, gcDetailId required" });
+    const { referenceName, vendorIdentifier, defaultFormatter, scoreSortType, submissionType } = req.body as {
+      referenceName: string;
+      vendorIdentifier: string;
+      defaultFormatter?: string;
+      scoreSortType?: string;
+      submissionType?: string;
+    };
+    if (!referenceName || !vendorIdentifier) {
+      res.status(400).json({ error: "referenceName, vendorIdentifier required" });
       return;
     }
     const asc = await ascClientForUser(req.user!.userId);
+    const gcDetailId = await gcDetailIdForBundle(asc, req.bundleApp!.bundleId);
+    if (!gcDetailId) {
+      res.status(404).json({ error: "Game Center not enabled for this app" });
+      return;
+    }
     const { data: resp } = await asc.client.post("/gameCenterLeaderboards", {
       data: {
         type: "gameCenterLeaderboards",
@@ -1695,12 +1828,17 @@ ascRouter.patch(
   "/gamecenter/leaderboards/:id",
   bundleAccess("body"),
   handle("update leaderboard", async (req, res) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { referenceName, archived } = req.body as {
       referenceName?: string;
       archived?: boolean;
     };
     const asc = await ascClientForUser(req.user!.userId);
+    const gcDetailId = await gcDetailIdForBundle(asc, req.bundleApp!.bundleId);
+    if (!gcDetailId || !(await verifyGcResource(asc, "gameCenterLeaderboards", id, gcDetailId))) {
+      forbidResource(res);
+      return;
+    }
     const attrs: Record<string, unknown> = {};
     if (referenceName !== undefined) attrs.referenceName = referenceName;
     if (archived !== undefined) attrs.archived = archived;
@@ -1715,8 +1853,15 @@ ascRouter.delete(
   "/gamecenter/leaderboards/:id",
   bundleAccess("query"),
   handle("delete leaderboard", async (req, res) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const asc = await ascClientForUser(req.user!.userId);
+    const gcDetailId = await gcDetailIdForBundle(asc, req.bundleApp!.bundleId);
+
+    if (!gcDetailId || !(await verifyGcResource(asc, "gameCenterLeaderboards", id, gcDetailId))) {
+      forbidResource(res);
+      return;
+    }
+
     await asc.client.delete(`/gameCenterLeaderboards/${id}`);
     res.json({ ok: true });
   }),
@@ -1726,8 +1871,13 @@ ascRouter.get(
   "/gamecenter/leaderboards/:id/localizations",
   bundleAccess("query"),
   handle("leaderboard localizations", async (req, res) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const asc = await ascClientForUser(req.user!.userId);
+    const gcDetailId = await gcDetailIdForBundle(asc, req.bundleApp!.bundleId);
+    if (!gcDetailId || !(await verifyGcResource(asc, "gameCenterLeaderboards", id, gcDetailId))) {
+      forbidResource(res);
+      return;
+    }
     const { data: resp } = await asc.client.get(`/gameCenterLeaderboards/${id}/localizations`, {
       params: {
         "fields[gameCenterLeaderboardLocalizations]": "locale,name,formatterSuffix,formatterSuffixSingular",
@@ -1761,6 +1911,11 @@ ascRouter.post(
       return;
     }
     const asc = await ascClientForUser(req.user!.userId);
+    const gcDetailId = await gcDetailIdForBundle(asc, req.bundleApp!.bundleId);
+    if (!gcDetailId || !(await verifyGcResource(asc, "gameCenterLeaderboards", leaderboardId, gcDetailId))) {
+      forbidResource(res);
+      return;
+    }
     const attrs: Record<string, string> = { locale, name };
     if (formatterSuffix) attrs.formatterSuffix = formatterSuffix;
     if (formatterSuffixSingular) attrs.formatterSuffixSingular = formatterSuffixSingular;
@@ -1789,13 +1944,20 @@ ascRouter.patch(
   "/gamecenter/leaderboard-localizations/:id",
   bundleAccess("body"),
   handle("update leaderboard localization", async (req, res) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { name, formatterSuffix, formatterSuffixSingular } = req.body as {
       name?: string;
       formatterSuffix?: string;
       formatterSuffixSingular?: string;
     };
     const asc = await ascClientForUser(req.user!.userId);
+    const gcDetailId = await gcDetailIdForBundle(asc, req.bundleApp!.bundleId);
+
+    if (!gcDetailId || !(await verifyGcLocalization(asc, "leaderboard", id, gcDetailId))) {
+      forbidResource(res);
+      return;
+    }
+
     const attrs: Record<string, string> = {};
     if (name !== undefined) attrs.name = name;
     if (formatterSuffix !== undefined) attrs.formatterSuffix = formatterSuffix;
@@ -1815,8 +1977,15 @@ ascRouter.delete(
   "/gamecenter/leaderboard-localizations/:id",
   bundleAccess("query"),
   handle("delete leaderboard localization", async (req, res) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const asc = await ascClientForUser(req.user!.userId);
+    const gcDetailId = await gcDetailIdForBundle(asc, req.bundleApp!.bundleId);
+
+    if (!gcDetailId || !(await verifyGcLocalization(asc, "leaderboard", id, gcDetailId))) {
+      forbidResource(res);
+      return;
+    }
+
     await asc.client.delete(`/gameCenterLeaderboardLocalizations/${id}`);
     res.json({ ok: true });
   }),
@@ -1861,8 +2030,7 @@ ascRouter.post(
   "/gamecenter/achievements",
   bundleAccess("body"),
   handle("create achievement", async (req, res) => {
-    const { gcDetailId, referenceName, vendorIdentifier, points, showBeforeEarned, repeatable } = req.body as {
-      gcDetailId: string;
+    const { referenceName, vendorIdentifier, points, showBeforeEarned, repeatable } = req.body as {
       referenceName: string;
       vendorIdentifier: string;
       points: number;
@@ -1870,6 +2038,11 @@ ascRouter.post(
       repeatable: boolean;
     };
     const asc = await ascClientForUser(req.user!.userId);
+    const gcDetailId = await gcDetailIdForBundle(asc, req.bundleApp!.bundleId);
+    if (!gcDetailId) {
+      res.status(404).json({ error: "Game Center not enabled for this app" });
+      return;
+    }
     const { data: resp } = await asc.client.post("/gameCenterAchievements", {
       data: {
         type: "gameCenterAchievements",
@@ -1895,7 +2068,7 @@ ascRouter.patch(
   "/gamecenter/achievements/:id",
   bundleAccess("body"),
   handle("update achievement", async (req, res) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { referenceName, points, showBeforeEarned, repeatable, archived } = req.body as {
       referenceName?: string;
       points?: number;
@@ -1904,6 +2077,11 @@ ascRouter.patch(
       archived?: boolean;
     };
     const asc = await ascClientForUser(req.user!.userId);
+    const gcDetailId = await gcDetailIdForBundle(asc, req.bundleApp!.bundleId);
+    if (!gcDetailId || !(await verifyGcResource(asc, "gameCenterAchievements", id, gcDetailId))) {
+      forbidResource(res);
+      return;
+    }
     const attrs: Record<string, unknown> = {};
     if (referenceName !== undefined) attrs.referenceName = referenceName;
     if (points !== undefined) attrs.points = points;
@@ -1921,8 +2099,15 @@ ascRouter.delete(
   "/gamecenter/achievements/:id",
   bundleAccess("query"),
   handle("delete achievement", async (req, res) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const asc = await ascClientForUser(req.user!.userId);
+    const gcDetailId = await gcDetailIdForBundle(asc, req.bundleApp!.bundleId);
+
+    if (!gcDetailId || !(await verifyGcResource(asc, "gameCenterAchievements", id, gcDetailId))) {
+      forbidResource(res);
+      return;
+    }
+
     await asc.client.delete(`/gameCenterAchievements/${id}`);
     res.json({ ok: true });
   }),
@@ -1932,8 +2117,13 @@ ascRouter.get(
   "/gamecenter/achievements/:id/localizations",
   bundleAccess("query"),
   handle("achievement localizations", async (req, res) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const asc = await ascClientForUser(req.user!.userId);
+    const gcDetailId = await gcDetailIdForBundle(asc, req.bundleApp!.bundleId);
+    if (!gcDetailId || !(await verifyGcResource(asc, "gameCenterAchievements", id, gcDetailId))) {
+      forbidResource(res);
+      return;
+    }
     const { data: resp } = await asc.client.get(`/gameCenterAchievements/${id}/localizations`, {
       params: {
         "fields[gameCenterAchievementLocalizations]": "locale,name,afterEarnedDescription,beforeEarnedDescription",
@@ -1963,6 +2153,11 @@ ascRouter.post(
       beforeEarnedDescription?: string;
     };
     const asc = await ascClientForUser(req.user!.userId);
+    const gcDetailId = await gcDetailIdForBundle(asc, req.bundleApp!.bundleId);
+    if (!gcDetailId || !(await verifyGcResource(asc, "gameCenterAchievements", achievementId, gcDetailId))) {
+      forbidResource(res);
+      return;
+    }
     const { data: resp } = await asc.client.post("/gameCenterAchievementLocalizations", {
       data: {
         type: "gameCenterAchievementLocalizations",
@@ -1986,13 +2181,18 @@ ascRouter.patch(
   "/gamecenter/achievement-localizations/:id",
   bundleAccess("body"),
   handle("update achievement localization", async (req, res) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { name, afterEarnedDescription, beforeEarnedDescription } = req.body as {
       name?: string;
       afterEarnedDescription?: string;
       beforeEarnedDescription?: string;
     };
     const asc = await ascClientForUser(req.user!.userId);
+    const gcDetailId = await gcDetailIdForBundle(asc, req.bundleApp!.bundleId);
+    if (!gcDetailId || !(await verifyGcLocalization(asc, "achievement", id, gcDetailId))) {
+      forbidResource(res);
+      return;
+    }
     const attrs: Record<string, unknown> = {};
     if (name !== undefined) attrs.name = name;
     if (afterEarnedDescription !== undefined) attrs.afterEarnedDescription = afterEarnedDescription;
@@ -2008,8 +2208,13 @@ ascRouter.delete(
   "/gamecenter/achievement-localizations/:id",
   bundleAccess("query"),
   handle("delete achievement localization", async (req, res) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const asc = await ascClientForUser(req.user!.userId);
+    const gcDetailId = await gcDetailIdForBundle(asc, req.bundleApp!.bundleId);
+    if (!gcDetailId || !(await verifyGcLocalization(asc, "achievement", id, gcDetailId))) {
+      forbidResource(res);
+      return;
+    }
     await asc.client.delete(`/gameCenterAchievementLocalizations/${id}`);
     res.json({ ok: true });
   }),
@@ -2050,12 +2255,16 @@ ascRouter.post(
   "/gamecenter/challenges",
   bundleAccess("body"),
   handle("create challenge", async (req, res) => {
-    const { gcDetailId, referenceName, vendorIdentifier } = req.body as {
-      gcDetailId: string;
+    const { referenceName, vendorIdentifier } = req.body as {
       referenceName: string;
       vendorIdentifier: string;
     };
     const asc = await ascClientForUser(req.user!.userId);
+    const gcDetailId = await gcDetailIdForBundle(asc, req.bundleApp!.bundleId);
+    if (!gcDetailId) {
+      res.status(404).json({ error: "Game Center not enabled for this app" });
+      return;
+    }
     const { data: resp } = await asc.client.post("/gameCenterLeaderboardSets", {
       data: {
         type: "gameCenterLeaderboardSets",
@@ -2077,11 +2286,18 @@ ascRouter.patch(
   "/gamecenter/challenges/:id",
   bundleAccess("body"),
   handle("update challenge", async (req, res) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { referenceName } = req.body as {
       referenceName?: string;
     };
     const asc = await ascClientForUser(req.user!.userId);
+    const gcDetailId = await gcDetailIdForBundle(asc, req.bundleApp!.bundleId);
+
+    if (!gcDetailId || !(await verifyGcResource(asc, "gameCenterLeaderboardSets", id, gcDetailId))) {
+      forbidResource(res);
+      return;
+    }
+
     const attrs: Record<string, unknown> = {};
     if (referenceName !== undefined) attrs.referenceName = referenceName;
     await asc.client.patch(`/gameCenterLeaderboardSets/${id}`, {
@@ -2095,8 +2311,13 @@ ascRouter.delete(
   "/gamecenter/challenges/:id",
   bundleAccess("query"),
   handle("delete challenge", async (req, res) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const asc = await ascClientForUser(req.user!.userId);
+    const gcDetailId = await gcDetailIdForBundle(asc, req.bundleApp!.bundleId);
+    if (!gcDetailId || !(await verifyGcResource(asc, "gameCenterLeaderboardSets", id, gcDetailId))) {
+      forbidResource(res);
+      return;
+    }
     await asc.client.delete(`/gameCenterLeaderboardSets/${id}`);
     res.json({ ok: true });
   }),
@@ -2106,8 +2327,13 @@ ascRouter.get(
   "/gamecenter/challenges/:id/localizations",
   bundleAccess("query"),
   handle("challenge localizations", async (req, res) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const asc = await ascClientForUser(req.user!.userId);
+    const gcDetailId = await gcDetailIdForBundle(asc, req.bundleApp!.bundleId);
+    if (!gcDetailId || !(await verifyGcResource(asc, "gameCenterLeaderboardSets", id, gcDetailId))) {
+      forbidResource(res);
+      return;
+    }
     const { data: resp } = await asc.client.get(`/gameCenterLeaderboardSets/${id}/localizations`, {
       params: {
         "fields[gameCenterLeaderboardSetLocalizations]": "locale,name",
@@ -2133,6 +2359,11 @@ ascRouter.post(
       name: string;
     };
     const asc = await ascClientForUser(req.user!.userId);
+    const gcDetailId = await gcDetailIdForBundle(asc, req.bundleApp!.bundleId);
+    if (!gcDetailId || !(await verifyGcResource(asc, "gameCenterLeaderboardSets", challengeId, gcDetailId))) {
+      forbidResource(res);
+      return;
+    }
     const { data: resp } = await asc.client.post("/gameCenterLeaderboardSetLocalizations", {
       data: {
         type: "gameCenterLeaderboardSetLocalizations",
@@ -2155,9 +2386,14 @@ ascRouter.patch(
   "/gamecenter/challenge-localizations/:id",
   bundleAccess("body"),
   handle("update challenge localization", async (req, res) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const { name } = req.body as { name?: string };
     const asc = await ascClientForUser(req.user!.userId);
+    const gcDetailId = await gcDetailIdForBundle(asc, req.bundleApp!.bundleId);
+    if (!gcDetailId || !(await verifyGcLocalization(asc, "challenge", id, gcDetailId))) {
+      forbidResource(res);
+      return;
+    }
     const attrs: Record<string, unknown> = {};
     if (name !== undefined) attrs.name = name;
     await asc.client.patch(`/gameCenterLeaderboardSetLocalizations/${id}`, {
@@ -2171,8 +2407,13 @@ ascRouter.delete(
   "/gamecenter/challenge-localizations/:id",
   bundleAccess("query"),
   handle("delete challenge localization", async (req, res) => {
-    const { id } = req.params;
+    const id = req.params.id as string;
     const asc = await ascClientForUser(req.user!.userId);
+    const gcDetailId = await gcDetailIdForBundle(asc, req.bundleApp!.bundleId);
+    if (!gcDetailId || !(await verifyGcLocalization(asc, "challenge", id, gcDetailId))) {
+      forbidResource(res);
+      return;
+    }
     await asc.client.delete(`/gameCenterLeaderboardSetLocalizations/${id}`);
     res.json({ ok: true });
   }),

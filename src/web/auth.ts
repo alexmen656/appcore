@@ -88,10 +88,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-export function bundleAccess(
-  source: "params" | "query" | "body" = "query",
-  paramName = "bundleId",
-) {
+export function bundleAccess(source: "params" | "query" | "body" = "query", paramName = "bundleId") {
   return async (req: Request, res: Response, next: NextFunction) => {
     const bundleId = req[source]?.[paramName] as string | undefined;
     if (!bundleId) {
@@ -157,6 +154,34 @@ export async function requireTeamAdmin(req: Request, res: Response): Promise<boo
     return false;
   }
   return true;
+}
+
+export async function loadVersionInBundle(res: Response, versionId: string, bundleId: string) {
+  const version = await prisma.appStoreVersion.findFirst({
+    where: { id: versionId, bundleId },
+  });
+  if (!version) {
+    res.status(404).json({ error: "Version not found" });
+    return null;
+  }
+  return version;
+}
+
+export async function loadVersionLocalizationInBundle(
+  res: Response,
+  opts: { ascLocalizationId: string; kind: "appInfo" | "version"; bundleId: string },
+) {
+  const { ascLocalizationId, kind, bundleId } = opts;
+  const where =
+    kind === "appInfo"
+      ? { appInfoLocalizationId: ascLocalizationId, version: { bundleId } }
+      : { versionLocalizationId: ascLocalizationId, version: { bundleId } };
+  const localization = await prisma.appStoreVersionLocalization.findFirst({ where });
+  if (!localization) {
+    res.status(404).json({ error: "Localization not found" });
+    return null;
+  }
+  return localization;
 }
 
 export async function verifyTeamMemberBelongsToTeam(req: Request, res: Response, memberId: string) {
