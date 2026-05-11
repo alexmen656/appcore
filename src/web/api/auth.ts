@@ -195,7 +195,7 @@ authRouter.post("/accept-invite", requireAuth, async (req, res) => {
       res.status(400).json({ error: "Invalid or expired invite" });
       return;
     }
-    if (invite.email !== req.user!.email) {
+    if (invite.email.trim().toLowerCase() !== req.user!.email.trim().toLowerCase()) {
       res.status(403).json({ error: "This invite is for a different email address" });
       return;
     }

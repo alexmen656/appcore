@@ -1,10 +1,36 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import { prisma } from "../../config";
-import { requireAuth, requireTeamAdmin, loadTeamRole, requireWriteRole } from "../auth";
+import { requireAuth, requireTeamAdmin, loadTeamRole, requireWriteRole, TeamRoleName } from "../auth";
 import { teamInvite } from "../../services/notifications/templates.js";
 import crypto from "crypto";
 
 export const teamRouter = Router();
+
+const VALID_ROLES: TeamRoleName[] = ["OWNER", "ADMIN", "MEMBER", "VIEWER"];
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+function send500(res: Response, err: unknown, scope: string) {
+  console.error(`[team.ts:${scope}]`, err);
+  res.status(500).json({ error: "Internal server error" });
+}
+
+function getActorRole(req: Request): TeamRoleName | null {
+  if (req.user?.role === "ADMIN") return "OWNER";
+  return (req.teamRole as TeamRoleName | undefined) ?? null;
+}
+
+function canAssignRole(actor: TeamRoleName | null, target: TeamRoleName): boolean {
+  if (target === "OWNER" || target === "ADMIN") return actor === "OWNER";
+  return actor === "OWNER" || actor === "ADMIN";
+}
+
+async function countOwners(teamId: string): Promise<number> {
+  return prisma.teamMember.count({ where: { teamId, role: "OWNER" } });
+}
 
 teamRouter.get("/invite/:token", async (req, res) => {
   try {
@@ -23,7 +49,7 @@ teamRouter.get("/invite/:token", async (req, res) => {
       expiresAt: invite.expiresAt,
     });
   } catch (err) {
-    res.status(500).json({ error: String(err) });
+    send500(res, err, "GET /invite/:token");
   }
 });
 
@@ -95,27 +121,38 @@ teamRouter.get("/", async (req, res) => {
       })),
     });
   } catch (err) {
-    res.status(500).json({ error: String(err) });
+    send500(res, err, "GET /");
   }
 });
 
 teamRouter.post("/invite", async (req, res) => {
   try {
-    const { email, role } = req.body as { email?: string; role?: string };
+    if (!(await requireTeamAdmin(req, res))) return;
 
-    if (!email || !role) {
+    const { email: rawEmail, role } = req.body as { email?: string; role?: string };
+
+    if (!rawEmail || !role) {
       res.status(400).json({ error: "email and role required" });
       return;
     }
-    if (!["OWNER", "ADMIN", "MEMBER", "VIEWER"].includes(role)) {
+    if (!VALID_ROLES.includes(role as TeamRoleName)) {
       res.status(400).json({ error: "Invalid role" });
       return;
     }
+    const email = normalizeEmail(rawEmail);
+    if (!EMAIL_RE.test(email)) {
+      res.status(400).json({ error: "Invalid email" });
+      return;
+    }
 
-    if (!(await requireTeamAdmin(req, res))) return;
+    if (!canAssignRole(getActorRole(req), role as TeamRoleName)) {
+      res.status(403).json({ error: "Insufficient permissions to assign this role" });
+      return;
+    }
+
     const teamId = req.user!.teamId!;
-
     const team = await prisma.team.findUnique({ where: { id: teamId } });
+
     if (!team) {
       res.status(404).json({ error: "Team not found" });
       return;
@@ -126,6 +163,7 @@ teamRouter.post("/invite", async (req, res) => {
       const alreadyMember = await prisma.teamMember.findUnique({
         where: { teamId_userId: { teamId, userId: existingUser.id } },
       });
+
       if (alreadyMember) {
         res.status(409).json({ error: "Dieser Nutzer ist bereits Mitglied" });
         return;
@@ -149,7 +187,7 @@ teamRouter.post("/invite", async (req, res) => {
       data: {
         teamId,
         email,
-        role: role as any,
+        role: role as TeamRoleName,
         token,
         invitedBy: inviter?.name ?? inviter?.email ?? req.user!.userId,
         expiresAt,
@@ -171,7 +209,7 @@ teamRouter.post("/invite", async (req, res) => {
       expiresAt: invite.expiresAt,
     });
   } catch (err) {
-    res.status(500).json({ error: String(err) });
+    send500(res, err, "POST /invite");
   }
 });
 
@@ -191,20 +229,23 @@ teamRouter.delete("/invites/:id", async (req, res) => {
     await prisma.teamInvite.delete({ where: { id: req.params.id } });
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ error: String(err) });
+    send500(res, err, "DELETE /invites/:id");
   }
 });
 
 teamRouter.put("/members/:id", async (req, res) => {
   try {
+    if (!(await requireTeamAdmin(req, res))) return;
+
     const { role } = req.body as { role?: string };
-    if (!role || !["OWNER", "ADMIN", "MEMBER", "VIEWER"].includes(role)) {
+    if (!role || !VALID_ROLES.includes(role as TeamRoleName)) {
       res.status(400).json({ error: "Invalid role" });
       return;
     }
 
-    if (!(await requireTeamAdmin(req, res))) return;
     const teamId = req.user!.teamId!;
+    const actorRole = getActorRole(req);
+    const newRole = role as TeamRoleName;
 
     const target = await prisma.teamMember.findUnique({
       where: { id: req.params.id },
@@ -214,13 +255,35 @@ teamRouter.put("/members/:id", async (req, res) => {
       return;
     }
 
+    if (target.userId === req.user!.userId && req.user!.role !== "ADMIN") {
+      res.status(403).json({ error: "Cannot change your own role" });
+      return;
+    }
+
+    if (!canAssignRole(actorRole, newRole)) {
+      res.status(403).json({ error: "Insufficient permissions to assign this role" });
+      return;
+    }
+    if (target.role === "OWNER" && actorRole !== "OWNER") {
+      res.status(403).json({ error: "Only an owner can change another owner's role" });
+      return;
+    }
+
+    if (target.role === "OWNER" && newRole !== "OWNER") {
+      const owners = await countOwners(teamId);
+      if (owners <= 1) {
+        res.status(409).json({ error: "A team must have at least one owner" });
+        return;
+      }
+    }
+
     await prisma.teamMember.update({
       where: { id: req.params.id },
-      data: { role: role as any },
+      data: { role: newRole },
     });
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ error: String(err) });
+    send500(res, err, "PUT /members/:id");
   }
 });
 
@@ -237,7 +300,6 @@ teamRouter.delete("/members/:id", async (req, res) => {
     const teamId = req.user!.teamId;
     const isAdmin = req.user!.role === "ADMIN";
 
-    // Verify the target member belongs to the user's team
     if (!isAdmin && existing.teamId !== teamId) {
       res.status(403).json({ error: "Not authorized" });
       return;
@@ -245,16 +307,30 @@ teamRouter.delete("/members/:id", async (req, res) => {
 
     const isSelf = existing.userId === req.user!.userId;
     const me = await getMyMembership(req.user!.userId, teamId ?? "");
+    const actorRole: TeamRoleName | null = isAdmin ? "OWNER" : ((me?.role as TeamRoleName | undefined) ?? null);
 
     if (!isSelf && !isAdmin && !canManageTeam(me?.role)) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
 
+    if (!isSelf && existing.role === "OWNER" && actorRole !== "OWNER") {
+      res.status(403).json({ error: "Only an owner can remove another owner" });
+      return;
+    }
+
+    if (existing.role === "OWNER") {
+      const owners = await countOwners(existing.teamId);
+      if (owners <= 1) {
+        res.status(409).json({ error: "A team must have at least one owner" });
+        return;
+      }
+    }
+
     await prisma.teamMember.delete({ where: { id: req.params.id } });
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ error: String(err) });
+    send500(res, err, "DELETE /members/:id");
   }
 });
 
@@ -274,19 +350,20 @@ teamRouter.get("/members/:id/apps", async (req, res) => {
 
     res.json({ appIds: member.appAccess.map((a) => a.appId) });
   } catch (err) {
-    res.status(500).json({ error: String(err) });
+    send500(res, err, "GET /members/:id/apps");
   }
 });
 
 teamRouter.put("/members/:id/apps", async (req, res) => {
   try {
+    if (!(await requireTeamAdmin(req, res))) return;
+
     const { appIds } = req.body as { appIds?: string[] };
-    if (!Array.isArray(appIds)) {
+    if (!Array.isArray(appIds) || appIds.some((v) => typeof v !== "string")) {
       res.status(400).json({ error: "appIds array required" });
       return;
     }
 
-    if (!(await requireTeamAdmin(req, res))) return;
     const teamId = req.user!.teamId!;
 
     const member = await prisma.teamMember.findUnique({
@@ -297,39 +374,61 @@ teamRouter.put("/members/:id/apps", async (req, res) => {
       return;
     }
 
-    await prisma.teamMemberAppAccess.deleteMany({
-      where: { teamMemberId: req.params.id },
-    });
     if (appIds.length > 0) {
-      await prisma.teamMemberAppAccess.createMany({
-        data: appIds.map((appId) => ({ teamMemberId: req.params.id, appId })),
-        skipDuplicates: true,
+      const unique = Array.from(new Set(appIds));
+      const valid = await prisma.app.findMany({
+        where: { id: { in: unique }, teamId },
+        select: { id: true },
       });
+      if (valid.length !== unique.length) {
+        res.status(400).json({ error: "One or more appIds do not belong to this team" });
+        return;
+      }
     }
+
+    await prisma.$transaction([
+      prisma.teamMemberAppAccess.deleteMany({
+        where: { teamMemberId: req.params.id },
+      }),
+      ...(appIds.length > 0
+        ? [
+            prisma.teamMemberAppAccess.createMany({
+              data: appIds.map((appId) => ({ teamMemberId: req.params.id, appId })),
+              skipDuplicates: true,
+            }),
+          ]
+        : []),
+    ]);
 
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ error: String(err) });
+    send500(res, err, "PUT /members/:id/apps");
   }
 });
 
 teamRouter.put("/", async (req, res) => {
   try {
+    if (!(await requireTeamAdmin(req, res))) return;
+
     const { name } = req.body as { name?: string };
-    if (!name?.trim()) {
+    const trimmed = name?.trim();
+    if (!trimmed) {
       res.status(400).json({ error: "name required" });
       return;
     }
+    if (trimmed.length > 100) {
+      res.status(400).json({ error: "name too long" });
+      return;
+    }
 
-    if (!(await requireTeamAdmin(req, res))) return;
     const teamId = req.user!.teamId!;
 
     const team = await prisma.team.update({
       where: { id: teamId },
-      data: { name: name.trim() },
+      data: { name: trimmed },
     });
     res.json({ id: team.id, name: team.name });
   } catch (err) {
-    res.status(500).json({ error: String(err) });
+    send500(res, err, "PUT /");
   }
 });
