@@ -26,6 +26,7 @@ import Settings from "./components/settings/Settings";
 import AppSettings from "./components/settings/AppSettings";
 import ProfileSettings from "./components/settings/ProfileSettings";
 import Billing from "./components/settings/Billing";
+import Security from "./components/settings/Security";
 import Analytics from "./components/analytics/Analytics";
 import AnalyticsDownloads from "./components/analytics/AnalyticsDownloads";
 import AnalyticsCountries from "./components/analytics/AnalyticsCountries";
@@ -69,6 +70,7 @@ import {
   User as UserIcon,
   ArrowLeft,
   CreditCard,
+  Shield,
 } from "lucide-react";
 
 const sidebarLinks = [
@@ -936,6 +938,7 @@ function SettingsSidebar({ navLinkClass }: { navLinkClass: (p: { isActive: boole
   const navigate = useNavigate();
   const settingsLinks = [
     { to: "/settings/profile", label: "Profile", icon: UserIcon },
+    { to: "/settings/security", label: "Security", icon: Shield },
     { to: "/settings/team-settings", label: "Team Settings", icon: SettingsIcon },
     { to: "/settings/team", label: "Team", icon: Users },
     { to: "/settings/agents", label: "Agents", icon: Bot },
@@ -1195,6 +1198,7 @@ export default function App() {
               <Route path="/settings/team-settings" element={<Settings addToast={addToast} />} />
               <Route path="/settings/team" element={<Team addToast={addToast} currentUserId={user.id} />} />
               <Route path="/settings/agents" element={<Agents addToast={addToast} />} />
+              <Route path="/settings/security" element={<Security addToast={addToast} />} />
               <Route path="/settings/billing" element={<Billing addToast={addToast} />} />
               <Route path="/invite/:token" element={<InviteAccept onAuth={(u) => setUser(u)} />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />

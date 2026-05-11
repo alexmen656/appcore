@@ -239,6 +239,7 @@ authRouter.get("/me", requireAuth, async (req, res) => {
         name: true,
         role: true,
         createdAt: true,
+        passwordHash: true,
         passkeys: {
           select: { id: true, name: true, createdAt: true, lastUsedAt: true },
         },
@@ -254,8 +255,10 @@ authRouter.get("/me", requireAuth, async (req, res) => {
       return;
     }
     const membership = user.teamMembers[0];
+    const { passwordHash, ...rest } = user;
     res.json({
-      ...user,
+      ...rest,
+      passwordSet: passwordHash != null,
       teamId: membership?.teamId ?? null,
       teamRole: user.role === "ADMIN" ? "OWNER" : (membership?.role ?? null),
     });
@@ -299,6 +302,53 @@ authRouter.patch("/profile", requireAuth, async (req, res) => {
       select: { id: true, email: true, name: true, role: true },
     });
     res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+authRouter.patch("/password", requireAuth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body as {
+      currentPassword?: string;
+      newPassword?: string;
+    };
+
+    if (!newPassword || newPassword.length < 8) {
+      res.status(400).json({ error: "New password must be at least 8 characters" });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.userId },
+      select: { id: true, passwordHash: true },
+    });
+
+    if (!user) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
+
+    if (user.passwordHash) {
+      if (!currentPassword) {
+        res.status(400).json({ error: "Current password required" });
+        return;
+      }
+
+      const ok = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!ok) {
+        res.status(401).json({ error: "Current password is incorrect" });
+        return;
+      }
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash },
+    });
+
+    res.json({ ok: true, hadPassword: !!user.passwordHash });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
