@@ -26,6 +26,7 @@ import { autonomousRouter } from "./api/autonomous";
 import { teamRouter } from "./api/team";
 import { searchRouter } from "./api/search";
 import { adminRouter } from "./api/admin";
+import { billingRouter, handleLemonSqueezyWebhook } from "./api/billing";
 import { notificationService } from "../services/notifications/notification.js";
 import { initScheduler as initASOScheduler } from "../autonomous";
 import fs from "fs";
@@ -64,6 +65,16 @@ app.use((req, res, next) => {
     credentials: true,
   })(req, res, next);
 });
+app.post("/api/billing/webhook", express.raw({ type: "application/json" }), async (req, res) => {
+  try {
+    const result = await handleLemonSqueezyWebhook(req.body as Buffer, req.header("x-signature") ?? undefined);
+    res.json(result);
+  } catch (err) {
+    logger.warn({ err: String(err) }, "lemon squeezy webhook rejected");
+    res.status(400).json({ error: String(err) });
+  }
+});
+
 app.use(express.json());
 
 app.use("/api/auth", authRouter);
@@ -84,6 +95,7 @@ app.use("/api/autonomous", requireAuth, loadTeamRole, requireWriteRole, autonomo
 app.use("/api/team", teamRouter);
 app.use("/api/search", requireAuth, loadTeamRole, searchRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/billing", billingRouter);
 app.use("/oauth", oauthRouter);
 
 app.get("/.well-known/oauth-protected-resource", (req, res) => {

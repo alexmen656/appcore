@@ -4,16 +4,11 @@ import { z } from "zod";
 dotenv.config();
 
 const envSchema = z.object({
-  NODE_ENV: z
-    .enum(["development", "production", "test"])
-    .default("development"),
+  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   DATABASE_URL: z.string().url(),
 
   // Auth
-  JWT_SECRET: z
-    .string()
-    .min(32)
-    .default("appcore-dev-secret-change-me-in-production-32x"),
+  JWT_SECRET: z.string().min(32).default("appcore-dev-secret-change-me-in-production-32x"),
   WEBAUTHN_RP_ID: z.string().default("localhost"),
   WEBAUTHN_RP_NAME: z.string().default("AppCore"),
   WEBAUTHN_ORIGIN: z.string().default("http://localhost:5173"),
@@ -30,9 +25,7 @@ const envSchema = z.object({
   APNS_TEAM_ID: z.string().optional(),
   APNS_BUNDLE_ID: z.string().default("com.fringelo.marteso.Marteso"),
   APNS_KEY_PATH: z.string().default("./keys/AuthKey.p8"),
-  APNS_HOST: z
-    .string()
-    .default("api.sandbox.push.apple.com"),
+  APNS_HOST: z.string().default("api.sandbox.push.apple.com"),
 
   // CORS
   CORS_ORIGIN: z.string().optional(),
@@ -50,6 +43,13 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().default("noreply@marteso.com"),
   APP_URL: z.string().default("http://localhost:5173"),
+
+  // Lemon Squeezy billing
+  LEMONSQUEEZY_API_KEY: z.string().optional(),
+  LEMONSQUEEZY_STORE_ID: z.string().optional(),
+  LEMONSQUEEZY_VARIANT_MONTHLY: z.string().optional(),
+  LEMONSQUEEZY_VARIANT_YEARLY: z.string().optional(),
+  LEMONSQUEEZY_WEBHOOK_SECRET: z.string().optional(),
 
   // node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
   ENCRYPTION_KEY: z.string().length(64).optional(),

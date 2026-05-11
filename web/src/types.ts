@@ -236,6 +236,30 @@ export interface SettingsData {
   reviewerDemoPassword: string;
 }
 
+export interface BillingPlan {
+  price: number;
+  currency: string;
+  interval: "monthly" | "yearly";
+}
+
+export interface BillingSubscription {
+  status: string;
+  interval: "monthly" | "yearly" | null;
+  cardBrand: string | null;
+  cardLastFour: string | null;
+  renewsAt: string | null;
+  endsAt: string | null;
+  trialEndsAt: string | null;
+  customerPortalUrl: string | null;
+  updatePaymentMethodUrl: string | null;
+}
+
+export interface BillingStatus {
+  configured: boolean;
+  plans: { monthly: BillingPlan; yearly: BillingPlan };
+  subscription: BillingSubscription | null;
+}
+
 export interface GitHubStatus {
   connected: boolean;
   username: string | null;
