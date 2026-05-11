@@ -81,7 +81,15 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     return;
   }
   try {
-    req.user = verifyToken(header.slice(7));
+    const user = verifyToken(header.slice(7));
+
+    if (!user.teamId) {
+      res.status(403).json({ error: "No team associated with user" });
+      return;
+    }
+
+    req.user = user;
+
     next();
   } catch {
     res.status(401).json({ error: "Invalid or expired token" });

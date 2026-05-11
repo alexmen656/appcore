@@ -1,8 +1,7 @@
 import { Router } from "express";
-import type { Request, Response } from "express";
-import { prisma, getEffectiveSettingsForTeam } from "../../config";
 import { requireBundleAccess } from "../auth";
 import { bossScheduler } from "../../jobs/boss";
+import { prisma, getEffectiveSettingsForTeam } from "../../config";
 import { QUEUE_NAME as SCRAPE_QUEUE } from "../../jobs/workers/scrape.worker";
 import { QUEUE_NAME as ANALYZE_QUEUE } from "../../jobs/workers/analyze.worker";
 import { QUEUE_NAME as TRACK_KEYWORDS_QUEUE } from "../../jobs/workers/track-keywords.worker";
@@ -13,15 +12,6 @@ import { QUEUE_NAME as COMPETITOR_INTEL_QUEUE } from "../../jobs/workers/competi
 
 export const actionsRouter = Router();
 actionsRouter.use(...requireBundleAccess("body"));
-
-function resolveTeamId(req: Request, res: Response): string | null {
-  const teamId = req.user!.teamId;
-  if (!teamId) {
-    res.status(400).json({ error: "No team associated with user" });
-    return null;
-  }
-  return teamId;
-}
 
 actionsRouter.post("/scrape", async (req, res) => {
   try {
@@ -38,9 +28,9 @@ actionsRouter.post("/scrape", async (req, res) => {
 
 actionsRouter.post("/analyze", async (req, res) => {
   try {
-    const teamId = resolveTeamId(req, res);
-    if (!teamId) return;
+    const teamId = req.user!.teamId!;
     const app = req.bundleApp!;
+
     await bossScheduler.sendJob(ANALYZE_QUEUE, {
       teamId,
       bundleId: app.bundleId,
@@ -53,9 +43,9 @@ actionsRouter.post("/analyze", async (req, res) => {
 
 actionsRouter.post("/sync", async (req, res) => {
   try {
-    const teamId = resolveTeamId(req, res);
-    if (!teamId) return;
+    const teamId = req.user!.teamId!;
     const settings = await getEffectiveSettingsForTeam(teamId);
+
     if (!settings.ascIssuerId || !settings.ascKeyId || !settings.ascPrivateKey) {
       res.status(400).json({
         error: "App Store Connect credentials not configured in Settings.",
@@ -75,9 +65,9 @@ actionsRouter.post("/sync", async (req, res) => {
 
 actionsRouter.post("/track-keywords", async (req, res) => {
   try {
-    const teamId = resolveTeamId(req, res);
-    if (!teamId) return;
+    const teamId = req.user!.teamId!;
     const app = req.bundleApp!;
+
     await bossScheduler.sendJob(TRACK_KEYWORDS_QUEUE, {
       teamId,
       appId: app.id,
@@ -92,9 +82,9 @@ actionsRouter.post("/track-keywords", async (req, res) => {
 
 actionsRouter.post("/discover-keywords", async (req, res) => {
   try {
-    const teamId = resolveTeamId(req, res);
-    if (!teamId) return;
+    const teamId = req.user!.teamId!;
     const app = req.bundleApp!;
+
     await bossScheduler.sendJob(DISCOVER_KEYWORDS_QUEUE, {
       teamId,
       bundleId: app.bundleId,
@@ -113,10 +103,12 @@ actionsRouter.post("/discover-competitors", async (req, res) => {
       orderBy: { popularity: "desc" },
       take: 10,
     });
+
     if (keywords.length === 0) {
       res.status(400).json({ error: "No keywords tracked yet. Add keywords first." });
       return;
     }
+
     await bossScheduler.sendJob(DISCOVER_COMPETITORS_QUEUE, {
       bundleId: app.bundleId,
       country: app.country,
@@ -129,9 +121,9 @@ actionsRouter.post("/discover-competitors", async (req, res) => {
 
 actionsRouter.post("/competitor-intel", async (req, res) => {
   try {
-    const teamId = resolveTeamId(req, res);
-    if (!teamId) return;
+    const teamId = req.user!.teamId!;
     const app = req.bundleApp!;
+
     await bossScheduler.sendJob(COMPETITOR_INTEL_QUEUE, {
       teamId,
       bundleId: app.bundleId,

@@ -1069,19 +1069,13 @@ ascRouter.post(
       return;
     }
 
-    const teamId = req.user!.teamId;
-    if (!teamId) {
-      res.status(400).json({ error: "No team associated with user" });
-      return;
-    }
+    const teamId = req.user!.teamId!;
 
     if (translationTracker.isTranslating(versionId, targetLocale)) {
       res.status(409).json({ error: `Translation for ${targetLocale} already in progress` });
       return;
     }
 
-    // Mark as translating immediately so the UI can lock without waiting for the worker
-    // to pick up the job (the worker re-adds defensively).
     translationTracker.add(versionId, targetLocale);
 
     const data: TranslateLocalizationData = {

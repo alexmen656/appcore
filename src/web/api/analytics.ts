@@ -39,10 +39,10 @@ function resolveUntil(query: Record<string, any>): Date | null {
 analyticsRouter.get("/summary", ...requireBundleAccess("query"), async (req, res) => {
   try {
     const bundleId = req.bundleApp!.bundleId;
-
     const since = resolveSince(req.query);
     const until = resolveUntil(req.query);
     const dateFilter: Record<string, Date> = {};
+
     if (since) dateFilter.gte = since;
     if (until) dateFilter.lte = until;
 
@@ -66,8 +66,8 @@ analyticsRouter.get("/summary", ...requireBundleAccess("query"), async (req, res
         _count: { id: true },
       }),
     ]);
-    const lastSync = { completedAt: new Date("2025-01-01") };
 
+    const lastSync = { completedAt: new Date("2025-01-01") };
     const downloads = metricAgg._sum.downloads ?? 0;
     const impressions = metricAgg._sum.impressions ?? 0;
     const pageViews = metricAgg._sum.pageViews ?? 0;
@@ -92,15 +92,14 @@ analyticsRouter.get("/summary", ...requireBundleAccess("query"), async (req, res
 analyticsRouter.get("/downloads", ...requireBundleAccess("query"), async (req, res) => {
   try {
     const bundleId = req.bundleApp!.bundleId;
-
     const since = resolveSince(req.query);
     const until = resolveUntil(req.query);
     const dateFilter: Record<string, Date> = {};
+
     if (since) dateFilter.gte = since;
     if (until) dateFilter.lte = until;
 
     const countryFilter = req.query.country as string | undefined;
-
     const rows = await prisma.appStoreAnalytics.findMany({
       where: {
         bundleId,
@@ -119,11 +118,13 @@ analyticsRouter.get("/downloads", ...requireBundleAccess("query"), async (req, r
       pageViews: number;
       sessions: number;
     };
+
     type CountryEntry = {
       downloads: number;
       impressions: number;
       pageViews: number;
     };
+
     const byDayMap: Record<string, DayEntry> = {};
     const byCountryMap: Record<string, CountryEntry> = {};
 
@@ -220,6 +221,7 @@ analyticsRouter.get("/markers", ...requireBundleAccess("query"), async (req, res
       const { AppStoreScraper } = await import("../../services/appstore-scraper");
       const scraper = new AppStoreScraper();
       const history = await scraper.scrapeVersionHistory(Number(app.trackId));
+
       for (const { version, date } of history) {
         await prisma.appMetadataChange.create({
           data: {
@@ -231,6 +233,7 @@ analyticsRouter.get("/markers", ...requireBundleAccess("query"), async (req, res
           },
         });
       }
+
       if (history.length > 0) {
         versionChanges = await prisma.appMetadataChange.findMany({
           where: { appId: app.id, field: "version" },
@@ -256,16 +259,13 @@ analyticsRouter.get("/markers", ...requireBundleAccess("query"), async (req, res
 analyticsRouter.post("/sync", requireAuth, async (req, res) => {
   try {
     const teamId = req.user!.teamId;
-    if (!teamId) {
-      res.status(400).json({ error: "No team associated with user" });
-      return;
-    }
-    const settings = await getEffectiveSettingsForTeam(teamId);
+    const settings = await getEffectiveSettingsForTeam(teamId!);
 
     if (!settings.ascIssuerId || !settings.ascKeyId || !settings.ascPrivateKey) {
       res.status(400).json({ error: "App Store Connect credentials not configured." });
       return;
     }
+
     if (!settings.ascVendorNumber) {
       res.status(400).json({ error: "ASC Vendor Number not configured in Settings." });
       return;
@@ -276,6 +276,7 @@ analyticsRouter.post("/sync", requireAuth, async (req, res) => {
       res.status(400).json({ error: "bundleId required" });
       return;
     }
+
     const teamFilter = req.user!.role === "ADMIN" ? {} : { teamId: req.user!.teamId };
     const ownApps = await prisma.app.findMany({
       where: {
