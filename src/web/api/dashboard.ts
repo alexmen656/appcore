@@ -11,10 +11,12 @@ dashboardRouter.get("/", async (req, res) => {
     const settings = await getEffectiveSettings(req.user!.userId);
     const activeBundleId = req.query.bundleId as string | undefined;
 
-    const ownApp = await prisma.app.findUnique({
-      where: { bundleId: activeBundleId },
-      include: { snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 } },
-    });
+    const ownApp = activeBundleId
+      ? await prisma.app.findUnique({
+          where: { bundleId: activeBundleId },
+          include: { snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 } },
+        })
+      : null;
 
     if (ownApp && req.user!.role !== "ADMIN" && (!ownApp.teamId || ownApp.teamId !== req.user!.teamId)) {
       res.status(403).json({ error: "Not authorized" });
