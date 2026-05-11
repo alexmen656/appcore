@@ -241,12 +241,7 @@ keywordsRouter.post("/", async (req, res) => {
 keywordsRouter.delete("/:id", async (req, res) => {
   try {
     if (req.user!.role !== "ADMIN") {
-      const teamId = req.user!.teamId;
-      if (!teamId) {
-        res.status(403).json({ error: "No team" });
-        return;
-      }
-
+      const teamId = req.user!.teamId!;
       const ranking = await prisma.keywordRanking.findFirst({
         where: {
           keywordId: req.params.id,

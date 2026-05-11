@@ -35,19 +35,15 @@ declare global {
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 export async function loadTeamRole(req: Request, _res: Response, next: NextFunction) {
-  if (!req.user) return next();
-  if (req.user.role === "ADMIN") {
+  if (req.user!.role === "ADMIN") {
     req.teamRole = "OWNER";
     return next();
   }
-  if (!req.user.teamId) {
-    req.teamRole = null;
-    return next();
-  }
+
   try {
     const member = await prisma.teamMember.findUnique({
       where: {
-        teamId_userId: { teamId: req.user.teamId, userId: req.user.userId },
+        teamId_userId: { teamId: req.user!.teamId!, userId: req.user!.userId },
       },
       select: { role: true },
     });
@@ -87,6 +83,23 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
       res.status(403).json({ error: "No team associated with user" });
       return;
     }
+
+    if (!user.role) {
+      res.status(403).json({ error: "No role found in JWT" });
+      return;
+    }
+
+    if (!user.email) {
+      res.status(403).json({ error: "No email found in JWT" });
+      return;
+    }
+
+    if (!user.userId) {
+      res.status(403).json({ error: "No userId found in JWT" });
+      return;
+    }
+
+    //also verify later with dbb
 
     req.user = user;
 
@@ -161,13 +174,9 @@ export async function verifyAppOwnershipByBundleId(req: Request, res: Response, 
 
 export async function requireTeamAdmin(req: Request, res: Response): Promise<boolean> {
   if (req.user!.role === "ADMIN") return true;
-  if (!req.user!.teamId) {
-    res.status(403).json({ error: "No team" });
-    return false;
-  }
   const member = await prisma.teamMember.findUnique({
     where: {
-      teamId_userId: { teamId: req.user!.teamId, userId: req.user!.userId },
+      teamId_userId: { teamId: req.user!.teamId!, userId: req.user!.userId },
     },
     select: { role: true },
   });

@@ -8,8 +8,7 @@ settingsRouter.use(requireAuth);
 
 settingsRouter.get("/", async (req, res) => {
   try {
-    const teamId = req.user!.teamId;
-    const settings = teamId ? await prisma.teamSettings.findUnique({ where: { teamId } }) : null;
+    const settings = await prisma.teamSettings.findUnique({ where: { teamId: req.user!.teamId! } });
 
     res.json(
       settings
@@ -62,11 +61,7 @@ settingsRouter.get("/", async (req, res) => {
 settingsRouter.put("/", async (req, res) => {
   try {
     if (!(await requireTeamAdmin(req, res))) return;
-    const teamId = req.user!.teamId;
-    if (!teamId) {
-      res.status(403).json({ error: "No team" });
-      return;
-    }
+    const teamId = req.user!.teamId!;
 
     const {
       ascIssuerId,

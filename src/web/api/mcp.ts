@@ -9,8 +9,7 @@ mcpRouter.use(requireAuth, loadTeamRole, requireWriteRole);
 
 mcpRouter.get("/config", async (req, res) => {
   try {
-    const teamId = req.user!.teamId;
-    const settings = teamId ? await prisma.teamSettings.findUnique({ where: { teamId } }) : null;
+    const settings = await prisma.teamSettings.findUnique({ where: { teamId: req.user!.teamId! } });
     res.json({ mcpEnabled: settings?.mcpEnabled ?? false });
   } catch (err) {
     res.status(500).json({ error: String(err) });
@@ -21,13 +20,7 @@ mcpRouter.put("/config", async (req, res) => {
   try {
     if (!(await requireTeamAdmin(req, res))) return;
     const { mcpEnabled } = req.body as { mcpEnabled?: boolean };
-    const teamId = req.user!.teamId;
-
-    if (!teamId) {
-      res.status(403).json({ error: "No team" });
-      return;
-    }
-
+    const teamId = req.user!.teamId!;
     const data: Record<string, any> = {};
     if (mcpEnabled !== undefined) data.mcpEnabled = Boolean(mcpEnabled);
 

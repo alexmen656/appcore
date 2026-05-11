@@ -48,12 +48,9 @@ function serializeSubscription(sub: Awaited<ReturnType<typeof prisma.subscriptio
 
 billingRouter.get("/", requireAuth, async (req, res) => {
   try {
-    const teamId = req.user!.teamId;
-    if (!teamId) {
-      res.status(403).json({ error: "No team" });
-      return;
-    }
+    const teamId = req.user!.teamId!;
     const sub = await prisma.subscription.findUnique({ where: { teamId } });
+
     res.json({
       configured: isConfigured(),
       plans: {

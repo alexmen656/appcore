@@ -358,7 +358,7 @@ ascRouter.post(
       return;
     }
 
-    const teamId = req.user!.teamId ?? undefined;
+    const teamId = req.user!.teamId!;
     const existing = await prisma.app.findUnique({ where: { bundleId } });
 
     if (existing && existing.teamId && existing.teamId !== teamId && req.user!.role !== "ADMIN") {
@@ -380,7 +380,7 @@ ascRouter.post(
         name,
         trackId: BigInt(ascId),
         isOwnApp: true,
-        ...(teamId ? { teamId } : {}),
+        teamId,
       },
     });
 
