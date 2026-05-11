@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 import { logger, prisma } from "../../config";
 import { env } from "../../config/env";
-import { requireAuth, loadTeamRole, requireWriteRole } from "../auth";
+import { requireAuth, loadTeamRole, loadTeamSettings, requireWriteRole } from "../auth";
 
 const writeAuth = [requireAuth, loadTeamRole, requireWriteRole];
 import { encrypt, decryptNullable } from "../../config/encryption";
@@ -116,10 +116,9 @@ githubRouter.get("/oauth/callback", async (req: Request, res: Response) => {
   }
 });
 
-githubRouter.get("/status", requireAuth, async (req: Request, res: Response) => {
+githubRouter.get("/status", requireAuth, loadTeamSettings, async (req: Request, res: Response) => {
   try {
-    const settings = await prisma.teamSettings.findUnique({ where: { teamId: req.user!.teamId! } });
-    
+    const settings = req.teamSettings;
     res.json({
       connected: !!settings?.githubAccessToken,
       username: settings?.githubUsername ?? null,
@@ -133,7 +132,7 @@ githubRouter.get("/status", requireAuth, async (req: Request, res: Response) => 
 
 githubRouter.post("/disconnect", writeAuth, async (req: Request, res: Response) => {
   try {
-    const teamId = req.user!.teamId!;
+    const teamId = req.user!.teamId;
 
     await prisma.teamSettings.updateMany({
       where: { teamId },
@@ -151,9 +150,9 @@ githubRouter.post("/disconnect", writeAuth, async (req: Request, res: Response) 
   }
 });
 
-githubRouter.get("/repos", requireAuth, async (req: Request, res: Response) => {
+githubRouter.get("/repos", requireAuth, loadTeamSettings, async (req: Request, res: Response) => {
   try {
-    const settings = await prisma.teamSettings.findUnique({ where: { teamId: req.user!.teamId! } });
+    const settings = req.teamSettings;
     if (!settings?.githubAccessToken) {
       res.status(400).json({ error: "GitHub not connected" });
       return;
@@ -175,9 +174,9 @@ githubRouter.get("/repos", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-githubRouter.get("/repo-dirs/:owner/:repo", requireAuth, async (req: Request, res: Response) => {
+githubRouter.get("/repo-dirs/:owner/:repo", requireAuth, loadTeamSettings, async (req: Request, res: Response) => {
   try {
-    const settings = await prisma.teamSettings.findUnique({ where: { teamId: req.user!.teamId! } });
+    const settings = req.teamSettings;
     if (!settings?.githubAccessToken) {
       res.status(400).json({ error: "GitHub not connected" });
       return;

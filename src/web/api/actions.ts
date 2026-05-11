@@ -28,7 +28,7 @@ actionsRouter.post("/scrape", async (req, res) => {
 
 actionsRouter.post("/analyze", async (req, res) => {
   try {
-    const teamId = req.user!.teamId!;
+    const teamId = req.user!.teamId;
     const app = req.bundleApp!;
 
     await bossScheduler.sendJob(ANALYZE_QUEUE, {
@@ -43,7 +43,7 @@ actionsRouter.post("/analyze", async (req, res) => {
 
 actionsRouter.post("/sync", async (req, res) => {
   try {
-    const teamId = req.user!.teamId!;
+    const teamId = req.user!.teamId;
     const settings = await getEffectiveSettingsForTeam(teamId);
 
     if (!settings.ascIssuerId || !settings.ascKeyId || !settings.ascPrivateKey) {
@@ -65,7 +65,7 @@ actionsRouter.post("/sync", async (req, res) => {
 
 actionsRouter.post("/track-keywords", async (req, res) => {
   try {
-    const teamId = req.user!.teamId!;
+    const teamId = req.user!.teamId;
     const app = req.bundleApp!;
 
     await bossScheduler.sendJob(TRACK_KEYWORDS_QUEUE, {
@@ -82,7 +82,7 @@ actionsRouter.post("/track-keywords", async (req, res) => {
 
 actionsRouter.post("/discover-keywords", async (req, res) => {
   try {
-    const teamId = req.user!.teamId!;
+    const teamId = req.user!.teamId;
     const app = req.bundleApp!;
 
     await bossScheduler.sendJob(DISCOVER_KEYWORDS_QUEUE, {
@@ -121,7 +121,7 @@ actionsRouter.post("/discover-competitors", async (req, res) => {
 
 actionsRouter.post("/competitor-intel", async (req, res) => {
   try {
-    const teamId = req.user!.teamId!;
+    const teamId = req.user!.teamId;
     const app = req.bundleApp!;
 
     await bossScheduler.sendJob(COMPETITOR_INTEL_QUEUE, {

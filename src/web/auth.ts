@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import type { App } from "@prisma/client";
+import type { App, TeamSettings } from "@prisma/client";
 import { env, prisma } from "../config";
 
 const JWT_SECRET = env.JWT_SECRET;
@@ -14,6 +14,13 @@ export interface JwtPayload {
   teamId: string | null;
 }
 
+export interface AuthedUser {
+  userId: string;
+  email: string;
+  role: string;
+  teamId: string;
+}
+
 export function signToken(payload: JwtPayload): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: "30d" });
 }
@@ -25,9 +32,10 @@ export function verifyToken(token: string): JwtPayload {
 declare global {
   namespace Express {
     interface Request {
-      user?: JwtPayload;
+      user?: AuthedUser;
       bundleApp?: App;
       teamRole?: TeamRoleName | null;
+      teamSettings?: TeamSettings | null;
     }
   }
 }
@@ -43,7 +51,7 @@ export async function loadTeamRole(req: Request, _res: Response, next: NextFunct
   try {
     const member = await prisma.teamMember.findUnique({
       where: {
-        teamId_userId: { teamId: req.user!.teamId!, userId: req.user!.userId },
+        teamId_userId: { teamId: req.user!.teamId, userId: req.user!.userId },
       },
       select: { role: true },
     });
@@ -101,12 +109,19 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 
     //also verify later with dbb
 
-    req.user = user;
+    req.user = { userId: user.userId, email: user.email, role: user.role, teamId: user.teamId };
 
     next();
   } catch {
     res.status(401).json({ error: "Invalid or expired token" });
   }
+}
+
+export async function loadTeamSettings(req: Request, _res: Response, next: NextFunction) {
+  req.teamSettings = await prisma.teamSettings.findUnique({
+    where: { teamId: req.user!.teamId },
+  });
+  next();
 }
 
 export function bundleAccess(source: "params" | "query" | "body" = "query", paramName = "bundleId") {
@@ -176,7 +191,7 @@ export async function requireTeamAdmin(req: Request, res: Response): Promise<boo
   if (req.user!.role === "ADMIN") return true;
   const member = await prisma.teamMember.findUnique({
     where: {
-      teamId_userId: { teamId: req.user!.teamId!, userId: req.user!.userId },
+      teamId_userId: { teamId: req.user!.teamId, userId: req.user!.userId },
     },
     select: { role: true },
   });

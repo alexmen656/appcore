@@ -1,14 +1,14 @@
 import { Router } from "express";
 import { prisma } from "../../config";
-import { requireAuth, requireTeamAdmin } from "../auth";
+import { requireAuth, requireTeamAdmin, loadTeamSettings } from "../auth";
 import { encrypt } from "../../config/encryption";
 
 export const settingsRouter = Router();
 settingsRouter.use(requireAuth);
 
-settingsRouter.get("/", async (req, res) => {
+settingsRouter.get("/", loadTeamSettings, async (req, res) => {
   try {
-    const settings = await prisma.teamSettings.findUnique({ where: { teamId: req.user!.teamId! } });
+    const settings = req.teamSettings;
 
     res.json(
       settings
@@ -61,7 +61,7 @@ settingsRouter.get("/", async (req, res) => {
 settingsRouter.put("/", async (req, res) => {
   try {
     if (!(await requireTeamAdmin(req, res))) return;
-    const teamId = req.user!.teamId!;
+    const teamId = req.user!.teamId;
 
     const {
       ascIssuerId,

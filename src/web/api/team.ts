@@ -150,7 +150,7 @@ teamRouter.post("/invite", async (req, res) => {
       return;
     }
 
-    const teamId = req.user!.teamId!;
+    const teamId = req.user!.teamId;
     const team = await prisma.team.findUnique({ where: { id: teamId } });
 
     if (!team) {
@@ -216,7 +216,7 @@ teamRouter.post("/invite", async (req, res) => {
 teamRouter.delete("/invites/:id", async (req, res) => {
   try {
     if (!(await requireTeamAdmin(req, res))) return;
-    const teamId = req.user!.teamId!;
+    const teamId = req.user!.teamId;
 
     const invite = await prisma.teamInvite.findUnique({
       where: { id: req.params.id },
@@ -243,7 +243,7 @@ teamRouter.put("/members/:id", async (req, res) => {
       return;
     }
 
-    const teamId = req.user!.teamId!;
+    const teamId = req.user!.teamId;
     const actorRole = getActorRole(req);
     const newRole = role as TeamRoleName;
 
@@ -337,7 +337,7 @@ teamRouter.delete("/members/:id", async (req, res) => {
 teamRouter.get("/members/:id/apps", async (req, res) => {
   try {
     if (!(await requireTeamAdmin(req, res))) return;
-    const teamId = req.user!.teamId!;
+    const teamId = req.user!.teamId;
 
     const member = await prisma.teamMember.findUnique({
       where: { id: req.params.id },
@@ -364,7 +364,7 @@ teamRouter.put("/members/:id/apps", async (req, res) => {
       return;
     }
 
-    const teamId = req.user!.teamId!;
+    const teamId = req.user!.teamId;
 
     const member = await prisma.teamMember.findUnique({
       where: { id: req.params.id },
@@ -421,7 +421,7 @@ teamRouter.put("/", async (req, res) => {
       return;
     }
 
-    const teamId = req.user!.teamId!;
+    const teamId = req.user!.teamId;
 
     const team = await prisma.team.update({
       where: { id: teamId },

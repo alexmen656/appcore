@@ -48,7 +48,7 @@ function serializeSubscription(sub: Awaited<ReturnType<typeof prisma.subscriptio
 
 billingRouter.get("/", requireAuth, async (req, res) => {
   try {
-    const teamId = req.user!.teamId!;
+    const teamId = req.user!.teamId;
     const sub = await prisma.subscription.findUnique({ where: { teamId } });
 
     res.json({
@@ -72,7 +72,7 @@ billingRouter.post("/checkout", requireAuth, async (req, res) => {
       res.status(500).json({ error: "Billing is not configured" });
       return;
     }
-    const teamId = req.user!.teamId!;
+    const teamId = req.user!.teamId;
     const interval = req.body?.interval as "monthly" | "yearly" | undefined;
     const variantId = interval === "yearly" ? env.LEMONSQUEEZY_VARIANT_YEARLY : env.LEMONSQUEEZY_VARIANT_MONTHLY;
     if (!variantId) {
@@ -133,7 +133,7 @@ billingRouter.post("/checkout", requireAuth, async (req, res) => {
 billingRouter.post("/portal", requireAuth, async (req, res) => {
   try {
     if (!(await requireTeamAdmin(req, res))) return;
-    const teamId = req.user!.teamId!;
+    const teamId = req.user!.teamId;
     const sub = await prisma.subscription.findUnique({ where: { teamId } });
     if (!sub?.customerPortalUrl) {
       res.status(404).json({ error: "No active subscription" });

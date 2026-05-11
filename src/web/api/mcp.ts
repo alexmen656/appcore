@@ -2,15 +2,14 @@ import { Router } from "express";
 import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "../../config";
-import { requireAuth, requireTeamAdmin, loadTeamRole, requireWriteRole } from "../auth";
+import { requireAuth, requireTeamAdmin, loadTeamRole, loadTeamSettings, requireWriteRole } from "../auth";
 
 export const mcpRouter = Router();
 mcpRouter.use(requireAuth, loadTeamRole, requireWriteRole);
 
-mcpRouter.get("/config", async (req, res) => {
+mcpRouter.get("/config", loadTeamSettings, async (req, res) => {
   try {
-    const settings = await prisma.teamSettings.findUnique({ where: { teamId: req.user!.teamId! } });
-    res.json({ mcpEnabled: settings?.mcpEnabled ?? false });
+    res.json({ mcpEnabled: req.teamSettings?.mcpEnabled ?? false });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
@@ -20,7 +19,7 @@ mcpRouter.put("/config", async (req, res) => {
   try {
     if (!(await requireTeamAdmin(req, res))) return;
     const { mcpEnabled } = req.body as { mcpEnabled?: boolean };
-    const teamId = req.user!.teamId!;
+    const teamId = req.user!.teamId;
     const data: Record<string, any> = {};
     if (mcpEnabled !== undefined) data.mcpEnabled = Boolean(mcpEnabled);
 

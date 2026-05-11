@@ -358,7 +358,7 @@ ascRouter.post(
       return;
     }
 
-    const teamId = req.user!.teamId!;
+    const teamId = req.user!.teamId;
     const existing = await prisma.app.findUnique({ where: { bundleId } });
 
     if (existing && existing.teamId && existing.teamId !== teamId && req.user!.role !== "ADMIN") {
@@ -1069,7 +1069,7 @@ ascRouter.post(
       return;
     }
 
-    const teamId = req.user!.teamId!;
+    const teamId = req.user!.teamId;
 
     if (translationTracker.isTranslating(versionId, targetLocale)) {
       res.status(409).json({ error: `Translation for ${targetLocale} already in progress` });

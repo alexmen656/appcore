@@ -53,7 +53,7 @@ searchRouter.get("/", async (req, res) => {
           : {
               AND: [
                 {
-                  OR: [{ isOwnApp: false }, { teamId: req.user!.teamId! }],
+                  OR: [{ isOwnApp: false }, { teamId: req.user!.teamId }],
                 },
               ],
             }),
