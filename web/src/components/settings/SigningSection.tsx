@@ -34,12 +34,10 @@ export default function SigningSection({ appId, addToast }: Props) {
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [showForm, setShowForm] = useState(false);
-
   const [p12File, setP12File] = useState<File | null>(null);
   const [profileFile, setProfileFile] = useState<File | null>(null);
   const [password, setPassword] = useState("");
   const [teamId, setTeamId] = useState("");
-
   const p12Ref = useRef<HTMLInputElement>(null);
   const profileRef = useRef<HTMLInputElement>(null);
 

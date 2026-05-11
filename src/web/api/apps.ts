@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../../config";
-import { getEffectiveSettings } from "../../config";
-import { requireAuth, verifyAppOwnership, verifyAppOwnershipByBundleId } from "../auth";
+import { requireAuth, bundleAccess, appAccess } from "../auth";
 import { ensureAccentColor } from "../../services/utils/icon-accent";
 
 export const appsRouter = Router();
@@ -20,11 +19,13 @@ appsRouter.get("/", async (req, res) => {
           res.json([]);
           return;
         }
+
         const rels = await prisma.competitorRelation.findMany({
           where: {
             OR: [{ appId: activeApp.id }, { competitorId: activeApp.id }],
           },
         });
+
         const relatedIds = rels.map((r) => (r.appId === activeApp.id ? r.competitorId : r.appId));
         whereClause = {
           OR: [{ id: activeApp.id }, { id: { in: relatedIds } }],
@@ -35,6 +36,7 @@ appsRouter.get("/", async (req, res) => {
         where: { teamId_userId: { teamId, userId: req.user!.userId } },
         include: { appAccess: true },
       });
+
       const isPrivileged = member?.role === "OWNER" || member?.role === "ADMIN";
       if (!isPrivileged && member && member.appAccess.length > 0) {
         const allowedAppIds = member.appAccess.map((a) => a.appId);
@@ -99,17 +101,15 @@ appsRouter.get("/", async (req, res) => {
   }
 });
 
-appsRouter.delete("/:ownAppId/competitors/:competitorId", async (req, res) => {
+appsRouter.delete("/:ownAppId/competitors/:competitorId", appAccess("params", "ownAppId"), async (req, res) => {
   try {
-    const { ownAppId, competitorId } = req.params;
-    const app = await verifyAppOwnership(req, res, ownAppId);
-    if (!app) return;
+    const competitorId = req.params.competitorId as string;
 
     await prisma.competitorRelation.deleteMany({
       where: {
         OR: [
-          { appId: ownAppId, competitorId },
-          { appId: competitorId, competitorId: ownAppId },
+          { appId: req.bundleApp!.id, competitorId },
+          { appId: competitorId, competitorId: req.bundleApp!.id },
         ],
       },
     });
@@ -119,13 +119,10 @@ appsRouter.delete("/:ownAppId/competitors/:competitorId", async (req, res) => {
   }
 });
 
-appsRouter.get("/:id", async (req, res) => {
+appsRouter.get("/:id", appAccess("params", "id"), async (req, res) => {
   try {
-    const owned = await verifyAppOwnership(req, res, req.params.id);
-    if (!owned) return;
-
     const app = await prisma.app.findUnique({
-      where: { id: req.params.id },
+      where: { id: req.bundleApp!.id },
       include: {
         snapshots: { orderBy: { scrapedAt: "desc" }, take: 20 },
         competitors: {
@@ -201,17 +198,11 @@ appsRouter.get("/:id", async (req, res) => {
   }
 });
 
-appsRouter.get("/:id/competitor-detail", async (req, res) => {
+appsRouter.get("/:id/competitor-detail", bundleAccess("query", "bundleId"), async (req, res) => {
   try {
-    const bundleId = req.query.bundleId as string | undefined;
-
-    if (bundleId) {
-      const ownApp = await verifyAppOwnershipByBundleId(req, res, bundleId);
-      if (!ownApp) return;
-    }
-
+    const bundleId = req.bundleApp!.id; //bug not only our id
     const app = await prisma.app.findUnique({
-      where: { id: req.params.id },
+      where: { id: bundleId },
       include: {
         snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 },
       },
@@ -333,13 +324,10 @@ appsRouter.get("/:id/competitor-detail", async (req, res) => {
   }
 });
 
-appsRouter.get("/:id/signing", requireAuth, async (req, res) => {
+appsRouter.get("/:id/signing", requireAuth, appAccess("params", "id"), async (req, res) => {
   try {
-    const owned = await verifyAppOwnership(req, res, req.params.id);
-    if (!owned) return;
-
     const app = await prisma.app.findUnique({
-      where: { id: req.params.id as string },
+      where: { id: req.bundleApp!.id },
       select: {
         signingCertP12: true,
         signingProvisioningProfile: true,
@@ -347,26 +335,18 @@ appsRouter.get("/:id/signing", requireAuth, async (req, res) => {
       },
     });
 
-    if (!app) {
-      res.status(404).json({ error: "App not found" });
-      return;
-    }
-    
     res.json({
-      hasCert: !!app.signingCertP12,
-      hasProfile: !!app.signingProvisioningProfile,
-      teamId: app.signingTeamId ?? null,
+      hasCert: !!app?.signingCertP12,
+      hasProfile: !!app?.signingProvisioningProfile,
+      teamId: app?.signingTeamId ?? null,
     });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
 });
 
-appsRouter.put("/:id/signing", requireAuth, async (req, res) => {
+appsRouter.put("/:id/signing", requireAuth, appAccess("params", "id"), async (req, res) => {
   try {
-    const owned = await verifyAppOwnership(req, res, req.params.id);
-    if (!owned) return;
-
     const { p12Base64, p12Password, profileBase64, teamId } = req.body;
     if (!p12Base64 || !p12Password || !profileBase64) {
       res.status(400).json({
@@ -374,8 +354,9 @@ appsRouter.put("/:id/signing", requireAuth, async (req, res) => {
       });
       return;
     }
+
     await prisma.app.update({
-      where: { id: req.params.id as string },
+      where: { id: req.bundleApp!.id },
       data: {
         signingCertP12: p12Base64,
         signingCertPassword: p12Password,
@@ -389,13 +370,13 @@ appsRouter.put("/:id/signing", requireAuth, async (req, res) => {
   }
 });
 
-appsRouter.delete("/:id", requireAuth, async (req, res) => {
+appsRouter.delete("/:id", requireAuth, appAccess("params", "id"), async (req, res) => {
   try {
-    const id = req.params.id as string;
+    const id = req.bundleApp!.id;
     const isAdmin = req.user!.role === "ADMIN";
     const teamId = req.user!.teamId;
-
     const app = await prisma.app.findUnique({ where: { id } });
+
     if (!app) {
       res.status(404).json({ error: "App not found" });
       return;
@@ -416,13 +397,10 @@ appsRouter.delete("/:id", requireAuth, async (req, res) => {
   }
 });
 
-appsRouter.delete("/:id/signing", requireAuth, async (req, res) => {
+appsRouter.delete("/:id/signing", requireAuth, appAccess("params", "id"), async (req, res) => {
   try {
-    const owned = await verifyAppOwnership(req, res, req.params.id);
-    if (!owned) return;
-
     await prisma.app.update({
-      where: { id: req.params.id as string },
+      where: { id: req.bundleApp!.id },
       data: {
         signingCertP12: null,
         signingCertPassword: null,

@@ -102,6 +102,20 @@ export function bundleAccess(source: "params" | "query" | "body" = "query", para
   };
 }
 
+export function appAccess(source: "params" | "query" | "body" = "query", paramName = "appId") {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const appId = req[source]?.[paramName] as string | undefined;
+    if (!appId) {
+      res.status(400).json({ error: `${paramName} required` });
+      return;
+    }
+    const app = await verifyAppOwnership(req, res, appId);
+    if (!app) return;
+    req.bundleApp = app;
+    next();
+  };
+}
+
 export function requireBundleAccess(
   source: "params" | "query" | "body" = "query",
   paramName = "bundleId",
