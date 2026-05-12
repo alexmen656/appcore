@@ -7,7 +7,7 @@ export const billingRouter = Router();
 
 const LS_API = "https://api.lemonsqueezy.com/v1";
 
-function lsHeaders(): HeadersInit {
+function lsHeaders(): Record<string, string> {
   return {
     Accept: "application/vnd.api+json",
     "Content-Type": "application/vnd.api+json",
@@ -60,7 +60,7 @@ billingRouter.get("/", requireAuth, async (req, res) => {
       subscription: serializeSubscription(sub),
     });
   } catch (err) {
-    logger.error({ err }, "billing status failed");
+    logger.error("billing status failed", { err });
     res.status(500).json({ error: String(err) });
   }
 });
@@ -75,6 +75,7 @@ billingRouter.post("/checkout", requireAuth, async (req, res) => {
     const teamId = req.user!.teamId;
     const interval = req.body?.interval as "monthly" | "yearly" | undefined;
     const variantId = interval === "yearly" ? env.LEMONSQUEEZY_VARIANT_YEARLY : env.LEMONSQUEEZY_VARIANT_MONTHLY;
+
     if (!variantId) {
       res.status(400).json({ error: "Unknown interval" });
       return;
@@ -111,21 +112,24 @@ billingRouter.post("/checkout", requireAuth, async (req, res) => {
       headers: lsHeaders(),
       body: JSON.stringify(payload),
     });
+
     if (!r.ok) {
-      const text = await r.text();
-      logger.error({ status: r.status, text }, "lemon squeezy checkout creation failed");
+      //const text = await r.text();
+      logger.error("lemon squeezy checkout creation failed");//{ status: r.status, text }, 
       res.status(502).json({ error: "Failed to create checkout" });
       return;
     }
+
     const body = (await r.json()) as { data?: { attributes?: { url?: string } } };
     const url = body.data?.attributes?.url;
+
     if (!url) {
       res.status(502).json({ error: "Checkout url missing" });
       return;
     }
     res.json({ url });
   } catch (err) {
-    logger.error({ err }, "checkout failed");
+    logger.error("checkout failed", { err });
     res.status(500).json({ error: String(err) });
   }
 });
@@ -141,7 +145,7 @@ billingRouter.post("/portal", requireAuth, async (req, res) => {
     }
     res.json({ url: sub.customerPortalUrl });
   } catch (err) {
-    logger.error({ err }, "portal failed");
+    logger.error("portal failed", { err });
     res.status(500).json({ error: String(err) });
   }
 });
