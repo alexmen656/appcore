@@ -629,6 +629,7 @@ function VersionsSidebarSection({ navLinkClass }: { navLinkClass: (p: { isActive
       if (next && !versions) load();
       return;
     }
+    
     setExpanded(true);
     if (versions && versions.length > 0) {
       const best = versions.find((v) => v.isEditable) ?? versions[0];
@@ -999,22 +1000,32 @@ export default function App() {
 
   useEffect(() => {
     const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : "";
-    if (hash.includes("gh_token=") || hash.includes("gh_error=")) {
+    if (
+      hash.includes("gh_token=") ||
+      hash.includes("gh_error=") ||
+      hash.includes("gg_token=") ||
+      hash.includes("gg_error=")
+    ) {
       const params = new URLSearchParams(hash);
-      const ghToken = params.get("gh_token");
-      const ghError = params.get("gh_error");
+      const oauthToken = params.get("gh_token") ?? params.get("gg_token");
+      const oauthError = params.get("gh_error") ?? params.get("gg_error");
+      const isNew = params.get("gh_new") === "1" || params.get("gg_new") === "1";
       const userEncoded = params.get("user");
+
       window.history.replaceState({}, "", window.location.pathname + window.location.search);
-      if (ghError) {
+      if (oauthError) {
         setAuthLoading(false);
         return;
       }
-      if (ghToken) {
-        setToken(ghToken);
-        if (params.get("gh_new") === "1") {
+
+      if (oauthToken) {
+        setToken(oauthToken);
+
+        if (isNew) {
           localStorage.setItem("marteso_onboarding", "1");
           setShowOnboarding(true);
         }
+
         if (userEncoded) {
           try {
             const b64 = userEncoded.replace(/-/g, "+").replace(/_/g, "/");
@@ -1071,9 +1082,11 @@ export default function App() {
   if (!user) {
     const hash = window.location.hash;
     const inviteMatch = hash.match(/^#\/invite\/([a-f0-9]+)$/);
+
     if (inviteMatch) {
       return <InviteAccept onAuth={(u) => setUser(u)} />;
     }
+
     return (
       <Login
         onAuth={(u) => {

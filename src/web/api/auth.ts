@@ -549,6 +549,7 @@ authRouter.post("/passkey/login-verify", async (req, res) => {
       where: { credentialId: assertionResponse.id },
       include: { user: { select: { id: true, email: true, name: true, role: true, tokenVersion: true } } },
     });
+
     if (!cred) {
       res.status(401).json({ error: "Unknown passkey" });
       return;
@@ -587,6 +588,7 @@ authRouter.post("/passkey/login-verify", async (req, res) => {
       where: { userId: user.id },
       orderBy: { createdAt: "asc" },
     });
+
     const token = signToken({
       userId: user.id,
       email: user.email,
@@ -640,18 +642,148 @@ function signSignInState(): string {
 function verifySignInState(state: string): { ts: number } | null {
   const dot = state.lastIndexOf(".");
   if (dot < 0) return null;
+
   const data = state.slice(0, dot);
   const sig = state.slice(dot + 1);
   const expected = crypto.createHmac("sha256", env.JWT_SECRET).update(data).digest("base64url");
   const sigBuf = Buffer.from(sig);
   const expBuf = Buffer.from(expected);
+
   if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) return null;
+
   try {
     return JSON.parse(Buffer.from(data, "base64url").toString());
   } catch {
     return null;
   }
 }
+
+authRouter.get("/google/start", (_req, res) => {
+  const clientId = env.GOOGLE_AUTH_CLIENT_ID;
+  if (!clientId) {
+    res.status(500).json({ error: "Google sign-in is not configured" });
+    return;
+  }
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: `${env.APP_URL}/api/auth/google/callback`,
+    response_type: "code",
+    scope: "openid email profile",
+    state: signSignInState(),
+    access_type: "online",
+  });
+  res.json({ url: `https://accounts.google.com/o/oauth2/v2/auth?${params}` });
+});
+
+authRouter.get("/google/callback", async (req, res) => {
+  const appUrl = env.APP_URL;
+  const fail = (reason: string) => res.redirect(`${appUrl}/#gg_error=${encodeURIComponent(reason)}`);
+
+  try {
+    const code = req.query.code as string | undefined;
+    const stateRaw = req.query.state as string | undefined;
+    if (!code || !stateRaw) return fail("missing_code_or_state");
+
+    const parsed = verifySignInState(stateRaw);
+    if (!parsed) return fail("invalid_state");
+    if (Date.now() - parsed.ts > 10 * 60 * 1000) return fail("state_expired");
+
+    const clientId = env.GOOGLE_AUTH_CLIENT_ID;
+    const clientSecret = env.GOOGLE_AUTH_CLIENT_SECRET;
+    if (!clientId || !clientSecret) return fail("not_configured");
+
+    const tokenRes = await axios.post<{
+      access_token?: string;
+      error?: string;
+    }>(
+      "https://oauth2.googleapis.com/token",
+      new URLSearchParams({
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: `${appUrl}/api/auth/google/callback`,
+        grant_type: "authorization_code",
+      }).toString(),
+      { headers: { "Content-Type": "application/x-www-form-urlencoded" } },
+    );
+    if (tokenRes.data.error) return fail(tokenRes.data.error);
+    const accessToken = tokenRes.data.access_token;
+    if (!accessToken) return fail("no_access_token");
+
+    const profileRes = await axios.get<{
+      email?: string;
+      name?: string;
+      verified_email?: boolean;
+    }>("https://www.googleapis.com/oauth2/v2/userinfo", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const profile = profileRes.data;
+
+    if (!profile.email || !profile.verified_email) return fail("no_verified_email");
+    const email = profile.email.toLowerCase();
+
+    let user = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true, email: true, name: true, role: true, tokenVersion: true },
+    });
+    
+    let teamId: string | null = null;
+    let teamRole: string | null = null;
+    let isNew = false;
+
+    if (user) {
+      const membership = await prisma.teamMember.findFirst({
+        where: { userId: user.id },
+        orderBy: { createdAt: "asc" },
+      });
+      teamId = membership?.teamId ?? null;
+      teamRole = user.role === "ADMIN" ? "OWNER" : (membership?.role ?? null);
+    } else {
+      const displayName = profile.name?.trim() || email.split("@")[0];
+      user = await prisma.user.create({
+        data: { email, name: displayName, role: "USER" },
+        select: { id: true, email: true, name: true, role: true, tokenVersion: true },
+      });
+      const team = await prisma.team.create({
+        data: {
+          name: `${displayName}'s Team`,
+          members: { create: { userId: user.id, role: "OWNER" } },
+        },
+      });
+      teamId = team.id;
+      teamRole = "OWNER";
+      isNew = true;
+      logger.info(`New user signed up via Google: ${email}`);
+    }
+
+    const jwt = signToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      teamId,
+      tokenVersion: user.tokenVersion,
+    });
+
+    const fragment = new URLSearchParams({
+      gg_token: jwt,
+      user: Buffer.from(
+        JSON.stringify({
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          teamId,
+          teamRole,
+        }),
+      ).toString("base64url"),
+    });
+    if (isNew) fragment.set("gg_new", "1");
+    res.redirect(`${appUrl}/#${fragment}`);
+  } catch (err: any) {
+    logger.error(`Google sign-in callback error: ${err.message}`);
+    fail("server_error");
+  }
+});
 
 authRouter.get("/github/start", (_req, res) => {
   const clientId = env.GITHUB_AUTH_CLIENT_ID;
@@ -708,6 +840,7 @@ authRouter.get("/github/callback", async (req, res) => {
         "https://api.github.com/user/emails",
         { headers: ghHeaders },
       );
+
       const primary = emailsRes.data.find((e) => e.primary && e.verified) ?? emailsRes.data.find((e) => e.verified);
       email = primary?.email.toLowerCase() ?? null;
     }

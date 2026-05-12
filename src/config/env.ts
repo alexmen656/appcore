@@ -38,6 +38,10 @@ const envSchema = z.object({
   GITHUB_AUTH_CLIENT_ID: z.string().optional(),
   GITHUB_AUTH_CLIENT_SECRET: z.string().optional(),
 
+  // Google OAuth — Sign in with Google
+  GOOGLE_AUTH_CLIENT_ID: z.string().optional(),
+  GOOGLE_AUTH_CLIENT_SECRET: z.string().optional(),
+
   // Fastlane Worker (MacOS)
   FASTLANE_WORKER_URL: z.string().url().optional(),
   FASTLANE_WORKER_SECRET: z.string().optional(),
