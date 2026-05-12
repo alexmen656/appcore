@@ -12,6 +12,7 @@ export interface JwtPayload {
   email: string;
   role: string;
   teamId: string | null;
+  tokenVersion?: number;
 }
 
 export interface AuthedUser {
@@ -78,42 +79,45 @@ export function requireTeamAdminMw(req: Request, res: Response, next: NextFuncti
   res.status(403).json({ error: "Team admin role required" });
 }
 
-export function requireAuth(req: Request, res: Response, next: NextFunction) {
+export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const header = req.headers.authorization;
   if (!header?.startsWith("Bearer ")) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
+  let decoded: JwtPayload;
   try {
-    const user = verifyToken(header.slice(7));
-
-    if (!user.teamId) {
-      res.status(403).json({ error: "No team associated with user" });
-      return;
-    }
-
-    if (!user.role) {
-      res.status(403).json({ error: "No role found in JWT" });
-      return;
-    }
-
-    if (!user.email) {
-      res.status(403).json({ error: "No email found in JWT" });
-      return;
-    }
-
-    if (!user.userId) {
-      res.status(403).json({ error: "No userId found in JWT" });
-      return;
-    }
-
-    //also verify later with dbb
-
-    req.user = { userId: user.userId, email: user.email, role: user.role, teamId: user.teamId };
-
-    next();
+    decoded = verifyToken(header.slice(7));
   } catch {
     res.status(401).json({ error: "Invalid or expired token" });
+    return;
+  }
+
+  if (!decoded.userId || !decoded.email || !decoded.role || !decoded.teamId) {
+    res.status(401).json({ error: "Invalid token claims" });
+    return;
+  }
+
+  try {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { tokenVersion: true, role: true },
+    });
+
+    if (!dbUser) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    if (decoded.tokenVersion !== dbUser.tokenVersion) {
+      res.status(401).json({ error: "Token has been invalidated" });
+      return;
+    }
+
+    req.user = { userId: decoded.userId, email: decoded.email, role: dbUser.role, teamId: decoded.teamId };
+    next();
+  } catch {
+    res.status(500).json({ error: "Internal server error" });
   }
 }
 

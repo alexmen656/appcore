@@ -112,6 +112,7 @@ authRouter.post("/register", async (req, res) => {
       email: user.email,
       role: user.role,
       teamId,
+      tokenVersion: user.tokenVersion,
     });
     res.status(201).json({
       token,
@@ -163,6 +164,7 @@ authRouter.post("/login", async (req, res) => {
       email: user.email,
       role: user.role,
       teamId: membership?.teamId ?? null,
+      tokenVersion: user.tokenVersion,
     });
     res.json({
       token,
@@ -216,11 +218,16 @@ authRouter.post("/accept-invite", requireAuth, async (req, res) => {
       data: { acceptedAt: new Date() },
     });
 
+    const freshUser = await prisma.user.findUnique({
+      where: { id: req.user!.userId },
+      select: { tokenVersion: true },
+    });
     const newToken = signToken({
       userId: req.user!.userId,
       email: req.user!.email,
       role: req.user!.role,
       teamId: invite.teamId,
+      tokenVersion: freshUser?.tokenVersion ?? 0,
     });
 
     res.json({ ok: true, teamId: invite.teamId, token: newToken });
@@ -345,7 +352,7 @@ authRouter.patch("/password", requireAuth, async (req, res) => {
     const passwordHash = await bcrypt.hash(newPassword, 12);
     await prisma.user.update({
       where: { id: user.id },
-      data: { passwordHash },
+      data: { passwordHash, tokenVersion: { increment: 1 } },
     });
 
     res.json({ ok: true, hadPassword: !!user.passwordHash });
@@ -540,7 +547,7 @@ authRouter.post("/passkey/login-verify", async (req, res) => {
 
     const cred = await prisma.passkeyCredential.findUnique({
       where: { credentialId: assertionResponse.id },
-      include: { user: true },
+      include: { user: { select: { id: true, email: true, name: true, role: true, tokenVersion: true } } },
     });
     if (!cred) {
       res.status(401).json({ error: "Unknown passkey" });
@@ -585,6 +592,7 @@ authRouter.post("/passkey/login-verify", async (req, res) => {
       email: user.email,
       role: user.role,
       teamId: membership?.teamId ?? null,
+      tokenVersion: user.tokenVersion,
     });
 
     res.json({
@@ -645,7 +653,7 @@ function verifySignInState(state: string): { ts: number } | null {
   }
 }
 
-authRouter.get("/github/start", (req, res) => {
+authRouter.get("/github/start", (_req, res) => {
   const clientId = env.GITHUB_AUTH_CLIENT_ID;
   if (!clientId) {
     res.status(500).json({ error: "GitHub sign-in is not configured" });
@@ -705,7 +713,10 @@ authRouter.get("/github/callback", async (req, res) => {
     }
     if (!email) return fail("no_verified_email");
 
-    let user = await prisma.user.findUnique({ where: { email } });
+    let user = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true, email: true, name: true, role: true, tokenVersion: true },
+    });
     let teamId: string | null = null;
     let teamRole: string | null = null;
     let isNew = false;
@@ -721,6 +732,7 @@ authRouter.get("/github/callback", async (req, res) => {
       const displayName = profile.name?.trim() || profile.login || email.split("@")[0];
       user = await prisma.user.create({
         data: { email, name: displayName, role: "USER" },
+        select: { id: true, email: true, name: true, role: true, tokenVersion: true },
       });
       const team = await prisma.team.create({
         data: {
@@ -739,6 +751,7 @@ authRouter.get("/github/callback", async (req, res) => {
       email: user.email,
       role: user.role,
       teamId,
+      tokenVersion: user.tokenVersion,
     });
 
     const fragment = new URLSearchParams({

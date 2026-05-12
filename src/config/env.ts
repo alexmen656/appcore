@@ -8,7 +8,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url(),
 
   // Auth
-  JWT_SECRET: z.string().min(32).default("appcore-dev-secret-change-me-in-production-32x"),
+  JWT_SECRET: z.string().min(32),
   WEBAUTHN_RP_ID: z.string().default("localhost"),
   WEBAUTHN_RP_NAME: z.string().default("AppCore"),
   WEBAUTHN_ORIGIN: z.string().default("http://localhost:5173"),
@@ -57,6 +57,8 @@ const envSchema = z.object({
   // node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
   ENCRYPTION_KEY: z.string().length(64).optional(),
 
+  WEB_PORT: z.string().optional(),
+
   // Logging
   LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),
 });
@@ -68,7 +70,14 @@ function loadEnv() {
     console.error(result.error.format());
     process.exit(1);
   }
-  return result.data;
+  const data = result.data;
+  if (data.NODE_ENV === "production" && !data.ENCRYPTION_KEY) {
+    console.error(
+      "❌ ENCRYPTION_KEY is required in production (generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\")",
+    );
+    process.exit(1);
+  }
+  return data;
 }
 
 export const env = loadEnv();
