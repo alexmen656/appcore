@@ -1,24 +1,18 @@
 import { Router } from "express";
 import { prisma } from "../../config";
-import { requireAuth } from "../auth";
+import { bundleAccess } from "../auth";
 import { normalizeLanguage } from "../../services/app-store-markets";
 
 export const keywordsRouter = Router();
-keywordsRouter.use(requireAuth);
 
-keywordsRouter.get("/", async (req, res) => {
+keywordsRouter.get("/", bundleAccess("query", "bundleId"), async (req, res) => {
   try {
-    const activeBundleId = req.query.bundleId as string | undefined;
-
-    const ownApp = await prisma.app.findUnique({
-      where: { bundleId: activeBundleId },
-    });
-
+    const ownApp = req.bundleApp!;
     const keywords = await prisma.keyword.findMany({
-      where: ownApp ? { rankings: { some: { appId: ownApp.id } } } : {},
+      where: { rankings: { some: { appId: ownApp.id } } },
       include: {
         rankings: {
-          where: ownApp ? { appId: ownApp.id } : undefined,
+          where: { appId: ownApp.id },
           orderBy: { trackedAt: "desc" },
           take: 1,
         },
@@ -55,45 +49,43 @@ keywordsRouter.get("/", async (req, res) => {
     let ourRankingCounts: CountRow[] = [];
     let previousRankings: { keywordId: string; rank: number | null }[] = [];
 
-    if (ownApp) {
-      [topCompRankings, ourRankingCounts, previousRankings] = await Promise.all([
-        prisma.keywordRanking.findMany({
-          where: {
-            keywordId: { in: keywordIds },
-            rank: { not: null },
-          },
-          orderBy: [{ trackedAt: "desc" }],
-          include: {
-            app: {
-              select: {
-                name: true,
-                snapshots: {
-                  select: { iconUrl: true },
-                  orderBy: { scrapedAt: "desc" },
-                  take: 1,
-                },
+    [topCompRankings, ourRankingCounts, previousRankings] = await Promise.all([
+      prisma.keywordRanking.findMany({
+        where: {
+          keywordId: { in: keywordIds },
+          rank: { not: null },
+        },
+        orderBy: [{ trackedAt: "desc" }],
+        include: {
+          app: {
+            select: {
+              name: true,
+              snapshots: {
+                select: { iconUrl: true },
+                orderBy: { scrapedAt: "desc" },
+                take: 1,
               },
             },
           },
-          distinct: ["keywordId", "appId"],
-        }),
-        prisma.keywordRanking.groupBy({
-          by: ["keywordId"],
-          where: { keywordId: { in: keywordIds }, appId: ownApp.id },
-          _count: { id: true },
-        }),
-        prisma.keywordRanking.findMany({
-          where: {
-            keywordId: { in: keywordIds },
-            appId: ownApp.id,
-            trackedAt: { lte: oneDayAgo },
-          },
-          orderBy: { trackedAt: "desc" },
-          distinct: ["keywordId"],
-          select: { keywordId: true, rank: true },
-        }),
-      ]);
-    }
+        },
+        distinct: ["keywordId", "appId"],
+      }),
+      prisma.keywordRanking.groupBy({
+        by: ["keywordId"],
+        where: { keywordId: { in: keywordIds }, appId: ownApp.id },
+        _count: { id: true },
+      }),
+      prisma.keywordRanking.findMany({
+        where: {
+          keywordId: { in: keywordIds },
+          appId: ownApp.id,
+          trackedAt: { lte: oneDayAgo },
+        },
+        orderBy: { trackedAt: "desc" },
+        distinct: ["keywordId"],
+        select: { keywordId: true, rank: true },
+      }),
+    ]);
 
     const topCompetitorsMap = new Map<string, CompRanking[]>();
     for (const r of topCompRankings) {
@@ -101,13 +93,13 @@ keywordsRouter.get("/", async (req, res) => {
       list.push(r);
       topCompetitorsMap.set(r.keywordId, list);
     }
+
     for (const list of topCompetitorsMap.values()) {
       list.sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity));
     }
 
     const previousRankMap = new Map(previousRankings.map((r) => [r.keywordId, r.rank]));
     const countMap = new Map(ourRankingCounts.map((r) => [r.keywordId, r._count.id]));
-
     const result = keywords.map((k) => {
       // Old single-top-competitor logic — kept for reference, replaced by topCompetitors below.
       // let topCompetitor: { name: string; rank: number } | null = null;
@@ -121,18 +113,14 @@ keywordsRouter.get("/", async (req, res) => {
       //   }
       // }
 
-      let topCompetitors: { name: string; iconUrl: string | null; rank: number }[] = [];
-      if (ownApp) {
-        const list = topCompetitorsMap.get(k.id) ?? [];
-        topCompetitors = list.slice(0, 5).map((r) => ({
-          name: r.app.name,
-          iconUrl: r.app.snapshots[0]?.iconUrl ?? null,
-          rank: r.rank!,
-        }));
-      }
+      const list = topCompetitorsMap.get(k.id) ?? [];
+      const topCompetitors = list.slice(0, 5).map((r) => ({
+        name: r.app.name,
+        iconUrl: r.app.snapshots[0]?.iconUrl ?? null,
+        rank: r.rank!,
+      }));
 
       const ourRankingCount = countMap.get(k.id) ?? 0;
-
       const currentRank = k.rankings[0]?.rank ?? null;
       const previousRank = previousRankMap.get(k.id) ?? null;
       const rankTrend = currentRank != null && previousRank != null ? previousRank - currentRank : null;
@@ -194,14 +182,13 @@ keywordsRouter.get("/:id/history", async (req, res) => {
   }
 });
 
-keywordsRouter.post("/", async (req, res) => {
+keywordsRouter.post("/", bundleAccess("body", "bundleId"), async (req, res) => {
   try {
-    const { term, country, language, bundleId } = req.body;
+    const { term, country, language } = req.body;
     if (!term) return res.status(400).json({ error: "term is required" });
     const normalizedCountry = (country || "de").toLowerCase();
     const normalizedLanguage = normalizeLanguage(language, normalizedCountry);
-
-    const activeBundleId = bundleId;
+    const ownApp = req.bundleApp!;
 
     const keyword = await prisma.keyword.upsert({
       where: { term_country: { term, country: normalizedCountry } },
@@ -213,24 +200,14 @@ keywordsRouter.post("/", async (req, res) => {
       update: {},
     });
 
-    const ownApp = activeBundleId ? await prisma.app.findUnique({ where: { bundleId: activeBundleId } }) : null;
-
-    if (ownApp) {
-      const isAdmin = req.user!.role === "ADMIN";
-      if (!isAdmin && (!ownApp.teamId || ownApp.teamId !== req.user!.teamId)) {
-        res.status(403).json({ error: "Not authorized to add keywords to this app" });
-        return;
-      }
-
-      await prisma.keywordRanking.create({
-        data: {
-          keywordId: keyword.id,
-          appId: ownApp.id,
-          rank: null,
-          country: normalizedCountry,
-        },
-      });
-    }
+    await prisma.keywordRanking.create({
+      data: {
+        keywordId: keyword.id,
+        appId: ownApp.id,
+        rank: null,
+        country: normalizedCountry,
+      },
+    });
 
     res.json({ ok: true, keyword });
   } catch (err) {
