@@ -9,9 +9,9 @@ const envSchema = z.object({
 
   // Auth
   JWT_SECRET: z.string().min(32),
-  WEBAUTHN_RP_ID: z.string().default("localhost"),
-  WEBAUTHN_RP_NAME: z.string().default("AppCore"),
-  WEBAUTHN_ORIGIN: z.string().default("http://localhost:5173"),
+  WEBAUTHN_RP_ID: z.string(),
+  WEBAUTHN_RP_NAME: z.string(),
+  WEBAUTHN_ORIGIN: z.string(),
 
   // Apple Search Ads
   APPLE_ADS_CLIENT_ID: z.string().optional(),
@@ -74,6 +74,15 @@ function loadEnv() {
   if (data.NODE_ENV === "production" && !data.ENCRYPTION_KEY) {
     console.error(
       "❌ ENCRYPTION_KEY is required in production (generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\")",
+    );
+    process.exit(1);
+  }
+  if (
+    data.NODE_ENV === "production" &&
+    (data.WEBAUTHN_RP_ID === "localhost" || data.WEBAUTHN_ORIGIN.includes("localhost"))
+  ) {
+    console.error(
+      "❌ WEBAUTHN_RP_ID and WEBAUTHN_ORIGIN must be set to your production domain (e.g. WEBAUTHN_RP_ID=marteso.com, WEBAUTHN_ORIGIN=https://marteso.com)",
     );
     process.exit(1);
   }
