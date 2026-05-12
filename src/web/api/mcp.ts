@@ -28,6 +28,7 @@ mcpRouter.put("/config", async (req, res) => {
       create: { teamId, ...data },
       update: data,
     });
+
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: String(err) });
@@ -42,6 +43,7 @@ mcpRouter.get("/oauth-clients", async (req, res) => {
       orderBy: { createdAt: "desc" },
       select: { id: true, clientId: true, name: true, redirectUris: true, userId: true, createdAt: true },
     });
+
     res.json(clients);
   } catch (err) {
     res.status(500).json({ error: String(err) });
@@ -51,16 +53,17 @@ mcpRouter.get("/oauth-clients", async (req, res) => {
 mcpRouter.post("/oauth-clients", async (req, res) => {
   try {
     const { name, redirectUris } = req.body as { name?: string; redirectUris?: string[] };
+
     if (!name?.trim()) {
       res.status(400).json({ error: "name is required" });
       return;
     }
-    const clientId = `appcore_${randomBytes(12).toString("hex")}`;
+
     const clientSecret = randomBytes(24).toString("hex");
     const clientSecretHash = await bcrypt.hash(clientSecret, 10);
     const client = await prisma.oAuthClient.create({
       data: {
-        clientId,
+        clientId: `marteso_${randomBytes(12).toString("hex")}`,
         clientSecret: clientSecretHash,
         name: name.trim(),
         userId: req.user!.userId,
@@ -86,6 +89,7 @@ mcpRouter.delete("/oauth-clients/:id", async (req, res) => {
     const client = await prisma.oAuthClient.findUnique({
       where: { id: req.params.id },
     });
+
     if (!client) {
       res.status(404).json({ error: "Not found" });
       return;
@@ -95,6 +99,7 @@ mcpRouter.delete("/oauth-clients/:id", async (req, res) => {
       res.status(403).json({ error: "Not authorized" });
       return;
     }
+
     await prisma.oAuthClient.delete({ where: { id: req.params.id } });
     res.json({ ok: true });
   } catch (err) {
