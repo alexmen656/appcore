@@ -134,9 +134,7 @@ export default function SearchModal({ open, onClose }: Props) {
     debounceRef.current = setTimeout(async () => {
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("appcore_token") ?? ""}`,
-          },
+          credentials: "include",
         });
         if (!res.ok) return;
         const data = await res.json();

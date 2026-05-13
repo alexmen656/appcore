@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import crypto from "crypto";
+import cookie from "cookie";
 import fs from "fs";
 import path from "path";
 import { logger, prisma } from "../../config";
@@ -406,8 +407,11 @@ githubRouter.get("/screenshots/:appId/:jobId/logs", requireAuth, async (req: Req
 });
 
 githubRouter.get("/screenshots/:appId/:jobId/logs/stream", async (req: Request, res: Response) => {
-  const rawToken = req.query.token;
-  if (!rawToken || typeof rawToken !== "string") {
+  const cookies = cookie.parse(req.headers.cookie ?? "");
+  const cookieToken = cookies.auth_token;
+  const header = req.headers.authorization;
+  const rawToken = cookieToken ?? (header?.startsWith("Bearer ") ? header.slice(7) : null);
+  if (!rawToken) {
     res.status(401).end();
     return;
   }

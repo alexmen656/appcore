@@ -4,8 +4,6 @@ import { Routes, Route, NavLink, Navigate, useNavigate, useLocation } from "reac
 import {
   useApi,
   apiPost,
-  getToken,
-  setToken,
   setActiveBundleId,
   getActiveBundleId,
   authHeaders,
@@ -153,9 +151,8 @@ function AppSwitcher({
     setAscLoading(true);
     setAscApps(null);
     try {
-      const token = getToken();
-      const res = await fetch("/api/asc/apps", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+          const res = await fetch("/api/asc/apps", {
+        credentials: "include",
       });
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
@@ -1001,13 +998,12 @@ export default function App() {
   useEffect(() => {
     const hash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : "";
     if (
-      hash.includes("gh_token=") ||
+      hash.includes("gh_done=") ||
       hash.includes("gh_error=") ||
-      hash.includes("gg_token=") ||
+      hash.includes("gg_done=") ||
       hash.includes("gg_error=")
     ) {
       const params = new URLSearchParams(hash);
-      const oauthToken = params.get("gh_token") ?? params.get("gg_token");
       const oauthError = params.get("gh_error") ?? params.get("gg_error");
       const isNew = params.get("gh_new") === "1" || params.get("gg_new") === "1";
       const userEncoded = params.get("user");
@@ -1018,35 +1014,26 @@ export default function App() {
         return;
       }
 
-      if (oauthToken) {
-        setToken(oauthToken);
+      if (isNew) {
+        localStorage.setItem("marteso_onboarding", "1");
+        setShowOnboarding(true);
+      }
 
-        if (isNew) {
-          localStorage.setItem("marteso_onboarding", "1");
-          setShowOnboarding(true);
-        }
-
-        if (userEncoded) {
-          try {
-            const b64 = userEncoded.replace(/-/g, "+").replace(/_/g, "/");
-            const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
-            const decoded = JSON.parse(atob(padded));
-            setUser(decoded);
-            setAuthLoading(false);
-            return;
-          } catch {
-            // fall through to /me fetch
-          }
+      if (userEncoded) {
+        try {
+          const b64 = userEncoded.replace(/-/g, "+").replace(/_/g, "/");
+          const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
+          const decoded = JSON.parse(atob(padded));
+          setUser(decoded);
+          setAuthLoading(false);
+          return;
+        } catch {
+          // fall through to /me fetch
         }
       }
     }
 
-    const token = getToken();
-    if (!token) {
-      setAuthLoading(false);
-      return;
-    }
-    fetch("/api/auth/me", { headers: { Authorization: `Bearer ${token}` } })
+    fetch("/api/auth/me", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : null))
       .then((u) => {
         setUser(u);
@@ -1067,7 +1054,7 @@ export default function App() {
   }, []);
 
   const handleLogout = () => {
-    setToken(null);
+    fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
     setUser(null);
   };
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getToken, authHeaders } from "../../hooks/useApi";
+import { authHeaders } from "../../hooks/useApi";
 import { btnPrimary, cardCls, inputCls, pageTitle, textMuted, textPrimary } from "../../styles";
 import type { AuthUser } from "../../types";
 
@@ -23,10 +23,10 @@ export default function ProfileSettings({ user, onUserUpdate, addToast }: Props)
     e.preventDefault();
     setSaving(true);
     try {
-      const token = getToken();
       const res = await fetch("/api/auth/profile", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.trim(), email: email.trim() }),
       });
       const data = await res.json();

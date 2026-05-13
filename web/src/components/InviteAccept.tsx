@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { textPrimary } from "../styles";
 import { useParams, useNavigate } from "react-router-dom";
-import { setToken } from "../hooks/useApi";
 import type { AuthUser } from "../types";
 
 interface InviteInfo {
@@ -60,31 +59,27 @@ export default function InviteAccept({ onAuth }: { onAuth: (u: AuthUser) => void
 
       const res = await fetch(endpoint, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
 
-      let finalToken = json.token;
       let finalUser = json.user;
 
       if (mode === "login" && token) {
         const acceptRes = await fetch("/api/auth/accept-invite", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${json.token}`,
-          },
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token }),
         });
         const acceptJson = await acceptRes.json();
         if (!acceptRes.ok) throw new Error(acceptJson.error ?? "Failed to accept invite");
-        finalToken = acceptJson.token;
         finalUser = { ...json.user, teamId: acceptJson.teamId };
       }
 
-      setToken(finalToken);
       onAuth(finalUser);
       navigate("/dashboard", { replace: true });
     } catch (err: any) {

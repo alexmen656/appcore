@@ -1,11 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 const BASE = "/api";
 
-export const TOKEN_KEY = "appcore_token";
-export const getToken = () => localStorage.getItem(TOKEN_KEY);
-export const setToken = (t: string | null) =>
-  t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY);
-
 export const ACTIVE_BUNDLE_KEY = "appcore_active_bundle";
 export const getActiveBundleId = () => localStorage.getItem(ACTIVE_BUNDLE_KEY);
 export const setActiveBundleId = (bundleId: string | null) => {
@@ -15,17 +10,18 @@ export const setActiveBundleId = (bundleId: string | null) => {
 };
 
 export function authHeaders(): HeadersInit {
-  const t = getToken();
-  return t ? { Authorization: `Bearer ${t}` } : {};
+  return {};
 }
 
 type ApiQuery = Record<string, string | number | boolean | null | undefined>;
 
 function buildUrl(path: string, query?: ApiQuery): string {
   const url = new URL(`${BASE}${path}`, window.location.origin);
+
   for (const [key, value] of Object.entries(query ?? {})) {
     if (value !== undefined && value !== null) url.searchParams.set(key, String(value));
   }
+  
   const bundleId = getActiveBundleId();
   if (bundleId) url.searchParams.set("bundleId", bundleId);
   return url.toString().replace(window.location.origin, "");
@@ -43,7 +39,7 @@ export function preloadApi(path: string, skipBundleId = false): Promise<void> {
   const url = skipBundleId ? `${BASE}${path}` : buildUrl(path);
   if (apiCache.has(url)) return Promise.resolve();
   if (apiPreloading.has(url)) return apiPreloading.get(url)!;
-  const promise = fetch(url, { headers: authHeaders() })
+  const promise = fetch(url, { credentials: "include", headers: authHeaders() })
     .then((r) => {
       if (!r.ok) return;
       return r.json().then((d) => {
@@ -67,13 +63,9 @@ export function useApi<T>(path: string, deps: any[] = [], skipBundleId = false) 
 
   const refetch = useCallback(() => {
     const url = getUrl();
-    if (!getToken()) {
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     setError(null);
-    fetch(url, { headers: authHeaders() })
+    fetch(url, { credentials: "include", headers: authHeaders() })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
@@ -127,7 +119,7 @@ export function useApi<T>(path: string, deps: any[] = [], skipBundleId = false) 
 }
 
 export async function apiGet<T = any>(path: string, query?: ApiQuery): Promise<T> {
-  const res = await fetch(buildUrl(path, query), { headers: authHeaders() });
+  const res = await fetch(buildUrl(path, query), { credentials: "include", headers: authHeaders() });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
     throw new Error(err.error || `HTTP ${res.status}`);
@@ -138,6 +130,7 @@ export async function apiGet<T = any>(path: string, query?: ApiQuery): Promise<T
 export async function apiPost<T = any>(path: string, body?: any): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: body ? JSON.stringify(body) : undefined,
   });
@@ -151,6 +144,7 @@ export async function apiPost<T = any>(path: string, body?: any): Promise<T> {
 export async function apiPut<T = any>(path: string, body?: any): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: "PUT",
+    credentials: "include",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: body ? JSON.stringify(body) : undefined,
   });
@@ -164,6 +158,7 @@ export async function apiPut<T = any>(path: string, body?: any): Promise<T> {
 export async function apiPatch<T = any>(path: string, body?: any): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: "PATCH",
+    credentials: "include",
     headers: { "Content-Type": "application/json", ...authHeaders() },
     body: body ? JSON.stringify(body) : undefined,
   });
@@ -177,9 +172,8 @@ export async function apiPatch<T = any>(path: string, body?: any): Promise<T> {
 export async function apiDelete(path: string, body?: any): Promise<void> {
   const res = await fetch(`${BASE}${path}`, {
     method: "DELETE",
-    headers: body
-      ? { "Content-Type": "application/json", ...authHeaders() }
-      : authHeaders(),
+    credentials: "include",
+    headers: body ? { "Content-Type": "application/json", ...authHeaders() } : authHeaders(),
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { KeyRound } from "lucide-react";
-import { setToken } from "../../hooks/useApi";
 import AuthHeader from "./AuthHeader";
 import type { AuthUser } from "../../types";
 import { borderDefault, btnPrimary, inputCls, textMuted, textPrimary } from "../../styles";
@@ -11,11 +10,12 @@ interface Props {
   onAuth: (user: AuthUser) => void;
 }
 
-async function passkeySignIn(email: string): Promise<{ token: string; user: AuthUser }> {
+async function passkeySignIn(email: string): Promise<{ user: AuthUser }> {
   const { startAuthentication } = await import("@simplewebauthn/browser");
 
   const optRes = await fetch("/api/auth/passkey/login-options", {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email: email || undefined }),
   });
@@ -37,15 +37,13 @@ async function passkeySignIn(email: string): Promise<{ token: string; user: Auth
   return verifyData;
 }
 
-async function passkeyRegister(token: string): Promise<void> {
+async function passkeyRegister(): Promise<void> {
   const { startRegistration } = await import("@simplewebauthn/browser");
 
   const optRes = await fetch("/api/auth/passkey/register-options", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
   });
   const optData = await optRes.json();
   if (!optRes.ok) throw new Error(optData.error ?? "Failed to start passkey registration");
@@ -54,10 +52,8 @@ async function passkeyRegister(token: string): Promise<void> {
 
   const verifyRes = await fetch("/api/auth/passkey/register-verify", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ registrationResponse: attestation }),
   });
 
@@ -72,15 +68,11 @@ export default function Login({ onAuth }: Props) {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [pendingAuth, setPendingAuth] = useState<{
-    token: string;
-    user: AuthUser;
-  } | null>(null);
+  const [pendingAuth, setPendingAuth] = useState<{ user: AuthUser } | null>(null);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [passkeyError, setPasskeyError] = useState<string | null>(null);
 
-  const finishAuth = (token: string, user: AuthUser) => {
-    setToken(token);
+  const finishAuth = (user: AuthUser) => {
     onAuth(user);
   };
 
@@ -94,6 +86,7 @@ export default function Login({ onAuth }: Props) {
       if (mode === "register" && name) body.name = name;
       const res = await fetch(endpoint, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
@@ -104,7 +97,7 @@ export default function Login({ onAuth }: Props) {
         localStorage.setItem("marteso_onboarding", "1");
       }
 
-      setPendingAuth({ token: data.token, user: data.user });
+      setPendingAuth({ user: data.user });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -117,7 +110,7 @@ export default function Login({ onAuth }: Props) {
     setLoading(true);
     try {
       const data = await passkeySignIn(email);
-      finishAuth(data.token, data.user);
+      finishAuth(data.user);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -158,8 +151,8 @@ export default function Login({ onAuth }: Props) {
     setPasskeyError(null);
     setPasskeyLoading(true);
     try {
-      await passkeyRegister(pendingAuth.token);
-      finishAuth(pendingAuth.token, pendingAuth.user);
+      await passkeyRegister();
+      finishAuth(pendingAuth.user);
     } catch (err: any) {
       setPasskeyError(err.message);
     } finally {
@@ -196,7 +189,7 @@ export default function Login({ onAuth }: Props) {
               {passkeyLoading ? "Setting up…" : "Set up Passkey"}
             </button>
             <button
-              onClick={() => finishAuth(pendingAuth.token, pendingAuth.user)}
+              onClick={() => finishAuth(pendingAuth.user)}
               disabled={passkeyLoading}
               className="w-full px-4 py-2.5 rounded-xl text-sm font-medium text-[#6b7280] dark:text-[#8b9ab0] hover:bg-[#f8f9fb] dark:hover:bg-[#252b38] transition-colors"
             >

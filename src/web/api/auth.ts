@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
@@ -16,6 +16,27 @@ import type {
 } from "@simplewebauthn/server";
 import { logger, prisma, env } from "../../config";
 import { signToken, requireAuth } from "../auth";
+
+const COOKIE_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
+
+function setAuthCookie(res: Response, token: string) {
+  res.cookie("auth_token", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: COOKIE_MAX_AGE,
+    path: "/",
+  });
+}
+
+function clearAuthCookie(res: Response) {
+  res.clearCookie("auth_token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/",
+  });
+}
 
 export const authRouter = Router();
 
@@ -114,8 +135,8 @@ authRouter.post("/register", async (req, res) => {
       teamId,
       tokenVersion: user.tokenVersion,
     });
+    setAuthCookie(res, token);
     res.status(201).json({
-      token,
       user: {
         id: user.id,
         email: user.email,
@@ -166,8 +187,8 @@ authRouter.post("/login", async (req, res) => {
       teamId: membership?.teamId ?? null,
       tokenVersion: user.tokenVersion,
     });
+    setAuthCookie(res, token);
     res.json({
-      token,
       user: {
         id: user.id,
         email: user.email,
@@ -229,8 +250,8 @@ authRouter.post("/accept-invite", requireAuth, async (req, res) => {
       teamId: invite.teamId,
       tokenVersion: freshUser?.tokenVersion ?? 0,
     });
-
-    res.json({ ok: true, teamId: invite.teamId, token: newToken });
+    setAuthCookie(res, newToken);
+    res.json({ ok: true, teamId: invite.teamId });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
@@ -401,6 +422,11 @@ authRouter.delete("/users/:id", requireAuth, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
+});
+
+authRouter.post("/logout", (_req, res) => {
+  clearAuthCookie(res);
+  res.json({ ok: true });
 });
 
 authRouter.post("/passkey/register-options", requireAuth, async (req, res) => {
@@ -596,9 +622,8 @@ authRouter.post("/passkey/login-verify", async (req, res) => {
       teamId: membership?.teamId ?? null,
       tokenVersion: user.tokenVersion,
     });
-
+    setAuthCookie(res, token);
     res.json({
-      token,
       user: {
         id: user.id,
         email: user.email,
@@ -756,16 +781,17 @@ authRouter.get("/google/callback", async (req, res) => {
       logger.info(`New user signed up via Google: ${email}`);
     }
 
-    const jwt = signToken({
+    const jwtToken = signToken({
       userId: user.id,
       email: user.email,
       role: user.role,
       teamId,
       tokenVersion: user.tokenVersion,
     });
+    setAuthCookie(res, jwtToken);
 
     const fragment = new URLSearchParams({
-      gg_token: jwt,
+      gg_done: "1",
       user: Buffer.from(
         JSON.stringify({
           id: user.id,
@@ -879,16 +905,17 @@ authRouter.get("/github/callback", async (req, res) => {
       logger.info(`New user signed up via GitHub: ${email}`);
     }
 
-    const jwt = signToken({
+    const jwtToken = signToken({
       userId: user.id,
       email: user.email,
       role: user.role,
       teamId,
       tokenVersion: user.tokenVersion,
     });
+    setAuthCookie(res, jwtToken);
 
     const fragment = new URLSearchParams({
-      gh_token: jwt,
+      gh_done: "1",
       user: Buffer.from(
         JSON.stringify({
           id: user.id,

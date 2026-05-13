@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, ChevronDown, GitBranch } from "lucide-react";
-import { useApi, apiPost, getActiveBundleId, authHeaders, getToken } from "../hooks/useApi";
+import { useApi, apiPost, getActiveBundleId, authHeaders } from "../hooks/useApi";
 import {
   badgeOutline,
   borderDefault,
@@ -81,15 +81,13 @@ function useStreamingLogs(jobId: string | null, appId: string | null, active: bo
 
   useEffect(() => {
     if (!jobId || !appId || !active) return;
-    const token = getToken();
-    if (!token) return;
 
     let es: EventSource | null = null;
     let cancelled = false;
 
     function connect() {
       if (cancelled) return;
-      const url = `/api/github/screenshots/${appId}/${jobId}/logs/stream?token=${encodeURIComponent(token!)}`;
+      const url = `/api/github/screenshots/${appId}/${jobId}/logs/stream`;
       es = new EventSource(url);
 
       es.addEventListener("log", (e) => {

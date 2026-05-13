@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Routes, Route, NavLink, Navigate } from "react-router-dom";
 import { modelConfigs, modelCategories } from "@/lib/models";
-import { getToken, clearToken } from "@/lib/api";
+import { logout } from "@/lib/api";
 import Dashboard from "@/pages/Dashboard";
 import ModelCrud from "@/pages/ModelCrud";
 import LoginPage from "@/pages/Login";
@@ -39,14 +39,22 @@ const iconMap: Record<string, React.ReactNode> = {
 };
 
 export default function App() {
-  const [loggedIn, setLoggedIn] = useState(() => !!getToken());
+  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    fetch("/api/auth/me", { credentials: "include" })
+      .then((r) => setLoggedIn(r.ok))
+      .catch(() => setLoggedIn(false));
+  }, []);
+
+  if (loggedIn === null) return null;
 
   if (!loggedIn) {
     return <LoginPage onLogin={() => setLoggedIn(true)} />;
   }
 
-  const handleLogout = () => {
-    clearToken();
+  const handleLogout = async () => {
+    await logout();
     setLoggedIn(false);
   };
   return (

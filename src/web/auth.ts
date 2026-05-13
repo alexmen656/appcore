@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import cookie from "cookie";
 import type { App, TeamSettings } from "@prisma/client";
 import { env, prisma } from "../config";
 
@@ -80,14 +81,18 @@ export function requireTeamAdminMw(req: Request, res: Response, next: NextFuncti
 }
 
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
+  const cookies = cookie.parse(req.headers.cookie ?? "");
+  const cookieToken = cookies.auth_token;
   const header = req.headers.authorization;
-  if (!header?.startsWith("Bearer ")) {
+  const rawToken = cookieToken ?? (header?.startsWith("Bearer ") ? header.slice(7) : null);
+
+  if (!rawToken) {
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
   let decoded: JwtPayload;
   try {
-    decoded = verifyToken(header.slice(7));
+    decoded = verifyToken(rawToken);
   } catch {
     res.status(401).json({ error: "Invalid or expired token" });
     return;

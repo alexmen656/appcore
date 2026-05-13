@@ -2,21 +2,10 @@ import { useState, useEffect, useCallback } from "react";
 
 const API_BASE = "/api/admin";
 
-export function getToken(): string | null {
-  return localStorage.getItem("admin_token");
-}
-
-export function setToken(token: string) {
-  localStorage.setItem("admin_token", token);
-}
-
-export function clearToken() {
-  localStorage.removeItem("admin_token");
-}
-
-export async function login(email: string, password: string): Promise<string> {
+export async function login(email: string, password: string): Promise<void> {
   const res = await fetch("/api/auth/login", {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
@@ -24,25 +13,22 @@ export async function login(email: string, password: string): Promise<string> {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || "Login fehlgeschlagen");
   }
-  const data = await res.json();
-  const token = data.token;
-  if (!token) throw new Error("Kein Token erhalten");
-  setToken(token);
-  return token;
+}
+
+export async function logout(): Promise<void> {
+  await fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
 }
 
 export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const token = getToken();
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options?.headers ?? {}),
     },
   });
   if (res.status === 401) {
-    clearToken();
     window.location.reload();
     throw new Error("Session abgelaufen");
   }
