@@ -151,7 +151,7 @@ function AppSwitcher({
     setAscLoading(true);
     setAscApps(null);
     try {
-          const res = await fetch("/api/asc/apps", {
+      const res = await fetch("/api/asc/apps", {
         credentials: "include",
       });
       if (!res.ok) {
@@ -626,7 +626,7 @@ function VersionsSidebarSection({ navLinkClass }: { navLinkClass: (p: { isActive
       if (next && !versions) load();
       return;
     }
-    
+
     setExpanded(true);
     if (versions && versions.length > 0) {
       const best = versions.find((v) => v.isEditable) ?? versions[0];
@@ -1109,6 +1109,23 @@ export default function App() {
       <div className="flex flex-col h-screen overflow-hidden bg-[var(--shell-bg)] transition-colors">
         <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
         <ToastContainer toasts={toasts} />
+        {user.email === "alexx.polan1@gmail.com" && (
+          <div className="shrink-0 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800/40 px-4 py-2 flex items-center justify-center gap-3 text-sm text-amber-800 dark:text-amber-300">
+            <span>Du nutzt den Demo-Account — Änderungen sind für alle sichtbar.</span>
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
+                setUser(null);
+              }}
+              className="font-semibold underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"
+            >
+              Eigenen Account erstellen
+            </a>
+          </div>
+        )}
+        {/*demo@marteso.com*/}
         <header className="h-[52px] bg-[var(--shell-bg)] flex items-center px-4 shrink-0 z-40 transition-colors">
           <a href="/" className="flex items-center gap-2.5">
             <img src="/logo.svg" alt="Marteso" className="h-[23px] w-auto" />

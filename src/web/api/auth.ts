@@ -429,6 +429,54 @@ authRouter.post("/logout", (_req, res) => {
   res.json({ ok: true });
 });
 
+const DEMO_EMAIL = "alexx.polan1@gmail.com"; //"demo@marteso.com";
+
+authRouter.post("/demo", async (_req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: DEMO_EMAIL },
+      select: { id: true, email: true, name: true, role: true, tokenVersion: true },
+    });
+
+    if (!user) {
+      res.status(503).json({ error: "Demo account not found" });
+      return;
+    }
+
+    const membership = await prisma.teamMember.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: "asc" },
+    });
+
+    if (!membership) {
+      res.status(503).json({ error: "Demo account not found" });
+      return;
+    }
+
+    const token = signToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      teamId: membership.teamId,
+      tokenVersion: user.tokenVersion,
+    });
+
+    setAuthCookie(res, token);
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        teamId: membership.teamId,
+        teamRole: "OWNER",
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 authRouter.post("/passkey/register-options", requireAuth, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
@@ -751,7 +799,7 @@ authRouter.get("/google/callback", async (req, res) => {
       where: { email },
       select: { id: true, email: true, name: true, role: true, tokenVersion: true },
     });
-    
+
     let teamId: string | null = null;
     let teamRole: string | null = null;
     let isNew = false;
