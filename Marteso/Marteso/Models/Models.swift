@@ -228,18 +228,6 @@ struct SuggestionsResponse: Codable {
         .sorted { $0.createdAt > $1.createdAt } }
 }
 
-struct Job: Codable, Identifiable {
-    let id: String
-    let type: String
-    let status: String
-    let result: String?
-    let error: String?
-    let itemsCount: Int?
-    let startedAt: String?
-    let completedAt: String?
-    let createdAt: String
-}
-
 struct AuthUser: Codable {
     let id: String
     let email: String
@@ -250,18 +238,6 @@ struct AuthUser: Codable {
 struct AuthResponse: Codable {
     let token: String
     let user: AuthUser
-}
-
-struct SchedulerStatus: Codable {
-    let running: Bool
-    let jobs: [SchedulerJobInfo]?
-}
-
-struct SchedulerJobInfo: Codable {
-    let name: String
-    let interval: String?
-    let lastRun: String?
-    let nextRun: String?
 }
 
 struct DeviceTokenRegistration: Codable {

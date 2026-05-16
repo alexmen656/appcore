@@ -81,7 +81,7 @@ struct VersionsView: View {
     }
 
     private func loadVersions() async {
-        guard bundleId != nil else { return }
+        guard bundleId != nil else { isLoading = false; return }
         isLoading = true
         error = nil
         appIconURL = nil

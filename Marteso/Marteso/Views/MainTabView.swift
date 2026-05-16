@@ -99,7 +99,7 @@ struct MoreView: View {
                     NavigationLink {
                         ActionsView(bundleId: bundleId)
                     } label: {
-                        Label("Actions & Jobs", systemImage: "bolt.fill")
+                        Label("Actions", systemImage: "bolt.fill")
                     }
 
                     NavigationLink {

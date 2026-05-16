@@ -179,7 +179,7 @@ struct KeywordsView: View {
     }
 
     private func loadKeywords() async {
-        guard bundleId != nil else { return }
+        guard bundleId != nil else { isLoading = false; return }
         isLoading = true
         error = nil
         do {

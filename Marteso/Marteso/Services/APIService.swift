@@ -155,22 +155,6 @@ final class APIService {
         let _: EmptyResponse = try await post("/api/actions/\(action)", body: EmptyBody())
     }
 
-    func getJobs() async throws -> [Job] {
-        try await get("/api/actions/jobs")
-    }
-
-    func getSchedulerStatus() async throws -> SchedulerStatus {
-        try await get("/api/scheduler/status")
-    }
-
-    func startScheduler() async throws {
-        let _: EmptyResponse = try await post("/api/scheduler/start", body: EmptyBody())
-    }
-
-    func stopScheduler() async throws {
-        let _: EmptyResponse = try await post("/api/scheduler/stop", body: EmptyBody())
-    }
-
     // MARK: - Push Notifications
 
     func registerDeviceToken(_ deviceToken: String) async throws {
