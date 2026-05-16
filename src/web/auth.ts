@@ -136,12 +136,15 @@ export async function loadTeamSettings(req: Request, _res: Response, next: NextF
 export function bundleAccess(source: "params" | "query" | "body" = "query", paramName = "bundleId") {
   return async (req: Request, res: Response, next: NextFunction) => {
     const bundleId = req[source]?.[paramName] as string | undefined;
+
     if (!bundleId) {
       res.status(400).json({ error: `${paramName} required` });
       return;
     }
+
     const app = await verifyAppOwnershipByBundleId(req, res, bundleId);
     if (!app) return;
+
     req.bundleApp = app;
     next();
   };
@@ -154,6 +157,7 @@ export function appAccess(source: "params" | "query" | "body" = "query", paramNa
       res.status(400).json({ error: `${paramName} required` });
       return;
     }
+
     const app = await verifyAppOwnership(req, res, appId);
     if (!app) return;
     req.bundleApp = app;
@@ -174,6 +178,7 @@ export async function verifyAppOwnership(req: Request, res: Response, appId: str
     res.status(404).json({ error: "App not found" });
     return null;
   }
+
   if (req.user!.role === "ADMIN") return app;
   if (!app.teamId || app.teamId !== req.user!.teamId) {
     res.status(403).json({ error: "Not authorized" });
@@ -198,12 +203,14 @@ export async function verifyAppOwnershipByBundleId(req: Request, res: Response, 
 
 export async function requireTeamAdmin(req: Request, res: Response): Promise<boolean> {
   if (req.user!.role === "ADMIN") return true;
+
   const member = await prisma.teamMember.findUnique({
     where: {
       teamId_userId: { teamId: req.user!.teamId, userId: req.user!.userId },
     },
     select: { role: true },
   });
+
   if (!member || (member.role !== "OWNER" && member.role !== "ADMIN")) {
     res.status(403).json({ error: "Team admin role required" });
     return false;
@@ -215,6 +222,7 @@ export async function loadVersionInBundle(res: Response, versionId: string, bund
   const version = await prisma.appStoreVersion.findFirst({
     where: { id: versionId, bundleId },
   });
+
   if (!version) {
     res.status(404).json({ error: "Version not found" });
     return null;
@@ -232,6 +240,7 @@ export async function loadVersionLocalizationInBundle(
       ? { appInfoLocalizationId: ascLocalizationId, version: { bundleId } }
       : { versionLocalizationId: ascLocalizationId, version: { bundleId } };
   const localization = await prisma.appStoreVersionLocalization.findFirst({ where });
+
   if (!localization) {
     res.status(404).json({ error: "Localization not found" });
     return null;
@@ -243,10 +252,12 @@ export async function verifyTeamMemberBelongsToTeam(req: Request, res: Response,
   const member = await prisma.teamMember.findUnique({
     where: { id: memberId },
   });
+
   if (!member) {
     res.status(404).json({ error: "Member not found" });
     return null;
   }
+
   if (req.user!.role !== "ADMIN" && member.teamId !== req.user!.teamId) {
     res.status(403).json({ error: "Not authorized" });
     return null;
