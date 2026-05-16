@@ -8,7 +8,6 @@ dashboardRouter.use(requireAuth);
 
 dashboardRouter.get("/", async (req, res) => {
   try {
-    const settings = await getEffectiveSettings(req.user!.userId);
     const activeBundleId = req.query.bundleId as string | undefined;
 
     const ownApp = activeBundleId
@@ -25,44 +24,56 @@ dashboardRouter.get("/", async (req, res) => {
 
     const appId = ownApp?.id;
 
-    const [competitorCount, snapshotCount, keywordCount, rankingCount, pendingSuggestions, appliedSuggestions] =
-      await Promise.all([
-        appId
-          ? prisma.competitorRelation.count({
-              where: { OR: [{ appId }, { competitorId: appId }] },
-            })
-          : Promise.resolve(0),
-        appId ? prisma.appSnapshot.count({ where: { appId } }) : Promise.resolve(0),
-        appId
-          ? prisma.keyword.count({
-              where: { rankings: { some: { appId } } },
-            })
-          : Promise.resolve(0),
-        appId ? prisma.keywordRanking.count({ where: { appId } }) : Promise.resolve(0),
-        activeBundleId
-          ? prisma.aSOSuggestion.count({
-              where: { status: "PENDING", appBundleId: activeBundleId },
-            })
-          : Promise.resolve(0),
-        activeBundleId
-          ? prisma.aSOSuggestion.count({
-              where: { status: "APPLIED", appBundleId: activeBundleId },
-            })
-          : Promise.resolve(0),
-      ]);
+    const [
+      settings,
+      competitorCount,
+      snapshotCount,
+      keywordCount,
+      rankingCount,
+      pendingSuggestions,
+      appliedSuggestions,
+      recentSuggestions,
+    ] = await Promise.all([
+      getEffectiveSettings(req.user!.userId),
+      appId
+        ? prisma.competitorRelation.count({
+            where: { OR: [{ appId }, { competitorId: appId }] },
+          })
+        : Promise.resolve(0),
+      appId ? prisma.appSnapshot.count({ where: { appId } }) : Promise.resolve(0),
+      appId
+        ? prisma.$queryRaw<[{ count: bigint }]>`
+            SELECT COUNT(DISTINCT "keywordId")::int AS count
+            FROM "KeywordRanking"
+            WHERE "appId" = ${appId}
+          `.then(([r]) => Number(r.count))
+        : Promise.resolve(0),
+      appId ? prisma.keywordRanking.count({ where: { appId } }) : Promise.resolve(0),
+      activeBundleId
+        ? prisma.aSOSuggestion.count({
+            where: { status: "PENDING", appBundleId: activeBundleId },
+          })
+        : Promise.resolve(0),
+      activeBundleId
+        ? prisma.aSOSuggestion.count({
+            where: { status: "APPLIED", appBundleId: activeBundleId },
+          })
+        : Promise.resolve(0),
+      prisma.aSOSuggestion.findMany({
+        where: activeBundleId ? { appBundleId: activeBundleId } : {},
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      }),
+    ]);
 
-    const recentSuggestions = await prisma.aSOSuggestion.findMany({
-      where: activeBundleId ? { appBundleId: activeBundleId } : {},
-      orderBy: { createdAt: "desc" },
-      take: 5,
-    });
-
-    const accentColor = ownApp
-      ? await ensureAccentColor(ownApp.id, ownApp.snapshots[0]?.iconUrl, {
-          accentColor: ownApp.accentColor,
-          accentColorIconUrl: ownApp.accentColorIconUrl,
-        })
-      : null;
+    const iconUrl = ownApp?.snapshots[0]?.iconUrl ?? null;
+    const accentColor = ownApp?.accentColor ?? null;
+    if (ownApp && iconUrl && ownApp.accentColorIconUrl !== iconUrl) {
+      ensureAccentColor(ownApp.id, iconUrl, {
+        accentColor: ownApp.accentColor,
+        accentColorIconUrl: ownApp.accentColorIconUrl,
+      }).catch(() => {});
+    }
 
     res.json({
       app: ownApp
@@ -74,7 +85,7 @@ dashboardRouter.get("/", async (req, res) => {
             keywords: ownApp.currentKeywords,
             rating: ownApp.snapshots[0]?.rating,
             ratingsCount: ownApp.snapshots[0]?.ratingsCount,
-            iconUrl: ownApp.snapshots[0]?.iconUrl,
+            iconUrl,
             accentColor,
           }
         : null,
