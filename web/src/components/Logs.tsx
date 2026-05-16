@@ -15,7 +15,7 @@ import {
 import type { GitHubRepo, AppRepoLink, ScreenshotJob, BuildJob, AppItem } from "../types";
 
 const LOG_PREFIX_COLORS: { prefix: string; color: string }[] = [
-  { prefix: "[snapshot]", color: "#38bdf8" },
+  { prefix: "[capture]", color: "#38bdf8" },
   { prefix: "[repo]", color: "#b700ff" },
   { prefix: "[build]", color: "#a78bfa" },
   { prefix: "[frame]", color: "#34d399" },
@@ -77,6 +77,7 @@ function useLazyLogs(path: string | null) {
 function useStreamingLogs(jobId: string | null, appId: string | null, active: boolean) {
   const [lines, setLines] = useState<string[]>([]);
   const [done, setDone] = useState(false);
+  const [liveCount, setLiveCount] = useState(0);
   const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -84,32 +85,62 @@ function useStreamingLogs(jobId: string | null, appId: string | null, active: bo
 
     let es: EventSource | null = null;
     let cancelled = false;
+    let replaying = true;
+    const replayBatch: string[] = [];
 
     function connect() {
       if (cancelled) return;
+      replaying = true;
+      replayBatch.length = 0;
       const url = `/api/github/screenshots/${appId}/${jobId}/logs/stream`;
       es = new EventSource(url);
 
       es.addEventListener("log", (e) => {
         if (cancelled) return;
-        setLines((prev) => [...prev, JSON.parse((e as MessageEvent).data) as string]);
+        const line = JSON.parse((e as MessageEvent).data) as string;
+        if (replaying) {
+          replayBatch.push(line);
+        } else {
+          setLines((prev) => [...prev, line]);
+          setLiveCount((n) => n + 1);
+        }
       });
 
       es.addEventListener("done", () => {
         if (cancelled) return;
+        if (replaying && replayBatch.length > 0) {
+          setLines((prev) => [...prev, ...replayBatch]);
+        }
+        replaying = false;
         setDone(true);
         es?.close();
       });
 
       es.addEventListener("waiting", () => {
+        if (replaying && replayBatch.length > 0) {
+          setLines((prev) => [...prev, ...replayBatch]);
+        }
+        replaying = false;
         es?.close();
         if (!cancelled) retryRef.current = setTimeout(connect, 2000);
       });
 
       es.onerror = () => {
+        if (replaying && replayBatch.length > 0) {
+          setLines((prev) => [...prev, ...replayBatch]);
+        }
+        replaying = false;
         es?.close();
         if (!cancelled) retryRef.current = setTimeout(connect, 3000);
       };
+
+      // flush replay batch once server stops sending buffered lines
+      setTimeout(() => {
+        if (replaying && !cancelled) {
+          if (replayBatch.length > 0) setLines((prev) => [...prev, ...replayBatch]);
+          replaying = false;
+        }
+      }, 500);
     }
 
     connect();
@@ -121,7 +152,7 @@ function useStreamingLogs(jobId: string | null, appId: string | null, active: bo
     };
   }, [jobId, appId, active]);
 
-  return { lines, done };
+  return { lines, done, liveCount };
 }
 
 function LogsBlock({ logs, loading, error }: { logs: string[] | null; loading: boolean; error: string | null }) {
@@ -458,7 +489,7 @@ function JobRow({
     loading: logsLoading,
     error: logsError,
   } = useLazyLogs(!isActive && expanded ? `/github/screenshots/${job.appId}/${job.id}/logs` : null);
-  const { lines: streamLines, done: streamDone } = useStreamingLogs(
+  const { lines: streamLines, done: streamDone, liveCount } = useStreamingLogs(
     isActive ? job.id : null,
     isActive ? job.appId : null,
     expanded,
@@ -468,7 +499,7 @@ function JobRow({
 
   useEffect(() => {
     if (logsRef.current) logsRef.current.scrollTop = logsRef.current.scrollHeight;
-  }, [streamLines.length]);
+  }, [liveCount]);
 
   useEffect(() => {
     if (streamDone) onJobDone?.();

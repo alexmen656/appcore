@@ -1,2 +1,2 @@
 -- CreateIndex
-CREATE INDEX "KeywordRanking_appId_keywordId_idx" ON "KeywordRanking"("appId", "keywordId");
+CREATE INDEX IF NOT EXISTS "KeywordRanking_appId_keywordId_idx" ON "KeywordRanking"("appId", "keywordId");

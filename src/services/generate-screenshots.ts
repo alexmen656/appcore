@@ -103,6 +103,15 @@ async function runWorkerScreenshotGeneration(
       );
     }
 
+    for (const line of [
+      "███╗   ███╗ █████╗ ██████╗ ████████╗███████╗███████╗ ██████╗ ",
+      "████╗ ████║██╔══██╗██╔══██╗╚══██╔══╝██╔════╝██╔════╝██╔═══██╗",
+      "██╔████╔██║███████║██████╔╝   ██║   █████╗  ███████╗██║   ██║",
+      "██║╚██╔╝██║██╔══██║██╔══██╗   ██║   ██╔══╝  ╚════██║██║   ██║",
+      "██║ ╚═╝ ██║██║  ██║██║  ██║   ██║   ███████╗███████║╚██████╔╝",
+      "╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚══════╝ ╚═════╝ ",
+    ])
+      log(line);
     log("Delegating screenshot generation to worker...");
 
     let envVars: Record<string, string> | undefined;
@@ -147,7 +156,7 @@ async function runWorkerScreenshotGeneration(
       const normalizedLoc = normalizeLocale(locale);
 
       if (!normalizedLoc) {
-        log(`[snapshot] Skipping invalid locale: ${locale}`);
+        log(`[capture] Skipping invalid locale: ${locale}`);
         continue;
       }
 
@@ -156,7 +165,7 @@ async function runWorkerScreenshotGeneration(
       for (const img of images) {
         const safeFilename = safeSnapshotFilename(img.filename);
         if (!safeFilename) {
-          log(`[snapshot] Skipping suspicious filename: ${img.filename}`);
+          log(`[capture] Skipping suspicious filename: ${img.filename}`);
           continue;
         }
 
@@ -170,7 +179,7 @@ async function runWorkerScreenshotGeneration(
       detectedLocales.push(normalizedLoc);
     }
     log(
-      `[snapshot] Saved ${screenshotUrls.length} screenshot${screenshotUrls.length === 1 ? "" : "s"} from worker: ${screenshotUrls.join(", ")} (outputDir=${outputDir})`,
+      `[capture] Saved ${screenshotUrls.length} screenshot${screenshotUrls.length === 1 ? "" : "s"} from worker: ${screenshotUrls.join(", ")} (outputDir=${outputDir})`,
     );
 
     if (result.xcresultLogs && result.xcresultLogs.length > 0) {
@@ -180,18 +189,18 @@ async function runWorkerScreenshotGeneration(
       for (const archive of result.xcresultLogs) {
         const safeFilename = safeSnapshotFilename(archive.filename);
         if (!safeFilename) {
-          log(`[snapshot] Skipping suspicious xcresult filename: ${archive.filename}`);
+          log(`[capture] Skipping suspicious xcresult filename: ${archive.filename}`);
           continue;
         }
 
         if (!archive.data) {
-          log(`[snapshot] Skipping xcresult ${safeFilename}: no data (download failed)`);
+          log(`[capture] Skipping xcresult ${safeFilename}: no data (download failed)`);
           continue;
         }
         await fs.promises.writeFile(path.join(outputDir, "logs", safeFilename), Buffer.from(archive.data, "base64"));
         saved += 1;
       }
-      log(`[snapshot] Saved ${saved} xcresult archive(s)`);
+      log(`[capture] Saved ${saved} xcresult archive(s)`);
     }
 
     const descriptions = result.descriptions ?? {};

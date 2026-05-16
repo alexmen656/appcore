@@ -124,9 +124,9 @@ export class SnapshotRunner {
     this.params = params;
     this.emitLog = emitLog;
     this.finish = finish;
-    this.tmpDir = path.join(os.tmpdir(), `worker-snapshot-${runId}`);
-    this.logsDir = path.join(process.cwd(), "logs", "snapshots");
-    this.logFile = path.join(this.logsDir, `snapshot-${runId}.log`);
+    this.tmpDir = path.join(os.tmpdir(), `worker-capture-${runId}`);
+    this.logsDir = path.join(process.cwd(), "logs", "captures");
+    this.logFile = path.join(this.logsDir, `capture-${runId}.log`);
     this.artifactsDir = path.join(this.logsDir, runId);
   }
 
@@ -187,7 +187,7 @@ export class SnapshotRunner {
           })();
 
     const simInfo = await SnapshotRunner.getIosSimulatorInfo();
-    this.push(`[snapshot] Detected iOS simulator version: ${simInfo?.version ?? "unknown"}`);
+    this.push(`[capture] Detected iOS simulator version: ${simInfo?.version ?? "unknown"}`);
 
     const snapDevices = await this.resolveSnapDevices(effectiveDevices, simInfo);
     const entries = fs.readdirSync(workDir);
@@ -201,9 +201,9 @@ export class SnapshotRunner {
 
     const effectiveConcurrency = Math.max(1, Math.min(concurrency, snapDevices.length));
 
-    this.push(
-      `[snapshot] Running xcodebuild for ${plural(snapDevices.length, "device")} (concurrency: ${effectiveConcurrency}):\n           - ${snapDevices.join("\n           - ")}`,
-    );
+    //this.push(
+    //`[capture] Running xcodebuild for ${plural(snapDevices.length, "device")} (concurrency: ${effectiveConcurrency}):\n           - ${snapDevices.join("\n           - ")}`,
+    //);
 
     await this.bootSimulators(snapDevices, appearance);
 
@@ -217,10 +217,10 @@ export class SnapshotRunner {
       effectiveConcurrency,
     );
 
-    this.push("[snapshot] Snapshot completed");
+    this.push("[capture] Snapshot completed");
     const totalFiles = Object.values(screenshots).reduce((n, a) => n + a.length, 0);
     this.push(
-      `[snapshot] Total: ${plural(totalFiles, "screenshot")} across ${plural(Object.keys(screenshots).length, "language")}`,
+      `[capture] Total: ${plural(totalFiles, "screenshot")} across ${plural(Object.keys(screenshots).length, "language")}`,
     );
 
     this.finish({
@@ -296,12 +296,12 @@ export class SnapshotRunner {
       this.push(
         [
           `[config] Loaded config.json from ${path.relative(workDir, configFile)}`,
-          `  - scheme: ${result.scheme}`,
-          `  - devices: ${result.effectiveDevices.join(", ")}`,
-          `  - languages: ${result.effectiveLanguages.join(", ")}`,
-          `  - appearance: ${result.appearance}`,
-          `  - concurrency: ${result.concurrency}`,
-          `  - ${plural(descCount, "description")}`,
+          `         - scheme: ${result.scheme}`,
+          `         - devices: ${result.effectiveDevices.join(", ")}`,
+          `         - languages: ${result.effectiveLanguages.join(", ")}`,
+          `         - appearance: ${result.appearance}`,
+          `         - concurrency: ${result.concurrency}`,
+          `         - ${plural(descCount, "description")}`,
         ].join("\n"),
       );
     } catch {
@@ -337,8 +337,8 @@ export class SnapshotRunner {
       this.deviceNameMap.set(udid, matched.name);
       this.push(
         matched.name !== d
-          ? `[snapshot] Device "${d}" → "${matched.name}" (${udid})`
-          : `[snapshot] Device "${d}" → ${udid}`,
+          ? `[capture] Device "${d}" → "${matched.name}" (${udid})`
+          : `[capture] Device "${d}" → ${udid}`,
       );
       snapDevices.push(udid);
     }
@@ -353,7 +353,7 @@ export class SnapshotRunner {
         await execAsync(`xcrun simctl ui "${udid}" appearance ${appearance}`);
         await execAsync(`xcrun simctl shutdown "${udid}"`);
       } catch {
-        this.push(`[snapshot] Warning: could not set appearance on ${udid}`);
+        this.push(`[capture] Warning: could not set appearance on ${udid}`);
       }
     }
   }
@@ -386,7 +386,7 @@ export class SnapshotRunner {
         const derivedDataPath = path.join(this.tmpDir, `DerivedData-${device.replace(/[^a-zA-Z0-9]/g, "_")}`);
         const testLogsDir = path.join(derivedDataPath, "Logs", "Test");
 
-        this.push(`[snapshot] [${deviceLabel}] ${lang} - running UI tests ...`);
+        this.push(`[capture] [${deviceLabel}] ${lang} - running UI tests ...`);
 
         const testFailed = await this.runXcodebuild(
           scheme,
@@ -411,7 +411,7 @@ export class SnapshotRunner {
         if (fs.existsSync(testLogsDir)) {
           await this.extractScreenshots(testLogsDir, lang, device, screenshots, testFailed, deviceLabel);
         } else {
-          this.push(`[snapshot] [${deviceLabel}] ${lang}: no test logs directory at ${testLogsDir}`);
+          this.push(`[capture] [${deviceLabel}] ${lang}: no test logs directory at ${testLogsDir}`);
         }
       }
     };
@@ -440,8 +440,8 @@ export class SnapshotRunner {
     deviceLabel: string,
     envVars: Record<string, string> | undefined,
   ): Promise<boolean> {
+    const testStart = Date.now();
     try {
-      const testStart = Date.now();
       const xcodebuildCmd = `xcodebuild ${projectArg} -scheme "${scheme}" ${destination} -derivedDataPath "${derivedDataPath}" -parallel-testing-enabled NO TEST_RUNNER_XCUITESTS_LANGUAGE=${lang} TEST_RUNNER_XCUITESTS_LOCALE=${localeId} build test`;
 
       const { stdout } = await execAsync(`${xcodebuildCmd} 2>&1`, {
@@ -451,14 +451,13 @@ export class SnapshotRunner {
         maxBuffer: 10 * 1024 * 1024,
       });
 
-      SnapshotRunner.filterXcodebuildOutput(stdout).forEach((l) => this.push(l));
-      this.push(`[snapshot] [${deviceLabel}] ${lang}: finished in ${Math.round((Date.now() - testStart) / 1000)}s`);
+      const elapsed = Math.round((Date.now() - testStart) / 1000);
+      const failed = /FAILED/.test(SnapshotRunner.findTestResultLine(stdout) ?? "");
+      this.push(`[capture] [${deviceLabel}] ${lang}: tests ${failed ? "failed" : "passed"} in ${elapsed}s`);
       return false;
     } catch (execErr) {
-      const e = execErr as { stdout?: string; stderr?: string; message?: string; code?: number };
-      SnapshotRunner.filterXcodebuildOutput(e.stdout).forEach((l) => this.push(l));
-      SnapshotRunner.filterXcodebuildOutput(e.stderr).forEach((l) => this.push(l));
-      this.push(`[snapshot] [${deviceLabel}] ${lang}: tests failed (extracting any captured screenshots anyway)`);
+      const elapsed = Math.round((Date.now() - testStart) / 1000);
+      this.push(`[capture] [${deviceLabel}] ${lang}: tests failed in ${elapsed}s`);
       return true;
     }
   }
@@ -484,12 +483,11 @@ export class SnapshotRunner {
       try {
         nameMap = await this.buildAttachmentNameMap(xcPath);
       } catch (e) {
-        this.push(`[snapshot] Warning: could not parse xcresult JSON for ${xcName}: ${e}`);
+        this.push(`[capture] Warning: could not parse xcresult JSON for ${xcName}: ${e}`);
         continue;
       }
 
       const relevant = [...nameMap.entries()].filter(([, name]) => name.startsWith(langPrefix));
-      this.push(`[snapshot] [${deviceLabel}] ${lang}: exporting ${plural(relevant.length, "screenshot")}`);
 
       for (const [payloadId, attName] of relevant) {
         const baseName = path.basename(attName.slice(langPrefix.length));
@@ -510,16 +508,16 @@ export class SnapshotRunner {
             collected.push(cleanName);
             fs.unlinkSync(outPath);
           } else {
-            this.push(`[snapshot] Warning: export produced no file for "${attName}"`);
+            this.push(`[capture] Warning: export produced no file for "${attName}"`);
           }
         } catch (e) {
-          this.push(`[snapshot] Warning: could not export "${attName}": ${e}`);
+          this.push(`[capture] Warning: could not export "${attName}": ${e}`);
         }
       }
     }
 
     this.push(
-      `[snapshot] [${deviceLabel}] ${lang}: extracted ${plural(collected.length, "screenshot")}${testFailed ? " (some tests failed)" : ""}`,
+      `[capture] [${deviceLabel}] ${lang}: ${plural(collected.length, "screenshot")} captured${testFailed ? " (some tests failed)" : ""}`,
     );
 
     for (const xcName of xcResults) {
@@ -553,11 +551,11 @@ export class SnapshotRunner {
         const sizeBytes = fs.statSync(zipPath).size;
         this.xcresultLogs.push({ filename: zipName, sizeBytes });
         this.push(
-          `[snapshot] [${deviceLabel}] ${lang}: archived xcresult → ${zipName} (${Math.round(sizeBytes / 1024)} KB)`,
+          `[capture] [${deviceLabel}] ${lang}: archived xcresult → ${zipName} (${Math.round(sizeBytes / 1024)} KB)`,
         );
       }
     } catch (e) {
-      this.push(`[snapshot] Warning: could not zip xcresult ${xcName}: ${e}`);
+      this.push(`[capture] Warning: could not zip xcresult ${xcName}: ${e}`);
     }
   }
 
@@ -673,7 +671,7 @@ export class SnapshotRunner {
 
   private copyDebugArtifacts(): void {
     try {
-      const debugDir = `/tmp/last-snapshot-debug-${this.runId}`;
+      const debugDir = `/tmp/last-capture-debug-${this.runId}`;
       fs.rmSync(debugDir, { recursive: true, force: true });
       fs.mkdirSync(debugDir, { recursive: true });
 
@@ -727,6 +725,12 @@ export class SnapshotRunner {
   // Static helpers
   // ---------------------------------------------------------------------------
 
+  static findTestResultLine(output: string | undefined): string | null {
+    if (!output) return null;
+    const match = output.split("\n").find((l) => /\*\* TEST (FAILED|SUCCEEDED) \*\*/.test(l));
+    return match?.trim() ?? null;
+  }
+
   static filterXcodebuildOutput(output: string | undefined, maxLines = 200): string[] {
     if (!output) return [];
     const lines = output.split("\n").filter(Boolean);
@@ -734,7 +738,7 @@ export class SnapshotRunner {
 
     if (interesting.length <= maxLines) return interesting;
     const dropped = interesting.length - maxLines;
-    return [`[snapshot] (truncated ${plural(dropped, "line")} earlier filtered)`, ...interesting.slice(-maxLines)];
+    return [`[capture] (truncated ${plural(dropped, "line")} earlier filtered)`, ...interesting.slice(-maxLines)];
   }
 
   static async getIosSimulatorInfo(): Promise<{
