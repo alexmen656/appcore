@@ -1126,7 +1126,7 @@ export default function App() {
           </div>
         )}
         {/*demo@marteso.com*/}
-        <header className="h-[52px] bg-[var(--shell-bg)] flex items-center px-4 shrink-0 z-40 transition-colors">
+        <header className="h-[52px] bg-[var(--shell-bg)] flex items-center px-4 shrink-0 transition-colors">
           <a href="/" className="flex items-center gap-2.5">
             <img src="/logo.svg" alt="Marteso" className="h-[23px] w-auto" />
             <span className="text-[24px] font-bold tracking-[-0.3px] bg-gradient-to-br from-[#D94412] to-[#C4001E] bg-clip-text text-transparent">
