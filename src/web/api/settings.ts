@@ -8,51 +8,28 @@ settingsRouter.use(requireAuth);
 
 settingsRouter.get("/", loadTeamSettings, async (req, res) => {
   try {
-    const settings = req.teamSettings;
+    const s = req.teamSettings;
 
-    res.json(
-      settings
-        ? {
-            ascIssuerId: settings.ascIssuerId ?? "",
-            ascKeyId: settings.ascKeyId ?? "",
-            ascPrivateKey: settings.ascPrivateKey ? "••••••••" : "",
-            ascPrivateKeySet: !!settings.ascPrivateKey,
-            ascVendorNumber: settings.ascVendorNumber ?? "",
-            openaiApiKey: settings.openaiApiKey ? "••••••••" : "",
-            openaiApiKeySet: !!settings.openaiApiKey,
-            anthropicApiKey: settings.anthropicApiKey ? "••••••••" : "",
-            anthropicApiKeySet: !!settings.anthropicApiKey,
-            aiProvider: settings.aiProvider ?? "openai",
-            presetCopyright: settings.presetCopyright ?? "",
-            reviewerFirstName: settings.reviewerFirstName ?? "",
-            reviewerLastName: settings.reviewerLastName ?? "",
-            reviewerPhone: settings.reviewerPhone ?? "",
-            reviewerEmail: settings.reviewerEmail ?? "",
-            reviewerDemoAccountRequired: settings.reviewerDemoAccountRequired ?? false,
-            reviewerDemoUsername: settings.reviewerDemoUsername ?? "",
-            reviewerDemoPassword: settings.reviewerDemoPassword ?? "",
-          }
-        : {
-            ascIssuerId: "",
-            ascKeyId: "",
-            ascPrivateKey: "",
-            ascPrivateKeySet: false,
-            ascVendorNumber: "",
-            openaiApiKey: "",
-            openaiApiKeySet: false,
-            anthropicApiKey: "",
-            anthropicApiKeySet: false,
-            aiProvider: "openai",
-            presetCopyright: "",
-            reviewerFirstName: "",
-            reviewerLastName: "",
-            reviewerPhone: "",
-            reviewerEmail: "",
-            reviewerDemoAccountRequired: false,
-            reviewerDemoUsername: "",
-            reviewerDemoPassword: "",
-          },
-    );
+    res.json({
+      ascIssuerId: s?.ascIssuerId ?? "",
+      ascKeyId: s?.ascKeyId ?? "",
+      ascPrivateKey: s?.ascPrivateKey ? "••••••••" : "",
+      ascPrivateKeySet: !!s?.ascPrivateKey,
+      ascVendorNumber: s?.ascVendorNumber ?? "",
+      openaiApiKey: s?.openaiApiKey ? "••••••••" : "",
+      openaiApiKeySet: !!s?.openaiApiKey,
+      anthropicApiKey: s?.anthropicApiKey ? "••••••••" : "",
+      anthropicApiKeySet: !!s?.anthropicApiKey,
+      aiProvider: s?.aiProvider ?? "openai",
+      presetCopyright: s?.presetCopyright ?? "",
+      reviewerFirstName: s?.reviewerFirstName ?? "",
+      reviewerLastName: s?.reviewerLastName ?? "",
+      reviewerPhone: s?.reviewerPhone ?? "",
+      reviewerEmail: s?.reviewerEmail ?? "",
+      reviewerDemoAccountRequired: s?.reviewerDemoAccountRequired ?? false,
+      reviewerDemoUsername: s?.reviewerDemoUsername ?? "",
+      reviewerDemoPassword: s?.reviewerDemoPassword ?? "",
+    });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
