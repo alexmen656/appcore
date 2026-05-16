@@ -143,7 +143,7 @@ export default function Team({
     membersNeedingAccess.forEach(async (m) => {
       try {
         const [appsRes, accessRes] = await Promise.all([
-          fetch("/api/apps", { headers: authHeaders() }),
+          fetch("/api/apps?ownOnly=true", { headers: authHeaders() }),
           fetch(`/api/team/members/${m.id}/apps`, { headers: authHeaders() }),
         ]);
         const apps: AppOption[] = (await appsRes.json()).filter((a: any) => a.isOwnApp);
@@ -233,7 +233,7 @@ export default function Team({
     setAppAccessMemberId(memberId);
     try {
       const [appsRes, accessRes] = await Promise.all([
-        fetch("/api/apps", { headers: authHeaders() }),
+        fetch("/api/apps?ownOnly=true", { headers: authHeaders() }),
         fetch(`/api/team/members/${memberId}/apps`, { headers: authHeaders() }),
       ]);
       const apps: AppOption[] = (await appsRes.json()).filter((a: any) => a.isOwnApp);
@@ -549,84 +549,86 @@ export default function Team({
                     <tr key={`${m.id}-access`}>
                       <td colSpan={4} className="px-5 pb-4">
                         <div className="p-4 bg-[#f7f8fa] dark:bg-[#161b24] border border-[#e5e7eb] dark:border-[#2a2f3d] rounded-xl">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <p className="text-sm font-semibold text-[#1a1a2e] dark:text-[#e8eaf0]">
-                          App Access for {m.name ?? m.email}
-                        </p>
-                        <p className="text-xs text-gray-400 dark:text-[#5c6478] mt-0.5">
-                          {selectedAppIds.length === 0
-                            ? "All apps visible (no restriction)"
-                            : `${selectedAppIds.length} app${selectedAppIds.length !== 1 ? "s" : ""} selected`}
-                        </p>
-                      </div>
-                    </div>
-                    {allApps.length === 0 ? (
-                      <p className="text-xs text-gray-400 dark:text-[#5c6478]">No own apps available</p>
-                    ) : (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mb-4 max-h-48 overflow-y-auto">
-                        {allApps.map((app) => (
-                          <label
-                            key={app.id}
-                            className="flex items-center gap-2.5 cursor-pointer group py-2 px-3 rounded-xl hover:bg-white dark:hover:bg-[#1c2028] border border-transparent hover:border-[#e5e7eb] dark:hover:border-[#2a2f3d] transition-all"
-                          >
-                            <div className="w-8 h-8 rounded-[8px] overflow-hidden bg-gray-100 dark:bg-[#252b38] shrink-0">
-                              {app.iconUrl ? (
-                                <img src={app.iconUrl} alt={app.name} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-gray-400">
-                                  {app.name.charAt(0)}
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium text-[#1a1a2e] dark:text-[#e8eaf0] truncate">
-                                {app.name}
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              <p className="text-sm font-semibold text-[#1a1a2e] dark:text-[#e8eaf0]">
+                                App Access for {m.name ?? m.email}
                               </p>
-                              <p className="text-[10px] text-gray-400 dark:text-[#5c6478] truncate">{app.bundleId}</p>
+                              <p className="text-xs text-gray-400 dark:text-[#5c6478] mt-0.5">
+                                {selectedAppIds.length === 0
+                                  ? "All apps visible (no restriction)"
+                                  : `${selectedAppIds.length} app${selectedAppIds.length !== 1 ? "s" : ""} selected`}
+                              </p>
                             </div>
-                            <input
-                              type="checkbox"
-                              checked={selectedAppIds.includes(app.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedAppIds((prev) => [...prev, app.id]);
-                                } else {
-                                  setSelectedAppIds((prev) => prev.filter((id) => id !== app.id));
-                                }
-                              }}
-                              className="accent-[#D94412] w-3.5 h-3.5 shrink-0"
-                            />
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 pt-1">
-                      {selectedAppIds.length > 0 && (
-                        <button
-                          onClick={() => setSelectedAppIds([])}
-                          className="text-xs text-gray-400 dark:text-[#5c6478] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] transition-colors"
-                        >
-                          Clear all
-                        </button>
-                      )}
-                      <div className="ml-auto flex gap-2">
-                        <button
-                          onClick={() => setAppAccessMemberId(null)}
-                          className="px-3.5 py-1.5 rounded-lg border border-[#e5e7eb] dark:border-[#2a2f3d] text-xs font-medium text-gray-500 dark:text-[#8b93a5] hover:bg-gray-50 dark:hover:bg-[#252b38] transition-all"
-                        >
-                          Cancel
-                        </button>
-                            <button
-                              onClick={() => handleSaveAppAccess(m.id)}
-                              disabled={savingAppAccess}
-                              className="px-3.5 py-1.5 rounded-lg bg-[#D94412] text-white text-xs font-semibold hover:bg-[#c80b24] transition-all disabled:opacity-50"
-                            >
-                              {savingAppAccess ? "…" : "Save"}
-                            </button>
+                          </div>
+                          {allApps.length === 0 ? (
+                            <p className="text-xs text-gray-400 dark:text-[#5c6478]">No own apps available</p>
+                          ) : (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mb-4 max-h-48 overflow-y-auto">
+                              {allApps.map((app) => (
+                                <label
+                                  key={app.id}
+                                  className="flex items-center gap-2.5 cursor-pointer group py-2 px-3 rounded-xl hover:bg-white dark:hover:bg-[#1c2028] border border-transparent hover:border-[#e5e7eb] dark:hover:border-[#2a2f3d] transition-all"
+                                >
+                                  <div className="w-8 h-8 rounded-[8px] overflow-hidden bg-gray-100 dark:bg-[#252b38] shrink-0">
+                                    {app.iconUrl ? (
+                                      <img src={app.iconUrl} alt={app.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-gray-400">
+                                        {app.name.charAt(0)}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-medium text-[#1a1a2e] dark:text-[#e8eaf0] truncate">
+                                      {app.name}
+                                    </p>
+                                    <p className="text-[10px] text-gray-400 dark:text-[#5c6478] truncate">
+                                      {app.bundleId}
+                                    </p>
+                                  </div>
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedAppIds.includes(app.id)}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedAppIds((prev) => [...prev, app.id]);
+                                      } else {
+                                        setSelectedAppIds((prev) => prev.filter((id) => id !== app.id));
+                                      }
+                                    }}
+                                    className="accent-[#D94412] w-3.5 h-3.5 shrink-0"
+                                  />
+                                </label>
+                              ))}
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2 pt-1">
+                            {selectedAppIds.length > 0 && (
+                              <button
+                                onClick={() => setSelectedAppIds([])}
+                                className="text-xs text-gray-400 dark:text-[#5c6478] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] transition-colors"
+                              >
+                                Clear all
+                              </button>
+                            )}
+                            <div className="ml-auto flex gap-2">
+                              <button
+                                onClick={() => setAppAccessMemberId(null)}
+                                className="px-3.5 py-1.5 rounded-lg border border-[#e5e7eb] dark:border-[#2a2f3d] text-xs font-medium text-gray-500 dark:text-[#8b93a5] hover:bg-gray-50 dark:hover:bg-[#252b38] transition-all"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={() => handleSaveAppAccess(m.id)}
+                                disabled={savingAppAccess}
+                                className="px-3.5 py-1.5 rounded-lg bg-[#D94412] text-white text-xs font-semibold hover:bg-[#c80b24] transition-all disabled:opacity-50"
+                              >
+                                {savingAppAccess ? "…" : "Save"}
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
                       </td>
                     </tr>
                   )}
@@ -678,9 +680,7 @@ export default function Team({
 
       <div className="bg-white dark:bg-[#1c2028] border border-[#e5e7eb] dark:border-[#2a2f3d] rounded-2xl overflow-hidden shadow-sm">
         <div className="px-5 py-3 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-[#5c6478]">
-            Roles
-          </p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-gray-400 dark:text-[#5c6478]">Roles</p>
         </div>
         <table className="w-full table-fixed border-collapse">
           <thead>
@@ -697,9 +697,7 @@ export default function Team({
             {(["OWNER", "ADMIN", "MEMBER", "VIEWER"] as TeamRole[]).map((r) => (
               <tr key={r} className="align-middle">
                 <td className="px-5 py-3 align-middle">
-                  <span
-                    className={`inline-flex text-[11px] font-semibold px-2.5 py-1 rounded-full ${ROLE_COLORS[r]}`}
-                  >
+                  <span className={`inline-flex text-[11px] font-semibold px-2.5 py-1 rounded-full ${ROLE_COLORS[r]}`}>
                     {ROLE_LABELS[r]}
                   </span>
                 </td>

@@ -12,7 +12,7 @@ interface Props {
 }
 
 export default function AppSettings({ addToast }: Props) {
-  const { data: apps } = useApi<AppItem[]>("/apps", [], true);
+  const { data: apps } = useApi<AppItem[]>("/apps?ownOnly=true", [], true);
   const { data: ghStatus } = useApi<GitHubStatus>("/github/status", [], true);
 
   const activeApp = apps?.find((a) => a.bundleId === getActiveBundleId() && a.isOwnApp);

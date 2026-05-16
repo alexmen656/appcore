@@ -688,7 +688,7 @@ interface Props {
 }
 
 export default function Actions({ addToast }: Props) {
-  const { data: apps } = useApi<AppItem[]>("/apps", [], true);
+  const { data: apps } = useApi<AppItem[]>("/apps?ownOnly=true", [], true);
   const bundleId = getActiveBundleId();
   const activeApp = apps?.find((a) => a.bundleId === bundleId && a.isOwnApp);
 

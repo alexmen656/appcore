@@ -8,6 +8,7 @@ export const appsRouter = Router();
 appsRouter.get("/", async (req, res) => {
   try {
     const bundleId = req.query.bundleId as string | undefined;
+    const ownOnly = req.query.ownOnly === "true";
     const isAdmin = req.user!.role === "ADMIN";
     const teamId = req.user!.teamId;
     let whereClause: any = {};
@@ -40,44 +41,46 @@ appsRouter.get("/", async (req, res) => {
       const isPrivileged = member?.role === "OWNER" || member?.role === "ADMIN";
       if (!isPrivileged && member && member.appAccess.length > 0) {
         const allowedAppIds = member.appAccess.map((a) => a.appId);
-        whereClause = {
-          OR: [{ id: { in: allowedAppIds } }, { isOwnApp: false }],
-        };
+        whereClause = ownOnly
+          ? { id: { in: allowedAppIds }, isOwnApp: true }
+          : { OR: [{ id: { in: allowedAppIds } }, { isOwnApp: false }] };
       } else {
-        whereClause = {
-          OR: [{ teamId }, { isOwnApp: false }],
-        };
+        whereClause = ownOnly ? { teamId, isOwnApp: true } : { OR: [{ teamId }, { isOwnApp: false }] };
       }
+    } else if (ownOnly) {
+      whereClause = teamId ? { teamId, isOwnApp: true } : { isOwnApp: true };
     }
 
     const apps = await prisma.app.findMany({
       where: whereClause,
       include: {
         snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 },
-        _count: {
-          select: {
-            competitors: true,
-            competitorOf: true,
-            rankings: true,
+        ...(!ownOnly && {
+          _count: {
+            select: {
+              competitors: true,
+              competitorOf: true,
+            },
           },
-        },
+        }),
       },
       orderBy: [{ isOwnApp: "desc" }, { name: "asc" }],
     });
 
-    const accentColors = await Promise.all(
-      apps.map((a) =>
-        a.isOwnApp
-          ? ensureAccentColor(a.id, a.snapshots[0]?.iconUrl ?? null, {
-              accentColor: a.accentColor,
-              accentColorIconUrl: a.accentColorIconUrl,
-            })
-          : Promise.resolve(null),
-      ),
-    );
+    for (const a of apps) {
+      if (a.isOwnApp) {
+        const iconUrl = a.snapshots[0]?.iconUrl ?? null;
+        if (iconUrl && a.accentColorIconUrl !== iconUrl) {
+          ensureAccentColor(a.id, iconUrl, {
+            accentColor: a.accentColor,
+            accentColorIconUrl: a.accentColorIconUrl,
+          }).catch(() => {});
+        }
+      }
+    }
 
     res.json(
-      apps.map((a, i) => ({
+      apps.map((a) => ({
         id: a.id,
         bundleId: a.bundleId,
         name: a.name,
@@ -90,9 +93,9 @@ appsRouter.get("/", async (req, res) => {
         rating: a.snapshots[0]?.rating ?? null,
         ratingsCount: a.snapshots[0]?.ratingsCount ?? null,
         iconUrl: a.snapshots[0]?.iconUrl ?? null,
-        accentColor: accentColors[i],
-        competitorCount: a._count.competitors + a._count.competitorOf,
-        rankingCount: a._count.rankings,
+        accentColor: a.accentColor,
+        competitorCount: "_count" in a ? (a as any)._count.competitors + (a as any)._count.competitorOf : 0,
+        rankingCount: 0,
         updatedAt: a.updatedAt,
       })),
     );

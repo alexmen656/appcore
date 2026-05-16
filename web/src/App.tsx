@@ -112,7 +112,7 @@ function AppSwitcher({
   current: DashboardData["app"];
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }) {
-  const { data: apps, refetch: refetchApps } = useApi<AppItem[]>("/apps", [], true);
+  const { data: apps, refetch: refetchApps } = useApi<AppItem[]>("/apps?ownOnly=true", [], true);
   const [open, setOpen] = useState(false);
   const [activeBundleId, setLocalBundle] = useState(getActiveBundleId);
   const [importOpen, setImportOpen] = useState(false);
