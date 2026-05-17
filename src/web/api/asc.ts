@@ -948,6 +948,12 @@ ascRouter.post(
       return;
     }
 
+    await prisma.appStoreVersionLocalization.upsert({
+      where: { versionId_locale: { versionId, locale } },
+      create: { versionId, locale, appInfoLocalizationId, versionLocalizationId, name },
+      update: { appInfoLocalizationId, versionLocalizationId },
+    });
+
     await invalidateVersionCache(bundleId);
     res.json({
       ok: true,
