@@ -1,5 +1,4 @@
 import { prisma, logger } from "../config";
-import type { EffectiveSettings } from "../config";
 import { AIClient } from "./ai-client"; //queryOllama
 import type { AIResponse } from "./ai-client";
 import { SuggestionType, SuggestionStatus } from "@prisma/client";
@@ -58,14 +57,12 @@ interface ASOAnalysis {
 export class AIAnalyzer {
   private readonly ai: AIClient;
   private readonly bundleId: string;
-  private readonly settings?: EffectiveSettings;
 
-  constructor(bundleId: string, settings?: EffectiveSettings) {
+  constructor(bundleId: string) {
     this.bundleId = bundleId;
-    this.settings = settings;
-    this.ai = new AIClient(settings);
+    this.ai = new AIClient();
     if (!this.ai.hasProvider) {
-      logger.warn("No AI provider configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY in settings.");
+      logger.warn("No AI provider configured. Set OPENAI_API_KEY or ANTHROPIC_API_KEY.");
     }
   }
 

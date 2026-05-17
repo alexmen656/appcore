@@ -64,7 +64,7 @@ export function registerJobTools(server: McpServer, userId: string) {
             await new AppStoreScraper(appCountry, undefined, effectiveBundleId).runFullScrapeJob();
           } else if (job === "analyze") {
             const { AIAnalyzer } = await import("../../../services/ai-analyzer");
-            await new AIAnalyzer(effectiveBundleId, settings).analyzeAndSuggest();
+            await new AIAnalyzer(effectiveBundleId).analyzeAndSuggest();
           } else if (job === "sync") {
             if (!effectiveBundleId) {
               logger.warn(`MCP sync job [${jobId}] skipped: no bundleId resolved`);

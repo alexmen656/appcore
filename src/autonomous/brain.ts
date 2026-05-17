@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { prisma, logger, getEffectiveSettings } from "../config";
+import { prisma, logger } from "../config";
+import { env } from "../config/env";
 import { ASOMemory } from "./memory";
 import type { AsoExperiment } from "@prisma/client";
 
@@ -120,15 +121,11 @@ export class ASOBrain {
       competitorKeywords,
     );
 
-    const settings = await getEffectiveSettings(userId);
-    const anthropicKey = settings.anthropicApiKey;
-    if (!anthropicKey) {
-      throw new Error(
-        "ANTHROPIC_API_KEY not configured in Team Settings. Required for ASOBrain.",
-      );
+    if (!env.ANTHROPIC_API_KEY) {
+      throw new Error("ANTHROPIC_API_KEY not configured. Required for ASOBrain.");
     }
 
-    const anthropic = new Anthropic({ apiKey: anthropicKey });
+    const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
     const suggestions = await this.callAI(anthropic, prompt);
     const qualified = suggestions.filter(
       (s) => s.confidence >= ASOBrain.CONFIDENCE_THRESHOLD,

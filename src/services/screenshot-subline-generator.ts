@@ -1,5 +1,4 @@
 import { prisma, logger } from "../config";
-import { getEffectiveSettingsForTeam } from "../config/userSettings";
 import { AIClient } from "./ai-client";
 import { LOCALE_MAP, type LocaleConfig } from "./utils/country_lang";
 
@@ -91,11 +90,10 @@ export async function generateScreenshotSublines(
     .sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999))
     .slice(0, 20);
 
-  const settings = await getEffectiveSettingsForTeam(app.teamId ?? "");
-  const ai = new AIClient(settings);
+  const ai = new AIClient();
 
   if (!ai.hasProvider) {
-    throw new Error("No AI provider configured - add an OpenAI or Anthropic API key in Settings");
+    throw new Error("No AI provider configured - set OPENAI_API_KEY or ANTHROPIC_API_KEY");
   }
 
   const screenshotList = Object.entries(descriptions)

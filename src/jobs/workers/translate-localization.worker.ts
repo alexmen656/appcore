@@ -49,7 +49,7 @@ export async function handler([job]: Job<TranslateLocalizationData>[]): Promise<
       return;
     }
 
-    const translated = await new AIAnalyzer(bundleId, settings).translateLocalization(
+    const translated = await new AIAnalyzer(bundleId).translateLocalization(
       sourceLocale,
       targetLocale,
       sourceFields,

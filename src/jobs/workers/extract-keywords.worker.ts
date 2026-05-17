@@ -16,7 +16,7 @@ export async function handler([job]: Job<ExtractKeywordsData>[]): Promise<void> 
   logger.info(`[BOSS] Starting "${QUEUE_NAME}" job ${id} for ${bundleId}…`);
 
   const settings = await getEffectiveSettingsForTeam(teamId);
-  const keywords = await new AIAnalyzer(bundleId, settings).extractKeywordsFromCompetitors();
+  const keywords = await new AIAnalyzer(bundleId).extractKeywordsFromCompetitors();
 
   if (keywords.length > 0) {
     const terms = keywords.map((k) => k.keyword);

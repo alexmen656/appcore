@@ -98,9 +98,6 @@ dashboardRouter.get("/", async (req, res) => {
         appliedSuggestions,
       },
       config: {
-        aiProvider: settings.aiProvider,
-        hasOpenAI: !!settings.openaiApiKey,
-        hasAnthropic: !!settings.anthropicApiKey,
         hasASC: !!(settings.ascIssuerId && settings.ascKeyId && settings.ascPrivateKey),
         hasSearchAds: !!env.APPLE_ADS_CLIENT_ID,
       },

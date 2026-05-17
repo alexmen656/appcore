@@ -16,11 +16,6 @@ settingsRouter.get("/", loadTeamSettings, async (req, res) => {
       ascPrivateKey: s?.ascPrivateKey ? "••••••••" : "",
       ascPrivateKeySet: !!s?.ascPrivateKey,
       ascVendorNumber: s?.ascVendorNumber ?? "",
-      openaiApiKey: s?.openaiApiKey ? "••••••••" : "",
-      openaiApiKeySet: !!s?.openaiApiKey,
-      anthropicApiKey: s?.anthropicApiKey ? "••••••••" : "",
-      anthropicApiKeySet: !!s?.anthropicApiKey,
-      aiProvider: s?.aiProvider ?? "openai",
       presetCopyright: s?.presetCopyright ?? "",
       reviewerFirstName: s?.reviewerFirstName ?? "",
       reviewerLastName: s?.reviewerLastName ?? "",
@@ -45,9 +40,6 @@ settingsRouter.put("/", async (req, res) => {
       ascKeyId,
       ascPrivateKey,
       ascVendorNumber,
-      openaiApiKey,
-      anthropicApiKey,
-      aiProvider,
       presetCopyright,
       reviewerFirstName,
       reviewerLastName,
@@ -64,11 +56,6 @@ settingsRouter.put("/", async (req, res) => {
     if (ascPrivateKey !== undefined && ascPrivateKey !== "••••••••")
       data.ascPrivateKey = ascPrivateKey ? encrypt(ascPrivateKey) : null;
     if (ascVendorNumber !== undefined) data.ascVendorNumber = ascVendorNumber || null;
-    if (openaiApiKey !== undefined && openaiApiKey !== "••••••••")
-      data.openaiApiKey = openaiApiKey ? encrypt(openaiApiKey) : null;
-    if (anthropicApiKey !== undefined && anthropicApiKey !== "••••••••")
-      data.anthropicApiKey = anthropicApiKey ? encrypt(anthropicApiKey) : null;
-    if (aiProvider !== undefined) data.aiProvider = aiProvider || "openai";
     if (presetCopyright !== undefined) data.presetCopyright = presetCopyright || null;
     if (reviewerFirstName !== undefined) data.reviewerFirstName = reviewerFirstName || null;
     if (reviewerLastName !== undefined) data.reviewerLastName = reviewerLastName || null;

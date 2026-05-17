@@ -137,9 +137,6 @@ model TeamSettings {
   ascIssuerId                 String?
   ascKeyId                    String?
   ascPrivateKey               String?
-  openaiApiKey                String?
-  anthropicApiKey             String?
-  aiProvider                  String?   @default("openai")
   ascVendorNumber             String?
   mcpEnabled                  Boolean   @default(false)
   githubAccessToken           String?

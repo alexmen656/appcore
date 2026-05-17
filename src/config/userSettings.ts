@@ -6,9 +6,6 @@ export interface EffectiveSettings {
   ascKeyId: string;
   ascPrivateKey: string;
   ascVendorNumber: string;
-  openaiApiKey: string;
-  anthropicApiKey: string;
-  aiProvider: "openai" | "anthropic";
 }
 
 async function getTeamIdForUser(userId: string): Promise<string | null> {
@@ -33,9 +30,6 @@ export async function getEffectiveSettingsForTeam(
     ascKeyId: s?.ascKeyId ?? "",
     ascPrivateKey: decryptNullable(s?.ascPrivateKey) ?? "",
     ascVendorNumber: s?.ascVendorNumber ?? "",
-    openaiApiKey: decryptNullable(s?.openaiApiKey) ?? "",
-    anthropicApiKey: decryptNullable(s?.anthropicApiKey) ?? "",
-    aiProvider: s?.aiProvider === "anthropic" ? "anthropic" : "openai",
   };
 }
 

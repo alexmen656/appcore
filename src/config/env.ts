@@ -58,6 +58,10 @@ const envSchema = z.object({
   LEMONSQUEEZY_VARIANT_YEARLY: z.string().optional(),
   LEMONSQUEEZY_WEBHOOK_SECRET: z.string().optional(),
 
+  // AI providers
+  OPENAI_API_KEY: z.string().optional(),
+  ANTHROPIC_API_KEY: z.string().optional(),
+
   // node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
   ENCRYPTION_KEY: z.string().length(64).optional(),
 

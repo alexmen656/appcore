@@ -16,7 +16,7 @@ export class KeywordDiscoveryAgent {
 
   constructor(bundleId: string, settings?: EffectiveSettings) {
     this.settings = settings;
-    this.ai = new AIClient(settings);
+    this.ai = new AIClient();
     this.bundleId = bundleId;
     if (!bundleId) {
       logger.warn("[Discovery] No bundle ID provided, discovery will be disabled");

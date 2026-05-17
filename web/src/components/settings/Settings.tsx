@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useApi, apiPut } from "../../hooks/useApi";
 import { usePermissions } from "../../hooks/usePermissions";
 import AscCredentialsSection from "./AscCredentialsSection";
-import AiProviderSection from "./AiProviderSection";
 import GitHubSection from "./GitHubSection";
 import PresetMetadataSection from "./PresetMetadataSection";
 import { SettingsData } from "./types";
@@ -67,7 +66,6 @@ export default function Settings({ addToast }: Props) {
             textareaCls={textareaCls}
             onChange={set}
           />
-          <AiProviderSection form={form} data={data ?? null} inputCls={inputCls} onChange={set} />
           <PresetMetadataSection form={form} inputCls={inputCls} onChange={set} />
           <GitHubSection />
 

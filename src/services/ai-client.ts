@@ -1,6 +1,5 @@
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
-import type { EffectiveSettings } from "../config";
 import { env } from "../config/env";
 
 export interface AIQueryOptions {
@@ -41,8 +40,6 @@ const DEFAULT_OLLAMA_BASE_URL = env.FASTLANE_WORKER_URL?.replace("3200", "11434"
 const DEFAULT_TEMPERATURE = 0.7;
 const DEFAULT_MAX_TOKENS = 4000;
 
-type AISettings = Pick<EffectiveSettings, "openaiApiKey" | "anthropicApiKey" | "aiProvider">;
-
 interface OllamaChatResponse {
   model: string;
   message?: { role: string; content: string };
@@ -58,12 +55,12 @@ interface OllamaTagsResponse {
 export class AIClient {
   private readonly openai?: OpenAI;
   private readonly anthropic?: Anthropic;
-  private readonly preferredProvider?: "openai" | "anthropic";
+  private readonly preferredProvider: "openai" | "anthropic";
 
-  constructor(settings?: Partial<AISettings>) {
-    if (settings?.openaiApiKey) this.openai = new OpenAI({ apiKey: settings.openaiApiKey });
-    if (settings?.anthropicApiKey) this.anthropic = new Anthropic({ apiKey: settings.anthropicApiKey });
-    this.preferredProvider = settings?.aiProvider as "openai" | "anthropic" | undefined;
+  constructor() {
+    if (env.OPENAI_API_KEY) this.openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+    if (env.ANTHROPIC_API_KEY) this.anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+    this.preferredProvider = env.ANTHROPIC_API_KEY ? "anthropic" : "openai";
   }
 
   get hasProvider(): boolean {

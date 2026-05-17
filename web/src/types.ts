@@ -93,9 +93,6 @@ export interface DashboardConfig {
   bundleId: string;
   country: string;
   locales: string;
-  aiProvider: string;
-  hasOpenAI: boolean;
-  hasAnthropic: boolean;
   hasASC: boolean;
   hasSearchAds: boolean;
   scrapeInterval: number;
@@ -221,11 +218,6 @@ export interface SettingsData {
   ascAppId: string;
   ascBundleId: string;
   ascVendorNumber: string;
-  openaiApiKey: string;
-  openaiApiKeySet: boolean;
-  anthropicApiKey: string;
-  anthropicApiKeySet: boolean;
-  aiProvider: string;
   presetCopyright: string;
   reviewerFirstName: string;
   reviewerLastName: string;
