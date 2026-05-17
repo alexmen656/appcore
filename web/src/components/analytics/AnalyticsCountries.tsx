@@ -92,8 +92,8 @@ export default function AnalyticsCountries() {
               onClick={() => setRange(opt.key)}
               className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
                 range === opt.key
-                  ? "bg-white dark:bg-[#252b38] ${textPrimary} shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
-                  : "${textMuted} hover:text-[#6b7280] dark:hover:text-[#8b93a5]"
+                  ? `bg-white dark:bg-[#252b38] ${textPrimary} shadow-[0_1px_3px_rgba(0,0,0,0.08)]`
+                  : `${textMuted} hover:text-[#6b7280] dark:hover:text-[#8b93a5]`
               }`}
             >
               {opt.label}

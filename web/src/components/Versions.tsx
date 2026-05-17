@@ -639,7 +639,7 @@ function LatestBuildCard({ bundleId, appName }: { bundleId: string; appName: str
 
   return (
     <div className={`${cardCls} mb-5`}>
-      <div className="text-[14px] font-bold mb-3">Latest Build</div>
+      <div className={`text-[14px] font-bold mb-3 ${textPrimary}`}>Latest Build</div>
       <div className="flex items-start gap-4">
         <div className="shrink-0">
           {build.iconUrl ? (
@@ -802,7 +802,7 @@ function ScreenshotsPanel({
     <>
       <div className="pb-5 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
         <div className="flex items-center justify-between mb-4">
-          <div className="text-[14px] font-bold">Screenshots</div>
+          <div className={`text-[14px] font-bold ${textPrimary}`}>Screenshots</div>
           <span className={`text-[11px] ${textSecondary} font-mono`}>
             {job.commitSha.slice(0, 7)}
             {job.branch ? ` · ${job.branch}` : ""}
@@ -1113,7 +1113,7 @@ function ReviewerInfoPanel({
               type="checkbox"
               checked={form.reviewerDemoAccountRequired}
               onChange={(e) => set("reviewerDemoAccountRequired", e.target.checked)}
-              className="w-4 h-4 rounded accent-[#D94412]"
+              className="w-4 h-4 rounded accent-[#D94412] dark:[color-scheme:dark]"
             />
             <span className={`text-[13px] ${textPrimary}`}>Login required (Demo Account)</span>
           </label>
@@ -1687,7 +1687,7 @@ export default function Versions({ addToast }: Props) {
                               onClick={() => selectLocale(loc.locale)}
                               className={`flex items-center gap-2 px-3.5 py-[7px] rounded-xl transition-all whitespace-nowrap ${
                                 isActive
-                                  ? "bg-[#111827] dark:bg-[#e8eaf0] border text-white dark:text-[#111827] shadow-sm"
+                                  ? "bg-[#111827] dark:bg-[#e8eaf0]/10 dark:border dark:border-[#e8eaf0]/20 border text-white shadow-sm"
                                   : isComplete
                                     ? `bg-emerald-50/70 dark:bg-emerald-900/15 border border-emerald-200/60 dark:border-emerald-800/40 ${textPrimary} hover:border-emerald-300 dark:hover:border-emerald-700/60`
                                     : `bg-[#fafbfc] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] ${textPrimary} hover:border-[#d1d5db] dark:hover:border-[#3a4050]`
@@ -1790,7 +1790,7 @@ export default function Versions({ addToast }: Props) {
             </div>
             {data.appId && <ScreenshotsPanel appId={data.appId} activeLocale={activeLocale} addToast={addToast} />}
 
-            <div className="text-[14px] font-bold -mb-1">App Metadata</div>
+            <div className={`text-[14px] font-bold -mb-1 ${textPrimary}`}>App Metadata</div>
 
             {FIELD_META.map((field) => (
               <EditableField
@@ -1804,7 +1804,7 @@ export default function Versions({ addToast }: Props) {
                 onSave={handleSave}
               />
             ))}
-            <div className="pt-4 border-t border-[#f3f4f6]">
+            <div className="pt-4 border-t border-[#f3f4f6] dark:border-[#2a2f3d]">
               <div className={`text-[11px] font-bold uppercase tracking-widest ${textMuted} mb-4`}>Version Info</div>
               <div className="flex flex-col gap-5">
                 <InlineEditField
@@ -1824,7 +1824,7 @@ export default function Versions({ addToast }: Props) {
                 />
                 {data.ageRating !== undefined && (
                   <div className="group">
-                    <div className="text-[12px] font-semibold text-[#6b7280] uppercase tracking-wide mb-1.5 flex items-center gap-2">
+                    <div className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide mb-1.5 flex items-center gap-2`}>
                       Age Rating
                     </div>
                     <div className="flex items-center gap-2">

@@ -81,7 +81,7 @@ function StatCard({
           <span className={`text-[13px] font-semibold ${textPrimary}`}>{label}</span>
           {icon && <span className={`${textMuted}`}>{icon}</span>}
         </div>
-        <div className={`text-[40px] font-bold leading-none mb-2 ${dim ? "${textMuted}" : "${textPrimary}"}`}>
+        <div className={`text-[40px] font-bold leading-none mb-2 ${dim ? textMuted : textPrimary}`}>
           {value}
         </div>
         {sub && (
@@ -271,8 +271,8 @@ export default function Analytics({ addToast }: Props) {
               onClick={() => setRange(opt.key)}
               className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
                 range === opt.key
-                  ? "bg-white dark:bg-[#252b38] ${textPrimary} shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
-                  : "${textMuted} hover:text-[#6b7280] dark:hover:text-[#8b93a5]"
+                  ? `bg-white dark:bg-[#252b38] ${textPrimary} shadow-[0_1px_3px_rgba(0,0,0,0.08)]`
+                  : `${textMuted} hover:text-[#6b7280] dark:hover:text-[#8b93a5]`
               }`}
             >
               {opt.label}
@@ -413,8 +413,8 @@ export default function Analytics({ addToast }: Props) {
                       onClick={() => setCountryMetric(m)}
                       className={`px-2 py-1 rounded-md text-[11px] font-medium transition-colors ${
                         countryMetric === m
-                          ? "bg-white dark:bg-[#1c2028] ${textPrimary} shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
-                          : "${textMuted} hover:text-[#6b7280] dark:hover:text-[#8b93a5]"
+                          ? `bg-white dark:bg-[#1c2028] ${textPrimary} shadow-[0_1px_2px_rgba(0,0,0,0.06)]`
+                          : `${textMuted} hover:text-[#6b7280] dark:hover:text-[#8b93a5]`
                       }`}
                     >
                       {m === "downloads" ? "DL" : m === "impressions" ? "Imp." : "Views"}

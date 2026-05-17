@@ -30,7 +30,7 @@ export default function StatsGrid({ stats }: Props) {
         {items.map(({ label, value, color }) => (
           <div key={label} className="px-5 py-5">
             <div
-              className={`text-[28px] font-semibold tracking-tight leading-none mb-1.5 ${color || "${textPrimary}"}`}
+              className={`text-[28px] font-semibold tracking-tight leading-none mb-1.5 ${color || textPrimary}`}
             >
               {value.toLocaleString()}
             </div>

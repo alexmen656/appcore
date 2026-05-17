@@ -1139,8 +1139,8 @@ function DetailView({ sub, group, bundleId, onBack, onUpdated, onDeleted, addToa
                 onClick={() => setActiveTab("localizations")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${
                   activeTab === "localizations"
-                    ? "bg-[#f3f4f6] dark:bg-[#252b38] ${textPrimary}"
-                    : "${textSecondary} hover:text-[#111827] dark:hover:text-[#e8eaf0]"
+                    ? `bg-[#f3f4f6] dark:bg-[#252b38] ${textPrimary}`
+                    : `${textSecondary} hover:text-[#111827] dark:hover:text-[#e8eaf0]`
                 }`}
               >
                 <Globe className="w-3.5 h-3.5" /> Localizations
@@ -1149,8 +1149,8 @@ function DetailView({ sub, group, bundleId, onBack, onUpdated, onDeleted, addToa
                 onClick={() => setActiveTab("pricing")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${
                   activeTab === "pricing"
-                    ? "bg-[#f3f4f6] dark:bg-[#252b38] ${textPrimary}"
-                    : "${textSecondary} hover:text-[#111827] dark:hover:text-[#e8eaf0]"
+                    ? `bg-[#f3f4f6] dark:bg-[#252b38] ${textPrimary}`
+                    : `${textSecondary} hover:text-[#111827] dark:hover:text-[#e8eaf0]`
                 }`}
               >
                 <DollarSign className="w-3.5 h-3.5" /> Pricing
@@ -1159,8 +1159,8 @@ function DetailView({ sub, group, bundleId, onBack, onUpdated, onDeleted, addToa
                 onClick={() => setActiveTab("review")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${
                   activeTab === "review"
-                    ? "bg-[#f3f4f6] dark:bg-[#252b38] ${textPrimary}"
-                    : "${textSecondary} hover:text-[#111827] dark:hover:text-[#e8eaf0]"
+                    ? `bg-[#f3f4f6] dark:bg-[#252b38] ${textPrimary}`
+                    : `${textSecondary} hover:text-[#111827] dark:hover:text-[#e8eaf0]`
                 }`}
               >
                 <FileText className="w-3.5 h-3.5" /> Review

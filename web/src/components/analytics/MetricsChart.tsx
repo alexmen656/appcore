@@ -112,7 +112,7 @@ export default function MetricsChart({ data, markers = [] }: Props) {
                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[12px] font-medium border transition-colors ${
                   active
                     ? "border-transparent text-white"
-                    : "bg-white dark:bg-[#252b38] ${borderDefault} ${textMuted} hover:border-[#d1d5db] dark:hover:border-[#5c6478] hover:text-[#6b7280] dark:hover:text-[#8b93a5]"
+                    : `bg-white dark:bg-[#252b38] ${borderDefault} ${textMuted} hover:border-[#d1d5db] dark:hover:border-[#5c6478] hover:text-[#6b7280] dark:hover:text-[#8b93a5]`
                 } ${noData || revenueNoData ? "opacity-40 cursor-default" : "cursor-pointer"}`}
                 style={active ? { background: m.color, borderColor: m.color } : undefined}
               >

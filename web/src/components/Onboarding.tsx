@@ -28,7 +28,7 @@ function StepIndicator({ step }: { step: 1 | 2 }) {
         >
           {step > 1 ? <Check className="w-3 h-3" /> : "1"}
         </div>
-        <span className={`text-sm font-medium ${step >= 1 ? "${textPrimary}" : "text-[#9ca3af]"}`}>
+        <span className={`text-sm font-medium ${step >= 1 ? textPrimary : "text-[#9ca3af]"}`}>
           App Store Connect
         </span>
       </div>
@@ -43,7 +43,7 @@ function StepIndicator({ step }: { step: 1 | 2 }) {
         >
           2
         </div>
-        <span className={`text-sm font-medium ${step >= 2 ? "${textPrimary}" : "text-[#9ca3af]"}`}>Import App</span>
+        <span className={`text-sm font-medium ${step >= 2 ? textPrimary : "text-[#9ca3af]"}`}>Import App</span>
       </div>
     </div>
   );
