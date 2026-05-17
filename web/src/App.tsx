@@ -970,11 +970,31 @@ export default function App() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState<1 | 2>(1);
   const [searchOpen, setSearchOpen] = useState(false);
   const [dark, setDark] = useState(() => {
     return localStorage.getItem("theme") === "dark";
   });
   const inSettings = location.pathname.startsWith("/settings");
+
+  const checkOnboarding = async () => {
+    try {
+      const [settingsRes, appsRes] = await Promise.all([
+        fetch("/api/settings", { credentials: "include" }),
+        fetch("/api/apps?ownOnly=true", { credentials: "include" }),
+      ]);
+
+      const settings = settingsRes.ok ? await settingsRes.json() : null;
+      const apps: { isOwnApp: boolean }[] = appsRes.ok ? await appsRes.json() : [];
+      if (apps.some((a) => a.isOwnApp)) return;
+
+      const step: 1 | 2 = settings?.ascPrivateKeySet ? 2 : 1;
+      setOnboardingStep(step);
+      setShowOnboarding(true);
+    } catch {
+      // don't block login on error
+    }
+  };
 
   useEffect(() => {
     if (dark) {
@@ -1014,11 +1034,6 @@ export default function App() {
         return;
       }
 
-      if (isNew) {
-        localStorage.setItem("marteso_onboarding", "1");
-        setShowOnboarding(true);
-      }
-
       if (userEncoded) {
         try {
           const b64 = userEncoded.replace(/-/g, "+").replace(/_/g, "/");
@@ -1026,6 +1041,7 @@ export default function App() {
           const decoded = JSON.parse(atob(padded));
           setUser(decoded);
           setAuthLoading(false);
+          if (isNew) checkOnboarding();
           return;
         } catch {
           // fall through to /me fetch
@@ -1038,6 +1054,7 @@ export default function App() {
       .then((u) => {
         setUser(u);
         setAuthLoading(false);
+        if (u) checkOnboarding();
       })
       .catch(() => setAuthLoading(false));
   }, []);
@@ -1078,23 +1095,14 @@ export default function App() {
       <Login
         onAuth={(u) => {
           setUser(u);
-          if (localStorage.getItem("marteso_onboarding") === "1") {
-            setShowOnboarding(true);
-          }
+          checkOnboarding();
         }}
       />
     );
   }
 
   if (showOnboarding) {
-    return (
-      <Onboarding
-        onComplete={() => {
-          localStorage.removeItem("marteso_onboarding");
-          setShowOnboarding(false);
-        }}
-      />
-    );
+    return <Onboarding initialStep={onboardingStep} onComplete={() => setShowOnboarding(false)} />;
   }
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>

@@ -93,10 +93,6 @@ export default function Login({ onAuth }: Props) {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      if (mode === "register") {
-        localStorage.setItem("marteso_onboarding", "1");
-      }
-
       setPendingAuth({ user: data.user });
     } catch (err: any) {
       setError(err.message);

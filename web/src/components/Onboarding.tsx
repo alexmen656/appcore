@@ -6,6 +6,7 @@ import type { AscApp } from "../types";
 
 interface Props {
   onComplete: () => void;
+  initialStep?: 1 | 2;
 }
 
 interface AscForm {
@@ -59,8 +60,8 @@ function AppAvatar({ url, name }: { url?: string | null; name: string }) {
   );
 }
 
-export default function Onboarding({ onComplete }: Props) {
-  const [step, setStep] = useState<1 | 2>(1);
+export default function Onboarding({ onComplete, initialStep = 1 }: Props) {
+  const [step, setStep] = useState<1 | 2>(initialStep);
   const [form, setForm] = useState<AscForm>({
     ascIssuerId: "",
     ascKeyId: "",
