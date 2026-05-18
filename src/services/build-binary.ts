@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { logger, prisma } from "../config";
+import { logger, prisma, getEffectiveSettings } from "../config";
 import { workerClient } from "./worker-client";
 import { postCommitStatus } from "./github";
 
@@ -41,8 +41,35 @@ export async function runBuildJob(
       signingTeamId: true,
       githubIosDir: true,
       githubRepoFullName: true,
+      teamId: true,
     },
   });
+
+  let versionString: string | undefined;
+  if (app?.teamId) {
+    try {
+      const { getEffectiveSettingsForTeam } = await import("../config");
+      const settings = await getEffectiveSettingsForTeam(app.teamId);
+      if (settings.ascIssuerId && settings.ascKeyId && settings.ascPrivateKey) {
+        const { AppStoreConnectClient } = await import("./appstore-connect");
+        const asc = new AppStoreConnectClient({
+          issuerId: settings.ascIssuerId,
+          keyId: settings.ascKeyId,
+          privateKey: settings.ascPrivateKey,
+        });
+        const ascApp = await asc.getApp(params.bundleId).catch(() => null);
+        if (ascApp) {
+          const editable = await asc.getEditableVersion(ascApp.id).catch(() => null);
+          versionString = editable?.attributes.versionString ?? undefined;
+          if (versionString) {
+            logger.info(`[build:${appId}] Will set version to ${versionString} (from ASC editable version)`);
+          }
+        }
+      }
+    } catch (err) {
+      logger.warn(`[build:${appId}] Could not fetch ASC version — version unchanged:`, err);
+    }
+  }
 
   const hasSigning = !!(app?.signingCertP12 && app?.signingCertPassword && app?.signingProvisioningProfile);
   if (!hasSigning) {
@@ -74,6 +101,7 @@ export async function runBuildJob(
     const result = await workerClient.build({
       ...params,
       iosDir: params.iosDir ?? app?.githubIosDir ?? undefined,
+      versionString,
       ...(hasSigning &&
         app && {
           signingCertP12: app.signingCertP12 as string,

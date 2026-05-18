@@ -24,7 +24,7 @@ export interface WorkerDeliverParams {
     in_house: boolean;
   };
   bundleId: string;
-  action: "metadata" | "submit_for_review";
+  action: "metadata" | "submit_for_review" | "binary";
   copyright?: string;
   screenshots?: Record<string, Array<{ filename: string; data: string }>>;
   screenshotFallback?: string;
@@ -74,6 +74,7 @@ export interface WorkerBuildParams {
   signingCertPassword?: string;
   signingProvisioningProfile?: string;
   signingTeamId?: string;
+  versionString?: string;
 }
 
 export interface WorkerBuildResult {

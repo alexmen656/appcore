@@ -28,7 +28,7 @@ interface DeliverRequest {
     in_house: boolean;
   };
   bundleId: string;
-  action: "metadata" | "submit_for_review";
+  action: "metadata" | "submit_for_review" | "binary";
   copyright?: string;
   screenshots?: Record<string, Array<{ filename: string; data: string }>>;
   screenshotFallback?: string;
@@ -50,27 +50,32 @@ deliverRouter.post("/deliver", async (req: Request, res: Response) => {
   const errors: string[] = [];
 
   try {
-    logs.push("Writing metadata files...");
-    for (const [locale, data] of Object.entries(locales)) {
-      const localeDir = path.join(metadataRoot, locale);
-      fs.mkdirSync(localeDir, { recursive: true });
-      for (const [file, content] of Object.entries({
-        "name.txt": data.name,
-        "subtitle.txt": data.subtitle,
-        "keywords.txt": data.keywords,
-        "description.txt": data.description,
-        "release_notes.txt": data.whatsNew,
-        "promotional_text.txt": data.promotionalText,
-        "support_url.txt": data.supportUrl,
-        "marketing_url.txt": data.marketingUrl,
-      }))
-        fs.writeFileSync(path.join(localeDir, file), content);
+    fs.mkdirSync(tmpDir, { recursive: true });
+
+    if (action !== "binary") {
+      logs.push("Writing metadata files...");
+      for (const [locale, data] of Object.entries(locales)) {
+        const localeDir = path.join(metadataRoot, locale);
+        fs.mkdirSync(localeDir, { recursive: true });
+        for (const [file, content] of Object.entries({
+          "name.txt": data.name,
+          "subtitle.txt": data.subtitle,
+          "keywords.txt": data.keywords,
+          "description.txt": data.description,
+          "release_notes.txt": data.whatsNew,
+          "promotional_text.txt": data.promotionalText,
+          "support_url.txt": data.supportUrl,
+          "marketing_url.txt": data.marketingUrl,
+        }))
+          fs.writeFileSync(path.join(localeDir, file), content);
+      }
+      fs.mkdirSync(metadataRoot, { recursive: true });
+      fs.writeFileSync(
+        path.join(metadataRoot, "copyright.txt"),
+        copyright ?? `© ${new Date().getFullYear()} Fringelo Group`,
+      );
+      logs.push(`Metadata written for ${Object.keys(locales).length} locale(s)`);
     }
-    fs.writeFileSync(
-      path.join(metadataRoot, "copyright.txt"),
-      copyright ?? `© ${new Date().getFullYear()} Fringelo Group`,
-    );
-    logs.push(`Metadata written for ${Object.keys(locales).length} locale(s)`);
 
     const screenshotsRoot = path.join(tmpDir, "screenshots");
     const hasScreenshots = screenshots && Object.keys(screenshots).length > 0;
@@ -109,14 +114,16 @@ deliverRouter.post("/deliver", async (req: Request, res: Response) => {
     const args = [
       "--api_key_path",
       apiKeyPath,
-      "--metadata_path",
-      metadataRoot,
       "--app_identifier",
       bundleId,
       "--force",
       "--precheck_include_in_app_purchases",
       "false",
     ];
+
+    if (action !== "binary") {
+      args.push("--metadata_path", metadataRoot);
+    }
 
     if (resolvedIpaPath) {
       args.push("--ipa", resolvedIpaPath);
@@ -131,7 +138,11 @@ deliverRouter.post("/deliver", async (req: Request, res: Response) => {
       args.push("--skip_screenshots");
     }
 
-    if (action === "metadata") {
+    if (action === "binary") {
+      args.push("--skip_metadata");
+      args.push("--skip_app_version_update");
+      args.push("--submit_for_review", "false");
+    } else if (action === "metadata") {
       args.push("--skip_app_version_update");
       args.push("--submit_for_review", "false");
     } else if (action === "submit_for_review") {

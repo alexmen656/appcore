@@ -134,6 +134,7 @@ export async function buildWithGym(
   fastlanePath: string,
   logs: string[],
   signingCreds?: SigningCreds,
+  versionString?: string,
 ): Promise<{ ipaBase64: string; originalFilename: string; sizeBytes: number }> {
   logs.push("[build] Starting build");
 
@@ -152,6 +153,10 @@ export async function buildWithGym(
   const fastlaneDir = path.join(repoDir, "fastlane");
   fs.mkdirSync(fastlaneDir, { recursive: true });
 
+  const xcargsList: string[] = [];
+  if (versionString) xcargsList.push(`MARKETING_VERSION=${versionString}`);
+  xcargsList.push(`CURRENT_PROJECT_VERSION=${Math.floor(Date.now() / 1000)}`);
+
   const gymfile = [
     `scheme("${gymScheme ?? appName}")`,
     `export_method("${exportMethod}")`,
@@ -161,9 +166,11 @@ export async function buildWithGym(
   ];
 
   if (installedProfileUuid) {
-    if (signingCreds?.teamId) {
-      gymfile.push(`xcargs("DEVELOPMENT_TEAM=${signingCreds.teamId}")`);
-    }
+    if (signingCreds?.teamId) xcargsList.push(`DEVELOPMENT_TEAM=${signingCreds.teamId}`);
+  }
+  gymfile.push(`xcargs("${xcargsList.join(" ")}")`);
+
+  if (installedProfileUuid) {
     gymfile.push(
       `export_options({`,
       `  method: "${exportMethod}",`,
@@ -181,16 +188,10 @@ export async function buildWithGym(
   const buildDir = path.join(repoDir, "build");
   fs.mkdirSync(buildDir, { recursive: true });
 
-  const buildNumber = Math.floor(Date.now() / 1000);
-  try {
-    await execAsync(`agvtool new-version -all ${buildNumber} 2>&1`, {
-      cwd: repoDir,
-      timeout: 30_000,
-    });
-    logs.push(`[build] Build number set to ${buildNumber}`);
-  } catch {
-    logs.push("[build] Warning: agvtool failed — build number unchanged");
+  if (versionString) {
+    logs.push(`[build] Version set to ${versionString} (via xcargs)`);
   }
+  logs.push(`[build] Build number set to ${xcargsList.find(x => x.startsWith("CURRENT_PROJECT_VERSION="))?.split("=")[1]}`);
 
   logs.push(`[build] Building ...`);
   const gymStart = Date.now();

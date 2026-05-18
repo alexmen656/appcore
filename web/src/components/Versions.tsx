@@ -200,6 +200,7 @@ function ActionButton({
   isActive,
   onSubmitForReview,
   onPushMetadata,
+  onUploadBinary,
   onRefetch,
   onSync,
 }: {
@@ -208,6 +209,7 @@ function ActionButton({
   isActive: boolean;
   onSubmitForReview: () => void;
   onPushMetadata: () => void;
+  onUploadBinary: () => void;
   onRefetch: () => void;
   onSync: () => void;
 }) {
@@ -258,6 +260,16 @@ function ActionButton({
             >
               <Upload className={`w-4 h-4 ${textSecondary}`} />
               Push Metadata
+            </button>
+            <button
+              onClick={() => {
+                setOpen(false);
+                onUploadBinary();
+              }}
+              className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left`}
+            >
+              <Upload className={`w-4 h-4 ${textSecondary}`} />
+              Upload Binary
             </button>
             <button
               onClick={() => {
@@ -316,6 +328,16 @@ function ActionButton({
         <div
           className={`absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-xl shadow-lg py-1 min-w-[160px]`}
         >
+          <button
+            onClick={() => {
+              setOpen(false);
+              onUploadBinary();
+            }}
+            className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left`}
+          >
+            <Upload className={`w-4 h-4 ${textSecondary}`} />
+            Upload Binary
+          </button>
           <button
             onClick={() => {
               setOpen(false);
@@ -1336,7 +1358,7 @@ export default function Versions({ addToast }: Props) {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [submitStatus?.logs?.length]);
 
-  const runSubmission = async (kind: "metadata" | "review") => {
+  const runSubmission = async (kind: "metadata" | "review" | "binary") => {
     if (!canWrite) {
       addToast("Viewer role cannot perform this action", "error");
       return;
@@ -1345,7 +1367,7 @@ export default function Versions({ addToast }: Props) {
     setShowLogs(true);
     try {
       const res = await apiPost(`/submissions/${kind}`, { bundleId: getActiveBundleId() });
-      const fallback = kind === "metadata" ? "Metadata push started" : "Submit for review started";
+      const fallback = kind === "metadata" ? "Metadata push started" : kind === "binary" ? "Binary upload started" : "Submit for review started";
       addToast(res.message || fallback, "success");
       startPolling();
     } catch (e: any) {
@@ -1596,6 +1618,7 @@ export default function Versions({ addToast }: Props) {
               isActive={isActive}
               onSubmitForReview={() => runSubmission("review")}
               onPushMetadata={() => runSubmission("metadata")}
+              onUploadBinary={() => runSubmission("binary")}
               onRefetch={refetch}
               onSync={syncFromAppStore}
             />

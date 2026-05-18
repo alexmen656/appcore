@@ -34,7 +34,7 @@ export interface SubmissionResult {
   errors: string[];
 }
 
-type SubmitAction = "metadata" | "submit_for_review";
+type SubmitAction = "metadata" | "submit_for_review" | "binary";
 
 interface LocaleEntry {
   name: string;
@@ -154,38 +154,46 @@ export class FastlaneService {
 
     let versionString: string | null = null;
     try {
-      submission.logs.push("Preparing metadata...");
-      const prepared = await this.prepareMetadataLocales(action, overrides);
-      const localeData = prepared.localeData;
-      versionString = prepared.versionString;
-
-      submission.logs.push(
-        `Metadata prepared for ${Object.keys(localeData).length} locale(s). Delegating to Fastlane worker...`,
-      );
-
-      submission.status = "running";
-      const screenshots = await this.loadFramedScreenshots();
-
+      let localeData: Record<string, LocaleEntry> = {};
+      let screenshots: Awaited<ReturnType<typeof this.loadFramedScreenshots>> = null;
       let screenshotFallback: string | undefined;
-      if (screenshots) {
+
+      if (action !== "binary") {
+        submission.logs.push("Preparing metadata...");
+        const prepared = await this.prepareMetadataLocales(action, overrides);
+        localeData = prepared.localeData;
+        versionString = prepared.versionString;
         submission.logs.push(
-          `Loaded ${Object.values(screenshots).reduce((n, a) => n + a.length, 0)} framed screenshot(s) across ${Object.keys(screenshots).length} locale(s)`,
+          `Metadata prepared for ${Object.keys(localeData).length} locale(s). Delegating to Fastlane worker...`,
         );
 
-        screenshotFallback = FALLBACK_LOCALES.find((l) => screenshots[l]) ?? Object.keys(screenshots)[0];
-        if (screenshotFallback) {
-          const localesWithoutScreenshots = Object.keys(localeData).filter((l) => !screenshots[l]);
-          if (localesWithoutScreenshots.length > 0) {
-            submission.logs.push(
-              `[Screenshots] ${localesWithoutScreenshots.length} locale(s) will use "${screenshotFallback}" screenshots as fallback`,
-            );
+        submission.status = "running";
+        screenshots = await this.loadFramedScreenshots();
+
+        if (screenshots) {
+          submission.logs.push(
+            `Loaded ${Object.values(screenshots).reduce((n, a) => n + a.length, 0)} framed screenshot(s) across ${Object.keys(screenshots).length} locale(s)`,
+          );
+          screenshotFallback = FALLBACK_LOCALES.find((l) => screenshots![l]) ?? Object.keys(screenshots)[0];
+          if (screenshotFallback) {
+            const localesWithoutScreenshots = Object.keys(localeData).filter((l) => !screenshots![l]);
+            if (localesWithoutScreenshots.length > 0) {
+              submission.logs.push(
+                `[Screenshots] ${localesWithoutScreenshots.length} locale(s) will use "${screenshotFallback}" screenshots as fallback`,
+              );
+            }
           }
         }
+      } else {
+        submission.status = "running";
+        submission.logs.push("Binary-only upload — skipping metadata and screenshots.");
       }
 
       const ipaBase64 = (await this.loadLatestIpa()) ?? undefined;
       if (ipaBase64) {
-        submission.logs.push("Latest build IPA loaded, will be uploaded alongside metadata.");
+        submission.logs.push("Latest build IPA loaded, will be uploaded.");
+      } else if (action === "binary") {
+        throw new Error("No IPA found. Build the app first before uploading the binary.");
       }
 
       const deliverParams = {

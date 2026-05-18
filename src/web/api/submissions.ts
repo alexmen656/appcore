@@ -56,6 +56,33 @@ submissionsRouter.post("/metadata", ...requireBundleAccess("body"), async (req, 
   }
 });
 
+submissionsRouter.post("/binary", ...requireBundleAccess("body"), async (req, res) => {
+  try {
+    const settings = await getEffectiveSettings(req.user!.userId);
+    const bundleId = req.bundleApp!.bundleId;
+
+    const { FastlaneService } = await import("../../services/fastlane");
+    const fl = new FastlaneService(bundleId, settings);
+
+    res.json({
+      ok: true,
+      message: "Binary upload started. Check status for progress.",
+    });
+
+    fl.submit("binary")
+      .then(async (result) => {
+        if (result.ok) {
+          logger.info(`Fastlane binary upload completed (job ${result.jobId})`);
+        } else {
+          logger.error(`Fastlane binary upload failed (job ${result.jobId})`, result.errors);
+        }
+      })
+      .catch((err) => logger.error("Fastlane binary upload error", err));
+  } catch (err) {
+    res.status(500).json({ error: String(err instanceof Error ? err.message : err) });
+  }
+});
+
 submissionsRouter.post("/review", ...requireBundleAccess("body"), async (req, res) => {
   try {
     const settings = await getEffectiveSettings(req.user!.userId);

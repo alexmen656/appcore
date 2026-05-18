@@ -20,6 +20,7 @@ interface BuildRequest {
   signingCertPassword?: string;
   signingProvisioningProfile?: string;
   signingTeamId?: string;
+  versionString?: string;
 }
 
 buildRouter.post("/build", async (req: Request, res: Response) => {
@@ -37,6 +38,7 @@ buildRouter.post("/build", async (req: Request, res: Response) => {
     signingCertPassword,
     signingProvisioningProfile,
     signingTeamId,
+    versionString,
   } = body;
 
   const signingCreds =
@@ -101,6 +103,7 @@ buildRouter.post("/build", async (req: Request, res: Response) => {
       fastlanePath,
       logs,
       signingCreds,
+      versionString,
     );
 
     res.json({
