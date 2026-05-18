@@ -12,6 +12,7 @@ export interface RequestConfig {
   params?: Record<string, unknown>;
   data?: unknown;
   timeout?: number;
+  headersTimeout?: number;
   responseType?: ResponseType;
   validateStatus?: ((status: number) => boolean) | null;
   maxBodyLength?: number;
@@ -125,9 +126,15 @@ async function dispatch<T>(config: RequestConfig): Promise<HttpResponse<T>> {
     signal = ctrl.signal;
   }
 
+  let fetchInit: Record<string, unknown> = { method, headers, body: body as FetchBody | undefined, signal };
+  if (config.headersTimeout !== undefined) {
+    const { Agent } = await import("undici");
+    (fetchInit as any).dispatcher = new Agent({ headersTimeout: config.headersTimeout, bodyTimeout: config.timeout ?? 0 });
+  }
+
   let res: Response;
   try {
-    res = await fetch(url, { method, headers, body: body as FetchBody | undefined, signal });
+    res = await fetch(url, fetchInit as RequestInit);
   } catch (err) {
     if (timeoutId) clearTimeout(timeoutId);
     const e = err as Error & { name?: string };

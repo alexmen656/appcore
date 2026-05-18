@@ -166,30 +166,29 @@ export class FastlaneService {
       submission.status = "running";
       const screenshots = await this.loadFramedScreenshots();
 
+      let screenshotFallback: string | undefined;
       if (screenshots) {
         submission.logs.push(
           `Loaded ${Object.values(screenshots).reduce((n, a) => n + a.length, 0)} framed screenshot(s) across ${Object.keys(screenshots).length} locale(s)`,
         );
 
-        const fallbackLocale = FALLBACK_LOCALES.find((l) => screenshots[l]) ?? Object.keys(screenshots)[0];
-        if (fallbackLocale) {
-          for (const locale of Object.keys(localeData)) {
-            if (!screenshots[locale]) {
-              screenshots[locale] = screenshots[fallbackLocale];
-              submission.logs.push(
-                `[Screenshots] No screenshots for "${locale}" - using "${fallbackLocale}" as fallback`,
-              );
-            }
+        screenshotFallback = FALLBACK_LOCALES.find((l) => screenshots[l]) ?? Object.keys(screenshots)[0];
+        if (screenshotFallback) {
+          const localesWithoutScreenshots = Object.keys(localeData).filter((l) => !screenshots[l]);
+          if (localesWithoutScreenshots.length > 0) {
+            submission.logs.push(
+              `[Screenshots] ${localesWithoutScreenshots.length} locale(s) will use "${screenshotFallback}" screenshots as fallback`,
+            );
           }
         }
       }
 
-      const ipaBase64 = await this.loadLatestIpa();
+      const ipaBase64 = (await this.loadLatestIpa()) ?? undefined;
       if (ipaBase64) {
         submission.logs.push("Latest build IPA loaded, will be uploaded alongside metadata.");
       }
 
-      const result = await workerClient.deliver({
+      const deliverParams = {
         locales: localeData,
         apiKey: {
           key_id: this.settings.ascKeyId!,
@@ -200,8 +199,15 @@ export class FastlaneService {
         bundleId: this.bundleId,
         action,
         screenshots: screenshots ?? undefined,
-        ipa: ipaBase64 ?? undefined,
-      });
+        screenshotFallback,
+        ipa: ipaBase64,
+      };
+
+      const payloadSizeBytes = Buffer.byteLength(JSON.stringify(deliverParams), "utf8");
+      submission.logs.push(`Sending to worker: ~${(payloadSizeBytes / 1024 / 1024).toFixed(1)} MB payload`);
+      logger.info(`[Fastlane] deliver payload size: ${(payloadSizeBytes / 1024 / 1024).toFixed(1)} MB`);
+
+      const result = await workerClient.deliver(deliverParams);
 
       submission.logs.push(...result.logs);
       submission.errors.push(...result.errors);
@@ -217,8 +223,13 @@ export class FastlaneService {
         errors: submission.errors,
       };
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+      const axiosErr = err as any;
+      const cause = axiosErr?.cause?.message ?? axiosErr?.cause?.code ?? "";
+      const code = axiosErr?.code ?? "";
+      const status = axiosErr?.response?.status ?? "";
+      const msg = `${err instanceof Error ? err.message : String(err)}${code ? ` [${code}]` : ""}${status ? ` HTTP ${status}` : ""}${cause ? ` (cause: ${cause})` : ""}`;
       submission.errors.push(msg);
+      logger.error("[Fastlane] deliver failed:", { message: msg, code, status, cause });
       submission.status = "failed";
       setTimeout(() => activeSubmissions.delete(jobId), SUBMISSION_TTL_MS);
 
@@ -291,10 +302,8 @@ export class FastlaneService {
       });
       if (!buildJob?.ipaPath) return null;
 
-      const ipaPath = buildJob.ipaPath;
-
       try {
-        const buffer = await fs.promises.readFile(ipaPath);
+        const buffer = await fs.promises.readFile(buildJob.ipaPath);
         return buffer.toString("base64");
       } catch {
         return null;

@@ -27,6 +27,7 @@ export interface WorkerDeliverParams {
   action: "metadata" | "submit_for_review";
   copyright?: string;
   screenshots?: Record<string, Array<{ filename: string; data: string }>>;
+  screenshotFallback?: string;
   ipa?: string;
 }
 
@@ -152,6 +153,7 @@ class FastlaneWorkerClient {
     );
     const res = await this.getClient().post("/worker/deliver", params, {
       timeout: timeoutMs,
+      headersTimeout: 0,
     });
     return res.data;
   }

@@ -7,7 +7,7 @@ import { findFastlane } from "./fastlane-utils";
 const app = express();
 const PORT = Number(process.env.FASTLANE_WORKER_PORT ?? 3200);
 
-app.use(express.json({ limit: "50mb" }));
+app.use(express.json({ limit: "200mb" }));
 
 app.get("/health", async (_req, res) => {
   try {

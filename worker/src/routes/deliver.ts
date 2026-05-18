@@ -31,12 +31,13 @@ interface DeliverRequest {
   action: "metadata" | "submit_for_review";
   copyright?: string;
   screenshots?: Record<string, Array<{ filename: string; data: string }>>;
+  screenshotFallback?: string;
   ipa?: string;
 }
 
 deliverRouter.post("/deliver", async (req: Request, res: Response) => {
   const body = req.body as DeliverRequest;
-  const { locales, apiKey, bundleId, action, copyright, screenshots, ipa } = body;
+  const { locales, apiKey, bundleId, action, copyright, screenshots, screenshotFallback, ipa } = body;
 
   if (!locales || !apiKey || !bundleId || !action) {
     res.status(400).json({ error: "Missing required fields" });
@@ -75,7 +76,10 @@ deliverRouter.post("/deliver", async (req: Request, res: Response) => {
     const hasScreenshots = screenshots && Object.keys(screenshots).length > 0;
     if (hasScreenshots) {
       let totalScreenshots = 0;
-      for (const [locale, images] of Object.entries(screenshots!)) {
+      const fallbackImages = screenshotFallback ? screenshots![screenshotFallback] : undefined;
+      for (const locale of Object.keys(locales)) {
+        const images = screenshots![locale] ?? fallbackImages;
+        if (!images || images.length === 0) continue;
         const localeDir = path.join(screenshotsRoot, locale);
         fs.mkdirSync(localeDir, { recursive: true });
         for (const img of images) {
@@ -84,7 +88,7 @@ deliverRouter.post("/deliver", async (req: Request, res: Response) => {
         }
       }
       logs.push(
-        `Screenshots written: ${totalScreenshots} image(s) across ${Object.keys(screenshots).length} locale(s)`,
+        `Screenshots written: ${totalScreenshots} image(s) across ${Object.keys(locales).length} locale(s)`,
       );
     }
 
@@ -92,10 +96,10 @@ deliverRouter.post("/deliver", async (req: Request, res: Response) => {
     fs.writeFileSync(apiKeyPath, JSON.stringify(apiKey, null, 2));
     logs.push("API key file written");
 
-    let ipaPath: string | null = null;
+    let resolvedIpaPath: string | null = null;
     if (ipa) {
-      ipaPath = path.join(tmpDir, `app.ipa`);
-      fs.writeFileSync(ipaPath, Buffer.from(ipa, "base64"));
+      resolvedIpaPath = path.join(tmpDir, `app.ipa`);
+      fs.writeFileSync(resolvedIpaPath, Buffer.from(ipa, "base64"));
       logs.push("IPA written to temp directory.");
     }
 
@@ -114,8 +118,8 @@ deliverRouter.post("/deliver", async (req: Request, res: Response) => {
       "false",
     ];
 
-    if (ipaPath) {
-      args.push("--ipa", ipaPath);
+    if (resolvedIpaPath) {
+      args.push("--ipa", resolvedIpaPath);
     } else {
       args.push("--skip_binary_upload");
     }
@@ -143,7 +147,7 @@ deliverRouter.post("/deliver", async (req: Request, res: Response) => {
 
       const proc = spawn(cmd, cmdArgs, {
         cwd: tmpDir,
-        env: { ...process.env, FASTLANE_DISABLE_COLORS: "1" },
+        env: { ...process.env, FASTLANE_DISABLE_COLORS: "1", LANG: "en_US.UTF-8", LC_ALL: "en_US.UTF-8" },
         stdio: ["pipe", "pipe", "pipe"],
       });
 
