@@ -44,17 +44,65 @@ const FRAMEIT_FONT_NAME = "FrameitTextFont";
 
 const FONT_CANDIDATES: FontCandidate[] = [
   {
-    test: /[\u0900-\u097F\u0980-\u09FF\u0A00-\u0A7F\u0A80-\u0AFF\u0B00-\u0B7F\u0B80-\u0BFF\u0C00-\u0C7F\u0C80-\u0CFF\u0D00-\u0D7F\u0D80-\u0DFF]/u,
+    // Devanagari (Hindi, Marathi, Nepali, Sanskrit)
+    test: /[\u0900-\u097F]/u,
     paths: [
-      "/System/Library/Fonts/SFIndia.ttc",
-      "/System/Library/Fonts/Kohinoor.ttc",
-      "/System/Library/Fonts/KohinoorGujarati.ttc",
-      "/System/Library/Fonts/KohinoorTelugu.ttc",
-      "/System/Library/Fonts/NotoSansKannada.ttc",
-      "/System/Library/Fonts/NotoSansOriya.ttc",
+      "/System/Library/Fonts/Supplemental/ITFDevanagari.ttc",
+      "/System/Library/Fonts/Supplemental/DevanagariMT.ttc",
       "/System/Library/Fonts/Supplemental/Devanagari Sangam MN.ttc",
-      "/System/Library/Fonts/Supplemental/Tamil Sangam MN.ttc",
-      "/System/Library/Fonts/Supplemental/Malayalam Sangam MN.ttc",
+      "/System/Library/Fonts/Kohinoor.ttc",
+      "/System/Library/Fonts/SFIndia.ttc",
+    ],
+  },
+  {
+    // Bengali
+    test: /[\u0980-\u09FF]/u,
+    paths: ["/System/Library/Fonts/KohinoorBangla.ttc", "/System/Library/Fonts/Supplemental/Bangla Sangam MN.ttc"],
+  },
+  {
+    // Gurmukhi (Punjabi)
+    test: /[\u0A00-\u0A7F]/u,
+    paths: [
+      "/System/Library/Fonts/Supplemental/Gurmukhi MN.ttc",
+      "/System/Library/Fonts/Supplemental/Gurmukhi Sangam MN.ttc",
+    ],
+  },
+  {
+    // Gujarati
+    test: /[\u0A80-\u0AFF]/u,
+    paths: ["/System/Library/Fonts/KohinoorGujarati.ttc"],
+  },
+  {
+    // Oriya (Odia)
+    test: /[\u0B00-\u0B7F]/u,
+    paths: ["/System/Library/Fonts/NotoSansOriya.ttc"],
+  },
+  {
+    // Tamil
+    test: /[\u0B80-\u0BFF]/u,
+    paths: ["/System/Library/Fonts/Supplemental/Tamil Sangam MN.ttc"],
+  },
+  {
+    // Telugu
+    test: /[\u0C00-\u0C7F]/u,
+    paths: ["/System/Library/Fonts/KohinoorTelugu.ttc"],
+  },
+  {
+    // Kannada
+    test: /[\u0C80-\u0CFF]/u,
+    paths: ["/System/Library/Fonts/NotoSansKannada.ttc"],
+  },
+  {
+    // Malayalam
+    test: /[\u0D00-\u0D7F]/u,
+    paths: ["/System/Library/Fonts/Supplemental/Malayalam Sangam MN.ttc"],
+  },
+  {
+    // Sinhala
+    test: /[\u0D80-\u0DFF]/u,
+    paths: [
+      "/System/Library/Fonts/Supplemental/Sinhala Sangam MN.ttc",
+      "/System/Library/Fonts/Supplemental/Sinhala MN.ttc",
     ],
   },
   {
@@ -84,6 +132,15 @@ const FONT_CANDIDATES: FontCandidate[] = [
   {
     test: /[\u0590-\u05FF]/u,
     paths: ["/System/Library/Fonts/Supplemental/Raanana.ttc", "/System/Library/Fonts/ArialHB.ttc"],
+  },
+  {
+    // Cyrillic (Russian, Ukrainian, Bulgarian, Serbian, etc.)
+    test: /[\u0400-\u04FF\u0500-\u052F]/u,
+    paths: [
+      "/System/Library/Fonts/Supplemental/PTSans.ttc",
+      "/System/Library/Fonts/Supplemental/PTSerif.ttc",
+      "/System/Library/Fonts/Supplemental/Arial.ttf",
+    ],
   },
 ];
 
@@ -217,7 +274,7 @@ frameitRouter.post("/frameit", async (req: Request, res: Response) => {
         fs.copyFileSync(src, path.join(tmpDirNoBg, basename + ".png"));
       }
     }
-    
+
     const frameitFontNoBg = copyFrameitFont(fontSourcePath, tmpDirNoBg);
     const defaultSectionNoBg = buildTitleSection(title, subtitle, textColor, layoutMode, frameitFontNoBg);
 
