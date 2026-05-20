@@ -2,27 +2,22 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { randomUUID } from "crypto";
-import { spawn } from "child_process";
+import { spawn, exec } from "child_process";
+import { promisify } from "util";
 import { Prisma } from "@prisma/client";
 import { logger, prisma } from "../config";
 import type { EffectiveSettings } from "../config";
 import { env } from "../config/env";
 import { AppStoreConnectClient } from "./appstore-connect";
 
-async function findFastlane(): Promise<string> {
+const execAsync = promisify(exec);
+
+async function resolveFastlane(): Promise<string> {
   const bin = env.FASTLANE_PATH;
-  const parts = bin.split(" ");
-  const cmd = parts[0];
-  const cmdArgs = [...parts.slice(1), "--version"];
-  return new Promise((resolve, reject) => {
-    const proc = spawn(cmd, cmdArgs, { stdio: "ignore" });
-    proc.on("close", (code) =>
-      code === 0
-        ? resolve(bin)
-        : reject(new Error(`Fastlane not found at "${bin}". Override with FASTLANE_PATH env var.`)),
-    );
-    proc.on("error", () => reject(new Error(`Fastlane not found at "${bin}". Override with FASTLANE_PATH env var.`)));
+  await execAsync(`${bin} --version`).catch(() => {
+    throw new Error(`Fastlane not found at "${bin}". Override with FASTLANE_PATH env var.`);
   });
+  return bin;
 }
 
 export interface SubmissionPreview {
@@ -179,6 +174,7 @@ export class FastlaneService {
         const prepared = await this.prepareMetadataLocales(action, overrides);
         localeData = prepared.localeData;
         versionString = prepared.versionString;
+        
         submission.logs.push(
           `Metadata prepared for ${Object.keys(localeData).length} locale(s). Running fastlane deliver...`,
         );
@@ -382,7 +378,7 @@ export class FastlaneService {
       );
       logs.push("API key file written");
 
-      const fastlanePath = await findFastlane();
+      const fastlanePath = await resolveFastlane();
       logs.push(`Using fastlane at: ${fastlanePath}`);
 
       const args = [
