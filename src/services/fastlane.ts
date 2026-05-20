@@ -1,11 +1,29 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
 import { randomUUID } from "crypto";
+import { spawn } from "child_process";
 import { Prisma } from "@prisma/client";
 import { logger, prisma } from "../config";
 import type { EffectiveSettings } from "../config";
+import { env } from "../config/env";
 import { AppStoreConnectClient } from "./appstore-connect";
-import { workerClient } from "./worker-client";
+
+async function findFastlane(): Promise<string> {
+  const bin = env.FASTLANE_PATH;
+  const parts = bin.split(" ");
+  const cmd = parts[0];
+  const cmdArgs = [...parts.slice(1), "--version"];
+  return new Promise((resolve, reject) => {
+    const proc = spawn(cmd, cmdArgs, { stdio: "ignore" });
+    proc.on("close", (code) =>
+      code === 0
+        ? resolve(bin)
+        : reject(new Error(`Fastlane not found at "${bin}". Override with FASTLANE_PATH env var.`)),
+    );
+    proc.on("error", () => reject(new Error(`Fastlane not found at "${bin}". Override with FASTLANE_PATH env var.`)));
+  });
+}
 
 export interface SubmissionPreview {
   appId: string;
@@ -28,7 +46,7 @@ export interface SubmissionPreview {
 export interface SubmissionResult {
   ok: boolean;
   jobId: string;
-  action: "metadata" | "submit_for_review";
+  action: SubmitAction;
   versionString: string | null;
   logs: string[];
   errors: string[];
@@ -155,8 +173,6 @@ export class FastlaneService {
     let versionString: string | null = null;
     try {
       let localeData: Record<string, LocaleEntry> = {};
-      let screenshots: Awaited<ReturnType<typeof this.loadFramedScreenshots>> = null;
-      let screenshotFallback: string | undefined;
 
       if (action !== "binary") {
         submission.logs.push("Preparing metadata...");
@@ -164,58 +180,12 @@ export class FastlaneService {
         localeData = prepared.localeData;
         versionString = prepared.versionString;
         submission.logs.push(
-          `Metadata prepared for ${Object.keys(localeData).length} locale(s). Delegating to Fastlane worker...`,
+          `Metadata prepared for ${Object.keys(localeData).length} locale(s). Running fastlane deliver...`,
         );
-
-        submission.status = "running";
-        screenshots = await this.loadFramedScreenshots();
-
-        if (screenshots) {
-          submission.logs.push(
-            `Loaded ${Object.values(screenshots).reduce((n, a) => n + a.length, 0)} framed screenshot(s) across ${Object.keys(screenshots).length} locale(s)`,
-          );
-          screenshotFallback = FALLBACK_LOCALES.find((l) => screenshots![l]) ?? Object.keys(screenshots)[0];
-          if (screenshotFallback) {
-            const localesWithoutScreenshots = Object.keys(localeData).filter((l) => !screenshots![l]);
-            if (localesWithoutScreenshots.length > 0) {
-              submission.logs.push(
-                `[Screenshots] ${localesWithoutScreenshots.length} locale(s) will use "${screenshotFallback}" screenshots as fallback`,
-              );
-            }
-          }
-        }
-      } else {
-        submission.status = "running";
-        submission.logs.push("Binary-only upload — skipping metadata and screenshots.");
       }
 
-      const ipaBase64 = (await this.loadLatestIpa()) ?? undefined;
-      if (ipaBase64) {
-        submission.logs.push("Latest build IPA loaded, will be uploaded.");
-      } else if (action === "binary") {
-        throw new Error("No IPA found. Build the app first before uploading the binary.");
-      }
-
-      const deliverParams = {
-        locales: localeData,
-        apiKey: {
-          key_id: this.settings.ascKeyId!,
-          issuer_id: this.settings.ascIssuerId!,
-          key: this.settings.ascPrivateKey!,
-          in_house: false,
-        },
-        bundleId: this.bundleId,
-        action,
-        screenshots: screenshots ?? undefined,
-        screenshotFallback,
-        ipa: ipaBase64,
-      };
-
-      const payloadSizeBytes = Buffer.byteLength(JSON.stringify(deliverParams), "utf8");
-      submission.logs.push(`Sending to worker: ~${(payloadSizeBytes / 1024 / 1024).toFixed(1)} MB payload`);
-      logger.info(`[Fastlane] deliver payload size: ${(payloadSizeBytes / 1024 / 1024).toFixed(1)} MB`);
-
-      const result = await workerClient.deliver(deliverParams);
+      submission.status = "running";
+      const result = await this.runDeliver({ localeData, action });
 
       submission.logs.push(...result.logs);
       submission.errors.push(...result.errors);
@@ -236,6 +206,7 @@ export class FastlaneService {
       const code = axiosErr?.code ?? "";
       const status = axiosErr?.response?.status ?? "";
       const msg = `${err instanceof Error ? err.message : String(err)}${code ? ` [${code}]` : ""}${status ? ` HTTP ${status}` : ""}${cause ? ` (cause: ${cause})` : ""}`;
+
       submission.errors.push(msg);
       logger.error("[Fastlane] deliver failed:", { message: msg, code, status, cause });
       submission.status = "failed";
@@ -252,7 +223,10 @@ export class FastlaneService {
     }
   }
 
-  private async loadFramedScreenshots(): Promise<Record<string, Array<{ filename: string; data: string }>> | null> {
+  private async loadFramedScreenshotPaths(): Promise<Record<
+    string,
+    Array<{ filename: string; absPath: string }>
+  > | null> {
     try {
       const app = await prisma.app.findFirst({
         where: { bundleId: this.bundleId },
@@ -272,17 +246,14 @@ export class FastlaneService {
       if (!job?.framedByLocale) return null;
 
       const framedByLocale = job.framedByLocale as Record<string, string[]>;
-      const screenshots: Record<string, Array<{ filename: string; data: string }>> = {};
+      const screenshots: Record<string, Array<{ filename: string; absPath: string }>> = {};
 
       for (const [locale, urls] of Object.entries(framedByLocale)) {
-        const images: Array<{ filename: string; data: string }> = [];
-
+        const images: Array<{ filename: string; absPath: string }> = [];
         for (const url of urls) {
-          try {
-            const data = await fs.promises.readFile(path.join(process.cwd(), url));
-            images.push({ filename: path.basename(path.join(process.cwd(), url)), data: data.toString("base64") });
-          } catch {
-            // file not accessible, skip
+          const absPath = path.join(process.cwd(), url);
+          if (fs.existsSync(absPath)) {
+            images.push({ filename: path.basename(absPath), absPath });
           }
         }
         if (images.length > 0) screenshots[locale] = images;
@@ -290,12 +261,12 @@ export class FastlaneService {
 
       return Object.keys(screenshots).length > 0 ? screenshots : null;
     } catch (err) {
-      logger.warn("[Fastlane] Could not load framed screenshots:", err);
+      logger.warn("[Fastlane] Could not load framed screenshot paths:", err);
       return null;
     }
   }
 
-  private async loadLatestIpa(): Promise<string | null> {
+  private async loadLatestIpaPath(): Promise<string | null> {
     try {
       const app = await prisma.app.findFirst({
         where: { bundleId: this.bundleId },
@@ -310,15 +281,206 @@ export class FastlaneService {
       });
       if (!buildJob?.ipaPath) return null;
 
-      try {
-        const buffer = await fs.promises.readFile(buildJob.ipaPath);
-        return buffer.toString("base64");
-      } catch {
-        return null;
-      }
+      return fs.existsSync(buildJob.ipaPath) ? buildJob.ipaPath : null;
     } catch (err) {
-      logger.warn("[Fastlane] Could not load latest IPA:", err);
+      logger.warn("[Fastlane] Could not load latest IPA path:", err);
       return null;
+    }
+  }
+
+  private async runDeliver(opts: {
+    localeData: Record<string, LocaleEntry>;
+    action: SubmitAction;
+  }): Promise<{ logs: string[]; errors: string[] }> {
+    const { localeData, action } = opts;
+    const logs: string[] = [];
+    const errors: string[] = [];
+
+    const tmpDir = path.join(os.tmpdir(), `deliver-${Date.now()}`);
+    const metadataRoot = path.join(tmpDir, "metadata");
+
+    try {
+      fs.mkdirSync(tmpDir, { recursive: true });
+
+      if (action !== "binary") {
+        logs.push("Writing metadata files...");
+        for (const [locale, data] of Object.entries(localeData)) {
+          const localeDir = path.join(metadataRoot, locale);
+          fs.mkdirSync(localeDir, { recursive: true });
+
+          for (const [file, content] of Object.entries({
+            "name.txt": data.name,
+            "subtitle.txt": data.subtitle,
+            "keywords.txt": data.keywords,
+            "description.txt": data.description,
+            "release_notes.txt": data.whatsNew,
+            "promotional_text.txt": data.promotionalText,
+            "support_url.txt": data.supportUrl,
+            "marketing_url.txt": data.marketingUrl,
+          }))
+            fs.writeFileSync(path.join(localeDir, file), content);
+        }
+
+        fs.mkdirSync(metadataRoot, { recursive: true });
+        fs.writeFileSync(path.join(metadataRoot, "copyright.txt"), `© ${new Date().getFullYear()} Fringelo Group`);
+        logs.push(`Metadata written for ${Object.keys(localeData).length} locale(s)`);
+      }
+
+      const screenshotPaths = await this.loadFramedScreenshotPaths();
+      const hasScreenshots = !!screenshotPaths && Object.keys(screenshotPaths).length > 0;
+
+      if (hasScreenshots) {
+        let totalScreenshots = 0;
+        const screenshotFallback =
+          FALLBACK_LOCALES.find((l) => screenshotPaths![l]) ?? Object.keys(screenshotPaths!)[0];
+        const fallbackImages = screenshotFallback ? screenshotPaths![screenshotFallback] : undefined;
+
+        if (screenshotFallback) {
+          const localesWithoutScreenshots = Object.keys(localeData).filter((l) => !screenshotPaths![l]);
+          if (localesWithoutScreenshots.length > 0) {
+            logs.push(
+              `[Screenshots] ${localesWithoutScreenshots.length} locale(s) will use "${screenshotFallback}" as fallback`,
+            );
+          }
+        }
+
+        for (const locale of Object.keys(localeData)) {
+          const images = screenshotPaths![locale] ?? fallbackImages;
+          if (!images || images.length === 0) continue;
+          const localeDir = path.join(tmpDir, "screenshots", locale);
+
+          fs.mkdirSync(localeDir, { recursive: true });
+          for (const img of images) {
+            fs.copyFileSync(img.absPath, path.join(localeDir, img.filename));
+            totalScreenshots++;
+          }
+        }
+        logs.push(
+          `Screenshots copied: ${totalScreenshots} image(s) across ${Object.keys(localeData).length} locale(s)`,
+        );
+      }
+
+      const ipaPath = await this.loadLatestIpaPath();
+      if (ipaPath) {
+        logs.push("Latest build IPA found, will be uploaded.");
+      } else if (action === "binary") {
+        throw new Error("No IPA found. Build the app first before uploading the binary.");
+      }
+
+      fs.writeFileSync(
+        path.join(tmpDir, "api_key.json"),
+        JSON.stringify(
+          {
+            key_id: this.settings.ascKeyId!,
+            issuer_id: this.settings.ascIssuerId!,
+            key: this.settings.ascPrivateKey!,
+            in_house: false,
+          },
+          null,
+          2,
+        ),
+      );
+      logs.push("API key file written");
+
+      const fastlanePath = await findFastlane();
+      logs.push(`Using fastlane at: ${fastlanePath}`);
+
+      const args = [
+        "--api_key_path",
+        path.join(tmpDir, "api_key.json"),
+        "--app_identifier",
+        this.bundleId,
+        "--force",
+        "--precheck_include_in_app_purchases",
+        "false",
+      ];
+
+      if (action !== "binary") args.push("--metadata_path", metadataRoot);
+      if (ipaPath) args.push("--ipa", ipaPath);
+      else args.push("--skip_binary_upload");
+
+      if (hasScreenshots) {
+        args.push("--screenshots_path", path.join(tmpDir, "screenshots"), "--overwrite_screenshots");
+      } else {
+        args.push("--skip_screenshots");
+      }
+
+      if (action === "binary") {
+        args.push("--skip_metadata", "--skip_app_version_update", "--submit_for_review", "false");
+      } else if (action === "metadata") {
+        args.push("--skip_app_version_update", "--submit_for_review", "false");
+      } else if (action === "submit_for_review") {
+        args.push("--submit_for_review");
+      }
+
+      logs.push(`Running: fastlane deliver (screenshots: ${hasScreenshots ? "yes" : "skipped"})`);
+
+      await new Promise<void>((resolve, reject) => {
+        const parts = fastlanePath.split(" ");
+        const cmd = parts[0];
+        const cmdArgs = [...parts.slice(1), "deliver", ...args];
+
+        const proc = spawn(cmd, cmdArgs, {
+          cwd: tmpDir,
+          env: {
+            ...process.env,
+            FASTLANE_DISABLE_COLORS: "1",
+            LANG: "en_US.UTF-8",
+            LC_ALL: "en_US.UTF-8",
+            RUBYOPT: "-EUTF-8",
+          },
+          stdio: ["pipe", "pipe", "pipe"],
+        });
+
+        const hardTimeout = setTimeout(
+          () => {
+            proc.kill();
+            reject(new Error("fastlane deliver timed out after 30 minutes"));
+          },
+          30 * 60 * 1000,
+        );
+
+        proc.stdout?.on("data", (data: Buffer) => {
+          const line = data.toString().trim();
+          if (line) logs.push(line);
+        });
+
+        proc.stderr?.on("data", (data: Buffer) => {
+          const line = data.toString().trim();
+          if (line) logs.push(`[stderr] ${line}`);
+        });
+
+        proc.on("close", (code) => {
+          clearTimeout(hardTimeout);
+
+          if (code === 0) {
+            logs.push("Fastlane deliver completed successfully.");
+            resolve();
+          } else {
+            const errMsg = `Fastlane deliver exited with code ${code}`;
+            errors.push(errMsg);
+            logs.push(errMsg);
+            reject(new Error(errMsg));
+          }
+        });
+
+        proc.on("error", (err) => {
+          clearTimeout(hardTimeout);
+          errors.push(err.message);
+          reject(err);
+        });
+      });
+
+      return { logs, errors };
+    } catch (err) {
+      errors.push(err instanceof Error ? err.message : String(err));
+      return { logs, errors };
+    } finally {
+      try {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      } catch {
+        /* ignore */
+      }
     }
   }
 
