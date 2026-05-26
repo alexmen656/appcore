@@ -60,8 +60,6 @@ interface LocaleEntry {
   marketingUrl: string;
 }
 
-const FALLBACK_LOCALES = ["en-US", "en-GB"];
-
 interface ActiveSubmission {
   jobId: string;
   logs: string[];
@@ -70,6 +68,7 @@ interface ActiveSubmission {
   startedAt: Date;
 }
 
+const FALLBACK_LOCALES = ["en-US", "en-GB"];
 const SUBMISSION_TTL_MS = 60 * 60 * 1000;
 const activeSubmissions = new Map<string, ActiveSubmission>();
 let latestJobId: string | undefined;
@@ -114,21 +113,21 @@ export class FastlaneService {
 
     const version = editable ?? live;
     const versionLocalizations = version ? await this.asc.getVersionLocalizations(version.id) : [];
-
     const locales =
       infoLocalizations.length > 0 ? infoLocalizations.map((l) => l.attributes.locale).filter(Boolean) : ["en-US"];
 
     const localeData: SubmissionPreview["locales"] = locales.map((locale) => {
-      const infoLoc = infoLocalizations.find((l) => l.attributes.locale === locale);
-      const versionLoc = versionLocalizations.find((l) => l.attributes.locale === locale);
+      const iLoc = infoLocalizations.find((l) => l.attributes.locale === locale);
+      const vLoc = versionLocalizations.find((l) => l.attributes.locale === locale);
+
       return {
         locale,
-        name: infoLoc?.attributes.name ?? "",
-        subtitle: infoLoc?.attributes.subtitle ?? "",
-        keywords: versionLoc?.attributes.keywords ?? "",
-        description: versionLoc?.attributes.description ?? "",
-        whatsNew: versionLoc?.attributes.whatsNew ?? "",
-        promotionalText: versionLoc?.attributes.promotionalText ?? "",
+        name: iLoc?.attributes.name ?? "",
+        subtitle: iLoc?.attributes.subtitle ?? "",
+        keywords: vLoc?.attributes.keywords ?? "",
+        description: vLoc?.attributes.description ?? "",
+        whatsNew: vLoc?.attributes.whatsNew ?? "",
+        promotionalText: vLoc?.attributes.promotionalText ?? "",
       };
     });
 
@@ -185,10 +184,17 @@ export class FastlaneService {
       }
 
       submission.status = "running";
-      const result = await this.runDeliver({ localeData, action });
+      const result = await this.runDeliver({
+        localeData,
+        action,
+        onLog: (line) => submission.logs.push(line),
+        onError: (line) => submission.errors.push(line),
+      });
 
-      submission.logs.push(...result.logs);
-      submission.errors.push(...result.errors);
+      const newLogs = result.logs.filter((l) => !submission.logs.includes(l));
+      const newErrors = result.errors.filter((e) => !submission.errors.includes(e));
+      submission.logs.push(...newLogs);
+      submission.errors.push(...newErrors);
       submission.status = submission.errors.length > 0 ? "failed" : "completed";
       setTimeout(() => activeSubmissions.delete(jobId), SUBMISSION_TTL_MS);
 
@@ -291,10 +297,22 @@ export class FastlaneService {
   private async runDeliver(opts: {
     localeData: Record<string, LocaleEntry>;
     action: SubmitAction;
+    onLog?: (line: string) => void;
+    onError?: (line: string) => void;
   }): Promise<{ logs: string[]; errors: string[] }> {
-    const { localeData, action } = opts;
+    const { localeData, action, onLog, onError } = opts;
     const logs: string[] = [];
     const errors: string[] = [];
+
+    const pushLog = (line: string) => {
+      logs.push(line);
+      onLog?.(line);
+    };
+
+    const pushError = (line: string) => {
+      errors.push(line);
+      onError?.(line);
+    };
 
     const tmpDir = path.join(os.tmpdir(), `deliver-${Date.now()}`);
     const metadataRoot = path.join(tmpDir, "metadata");
@@ -303,7 +321,7 @@ export class FastlaneService {
       fs.mkdirSync(tmpDir, { recursive: true });
 
       if (action !== "binary") {
-        logs.push("Writing metadata files...");
+        pushLog("Writing metadata files...");
         for (const [locale, data] of Object.entries(localeData)) {
           const localeDir = path.join(metadataRoot, locale);
           fs.mkdirSync(localeDir, { recursive: true });
@@ -323,7 +341,7 @@ export class FastlaneService {
 
         fs.mkdirSync(metadataRoot, { recursive: true });
         fs.writeFileSync(path.join(metadataRoot, "copyright.txt"), `© ${new Date().getFullYear()} Fringelo Group`);
-        logs.push(`Metadata written for ${Object.keys(localeData).length} locale(s)`);
+        pushLog(`Metadata written for ${Object.keys(localeData).length} locale(s)`);
       }
 
       const screenshotPaths = await this.loadFramedScreenshotPaths();
@@ -338,7 +356,7 @@ export class FastlaneService {
         if (screenshotFallback) {
           const localesWithoutScreenshots = Object.keys(localeData).filter((l) => !screenshotPaths![l]);
           if (localesWithoutScreenshots.length > 0) {
-            logs.push(
+            pushLog(
               `[Screenshots] ${localesWithoutScreenshots.length} locale(s) will use "${screenshotFallback}" as fallback`,
             );
           }
@@ -355,14 +373,12 @@ export class FastlaneService {
             totalScreenshots++;
           }
         }
-        logs.push(
-          `Screenshots copied: ${totalScreenshots} image(s) across ${Object.keys(localeData).length} locale(s)`,
-        );
+        pushLog(`Screenshots copied: ${totalScreenshots} image(s) across ${Object.keys(localeData).length} locale(s)`);
       }
 
       const ipaPath = await this.loadLatestIpaPath();
       if (ipaPath) {
-        logs.push("Latest build IPA found, will be uploaded.");
+        pushLog("Latest build IPA found, will be uploaded.");
       } else if (action === "binary") {
         throw new Error("No IPA found. Build the app first before uploading the binary.");
       }
@@ -380,10 +396,10 @@ export class FastlaneService {
           2,
         ),
       );
-      logs.push("API key file written");
+      pushLog("API key file written");
 
       const fastlanePath = await resolveFastlane();
-      logs.push(`Using fastlane at: ${fastlanePath}`);
+      pushLog(`Using fastlane at: ${fastlanePath}`);
 
       const args = [
         "--api_key_path",
@@ -413,7 +429,7 @@ export class FastlaneService {
         args.push("--submit_for_review");
       }
 
-      logs.push(`Running: fastlane deliver (screenshots: ${hasScreenshots ? "yes" : "skipped"})`);
+      pushLog(`Running: fastlane deliver (screenshots: ${hasScreenshots ? "yes" : "skipped"})`);
 
       await new Promise<void>((resolve, reject) => {
         const parts = fastlanePath.split(" ");
@@ -442,38 +458,38 @@ export class FastlaneService {
 
         proc.stdout?.on("data", (data: Buffer) => {
           const line = data.toString().trim();
-          if (line) logs.push(line);
+          if (line) pushLog(line);
         });
 
         proc.stderr?.on("data", (data: Buffer) => {
           const line = data.toString().trim();
-          if (line) logs.push(`[stderr] ${line}`);
+          if (line) pushLog(`[stderr] ${line}`);
         });
 
         proc.on("close", (code) => {
           clearTimeout(hardTimeout);
 
           if (code === 0) {
-            logs.push("Fastlane deliver completed successfully.");
+            pushLog("Fastlane deliver completed successfully.");
             resolve();
           } else {
             const errMsg = `Fastlane deliver exited with code ${code}`;
-            errors.push(errMsg);
-            logs.push(errMsg);
+            pushError(errMsg);
+            pushLog(errMsg);
             reject(new Error(errMsg));
           }
         });
 
         proc.on("error", (err) => {
           clearTimeout(hardTimeout);
-          errors.push(err.message);
+          pushError(err.message);
           reject(err);
         });
       });
 
       return { logs, errors };
     } catch (err) {
-      errors.push(err instanceof Error ? err.message : String(err));
+      pushError(err instanceof Error ? err.message : String(err));
       return { logs, errors };
     } finally {
       try {

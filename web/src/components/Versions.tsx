@@ -1301,7 +1301,7 @@ export default function Versions({ addToast }: Props) {
   const startPolling = useCallback(() => {
     if (pollRef.current) clearInterval(pollRef.current);
     pollStatus();
-    pollRef.current = setInterval(pollStatus, 2000);
+    pollRef.current = setInterval(pollStatus, 1000);
   }, [pollStatus]);
 
   useEffect(() => {
@@ -1365,6 +1365,7 @@ export default function Versions({ addToast }: Props) {
     }
     setSubmitting(kind);
     setShowLogs(true);
+    setSubmitStatus({ active: true, status: "preparing", logs: [], errors: [] });
     try {
       const res = await apiPost(`/submissions/${kind}`, { bundleId: getActiveBundleId() });
       const fallback = kind === "metadata" ? "Metadata push started" : kind === "binary" ? "Binary upload started" : "Submit for review started";
