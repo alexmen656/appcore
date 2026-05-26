@@ -135,6 +135,7 @@ export class AppStoreConnectClient {
     const params: Record<string, string> = {
       "fields[appInfoLocalizations]": "locale,name,subtitle,privacyPolicyUrl",
     };
+
     if (locale) {
       params["filter[locale]"] = locale;
     }
@@ -330,22 +331,16 @@ export class AppStoreConnectClient {
       "WAITING_FOR_REVIEW",
     ];
 
-    const results = await Promise.all(
-      editableStates.map((state) =>
-        this.client
-          .get(`/apps/${appId}/appStoreVersions`, {
-            params: {
-              "filter[appStoreState]": state,
-              "filter[platform]": "IOS",
-              "fields[appStoreVersions]": "versionString,appStoreState,platform,releaseType,copyright",
-            },
-          })
-          .then(({ data }) => data.data?.[0] ?? null)
-          .catch(() => null),
-      ),
-    );
+    const { data } = await this.client.get(`/apps/${appId}/appStoreVersions`, {
+      params: {
+        "filter[appStoreState]": editableStates.join(","),
+        "filter[platform]": "IOS",
+        "fields[appStoreVersions]": "versionString,appStoreState,platform,releaseType,copyright",
+        limit: 5,
+      },
+    });
 
-    return results.find(Boolean) ?? null;
+    return data.data?.[0] ?? null;
   }
 
   async createNewVersion(
@@ -419,13 +414,13 @@ export class AppStoreConnectClient {
       return null;
     }
 
-    const infoLocalizations = await this.getAppInfoLocalizations(app.id);
+    const [infoLocalizations, editableVersion] = await Promise.all([
+      this.getAppInfoLocalizations(app.id),
+      this.getEditableVersion(app.id),
+    ]);
     const infoLoc = infoLocalizations.find((l) => l.attributes.locale === locale);
 
-    let version = await this.getEditableVersion(app.id);
-    if (!version) {
-      version = await this.getLiveVersion(app.id);
-    }
+    const version = editableVersion ?? (await this.getLiveVersion(app.id));
 
     let versionLoc: ASCVersionLocalization | undefined;
     if (version) {
@@ -482,9 +477,16 @@ export class AppStoreConnectClient {
 
     logger.info(`Applying ASO changes to version ${versionString} (${version.attributes.appStoreState})`);
 
-    if (changes.title || changes.subtitle) {
+    const needsInfo = !!(changes.title || changes.subtitle);
+    const needsVersion = !!(changes.description || changes.keywords || changes.whatsNew || changes.promotionalText);
+
+    const [infoLocalizations, versionLocs] = await Promise.all([
+      needsInfo ? this.getAppInfoLocalizations(app.id) : Promise.resolve([] as ASCAppInfoLocalization[]),
+      needsVersion ? this.getVersionLocalizations(versionId, locale) : Promise.resolve([] as ASCVersionLocalization[]),
+    ]);
+
+    if (needsInfo) {
       try {
-        const infoLocalizations = await this.getAppInfoLocalizations(app.id);
         const infoLoc = infoLocalizations.find((l) => l.attributes.locale === locale);
 
         if (infoLoc) {
@@ -508,9 +510,8 @@ export class AppStoreConnectClient {
       }
     }
 
-    if (changes.description || changes.keywords || changes.whatsNew || changes.promotionalText) {
+    if (needsVersion) {
       try {
-        const versionLocs = await this.getVersionLocalizations(versionId, locale);
         const versionLoc = versionLocs[0];
 
         if (versionLoc) {

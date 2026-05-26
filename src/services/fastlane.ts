@@ -106,27 +106,31 @@ export class FastlaneService {
     const app = await this.asc.getApp(this.bundleId);
     if (!app) throw new Error("App not found in App Store Connect");
 
-    const editable = await this.asc.getEditableVersion(app.id);
-    const live = await this.asc.getLiveVersion(app.id);
-    const version = editable ?? live;
-    const localizations = await this.asc.getAppInfoLocalizations(app.id).catch(() => []);
-    const locales =
-      localizations.length > 0 ? localizations.map((l) => l.attributes.locale).filter(Boolean) : ["en-US"];
+    const [editable, live, infoLocalizations] = await Promise.all([
+      this.asc.getEditableVersion(app.id),
+      this.asc.getLiveVersion(app.id),
+      this.asc.getAppInfoLocalizations(app.id).catch(() => []),
+    ]);
 
-    const localeData: SubmissionPreview["locales"] = await Promise.all(
-      locales.map(async (locale) => {
-        const state = await this.asc.getCurrentASOState(locale, this.bundleId);
-        return {
-          locale,
-          name: state?.title ?? "",
-          subtitle: state?.subtitle ?? "",
-          keywords: state?.keywords ?? "",
-          description: state?.description ?? "",
-          whatsNew: state?.whatsNew ?? "",
-          promotionalText: state?.promotionalText ?? "",
-        };
-      }),
-    );
+    const version = editable ?? live;
+    const versionLocalizations = version ? await this.asc.getVersionLocalizations(version.id) : [];
+
+    const locales =
+      infoLocalizations.length > 0 ? infoLocalizations.map((l) => l.attributes.locale).filter(Boolean) : ["en-US"];
+
+    const localeData: SubmissionPreview["locales"] = locales.map((locale) => {
+      const infoLoc = infoLocalizations.find((l) => l.attributes.locale === locale);
+      const versionLoc = versionLocalizations.find((l) => l.attributes.locale === locale);
+      return {
+        locale,
+        name: infoLoc?.attributes.name ?? "",
+        subtitle: infoLoc?.attributes.subtitle ?? "",
+        keywords: versionLoc?.attributes.keywords ?? "",
+        description: versionLoc?.attributes.description ?? "",
+        whatsNew: versionLoc?.attributes.whatsNew ?? "",
+        promotionalText: versionLoc?.attributes.promotionalText ?? "",
+      };
+    });
 
     return {
       appId: app.id,
@@ -174,7 +178,7 @@ export class FastlaneService {
         const prepared = await this.prepareMetadataLocales(action, overrides);
         localeData = prepared.localeData;
         versionString = prepared.versionString;
-        
+
         submission.logs.push(
           `Metadata prepared for ${Object.keys(localeData).length} locale(s). Running fastlane deliver...`,
         );
@@ -497,8 +501,7 @@ export class FastlaneService {
     const app = await this.asc.getApp(this.bundleId);
     if (!app) throw new Error("App not found in App Store Connect");
 
-    const editable = await this.asc.getEditableVersion(app.id);
-    const live = await this.asc.getLiveVersion(app.id);
+    const [editable, live] = await Promise.all([this.asc.getEditableVersion(app.id), this.asc.getLiveVersion(app.id)]);
     const version = editable ?? live;
     if (!version) throw new Error("No App Store version found");
 
