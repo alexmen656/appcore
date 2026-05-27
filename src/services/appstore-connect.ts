@@ -75,6 +75,19 @@ export interface ASCCredentials {
   privateKey: string;
 }
 
+export interface ASCRateLimit {
+  hourLimit: number;
+  hourRemaining: number;
+  updatedAt: Date;
+}
+
+function parseRateLimitHeader(header: string): { limit: number; remaining: number } | null {
+  const lim = header.match(/user-hour-lim:(\d+)/)?.[1];
+  const rem = header.match(/user-hour-rem:(\d+)/)?.[1];
+  if (!lim || !rem) return null;
+  return { limit: parseInt(lim, 10), remaining: parseInt(rem, 10) };
+}
+
 export class AppStoreConnectClient {
   public client: AxiosInstance;
   private token: string | null = null;
@@ -82,6 +95,7 @@ export class AppStoreConnectClient {
   private readonly issuerId: string;
   private readonly keyId: string;
   private readonly privateKey: string;
+  private rateLimit: ASCRateLimit | null = null;
 
   constructor(override?: Partial<ASCCredentials>) {
     const issuerId = override?.issuerId;
@@ -106,6 +120,46 @@ export class AppStoreConnectClient {
       config.headers.Authorization = `Bearer ${token}`;
       return config;
     });
+
+    this.client.interceptors.response.use(
+      (response) => {
+        const header = response.headers["x-rate-limit"];
+        if (header) {
+          const parsed = parseRateLimitHeader(header);
+          if (parsed) {
+            this.rateLimit = {
+              hourLimit: parsed.limit,
+              hourRemaining: parsed.remaining,
+              updatedAt: new Date(),
+            };
+          }
+        }
+        return response;
+      },
+      (error: any) => {
+        const header = error?.response?.headers?.["x-rate-limit"];
+        if (header) {
+          const parsed = parseRateLimitHeader(header);
+          if (parsed) {
+            this.rateLimit = {
+              hourLimit: parsed.limit,
+              hourRemaining: parsed.remaining,
+              updatedAt: new Date(),
+            };
+          }
+        }
+        if (error?.response?.status === 429) {
+          const rl = this.rateLimit;
+          const limitStr = rl ? ` (${rl.hourRemaining}/${rl.hourLimit} remaining)` : "";
+          throw new Error(`ASC rate limit exceeded${limitStr}. Warte ~1 Stunde und versuche es erneut.`);
+        }
+        throw error;
+      },
+    );
+  }
+
+  getRateLimit(): ASCRateLimit | null {
+    return this.rateLimit;
   }
 
   private async getToken(): Promise<string> {

@@ -118,7 +118,12 @@ const FILENAME_DISPLAY_TYPE_PATTERNS: [RegExp, string][] = [
   [/ipad.9\.7/i, "APP_IPAD_97"],
 ];
 
-const cdnAgent = new ProxyAgent({ uri: "http://192.168.1.200:3128", connectTimeout: 30_000, headersTimeout: 60_000, bodyTimeout: 120_000 });
+const cdnAgent = new ProxyAgent({
+  uri: "http://192.168.1.200:3128",
+  connectTimeout: 30_000,
+  headersTimeout: 60_000,
+  bodyTimeout: 120_000,
+});
 
 async function uploadChunk(url: string, method: string, headers: Record<string, string>, data: Buffer): Promise<void> {
   try {
@@ -134,11 +139,15 @@ async function uploadChunk(url: string, method: string, headers: Record<string, 
     }
   } catch (err: any) {
     const cause = err?.cause?.message ?? err?.cause?.code ?? "";
-    throw new Error(`CDN upload failed: ${err?.message ?? err}${cause ? ` (cause: ${cause})` : ""} — URL host: ${new URL(url).hostname}`);
+    throw new Error(
+      `CDN upload failed: ${err?.message ?? err}${cause ? ` (cause: ${cause})` : ""} — URL host: ${new URL(url).hostname}`,
+    );
   }
 }
 
-async function getDisplayType(imagePath: string): Promise<{ displayType: string | null; width?: number; height?: number }> {
+async function getDisplayType(
+  imagePath: string,
+): Promise<{ displayType: string | null; width?: number; height?: number }> {
   const { width, height } = await sharp(imagePath).metadata();
   if (width && height) {
     const byDim = DIMENSION_TO_DISPLAY_TYPE[`${width}x${height}`];
@@ -388,6 +397,19 @@ export class FastlaneService {
     const fallbackLocale = FALLBACK_LOCALES.find((l) => screenshotPaths[l]) ?? Object.keys(screenshotPaths)[0];
     const fallbackImages = fallbackLocale ? screenshotPaths[fallbackLocale] : undefined;
 
+    const logRateLimit = () => {
+      const rl = this.asc.getRateLimit();
+      if (rl) {
+        const pct = Math.round((rl.hourRemaining / rl.hourLimit) * 100);
+        onLog(`[Screenshots] ASC Rate Limit: ${rl.hourRemaining}/${rl.hourLimit} remaining (${pct}%)`);
+        if (rl.hourRemaining < 100) {
+          onLog(`[Screenshots] Rate limit critically low (${rl.hourRemaining} left). Upload may fail.`);
+        }
+      }
+    };
+
+    logRateLimit();
+
     for (const locale of locales) {
       const localizationId = localeToLocId[locale];
       if (!localizationId) {
@@ -442,13 +464,16 @@ export class FastlaneService {
             const op = reserved.attributes.uploadOperations[i];
             const chunk = Buffer.from(fileData.subarray(op.offset, op.offset + op.length));
             const headers = Object.fromEntries(op.requestHeaders.map((h) => [h.name, h.value]));
-            onLog(`[Screenshots] ${locale}: chunk ${i + 1}/${reserved.attributes.uploadOperations.length} → ${op.method} (${chunk.length} bytes)`);
+            onLog(
+              `[Screenshots] ${locale}: chunk ${i + 1}/${reserved.attributes.uploadOperations.length} → ${op.method} (${chunk.length} bytes)`,
+            );
             await uploadChunk(op.url, op.method, headers, chunk);
           }
 
           onLog(`[Screenshots] ${locale}: committing ${img.filename}...`);
           await this.asc.commitScreenshot(reserved.id, md5);
           onLog(`[Screenshots] ${locale}: done ${img.filename} (${displayType})`);
+          logRateLimit();
         }
       }
     }
@@ -519,7 +544,9 @@ export class FastlaneService {
           } catch (ssErr: any) {
             const msg = ssErr instanceof Error ? ssErr.message : String(ssErr);
             pushLog(`[Screenshots] Upload failed (non-fatal): ${msg}`);
-            pushLog("[Screenshots] Continuing with metadata/binary upload. To fix: add Oracle Cloud egress rule for 17.0.0.0/8 HTTPS.");
+            pushLog(
+              "[Screenshots] Continuing with metadata/binary upload. To fix: add Oracle Cloud egress rule for 17.0.0.0/8 HTTPS.",
+            );
           }
         } else {
           pushLog("No framed screenshots found, skipping screenshot upload.");
