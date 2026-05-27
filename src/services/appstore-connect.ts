@@ -23,7 +23,7 @@ interface ASCAppInfoLocalization {
   };
 }
 
-interface ASCAppStoreVersion {
+export interface ASCAppStoreVersion {
   id: string;
   attributes: {
     versionString: string;

@@ -10,7 +10,7 @@ import { Prisma } from "@prisma/client";
 import { logger, prisma } from "../config";
 import type { EffectiveSettings } from "../config";
 import { env } from "../config/env";
-import { AppStoreConnectClient } from "./appstore-connect";
+import { AppStoreConnectClient, type ASCAppStoreVersion } from "./appstore-connect";
 
 const execAsync = promisify(exec);
 
@@ -261,26 +261,31 @@ export class FastlaneService {
 
     let versionString: string | null = null;
     try {
-      let localeData: Record<string, LocaleEntry> = {};
-
-      if (action !== "binary") {
+      if (action === "binary") {
+        submission.status = "running";
+        await this.runBinaryUpload({
+          onLog: (line) => submission.logs.push(line),
+          onError: (line) => submission.errors.push(line),
+        });
+      } else {
         submission.logs.push("Preparing metadata...");
         const prepared = await this.prepareMetadataLocales(action, overrides);
-        localeData = prepared.localeData;
         versionString = prepared.versionString;
 
         submission.logs.push(
-          `Metadata prepared for ${Object.keys(localeData).length} locale(s). Running fastlane deliver...`,
+          `Metadata prepared for ${Object.keys(prepared.localeData).length} locale(s). Uploading via ASC API...`,
         );
-      }
 
-      submission.status = "running";
-      await this.runDeliver({
-        localeData,
-        action,
-        onLog: (line) => submission.logs.push(line),
-        onError: (line) => submission.errors.push(line),
-      });
+        submission.status = "running";
+        await this.runAscUpload({
+          localeData: prepared.localeData,
+          appId: prepared.appId,
+          version: prepared.version,
+          action,
+          onLog: (line) => submission.logs.push(line),
+          onError: (line) => submission.errors.push(line),
+        });
+      }
 
       submission.status = submission.errors.length > 0 ? "failed" : "completed";
       return {
@@ -299,7 +304,7 @@ export class FastlaneService {
       const msg = `${err instanceof Error ? err.message : String(err)}${code ? ` [${code}]` : ""}${status ? ` HTTP ${status}` : ""}${cause ? ` (cause: ${cause})` : ""}`;
 
       submission.errors.push(msg);
-      logger.error("[Fastlane] deliver failed:", { message: msg, code, status, cause });
+      logger.error("[ASC] upload failed:", { message: msg, code, status, cause });
       submission.status = "failed";
       return {
         ok: false,
@@ -481,13 +486,83 @@ export class FastlaneService {
     onLog("[Screenshots] All screenshots uploaded successfully");
   }
 
-  private async runDeliver(opts: {
+  private async uploadMetadataViaASC(
+    localeData: Record<string, LocaleEntry>,
+    version: ASCAppStoreVersion,
+    appId: string,
+    onLog: (line: string) => void,
+  ): Promise<void> {
+    onLog("Uploading metadata via App Store Connect API...");
+
+    await this.asc.updateVersionAttributes(version.id, {
+      copyright: `© ${new Date().getFullYear()} Fringelo Group`,
+    });
+    onLog("[Metadata] Copyright updated");
+
+    const [appInfoLocalizations, versionLocalizations] = await Promise.all([
+      this.asc.getAppInfoLocalizations(appId),
+      this.asc.getVersionLocalizations(version.id),
+    ]);
+
+    const infoLocByLocale = new Map(appInfoLocalizations.map((l) => [l.attributes.locale, l]));
+    const versionLocByLocale = new Map(versionLocalizations.map((l) => [l.attributes.locale, l]));
+
+    for (const [locale, data] of Object.entries(localeData)) {
+      onLog(`[Metadata] Processing locale: ${locale}`);
+
+      const infoLoc = infoLocByLocale.get(locale);
+      if (infoLoc) {
+        const updates: { name?: string; subtitle?: string } = {};
+        if (data.name) updates.name = data.name;
+        if (data.subtitle !== undefined) updates.subtitle = data.subtitle;
+        if (Object.keys(updates).length > 0) {
+          await this.asc.updateAppInfoLocalization(infoLoc.id, updates);
+          onLog(`[Metadata] ${locale}: name/subtitle updated`);
+        }
+      } else {
+        onLog(`[Metadata] ${locale}: no app info localization found, skipping name/subtitle`);
+      }
+
+      let versionLoc = versionLocByLocale.get(locale);
+      if (!versionLoc) {
+        onLog(`[Metadata] ${locale}: creating version localization...`);
+        versionLoc = await this.asc.createVersionLocalization(version.id, locale);
+        onLog(`[Metadata] ${locale}: version localization created (${versionLoc.id})`);
+      }
+
+      const versionUpdates: {
+        description?: string;
+        keywords?: string;
+        whatsNew?: string;
+        promotionalText?: string;
+        supportUrl?: string;
+        marketingUrl?: string;
+      } = {};
+      if (data.description) versionUpdates.description = data.description;
+      if (data.keywords) versionUpdates.keywords = data.keywords;
+      if (data.whatsNew) versionUpdates.whatsNew = data.whatsNew;
+      if (data.promotionalText) versionUpdates.promotionalText = data.promotionalText;
+      if (data.supportUrl) versionUpdates.supportUrl = data.supportUrl;
+      if (data.marketingUrl) versionUpdates.marketingUrl = data.marketingUrl;
+
+      if (Object.keys(versionUpdates).length > 0) {
+        await this.asc.updateVersionLocalization(versionLoc.id, versionUpdates);
+        onLog(`[Metadata] ${locale}: version localization updated`);
+      }
+    }
+
+    onLog("[Metadata] All metadata uploaded successfully");
+  }
+
+  private async runAscUpload(opts: {
     localeData: Record<string, LocaleEntry>;
+    appId: string;
+    version: ASCAppStoreVersion;
     action: SubmitAction;
     onLog?: (line: string) => void;
     onError?: (line: string) => void;
   }): Promise<{ logs: string[]; errors: string[] }> {
-    const { localeData, action, onLog, onError } = opts;
+    const { localeData, appId, version, action, onLog, onError } = opts;
     const logs: string[] = [];
     const errors: string[] = [];
 
@@ -495,68 +570,67 @@ export class FastlaneService {
       logs.push(line);
       onLog?.(line);
     };
+    const pushError = (line: string) => {
+      errors.push(line);
+      onError?.(line);
+    };
 
+    try {
+      await this.uploadMetadataViaASC(localeData, version, appId, pushLog);
+
+      const screenshotPaths = await this.loadFramedScreenshotPaths();
+      if (screenshotPaths && Object.keys(screenshotPaths).length > 0) {
+        pushLog("Uploading screenshots via App Store Connect API...");
+        try {
+          await this.uploadScreenshotsViaASC(screenshotPaths, Object.keys(localeData), pushLog);
+        } catch (ssErr: any) {
+          const msg = ssErr instanceof Error ? ssErr.message : String(ssErr);
+          pushLog(`[Screenshots] Upload failed (non-fatal): ${msg}`);
+          pushLog("[Screenshots] Continuing. To fix: add Oracle Cloud egress rule for 17.0.0.0/8 HTTPS.");
+        }
+      } else {
+        pushLog("No framed screenshots found, skipping screenshot upload.");
+      }
+
+      if (action === "submit_for_review") {
+        pushLog("Submitting for App Review...");
+        await this.asc.submitForReview(version.id);
+        pushLog("Submitted for App Review successfully.");
+      }
+
+      return { logs, errors };
+    } catch (err: any) {
+      const cause = err?.cause?.message ?? err?.cause?.code ?? "";
+      pushError(`${err instanceof Error ? err.message : String(err)}${cause ? ` — cause: ${cause}` : ""}`);
+      return { logs, errors };
+    }
+  }
+
+  private async runBinaryUpload(opts: {
+    onLog?: (line: string) => void;
+    onError?: (line: string) => void;
+  }): Promise<{ logs: string[]; errors: string[] }> {
+    const { onLog, onError } = opts;
+    const logs: string[] = [];
+    const errors: string[] = [];
+
+    const pushLog = (line: string) => {
+      logs.push(line);
+      onLog?.(line);
+    };
     const pushError = (line: string) => {
       errors.push(line);
       onError?.(line);
     };
 
     const tmpDir = path.join(os.tmpdir(), `deliver-${Date.now()}`);
-    const metadataRoot = path.join(tmpDir, "metadata");
 
     try {
+      const ipaPath = await this.loadLatestIpaPath();
+      if (!ipaPath) throw new Error("No IPA found. Build the app first before uploading the binary.");
+      pushLog(`IPA found: ${ipaPath}`);
+
       fs.mkdirSync(tmpDir, { recursive: true });
-
-      if (action !== "binary") {
-        pushLog("Writing metadata files...");
-        for (const [locale, data] of Object.entries(localeData)) {
-          const localeDir = path.join(metadataRoot, locale);
-          fs.mkdirSync(localeDir, { recursive: true });
-
-          for (const [file, content] of Object.entries({
-            "name.txt": data.name,
-            "subtitle.txt": data.subtitle,
-            "keywords.txt": data.keywords,
-            "description.txt": data.description,
-            "release_notes.txt": data.whatsNew,
-            "promotional_text.txt": data.promotionalText,
-            "support_url.txt": data.supportUrl,
-            "marketing_url.txt": data.marketingUrl,
-          }))
-            fs.writeFileSync(path.join(localeDir, file), content);
-        }
-
-        fs.mkdirSync(metadataRoot, { recursive: true });
-        fs.writeFileSync(path.join(metadataRoot, "copyright.txt"), `© ${new Date().getFullYear()} Fringelo Group`);
-        pushLog(`Metadata written for ${Object.keys(localeData).length} locale(s)`);
-      }
-
-      const [screenshotPaths, ipaPath] = await Promise.all([
-        action !== "binary" ? this.loadFramedScreenshotPaths() : null,
-        this.loadLatestIpaPath(),
-      ]);
-
-      if (action !== "binary") {
-        if (screenshotPaths && Object.keys(screenshotPaths).length > 0) {
-          pushLog("Uploading screenshots via App Store Connect API...");
-          try {
-            await this.uploadScreenshotsViaASC(screenshotPaths, Object.keys(localeData), pushLog);
-          } catch (ssErr: any) {
-            const msg = ssErr instanceof Error ? ssErr.message : String(ssErr);
-            pushLog(`[Screenshots] Upload failed (non-fatal): ${msg}`);
-            pushLog(
-              "[Screenshots] Continuing with metadata/binary upload. To fix: add Oracle Cloud egress rule for 17.0.0.0/8 HTTPS.",
-            );
-          }
-        } else {
-          pushLog("No framed screenshots found, skipping screenshot upload.");
-        }
-      }
-      if (ipaPath) {
-        pushLog("Latest build IPA found, will be uploaded.");
-      } else if (action === "binary") {
-        throw new Error("No IPA found. Build the app first before uploading the binary.");
-      }
 
       fs.writeFileSync(
         path.join(tmpDir, "api_key.json"),
@@ -584,23 +658,16 @@ export class FastlaneService {
         "--force",
         "--precheck_include_in_app_purchases",
         "false",
+        "--ipa",
+        ipaPath,
+        "--skip_screenshots",
+        "--skip_metadata",
+        "--skip_app_version_update",
+        "--submit_for_review",
+        "false",
       ];
 
-      if (action !== "binary") args.push("--metadata_path", metadataRoot);
-      if (ipaPath) args.push("--ipa", ipaPath);
-      else args.push("--skip_binary_upload");
-
-      args.push("--skip_screenshots");
-
-      if (action === "binary") {
-        args.push("--skip_metadata", "--skip_app_version_update", "--submit_for_review", "false");
-      } else if (action === "metadata") {
-        args.push("--skip_app_version_update", "--submit_for_review", "false");
-      } else if (action === "submit_for_review") {
-        args.push("--submit_for_review");
-      }
-
-      pushLog("Running: fastlane deliver");
+      pushLog("Running: fastlane deliver (binary upload)");
 
       await new Promise<void>((resolve, reject) => {
         const parts = fastlanePath.split(" ");
@@ -639,7 +706,6 @@ export class FastlaneService {
 
         proc.on("close", (code) => {
           clearTimeout(hardTimeout);
-
           if (code === 0) {
             pushLog("Fastlane deliver completed successfully.");
             resolve();
@@ -685,13 +751,16 @@ export class FastlaneService {
         promotionalText?: string;
       }
     >,
-  ): Promise<{ localeData: Record<string, LocaleEntry>; versionString: string | null }> {
+  ): Promise<{
+    localeData: Record<string, LocaleEntry>;
+    versionString: string | null;
+    appId: string;
+    version: ASCAppStoreVersion;
+  }> {
     const app = await this.asc.getApp(this.bundleId);
     if (!app) throw new Error("App not found in App Store Connect");
 
-    const [editable, live] = await Promise.all([this.asc.getEditableVersion(app.id), this.asc.getLiveVersion(app.id)]);
-    const version = editable ?? live;
-    if (!version) throw new Error("No App Store version found");
+    const version = await this.asc.getOrCreateEditableVersion(app.id);
 
     const [versionLocalizations, appInfoLocalizations] = await Promise.all([
       this.asc.getVersionLocalizations(version.id),
@@ -701,7 +770,7 @@ export class FastlaneService {
     const allLocales = new Set<string>();
     for (const vl of versionLocalizations) allLocales.add(vl.attributes.locale);
 
-    logger.info(`[Fastlane] Preparing metadata for ${allLocales.size} locale(s): ${[...allLocales].join(", ")}`);
+    logger.info(`[ASC] Preparing metadata for ${allLocales.size} locale(s): ${[...allLocales].join(", ")}`);
 
     const localeData = new Map<string, LocaleEntry>();
 
@@ -734,7 +803,7 @@ export class FastlaneService {
       for (const [locale, data] of localeData) {
         for (const field of fallbackFields) {
           if (!data[field] && primary?.[field]) {
-            logger.info(`[Fastlane] locale "${locale}" missing ${field} - using "${primaryLocale}" as fallback`);
+            logger.info(`[ASC] locale "${locale}" missing ${field} - using "${primaryLocale}" as fallback`);
             data[field] = primary[field];
           }
         }
@@ -744,6 +813,8 @@ export class FastlaneService {
     return {
       localeData: Object.fromEntries(localeData) as Record<string, LocaleEntry>,
       versionString: version.attributes.versionString ?? null,
+      appId: app.id,
+      version,
     };
   }
 }
