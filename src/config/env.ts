@@ -46,6 +46,7 @@ const envSchema = z.object({
   FASTLANE_WORKER_URL: z.string().url().optional(),
   FASTLANE_WORKER_SECRET: z.string().optional(),
   FASTLANE_PATH: z.string().default("fastlane"),
+  SERVER_INTERNAL_URL: z.string().url().optional(),
 
   // Email (Resend)
   RESEND_API_KEY: z.string().optional(),

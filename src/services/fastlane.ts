@@ -1,26 +1,16 @@
 import fs from "fs";
 import path from "path";
-import os from "os";
 import { randomUUID, createHash } from "crypto";
 import sharp from "sharp";
-import { spawn, exec } from "child_process";
 import { ProxyAgent, request as undiciRequest } from "undici";
-import { promisify } from "util";
 import { Prisma } from "@prisma/client";
 import { logger, prisma } from "../config";
-import type { EffectiveSettings } from "../config";
 import { env } from "../config/env";
+import type { EffectiveSettings } from "../config";
 import { AppStoreConnectClient, type ASCAppStoreVersion } from "./appstore-connect";
+import { workerClient } from "./worker-client";
 
-const execAsync = promisify(exec);
-
-async function resolveFastlane(): Promise<string> {
-  const bin = env.FASTLANE_PATH;
-  await execAsync(`${bin} --version`).catch(() => {
-    throw new Error(`Fastlane not found at "${bin}". Override with FASTLANE_PATH env var.`);
-  });
-  return bin;
-}
+export const ipaDownloadTokens = new Map<string, string>();
 
 export interface SubmissionPreview {
   appId: string;
@@ -268,7 +258,18 @@ export class FastlaneService {
           onError: (line) => submission.errors.push(line),
         });
       } else {
-        submission.logs.push("Preparing metadata...");
+        submission.logs.push("Step 1: Uploading binary...");
+        submission.status = "running";
+        const binaryResult = await this.runBinaryUpload({
+          onLog: (line) => submission.logs.push(line),
+          onError: (line) => submission.errors.push(line),
+        });
+
+        if (binaryResult.errors.length > 0) {
+          throw new Error(`Binary upload failed: ${binaryResult.errors.join("; ")}`);
+        }
+
+        submission.logs.push("Step 2: Preparing metadata...");
         const prepared = await this.prepareMetadataLocales(action, overrides);
         versionString = prepared.versionString;
 
@@ -276,7 +277,6 @@ export class FastlaneService {
           `Metadata prepared for ${Object.keys(prepared.localeData).length} locale(s). Uploading via ASC API...`,
         );
 
-        submission.status = "running";
         await this.runAscUpload({
           localeData: prepared.localeData,
           appId: prepared.appId,
@@ -570,6 +570,7 @@ export class FastlaneService {
       logs.push(line);
       onLog?.(line);
     };
+
     const pushError = (line: string) => {
       errors.push(line);
       onError?.(line);
@@ -618,123 +619,41 @@ export class FastlaneService {
       logs.push(line);
       onLog?.(line);
     };
+
     const pushError = (line: string) => {
       errors.push(line);
       onError?.(line);
     };
-
-    const tmpDir = path.join(os.tmpdir(), `deliver-${Date.now()}`);
 
     try {
       const ipaPath = await this.loadLatestIpaPath();
       if (!ipaPath) throw new Error("No IPA found. Build the app first before uploading the binary.");
       pushLog(`IPA found: ${ipaPath}`);
 
-      fs.mkdirSync(tmpDir, { recursive: true });
+      if (!env.SERVER_INTERNAL_URL) throw new Error("SERVER_INTERNAL_URL not set. Cannot serve IPA to worker.");
+      const token = randomUUID();
+      ipaDownloadTokens.set(token, ipaPath);
+      setTimeout(() => ipaDownloadTokens.delete(token), 10 * 60 * 1000).unref();
+      const ipaUrl = `${env.SERVER_INTERNAL_URL}/internal/ipa/${token}`;
+      pushLog(`IPA download URL created, sending job to Mac Mini worker...`);
 
-      fs.writeFileSync(
-        path.join(tmpDir, "api_key.json"),
-        JSON.stringify(
-          {
-            key_id: this.settings.ascKeyId!,
-            issuer_id: this.settings.ascIssuerId!,
-            key: this.settings.ascPrivateKey!,
-            in_house: false,
-          },
-          null,
-          2,
-        ),
+      const result = await workerClient.uploadBinary(
+        {
+          ipaUrl,
+          keyId: this.settings.ascKeyId!,
+          issuerId: this.settings.ascIssuerId!,
+          privateKey: this.settings.ascPrivateKey!,
+        },
+        pushLog,
       );
-      pushLog("API key file written");
 
-      const fastlanePath = await resolveFastlane();
-      pushLog(`Using fastlane at: ${fastlanePath}`);
-
-      const args = [
-        "--api_key_path",
-        path.join(tmpDir, "api_key.json"),
-        "--app_identifier",
-        this.bundleId,
-        "--force",
-        "--precheck_include_in_app_purchases",
-        "false",
-        "--ipa",
-        ipaPath,
-        "--skip_screenshots",
-        "--skip_metadata",
-        "--skip_app_version_update",
-        "--submit_for_review",
-        "false",
-      ];
-
-      pushLog("Running: fastlane deliver (binary upload)");
-
-      await new Promise<void>((resolve, reject) => {
-        const parts = fastlanePath.split(" ");
-        const cmd = parts[0];
-        const cmdArgs = [...parts.slice(1), "deliver", ...args];
-
-        const proc = spawn(cmd, cmdArgs, {
-          cwd: tmpDir,
-          env: {
-            ...process.env,
-            FASTLANE_DISABLE_COLORS: "1",
-            LANG: "en_US.UTF-8",
-            LC_ALL: "en_US.UTF-8",
-            RUBYOPT: "-EUTF-8",
-          },
-          stdio: ["pipe", "pipe", "pipe"],
-        });
-
-        const hardTimeout = setTimeout(
-          () => {
-            proc.kill();
-            reject(new Error("fastlane deliver timed out after 30 minutes"));
-          },
-          30 * 60 * 1000,
-        );
-
-        proc.stdout?.on("data", (data: Buffer) => {
-          const line = data.toString().trim();
-          if (line) pushLog(line);
-        });
-
-        proc.stderr?.on("data", (data: Buffer) => {
-          const line = data.toString().trim();
-          if (line) pushLog(`[stderr] ${line}`);
-        });
-
-        proc.on("close", (code) => {
-          clearTimeout(hardTimeout);
-          if (code === 0) {
-            pushLog("Fastlane deliver completed successfully.");
-            resolve();
-          } else {
-            const errMsg = `Fastlane deliver exited with code ${code}`;
-            pushError(errMsg);
-            pushLog(errMsg);
-            reject(new Error(errMsg));
-          }
-        });
-
-        proc.on("error", (err) => {
-          clearTimeout(hardTimeout);
-          pushError(err.message);
-          reject(err);
-        });
-      });
+      for (const line of result.errors) pushError(line);
 
       return { logs, errors };
     } catch (err: any) {
       const cause = err?.cause?.message ?? err?.cause?.code ?? "";
       pushError(`${err instanceof Error ? err.message : String(err)}${cause ? ` — cause: ${cause}` : ""}`);
       return { logs, errors };
-    } finally {
-      try {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
-      } catch {
-        /* ignore */
-      }
     }
   }
 
@@ -798,7 +717,7 @@ export class FastlaneService {
         [...localeData.keys()][0];
 
       const primary = primaryLocale ? localeData.get(primaryLocale) : undefined;
-
+      //shit
       const fallbackFields = ["whatsNew", "supportUrl", "description"] as const;
       for (const [locale, data] of localeData) {
         for (const field of fallbackFields) {

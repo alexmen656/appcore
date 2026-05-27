@@ -4,6 +4,7 @@ import { deliverRouter } from "./deliver";
 import { snapshotRouter } from "./snapshot";
 import { buildRouter } from "./build";
 import { frameitRouter } from "./frameit";
+import { uploadBinaryRouter } from "./upload-binary";
 
 export const workerRouter = Router();
 
@@ -12,3 +13,4 @@ workerRouter.use(deliverRouter);
 workerRouter.use(snapshotRouter);
 workerRouter.use(buildRouter);
 workerRouter.use(frameitRouter);
+workerRouter.use(uploadBinaryRouter);

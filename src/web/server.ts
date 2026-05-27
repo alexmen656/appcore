@@ -98,6 +98,18 @@ app.use("/api/admin", adminRouter);
 app.use("/api/billing", billingRouter);
 app.use("/oauth", oauthRouter);
 
+// Internal IPA download — one-time tokens for Mac Mini worker
+import { ipaDownloadTokens } from "../services/fastlane";
+app.get("/internal/ipa/:token", (req, res) => {
+  const ipaPath = ipaDownloadTokens.get(req.params.token as string);
+  if (!ipaPath) { res.status(404).end(); return; }
+  ipaDownloadTokens.delete(req.params.token as string);
+  if (!fs.existsSync(ipaPath)) { res.status(404).end(); return; }
+  res.setHeader("Content-Type", "application/octet-stream");
+  res.setHeader("Content-Disposition", "attachment; filename=app.ipa");
+  fs.createReadStream(ipaPath).pipe(res);
+});
+
 app.get("/.well-known/oauth-protected-resource", (req, res) => {
   const base = `${req.protocol}://${req.get("host")}`;
   res.json({

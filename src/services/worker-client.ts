@@ -269,6 +269,57 @@ class FastlaneWorkerClient {
     });
     return res.data;
   }
+
+  async uploadBinary(
+    params: { ipaUrl: string; keyId: string; issuerId: string; privateKey: string },
+    onLog?: (line: string) => void,
+  ): Promise<WorkerDeliverResult> {
+    logger.info("[WorkerClient] Starting binary upload on worker via iTMSTransporter...");
+
+    const startRes = await this.getClient().post<{ ok: boolean; runId: string }>("/worker/upload-binary", params, {
+      timeout: 60_000,
+    });
+    const { runId } = startRes.data;
+    logger.info(`[WorkerClient] Binary upload job started: runId=${runId}`);
+
+    return new Promise((resolve, reject) => {
+      const baseURL = env.FASTLANE_WORKER_URL!;
+      const secret = env.FASTLANE_WORKER_SECRET!;
+
+      axios
+        .get<IncomingMessage>(`${baseURL}/worker/upload-binary/${runId}/stream`, {
+          headers: { Authorization: `Bearer ${secret}` },
+          responseType: "stream",
+          timeout: 30 * 60 * 1000,
+        })
+        .then(({ data: stream }) => {
+          let buf = "";
+          stream.on("data", (chunk: Buffer) => {
+            buf += chunk.toString();
+            const parts = buf.split("\n\n");
+            buf = parts.pop() ?? "";
+            for (const block of parts) {
+              let event = "message";
+              let data = "";
+              for (const line of block.split("\n")) {
+                if (line.startsWith("event: ")) event = line.slice(7).trim();
+                else if (line.startsWith("data: ")) data = line.slice(6);
+              }
+              if (!data) continue;
+              if (event === "log") {
+                onLog?.(JSON.parse(data) as string);
+              } else if (event === "result") {
+                stream.destroy();
+                resolve(JSON.parse(data) as WorkerDeliverResult);
+              }
+            }
+          });
+          stream.on("end", () => reject(new Error("Worker SSE stream ended without a result event")));
+          stream.on("error", (err: Error) => reject(new Error(`Worker SSE stream error: ${err.message}`)));
+        })
+        .catch(reject);
+    });
+  }
 }
 
 export const workerClient = new FastlaneWorkerClient();

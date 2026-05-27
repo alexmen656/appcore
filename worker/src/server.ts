@@ -20,7 +20,7 @@ app.get("/health", async (_req, res) => {
 
 app.use("/worker", workerAuth, workerRouter);
 
-app.listen(PORT, "0.0.0.0", () => {
+const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`🔧 Fastlane Worker running on port ${PORT}`);
   console.log(`   Endpoints:`);
   console.log(`     GET  /health           - Health check (no auth)`);
