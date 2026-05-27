@@ -47,6 +47,28 @@ interface ASCVersionLocalization {
   };
 }
 
+export interface ASCScreenshotSet {
+  id: string;
+  attributes: {
+    screenshotDisplayType: string;
+  };
+}
+
+export interface ASCUploadOperation {
+  method: string;
+  url: string;
+  length: number;
+  offset: number;
+  requestHeaders: { name: string; value: string }[];
+}
+
+export interface ASCScreenshot {
+  id: string;
+  attributes: {
+    uploadOperations: ASCUploadOperation[];
+  };
+}
+
 export interface ASCCredentials {
   issuerId: string;
   keyId: string;
@@ -542,6 +564,74 @@ export class AppStoreConnectClient {
     }
 
     return { applied, errors, versionId, versionString };
+  }
+
+  async listScreenshotSets(localizationId: string): Promise<ASCScreenshotSet[]> {
+    const { data } = await this.client.get(`/appStoreVersionLocalizations/${localizationId}/appScreenshotSets`, {
+      params: { "fields[appScreenshotSets]": "screenshotDisplayType" },
+    });
+    return data.data ?? [];
+  }
+
+  async deleteScreenshotSet(setId: string): Promise<void> {
+    try {
+      await this.client.delete(`/appScreenshotSets/${setId}`);
+    } catch (err: any) {
+      if (err?.response?.status === 404) return;
+      this.throwASCError(err);
+    }
+  }
+
+  async createScreenshotSet(localizationId: string, displayType: string): Promise<ASCScreenshotSet> {
+    try {
+      const { data } = await this.client.post("/appScreenshotSets", {
+        data: {
+          type: "appScreenshotSets",
+          attributes: { screenshotDisplayType: displayType },
+          relationships: {
+            appStoreVersionLocalization: {
+              data: { type: "appStoreVersionLocalizations", id: localizationId },
+            },
+          },
+        },
+      });
+      return data.data;
+    } catch (err: any) {
+      this.throwASCError(err);
+    }
+  }
+
+  async reserveScreenshot(setId: string, fileName: string, fileSize: number): Promise<ASCScreenshot> {
+    try {
+      const { data } = await this.client.post("/appScreenshots", {
+        data: {
+          type: "appScreenshots",
+          attributes: { fileSize, fileName },
+          relationships: {
+            appScreenshotSet: {
+              data: { type: "appScreenshotSets", id: setId },
+            },
+          },
+        },
+      });
+      return data.data;
+    } catch (err: any) {
+      this.throwASCError(err);
+    }
+  }
+
+  async commitScreenshot(screenshotId: string, md5Hex: string): Promise<void> {
+    try {
+      await this.client.patch(`/appScreenshots/${screenshotId}`, {
+        data: {
+          type: "appScreenshots",
+          id: screenshotId,
+          attributes: { sourceFileChecksum: md5Hex, uploaded: true },
+        },
+      });
+    } catch (err: any) {
+      this.throwASCError(err);
+    }
   }
 
   async submitForReview(versionId: string): Promise<void> {
