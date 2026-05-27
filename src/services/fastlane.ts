@@ -104,10 +104,10 @@ const DIMENSION_TO_DISPLAY_TYPE: Record<string, string> = {
 };
 
 const FILENAME_DISPLAY_TYPE_PATTERNS: [RegExp, string][] = [
-  [/iphone[_.\s]6\.9/i, "APP_IPHONE_67"], // 6.9" → 6.7" slot
+  [/iphone[_.\s]6\.9/i, "APP_IPHONE_67"], // 6.9" device maps to 6.7" ASC slot
   [/iphone[_.\s]6\.7/i, "APP_IPHONE_67"],
   [/iphone[_.\s]6\.5/i, "APP_IPHONE_65"],
-  [/iphone[_.\s]6\.3/i, "APP_IPHONE_61"], // 6.3" → 6.1" slot
+  [/iphone[_.\s]6\.3/i, "APP_IPHONE_61"], // 6.3" device maps to 6.1" ASC slot
   [/iphone[_.\s]6\.1/i, "APP_IPHONE_61"],
   [/iphone[_.\s]5\.8/i, "APP_IPHONE_58"],
   [/iphone[_.\s]5\.5/i, "APP_IPHONE_55"],
@@ -266,20 +266,14 @@ export class FastlaneService {
       }
 
       submission.status = "running";
-      const result = await this.runDeliver({
+      await this.runDeliver({
         localeData,
         action,
         onLog: (line) => submission.logs.push(line),
         onError: (line) => submission.errors.push(line),
       });
 
-      const newLogs = result.logs.filter((l) => !submission.logs.includes(l));
-      const newErrors = result.errors.filter((e) => !submission.errors.includes(e));
-      submission.logs.push(...newLogs);
-      submission.errors.push(...newErrors);
       submission.status = submission.errors.length > 0 ? "failed" : "completed";
-      setTimeout(() => activeSubmissions.delete(jobId), SUBMISSION_TTL_MS);
-
       return {
         ok: submission.errors.length === 0,
         jobId,
@@ -298,8 +292,6 @@ export class FastlaneService {
       submission.errors.push(msg);
       logger.error("[Fastlane] deliver failed:", { message: msg, code, status, cause });
       submission.status = "failed";
-      setTimeout(() => activeSubmissions.delete(jobId), SUBMISSION_TTL_MS);
-
       return {
         ok: false,
         jobId,
@@ -308,7 +300,17 @@ export class FastlaneService {
         logs: submission.logs,
         errors: submission.errors,
       };
+    } finally {
+      setTimeout(() => activeSubmissions.delete(jobId), SUBMISSION_TTL_MS);
     }
+  }
+
+  private async resolveAppId(): Promise<string | null> {
+    const app = await prisma.app.findFirst({
+      where: { bundleId: this.bundleId },
+      select: { id: true },
+    });
+    return app?.id ?? null;
   }
 
   private async loadFramedScreenshotPaths(): Promise<Record<
@@ -316,15 +318,12 @@ export class FastlaneService {
     Array<{ filename: string; absPath: string }>
   > | null> {
     try {
-      const app = await prisma.app.findFirst({
-        where: { bundleId: this.bundleId },
-        select: { id: true },
-      });
-      if (!app) return null;
+      const appId = await this.resolveAppId();
+      if (!appId) return null;
 
       const job = await prisma.screenshotJob.findFirst({
         where: {
-          appId: app.id,
+          appId,
           status: "COMPLETED",
           framedByLocale: { not: Prisma.AnyNull },
         },
@@ -356,14 +355,11 @@ export class FastlaneService {
 
   private async loadLatestIpaPath(): Promise<string | null> {
     try {
-      const app = await prisma.app.findFirst({
-        where: { bundleId: this.bundleId },
-        select: { id: true },
-      });
-      if (!app) return null;
+      const appId = await this.resolveAppId();
+      if (!appId) return null;
 
       const buildJob = await prisma.buildJob.findFirst({
-        where: { appId: app.id, status: "COMPLETED", ipaPath: { not: null } },
+        where: { appId, status: "COMPLETED", ipaPath: { not: null } },
         orderBy: { completedAt: "desc" },
         select: { ipaPath: true },
       });
@@ -435,7 +431,7 @@ export class FastlaneService {
         onLog(`[Screenshots] ${locale}: set created (${set.id})`);
 
         for (const img of imgs) {
-          const fileData = fs.readFileSync(img.absPath);
+          const fileData = await fs.promises.readFile(img.absPath);
           const md5 = createHash("md5").update(fileData).digest("hex");
 
           onLog(`[Screenshots] ${locale}: reserving slot for ${img.filename} (${fileData.length} bytes)...`);
@@ -510,8 +506,12 @@ export class FastlaneService {
         pushLog(`Metadata written for ${Object.keys(localeData).length} locale(s)`);
       }
 
+      const [screenshotPaths, ipaPath] = await Promise.all([
+        action !== "binary" ? this.loadFramedScreenshotPaths() : null,
+        this.loadLatestIpaPath(),
+      ]);
+
       if (action !== "binary") {
-        const screenshotPaths = await this.loadFramedScreenshotPaths();
         if (screenshotPaths && Object.keys(screenshotPaths).length > 0) {
           pushLog("Uploading screenshots via App Store Connect API...");
           try {
@@ -525,8 +525,6 @@ export class FastlaneService {
           pushLog("No framed screenshots found, skipping screenshot upload.");
         }
       }
-
-      const ipaPath = await this.loadLatestIpaPath();
       if (ipaPath) {
         pushLog("Latest build IPA found, will be uploaded.");
       } else if (action === "binary") {
@@ -705,18 +703,13 @@ export class FastlaneService {
 
       const primary = primaryLocale ? localeData.get(primaryLocale) : undefined;
 
+      const fallbackFields = ["whatsNew", "supportUrl", "description"] as const;
       for (const [locale, data] of localeData) {
-        if (!data.whatsNew && primary?.whatsNew) {
-          logger.info(`[Fastlane] locale "${locale}" missing whatsNew - using "${primaryLocale}" as fallback`);
-          data.whatsNew = primary.whatsNew;
-        }
-        if (!data.supportUrl && primary?.supportUrl) {
-          logger.info(`[Fastlane] locale "${locale}" missing supportUrl - using "${primaryLocale}" as fallback`);
-          data.supportUrl = primary.supportUrl;
-        }
-        if (!data.description && primary?.description) {
-          logger.info(`[Fastlane] locale "${locale}" missing description - using "${primaryLocale}" as fallback`);
-          data.description = primary.description;
+        for (const field of fallbackFields) {
+          if (!data[field] && primary?.[field]) {
+            logger.info(`[Fastlane] locale "${locale}" missing ${field} - using "${primaryLocale}" as fallback`);
+            data[field] = primary[field];
+          }
         }
       }
     }
