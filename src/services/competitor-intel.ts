@@ -1,5 +1,4 @@
 import { prisma, logger } from "../config";
-import type { EffectiveSettings } from "../config";
 import { AIClient } from "./ai-client";
 
 interface ScrapedReview {
@@ -13,13 +12,11 @@ interface ScrapedReview {
 
 export class CompetitorIntelService {
   private readonly ai: AIClient;
-  private readonly settings?: EffectiveSettings;
   private readonly country: string;
 
-  constructor(settings?: EffectiveSettings) {
-    this.settings = settings;
+  constructor() {
     this.country = "de";
-    this.ai = new AIClient(settings);
+    this.ai = new AIClient();
   }
 
   async scrapeReviews(trackId: bigint | number, appId: string, country?: string): Promise<number> {
