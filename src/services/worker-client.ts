@@ -3,35 +3,7 @@ import { logger } from "../config";
 import { env } from "../config/env";
 import type { IncomingMessage } from "http";
 
-export interface WorkerDeliverParams {
-  locales: Record<
-    string,
-    {
-      name: string;
-      subtitle: string;
-      keywords: string;
-      description: string;
-      whatsNew: string;
-      promotionalText: string;
-      supportUrl: string;
-      marketingUrl: string;
-    }
-  >;
-  apiKey: {
-    key_id: string;
-    issuer_id: string;
-    key: string;
-    in_house: boolean;
-  };
-  bundleId: string;
-  action: "metadata" | "submit_for_review" | "binary";
-  copyright?: string;
-  screenshots?: Record<string, Array<{ filename: string; data: string }>>;
-  screenshotFallback?: string;
-  ipa?: string;
-}
-
-export interface WorkerDeliverResult {
+export interface WorkerUploadBinaryResult {
   ok: boolean;
   logs: string[];
   errors: string[];
@@ -144,19 +116,6 @@ class FastlaneWorkerClient {
 
   async health(): Promise<WorkerHealthResult> {
     const res = await this.getClient().get("/worker/health");
-    return res.data;
-  }
-
-  async deliver(params: WorkerDeliverParams): Promise<WorkerDeliverResult> {
-    const localeCount = Object.keys(params.locales ?? {}).length;
-    const timeoutMs = Math.min(60 * 60 * 1000, 5 * 60 * 1000 + localeCount * 2 * 60 * 1000);
-    logger.info(
-      `[WorkerClient] Sending deliver task to worker (${localeCount} locale(s), timeout ${Math.round(timeoutMs / 60000)}min)...`,
-    );
-    const res = await this.getClient().post("/worker/deliver", params, {
-      timeout: timeoutMs,
-      headersTimeout: 0,
-    });
     return res.data;
   }
 
@@ -274,7 +233,7 @@ class FastlaneWorkerClient {
   async uploadBinary(
     params: { ipaUrl: string; keyId: string; issuerId: string; privateKey: string; appStoreInfoUrl?: string },
     onLog?: (line: string) => void,
-  ): Promise<WorkerDeliverResult> {
+  ): Promise<WorkerUploadBinaryResult> {
     logger.info("[WorkerClient] Starting binary upload on worker via iTMSTransporter...");
 
     const baseURL = env.TRANSPORTER_WORKER_URL ?? env.FASTLANE_WORKER_URL;
@@ -327,7 +286,7 @@ class FastlaneWorkerClient {
                 onLog?.(JSON.parse(data) as string);
               } else if (event === "result") {
                 stream.destroy();
-                resolve(JSON.parse(data) as WorkerDeliverResult);
+                resolve(JSON.parse(data) as WorkerUploadBinaryResult);
               }
             }
           });
