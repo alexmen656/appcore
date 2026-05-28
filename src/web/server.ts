@@ -42,6 +42,7 @@ app.use(
     contentSecurityPolicy: false,
   }),
 );
+
 const allowedOrigins = env.CORS_ORIGIN
   ? env.CORS_ORIGIN.split(",").map((o) => o.trim())
   : ["http://localhost:5173", "http://localhost:5174"];
@@ -73,7 +74,7 @@ app.post("/api/billing/webhook", express.raw({ type: "application/json" }), asyn
     const result = await handleLemonSqueezyWebhook(req.body as Buffer, req.header("x-signature") ?? undefined);
     res.json(result);
   } catch (err) {
-    logger.warn({ err: String(err) }, "lemon squeezy webhook rejected");
+    logger.warn("lemon squeezy webhook rejected", { err: String(err) });
     res.status(400).json({ error: String(err) });
   }
 });
@@ -163,34 +164,7 @@ app.post("/mcp", mcpAuth, createMcpHandler());
 const screenshotsDir = path.join(process.cwd(), "screenshots");
 app.use("/screenshots", express.static(screenshotsDir));
 
-const DOCS_PORT = 3030;
 const ADMIN_PORT = 5174;
-
-const docsDist = path.join(process.cwd(), "docs/build");
-if (process.env.NODE_ENV === "production") {
-  app.use("/docs", express.static(docsDist));
-  app.get("/docs/*", (_req, res) => res.sendFile(path.join(docsDist, "index.html")));
-} else {
-  app.use("/docs", (req, res) => {
-    const proxyReq = http.request(
-      {
-        hostname: "localhost",
-        port: DOCS_PORT,
-        path: "/docs" + req.url,
-        method: req.method,
-        headers: { ...req.headers, host: `localhost:${DOCS_PORT}` },
-      },
-      (proxyRes) => {
-        res.writeHead(proxyRes.statusCode ?? 200, proxyRes.headers);
-        proxyRes.pipe(res);
-      },
-    );
-    req.pipe(proxyReq);
-    proxyReq.on("error", () => {
-      res.status(502).send("Docs dev server not running — cd docs-site && npm start -- --port 3030");
-    });
-  });
-}
 
 const adminDist = path.join(__dirname, "../../admin/dist");
 if (process.env.NODE_ENV === "production") {
