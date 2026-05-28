@@ -181,6 +181,12 @@ function getDeviceLabel(url: string): string {
   return "Other";
 }
 
+function thumbUrl(url: string, width: 200 | 300 | 400 | 600 | 800): string {
+  const rel = url.replace(/^\/screenshots\//, "");
+  if (rel === url) return url;
+  return `/screenshots-thumb/${width}/${rel}`;
+}
+
 const SUBMIT_STATUS_DEFAULT = { dot: "bg-gray-300", text: "text-gray-500" };
 const SUBMIT_STATUS_COLORS: Record<string, { dot: string; text: string }> = {
   preparing: { dot: "bg-blue-500 animate-pulse", text: "text-blue-600" },
@@ -887,9 +893,12 @@ function ScreenshotsPanel({
                           aria-label={`Open ${label} screenshot preview`}
                         >
                           <img
-                            src={url}
+                            src={thumbUrl(url, 300)}
+                            srcSet={`${thumbUrl(url, 300)} 1x, ${thumbUrl(url, 600)} 2x`}
                             alt={`${label} screenshot`}
                             draggable={false}
+                            loading="lazy"
+                            decoding="async"
                             className="h-[200px] w-auto rounded-xl border border-[#eef0f3] object-cover shadow-sm group-hover/img:shadow-md group-hover/img:opacity-90 transition-all"
                           />
                         </button>
@@ -1368,7 +1377,12 @@ export default function Versions({ addToast }: Props) {
     setSubmitStatus({ active: true, status: "preparing", logs: [], errors: [] });
     try {
       const res = await apiPost(`/submissions/${kind}`, { bundleId: getActiveBundleId() });
-      const fallback = kind === "metadata" ? "Metadata push started" : kind === "binary" ? "Binary upload started" : "Submit for review started";
+      const fallback =
+        kind === "metadata"
+          ? "Metadata push started"
+          : kind === "binary"
+            ? "Binary upload started"
+            : "Submit for review started";
       addToast(res.message || fallback, "success");
       startPolling();
     } catch (e: any) {
@@ -1848,7 +1862,9 @@ export default function Versions({ addToast }: Props) {
                 />
                 {data.ageRating !== undefined && (
                   <div className="group">
-                    <div className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide mb-1.5 flex items-center gap-2`}>
+                    <div
+                      className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide mb-1.5 flex items-center gap-2`}
+                    >
                       Age Rating
                     </div>
                     <div className="flex items-center gap-2">

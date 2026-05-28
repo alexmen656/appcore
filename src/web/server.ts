@@ -30,6 +30,7 @@ import { billingRouter, handleLemonSqueezyWebhook } from "./api/billing";
 import { notificationService } from "../services/notifications/notification.js";
 import { initScheduler as initASOScheduler } from "../autonomous";
 import { ipaDownloadTokens, appStoreInfoTokens } from "../services/fastlane";
+import { serveScreenshotThumb } from "../services/screenshot-thumb";
 import fs from "fs";
 
 const app = express();
@@ -162,6 +163,7 @@ app.get("/.well-known/oauth-authorization-server", (req, res) => {
 app.post("/mcp", mcpAuth, createMcpHandler());
 
 const screenshotsDir = path.join(process.cwd(), "screenshots");
+app.get("/screenshots-thumb/:width/*", requireAuth, serveScreenshotThumb);
 app.use("/screenshots", express.static(screenshotsDir));
 
 const ADMIN_PORT = 5174;
