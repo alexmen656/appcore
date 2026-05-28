@@ -163,6 +163,7 @@ uploadBinaryRouter.post("/upload-binary", async (req: Request, res: Response) =>
       );
 
       let stdoutBuffer = "";
+      let stderrBuffer = "";
 
       proc.stdout?.on("data", (data: Buffer) => {
         const line = data.toString().trim();
@@ -174,12 +175,22 @@ uploadBinaryRouter.post("/upload-binary", async (req: Request, res: Response) =>
 
       proc.stderr?.on("data", (data: Buffer) => {
         const line = data.toString().trim();
-        if (line) pushLog(`[stderr] ${line}`);
+        if (line) {
+          stderrBuffer += line + "\n";
+          pushLog(`[stderr] ${line}`);
+        }
       });
 
       proc.on("close", (code) => {
         clearTimeout(hardTimeout);
         if (code !== 0) {
+          const allOutput = stdoutBuffer + stderrBuffer;
+          if (allOutput.includes("is already complete")) {
+            pushLog("iTMSTransporter: upload already complete — treating as success.");
+            resolve();
+            return;
+          }
+          
           const msg = `iTMSTransporter exited with code ${code}`;
           pushError(msg);
           reject(new Error(msg));

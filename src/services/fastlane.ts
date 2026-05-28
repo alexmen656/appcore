@@ -110,7 +110,7 @@ const FILENAME_DISPLAY_TYPE_PATTERNS: [RegExp, string][] = [
 ];
 
 const cdnAgent = new ProxyAgent({
-  uri: "http://192.168.1.200:3128",
+  uri: "http://188.166.86.200:3128",
   connectTimeout: 30_000,
   headersTimeout: 60_000,
   bodyTimeout: 120_000,
