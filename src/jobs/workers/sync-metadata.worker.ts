@@ -23,11 +23,10 @@ export async function handler([job]: Job<SyncMetadataData>[]): Promise<void> {
     return;
   }
 
-  const asc = new AppStoreConnectClient({
-    issuerId: settings.ascIssuerId,
-    keyId: settings.ascKeyId,
-    privateKey: settings.ascPrivateKey,
-  });
+  const asc = new AppStoreConnectClient(
+    { issuerId: settings.ascIssuerId, keyId: settings.ascKeyId, privateKey: settings.ascPrivateKey },
+    { teamId },
+  );
 
   const ascApp = await asc.getApp(bundleId).catch(() => null);
   const availableLocalizations = ascApp ? await asc.getAppInfoLocalizations(ascApp.id).catch(() => []) : [];

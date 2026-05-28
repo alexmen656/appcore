@@ -439,6 +439,21 @@ export const modelConfigs: ModelConfig[] = [
       { name: "lastUsedAt", type: "date" },
     ],
   },
+  {
+    name: "AscRateLimit",
+    plural: "ASC Rate Limits",
+    apiPath: "ascRateLimit",
+    icon: "gauge",
+    category: "System",
+    displayField: "teamId",
+    fields: [
+      { name: "id", type: "string", editable: false },
+      { name: "teamId", type: "string", editable: false },
+      { name: "hourLimit", type: "number", editable: false },
+      { name: "hourRemaining", type: "number", editable: false },
+      { name: "updatedAt", type: "date", editable: false },
+    ],
+  },
 ];
 
 export const modelCategories = [...new Set(modelConfigs.map((m) => m.category))];

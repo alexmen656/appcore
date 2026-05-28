@@ -177,11 +177,10 @@ export class FastlaneService {
       throw new Error("App Store Connect credentials not configured. Set them in Settings.");
     }
 
-    this.asc = new AppStoreConnectClient({
-      issuerId: settings.ascIssuerId,
-      keyId: settings.ascKeyId,
-      privateKey: settings.ascPrivateKey,
-    });
+    this.asc = new AppStoreConnectClient(
+      { issuerId: settings.ascIssuerId, keyId: settings.ascKeyId, privateKey: settings.ascPrivateKey },
+      { teamId: settings.teamId || undefined },
+    );
   }
 
   async preview(): Promise<SubmissionPreview> {

@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from "./utils/http";
 import { logger, env } from "../config";
+import { prisma } from "../config/database";
 import { generateASCToken } from "./utils/asc-token";
 
 interface ASCAppInfo {
@@ -95,9 +96,10 @@ export class AppStoreConnectClient {
   private readonly issuerId: string;
   private readonly keyId: string;
   private readonly privateKey: string;
+  private readonly teamId: string | null;
   private rateLimit: ASCRateLimit | null = null;
 
-  constructor(override?: Partial<ASCCredentials>) {
+  constructor(override?: Partial<ASCCredentials>, options?: { teamId?: string }) {
     const issuerId = override?.issuerId;
     const keyId = override?.keyId;
     const privateKey = override?.privateKey;
@@ -109,6 +111,7 @@ export class AppStoreConnectClient {
     this.issuerId = issuerId;
     this.keyId = keyId;
     this.privateKey = privateKey;
+    this.teamId = options?.teamId ?? null;
 
     this.client = axios.create({
       baseURL: "https://api.appstoreconnect.apple.com/v1",
@@ -127,11 +130,7 @@ export class AppStoreConnectClient {
         if (header) {
           const parsed = parseRateLimitHeader(header);
           if (parsed) {
-            this.rateLimit = {
-              hourLimit: parsed.limit,
-              hourRemaining: parsed.remaining,
-              updatedAt: new Date(),
-            };
+            this.updateRateLimit(parsed.limit, parsed.remaining);
           }
         }
         return response;
@@ -141,11 +140,7 @@ export class AppStoreConnectClient {
         if (header) {
           const parsed = parseRateLimitHeader(header);
           if (parsed) {
-            this.rateLimit = {
-              hourLimit: parsed.limit,
-              hourRemaining: parsed.remaining,
-              updatedAt: new Date(),
-            };
+            this.updateRateLimit(parsed.limit, parsed.remaining);
           }
         }
         if (error?.response?.status === 429) {
@@ -156,6 +151,21 @@ export class AppStoreConnectClient {
         throw error;
       },
     );
+  }
+
+  private updateRateLimit(limit: number, remaining: number): void {
+    this.rateLimit = { hourLimit: limit, hourRemaining: remaining, updatedAt: new Date() };
+    const pct = Math.round((remaining / limit) * 100);
+    logger.debug(`ASC rate limit: ${remaining}/${limit} remaining (${pct}%)`);
+    if (this.teamId) {
+      prisma.ascRateLimit
+        .upsert({
+          where: { teamId: this.teamId },
+          update: { hourLimit: limit, hourRemaining: remaining },
+          create: { teamId: this.teamId, hourLimit: limit, hourRemaining: remaining },
+        })
+        .catch((err: unknown) => logger.warn("Failed to persist ASC rate limit", err));
+    }
   }
 
   getRateLimit(): ASCRateLimit | null {

@@ -53,11 +53,10 @@ export async function runBuildJob(
 
       if (settings.ascIssuerId && settings.ascKeyId && settings.ascPrivateKey) {
         const { AppStoreConnectClient } = await import("./appstore-connect");
-        const asc = new AppStoreConnectClient({
-          issuerId: settings.ascIssuerId,
-          keyId: settings.ascKeyId,
-          privateKey: settings.ascPrivateKey,
-        });
+        const asc = new AppStoreConnectClient(
+          { issuerId: settings.ascIssuerId, keyId: settings.ascKeyId, privateKey: settings.ascPrivateKey },
+          { teamId: app.teamId },
+        );
 
         const ascApp = await asc.getApp(params.bundleId).catch(() => null);
         if (ascApp) {

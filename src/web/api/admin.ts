@@ -54,6 +54,7 @@ function getModel(name: string): PrismaDelegate | null {
     deviceToken: prisma.deviceToken,
     pushNotificationLog: prisma.pushNotificationLog,
     passkeyCredential: prisma.passkeyCredential,
+    ascRateLimit: prisma.ascRateLimit,
   };
   return models[name] ?? null;
 }
@@ -104,6 +105,7 @@ router.get("/dashboard", async (_req: Request, res: Response) => {
     recentApps,
     jobStatusCounts,
     suggestionTypeCounts,
+    rateLimits,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.team.count(),
@@ -136,6 +138,13 @@ router.get("/dashboard", async (_req: Request, res: Response) => {
     prisma.$queryRaw<{ type: string; count: number }[]>`
       SELECT type::text, COUNT(*)::int as count FROM "ASOSuggestion" GROUP BY type ORDER BY count DESC
     `,
+    prisma.$queryRaw<{ teamId: string; teamName: string; hourLimit: number; hourRemaining: number; updatedAt: Date }[]>`
+      SELECT r."teamId", COALESCE(t.name, r."teamId") as "teamName",
+             r."hourLimit", r."hourRemaining", r."updatedAt"
+      FROM "AscRateLimit" r
+      LEFT JOIN "Team" t ON t.id = r."teamId"
+      ORDER BY r."hourRemaining" ASC
+    `,
   ]);
 
   const toChartData = (rows: { day: Date | string; count: number }[]) =>
@@ -156,6 +165,13 @@ router.get("/dashboard", async (_req: Request, res: Response) => {
     oauthClients,
     deviceTokens,
     analytics,
+    ascRateLimits: rateLimits.map((r) => ({
+      teamId: r.teamId,
+      teamName: r.teamName,
+      hourLimit: Number(r.hourLimit),
+      hourRemaining: Number(r.hourRemaining),
+      updatedAt: r.updatedAt instanceof Date ? r.updatedAt.toISOString() : String(r.updatedAt),
+    })),
     charts: {
       usersOverTime: toChartData(recentUsers),
       appsOverTime: toChartData(recentApps),

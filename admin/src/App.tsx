@@ -10,7 +10,7 @@ import {
   LayoutDashboard, Users, Building, UserCheck, Mail, Settings,
   Smartphone, Camera, Search, TrendingUp, Lightbulb, FlaskConical,
   Swords, BarChart3, Star, MessageSquare, FileDiff, Image,
-  Hammer, Key, Bell, Send, Fingerprint, BriefcaseBusiness,
+  Hammer, Key, Bell, Send, Fingerprint, BriefcaseBusiness, Gauge,
 } from "lucide-react";
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -36,6 +36,7 @@ const iconMap: Record<string, React.ReactNode> = {
   "bell": <Bell className="h-4 w-4" />,
   "send": <Send className="h-4 w-4" />,
   "fingerprint": <Fingerprint className="h-4 w-4" />,
+  "gauge": <Gauge className="h-4 w-4" />,
 };
 
 export default function App() {

@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(grep -nB 15 \"verifyAppOwnershipByBundleId\" /Users/alexpolan/appcore/src/web/api/asc.ts)"
+      "Bash(grep -nB 15 \"verifyAppOwnershipByBundleId\" /Users/alexpolan/appcore/src/web/api/asc.ts)",
+      "Bash(sed -n '90,115p' /Users/alexpolan/appcore/src/autonomous/executor.ts)",
+      "Bash(sed -n '95,115p' /Users/alexpolan/appcore/src/web/api/suggestions.ts)",
+      "Bash(sed -n '195,215p' /Users/alexpolan/appcore/src/web/api/suggestions.ts)",
+      "Bash(sed -n '100,115p' /Users/alexpolan/appcore/src/web/api/suggestions.ts)",
+      "Bash(sed -n '197,212p' /Users/alexpolan/appcore/src/web/api/suggestions.ts)",
+      "Bash(grep -v \"^$\")"
     ]
   }
 }

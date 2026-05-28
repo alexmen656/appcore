@@ -302,11 +302,10 @@ async function ascClientForUser(userId: string): Promise<AppStoreConnectClient> 
       })
     : null;
   if (s?.ascIssuerId && s?.ascKeyId && s?.ascPrivateKey) {
-    return new AppStoreConnectClient({
-      issuerId: s.ascIssuerId,
-      keyId: s.ascKeyId,
-      privateKey: s.ascPrivateKey,
-    });
+    return new AppStoreConnectClient(
+      { issuerId: s.ascIssuerId, keyId: s.ascKeyId, privateKey: s.ascPrivateKey },
+      { teamId: membership?.teamId },
+    );
   }
   return new AppStoreConnectClient();
 }
