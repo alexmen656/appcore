@@ -135,7 +135,7 @@ export async function buildWithGym(
   logs: string[],
   signingCreds?: SigningCreds,
   versionString?: string,
-): Promise<{ ipaBase64: string; originalFilename: string; sizeBytes: number }> {
+): Promise<{ ipaBase64: string; originalFilename: string; sizeBytes: number; appStoreInfoBase64?: string }> {
   logs.push("[build] Starting build");
 
   let signingCleanup: (() => Promise<void>) | undefined;
@@ -175,13 +175,20 @@ export async function buildWithGym(
       `export_options({`,
       `  method: "${exportMethod}",`,
       `  signingStyle: "manual",`,
+      `  generateAppStoreInformation: true,`,
       `  provisioningProfiles: {`,
       `    "${bundleId}" => "${installedProfileUuid}"`,
       `  }`,
       `})`,
     );
   } else {
-    gymfile.push(`export_options({`, `  method: "${exportMethod}",`, `  signingStyle: "automatic"`, `})`);
+    gymfile.push(
+      `export_options({`,
+      `  method: "${exportMethod}",`,
+      `  signingStyle: "automatic",`,
+      `  generateAppStoreInformation: true`,
+      `})`,
+    );
   }
   fs.writeFileSync(path.join(fastlaneDir, "Gymfile"), gymfile.join("\n"));
 
@@ -191,7 +198,9 @@ export async function buildWithGym(
   if (versionString) {
     logs.push(`[build] Version set to ${versionString} (via xcargs)`);
   }
-  logs.push(`[build] Build number set to ${xcargsList.find(x => x.startsWith("CURRENT_PROJECT_VERSION="))?.split("=")[1]}`);
+  logs.push(
+    `[build] Build number set to ${xcargsList.find((x) => x.startsWith("CURRENT_PROJECT_VERSION="))?.split("=")[1]}`,
+  );
 
   logs.push(`[build] Building ...`);
   const gymStart = Date.now();
@@ -210,7 +219,13 @@ export async function buildWithGym(
       await execAsync(`${fastlanePath} ${updateSigningArgs} 2>&1`, {
         cwd: repoDir,
         timeout: 60_000,
-        env: { ...process.env, FASTLANE_DISABLE_COLORS: "1", LANG: "en_US.UTF-8", LANGUAGE: "en_US.UTF-8", LC_ALL: "en_US.UTF-8" },
+        env: {
+          ...process.env,
+          FASTLANE_DISABLE_COLORS: "1",
+          LANG: "en_US.UTF-8",
+          LANGUAGE: "en_US.UTF-8",
+          LC_ALL: "en_US.UTF-8",
+        },
         maxBuffer: 10 * 1024 * 1024,
       });
     }
@@ -218,7 +233,13 @@ export async function buildWithGym(
     await execAsync(`${fastlanePath} gym 2>&1`, {
       cwd: repoDir,
       timeout: 900_000,
-      env: { ...process.env, FASTLANE_DISABLE_COLORS: "1", LANG: "en_US.UTF-8", LANGUAGE: "en_US.UTF-8", LC_ALL: "en_US.UTF-8" },
+      env: {
+        ...process.env,
+        FASTLANE_DISABLE_COLORS: "1",
+        LANG: "en_US.UTF-8",
+        LANGUAGE: "en_US.UTF-8",
+        LC_ALL: "en_US.UTF-8",
+      },
       maxBuffer: 10 * 1024 * 1024,
     });
 
@@ -263,11 +284,19 @@ export async function buildWithGym(
   const ipaBase64 = ipaBuffer.toString("base64");
   const ipaSize = ipaBuffer.length;
 
-  logs.push(`[build] Binary ready (${(ipaSize / 1024 / 1024).toFixed(1)} MB)`);
+  const appStoreInfoPath = path.join(path.dirname(ipa), "AppStoreInfo.plist");
+  const appStoreInfoBase64 = fs.existsSync(appStoreInfoPath)
+    ? fs.readFileSync(appStoreInfoPath).toString("base64")
+    : undefined;
+
+  logs.push(
+    `[build] Binary ready (${(ipaSize / 1024 / 1024).toFixed(1)} MB)${appStoreInfoBase64 ? " + AppStoreInfo.plist" : ""}`,
+  );
   await signingCleanup?.();
   return {
     ipaBase64,
     originalFilename: path.basename(ipa),
     sizeBytes: ipaSize,
+    appStoreInfoBase64,
   };
 }

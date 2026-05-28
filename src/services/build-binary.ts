@@ -50,6 +50,7 @@ export async function runBuildJob(
     try {
       const { getEffectiveSettingsForTeam } = await import("../config");
       const settings = await getEffectiveSettingsForTeam(app.teamId);
+
       if (settings.ascIssuerId && settings.ascKeyId && settings.ascPrivateKey) {
         const { AppStoreConnectClient } = await import("./appstore-connect");
         const asc = new AppStoreConnectClient({
@@ -57,6 +58,7 @@ export async function runBuildJob(
           keyId: settings.ascKeyId,
           privateKey: settings.ascPrivateKey,
         });
+
         const ascApp = await asc.getApp(params.bundleId).catch(() => null);
         if (ascApp) {
           const editable = await asc.getEditableVersion(ascApp.id).catch(() => null);
@@ -131,6 +133,14 @@ export async function runBuildJob(
 
       await fs.promises.writeFile(destIpa, ipaBuffer);
       await fs.promises.writeFile(historyIpa, ipaBuffer);
+
+      if (result.appStoreInfoBase64) {
+        await fs.promises.writeFile(
+          path.join(buildsDir, "latest.appstoreinfo.plist"),
+          Buffer.from(result.appStoreInfoBase64, "base64"),
+        );
+      }
+
       await fs.promises.writeFile(
         path.join(buildsDir, "latest.json"),
         JSON.stringify(

@@ -34,6 +34,7 @@ const envSchema = z.object({
   GITHUB_CLIENT_ID: z.string().optional(),
   GITHUB_CLIENT_SECRET: z.string().optional(),
   GITHUB_WEBHOOK_BASE_URL: z.string().optional(),
+  
   // GitHub OAuth — Sign in with GitHub (separate app, minimal scopes)
   GITHUB_AUTH_CLIENT_ID: z.string().optional(),
   GITHUB_AUTH_CLIENT_SECRET: z.string().optional(),
@@ -45,6 +46,9 @@ const envSchema = z.object({
   // Fastlane Worker (MacOS)
   FASTLANE_WORKER_URL: z.string().url().optional(),
   FASTLANE_WORKER_SECRET: z.string().optional(),
+
+  // Transporter Worker (+ Linux proxy server)
+  TRANSPORTER_WORKER_URL: z.string().url().optional(),
   FASTLANE_PATH: z.string().default("fastlane"),
   SERVER_INTERNAL_URL: z.string().url().optional(),
 

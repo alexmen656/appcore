@@ -85,6 +85,7 @@ export interface WorkerBuildResult {
   ipaBase64?: string;
   originalFilename?: string;
   sizeBytes?: number;
+  appStoreInfoBase64?: string;
 }
 
 export interface WorkerFrameitParams {
@@ -271,21 +272,34 @@ class FastlaneWorkerClient {
   }
 
   async uploadBinary(
-    params: { ipaUrl: string; keyId: string; issuerId: string; privateKey: string },
+    params: { ipaUrl: string; keyId: string; issuerId: string; privateKey: string; appStoreInfoUrl?: string },
     onLog?: (line: string) => void,
   ): Promise<WorkerDeliverResult> {
     logger.info("[WorkerClient] Starting binary upload on worker via iTMSTransporter...");
 
-    const startRes = await this.getClient().post<{ ok: boolean; runId: string }>("/worker/upload-binary", params, {
+    const baseURL = env.TRANSPORTER_WORKER_URL ?? env.FASTLANE_WORKER_URL;
+    const secret = env.FASTLANE_WORKER_SECRET!;
+
+    if (!baseURL) throw new Error("No worker URL configured for upload-binary.");
+
+    const uploadClient = axios.create({
+      baseURL,
+      headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/json" },
       timeout: 60_000,
     });
+
+    const startRes = await uploadClient.post<{ ok: boolean; runId: string }>(
+      "/worker/upload-binary",
+      params as object,
+      {
+        timeout: 60_000,
+      },
+    );
+
     const { runId } = startRes.data;
     logger.info(`[WorkerClient] Binary upload job started: runId=${runId}`);
 
     return new Promise((resolve, reject) => {
-      const baseURL = env.FASTLANE_WORKER_URL!;
-      const secret = env.FASTLANE_WORKER_SECRET!;
-
       axios
         .get<IncomingMessage>(`${baseURL}/worker/upload-binary/${runId}/stream`, {
           headers: { Authorization: `Bearer ${secret}` },
@@ -298,13 +312,16 @@ class FastlaneWorkerClient {
             buf += chunk.toString();
             const parts = buf.split("\n\n");
             buf = parts.pop() ?? "";
+
             for (const block of parts) {
               let event = "message";
               let data = "";
+
               for (const line of block.split("\n")) {
                 if (line.startsWith("event: ")) event = line.slice(7).trim();
                 else if (line.startsWith("data: ")) data = line.slice(6);
               }
+
               if (!data) continue;
               if (event === "log") {
                 onLog?.(JSON.parse(data) as string);

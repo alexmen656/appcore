@@ -11,6 +11,7 @@ import { AppStoreConnectClient, type ASCAppStoreVersion } from "./appstore-conne
 import { workerClient } from "./worker-client";
 
 export const ipaDownloadTokens = new Map<string, string>();
+export const appStoreInfoTokens = new Map<string, string>();
 
 export interface SubmissionPreview {
   appId: string;
@@ -634,12 +635,24 @@ export class FastlaneService {
       const token = randomUUID();
       ipaDownloadTokens.set(token, ipaPath);
       setTimeout(() => ipaDownloadTokens.delete(token), 10 * 60 * 1000).unref();
+
       const ipaUrl = `${env.SERVER_INTERNAL_URL}/internal/ipa/${token}`;
-      pushLog(`IPA download URL created, sending job to Mac Mini worker...`);
+      const appStoreInfoPath = path.join(path.dirname(ipaPath), "latest.appstoreinfo.plist");
+      let appStoreInfoUrl: string | undefined;
+
+      if (fs.existsSync(appStoreInfoPath)) {
+        const infoToken = randomUUID();
+        appStoreInfoTokens.set(infoToken, appStoreInfoPath);
+        setTimeout(() => appStoreInfoTokens.delete(infoToken), 10 * 60 * 1000).unref();
+        appStoreInfoUrl = `${env.SERVER_INTERNAL_URL}/internal/appstoreinfo/${infoToken}`;
+      }
+
+      pushLog(`IPA download URL created, sending job to transporter worker...`);
 
       const result = await workerClient.uploadBinary(
         {
           ipaUrl,
+          appStoreInfoUrl,
           keyId: this.settings.ascKeyId!,
           issuerId: this.settings.ascIssuerId!,
           privateKey: this.settings.ascPrivateKey!,
@@ -717,7 +730,8 @@ export class FastlaneService {
         [...localeData.keys()][0];
 
       const primary = primaryLocale ? localeData.get(primaryLocale) : undefined;
-      //shit
+
+      //shit - remove primary locale fallback later
       const fallbackFields = ["whatsNew", "supportUrl", "description"] as const;
       for (const [locale, data] of localeData) {
         for (const field of fallbackFields) {
