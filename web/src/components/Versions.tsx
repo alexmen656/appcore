@@ -151,7 +151,9 @@ function LocaleFlag({ locale, className }: { locale: string; className?: string 
     <img
       src={`/country-flags/${getLocaleFlag(locale)}.svg`}
       alt=""
-      className={className ?? "h-[14px] w-auto object-contain shrink-0 rounded-xs"}
+      width={20}
+      height={15}
+      className={className ?? "h-[14px] w-[19px] object-contain shrink-0 rounded-xs"}
       onError={(e) => {
         (e.currentTarget as HTMLImageElement).style.display = "none";
       }}
@@ -1807,7 +1809,7 @@ export default function Versions({ addToast }: Props) {
               <div className="flex items-start gap-2.5">
                 <LocaleFlag
                   locale={activeLoc.locale}
-                  className="w-auto h-[17px] rounded-xs object-cover shrink-0 mt-1"
+                  className="w-[23px] h-[17px] rounded-xs object-contain shrink-0 mt-1"
                 />
                 <div>
                   <div className={`text-[16px] font-semibold ${textPrimary} leading-tight`}>
