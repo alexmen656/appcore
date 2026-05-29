@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../../config";
-import { requireAuth, requireTeamAdmin, loadTeamRole, requireWriteRole, TeamRoleName } from "../auth";
+import { requireAuth, requireTeamAdmin, loadTeamRole, requireWriteRole, demoGuard, TeamRoleName } from "../auth";
 import { teamInvite } from "../../services/notifications/templates.js";
 import crypto from "crypto";
 
@@ -53,7 +53,7 @@ teamRouter.get("/invite/:token", async (req, res) => {
   }
 });
 
-teamRouter.use(requireAuth, loadTeamRole, requireWriteRole);
+teamRouter.use(requireAuth, demoGuard, loadTeamRole, requireWriteRole);
 
 async function getMyMembership(userId: string, teamId: string | null) {
   if (!teamId) return null;

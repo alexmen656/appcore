@@ -14,6 +14,7 @@ export interface JwtPayload {
   role: string;
   teamId: string | null;
   tokenVersion?: number;
+  isDemo?: boolean;
 }
 
 export interface AuthedUser {
@@ -21,6 +22,7 @@ export interface AuthedUser {
   email: string;
   role: string;
   teamId: string;
+  isDemo?: boolean;
 }
 
 export function signToken(payload: JwtPayload): string {
@@ -74,6 +76,14 @@ export function requireWriteRole(req: Request, res: Response, next: NextFunction
   next();
 }
 
+export function demoGuard(req: Request, res: Response, next: NextFunction) {
+  if (req.user?.isDemo && MUTATING_METHODS.has(req.method)) {
+    res.json({ ok: true });
+    return;
+  }
+  next();
+}
+
 export function requireTeamAdminMw(req: Request, res: Response, next: NextFunction) {
   if (req.user?.role === "ADMIN") return next();
   if (req.teamRole === "OWNER" || req.teamRole === "ADMIN") return next();
@@ -119,7 +129,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       return;
     }
 
-    req.user = { userId: decoded.userId, email: decoded.email, role: dbUser.role, teamId: decoded.teamId };
+    req.user = { userId: decoded.userId, email: decoded.email, role: dbUser.role, teamId: decoded.teamId, isDemo: decoded.isDemo ?? false };
     next();
   } catch {
     res.status(500).json({ error: "Internal server error" });

@@ -196,6 +196,7 @@ export interface AuthUser {
   role: string;
   teamId: string | null;
   teamRole: TeamRole | null;
+  isDemo?: boolean;
 }
 
 export type AppRole = "OWNER" | "EDITOR" | "VIEWER";

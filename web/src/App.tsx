@@ -977,7 +977,8 @@ export default function App() {
   });
   const inSettings = location.pathname.startsWith("/settings");
 
-  const checkOnboarding = async () => {
+  const checkOnboarding = async (forUser?: AuthUser) => {
+    if (forUser?.isDemo) return;
     try {
       const [settingsRes, appsRes] = await Promise.all([
         fetch("/api/settings", { credentials: "include" }),
@@ -1041,7 +1042,7 @@ export default function App() {
           const decoded = JSON.parse(atob(padded));
           setUser(decoded);
           setAuthLoading(false);
-          if (isNew) checkOnboarding();
+          if (isNew) checkOnboarding(decoded);
           return;
         } catch {
           // fall through to /me fetch
@@ -1054,7 +1055,7 @@ export default function App() {
       .then((u) => {
         setUser(u);
         setAuthLoading(false);
-        if (u) checkOnboarding();
+        if (u) checkOnboarding(u);
       })
       .catch(() => setAuthLoading(false));
   }, []);
@@ -1095,7 +1096,7 @@ export default function App() {
       <Login
         onAuth={(u) => {
           setUser(u);
-          checkOnboarding();
+          checkOnboarding(u);
         }}
       />
     );
@@ -1117,7 +1118,7 @@ export default function App() {
       <div className="flex flex-col h-screen overflow-hidden bg-[var(--shell-bg)] transition-colors">
         <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
         <ToastContainer toasts={toasts} />
-        {user.email === "alexx.polan1@gmail.com" && (
+        {user.email === "demo@marteso.com" && (
           <div className="shrink-0 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800/40 px-4 py-2 flex items-center justify-center gap-3 text-sm text-amber-800 dark:text-amber-300">
             <span>Du nutzt den Demo-Account — Änderungen sind für alle sichtbar.</span>
             <a
