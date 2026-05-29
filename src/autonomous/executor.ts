@@ -96,11 +96,10 @@ export class ASOExecutor {
     });
 
     const locale = "en-US";
-    const asc = new AppStoreConnectClient({
-      issuerId: settings.ascIssuerId!,
-      keyId: settings.ascKeyId!,
-      privateKey: settings.ascPrivateKey!,
-    });
+    const asc = new AppStoreConnectClient(
+      { issuerId: settings.ascIssuerId!, keyId: settings.ascKeyId!, privateKey: settings.ascPrivateKey! },
+      { teamId: settings.teamId || undefined },
+    );
 
     const ascResult = await asc.applyASOChanges(
       {

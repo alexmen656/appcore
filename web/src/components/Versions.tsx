@@ -32,7 +32,151 @@ import {
   Plus,
   X,
   ShieldCheck,
+  Package,
+  Image as ImageIcon,
+  FileEdit,
+  Minus,
 } from "lucide-react";
+
+type PhaseState = "pending" | "running" | "done" | "skipped" | "failed";
+type SubmitKind = "metadata" | "review" | "binary";
+
+interface PhaseProgress {
+  state: PhaseState;
+  current: number;
+  total: number;
+}
+
+interface SubmissionPhases {
+  binary: PhaseProgress;
+  metadata: PhaseProgress;
+  screenshots: PhaseProgress;
+}
+
+function PhaseStep({
+  label,
+  phase,
+  icon: Icon,
+}: {
+  label: string;
+  phase: PhaseProgress;
+  icon: typeof Package;
+}) {
+  const { state, current, total } = phase;
+  const pct = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : state === "done" ? 100 : 0;
+
+  const palette =
+    state === "running"
+      ? {
+          border: "border-blue-500",
+          bg: "bg-blue-50 dark:bg-blue-900/20",
+          label: "text-blue-700 dark:text-blue-300",
+          icon: "text-blue-600",
+          bar: "bg-blue-500",
+        }
+      : state === "done"
+        ? {
+            border: "border-emerald-500",
+            bg: "bg-emerald-50 dark:bg-emerald-900/20",
+            label: "text-emerald-700 dark:text-emerald-300",
+            icon: "text-emerald-600",
+            bar: "bg-emerald-500",
+          }
+        : state === "failed"
+          ? {
+              border: "border-red-500",
+              bg: "bg-red-50 dark:bg-red-900/20",
+              label: "text-red-700 dark:text-red-300",
+              icon: "text-red-600",
+              bar: "bg-red-500",
+            }
+          : state === "skipped"
+            ? {
+                border: "border-[#e5e7eb] dark:border-[#2a2f3d]",
+                bg: "bg-[#fafbfc] dark:bg-[#252b38] opacity-60",
+                label: "text-[#6b7280] dark:text-[#8b93a5]",
+                icon: "text-[#9ca3af]",
+                bar: "bg-[#d1d5db] dark:bg-[#3a4050]",
+              }
+            : {
+                border: "border-[#e5e7eb] dark:border-[#2a2f3d]",
+                bg: "bg-white dark:bg-[#1c2028]",
+                label: "text-[#6b7280] dark:text-[#8b93a5]",
+                icon: "text-[#9ca3af]",
+                bar: "bg-[#d1d5db] dark:bg-[#3a4050]",
+              };
+
+  const statusLabel =
+    state === "running"
+      ? total > 1
+        ? `${current}/${total}`
+        : "Running…"
+      : state === "done"
+        ? total > 1
+          ? `${total}/${total}`
+          : "Done"
+        : state === "failed"
+          ? "Failed"
+          : state === "skipped"
+            ? "Skipped"
+            : "Pending";
+
+  return (
+    <div className="flex-1 min-w-0">
+      <div className={`p-2.5 rounded-xl border ${palette.border} ${palette.bg} transition-colors`}>
+        <div className="flex items-center gap-2.5">
+          <div className="relative w-7 h-7 shrink-0 flex items-center justify-center">
+            {state === "running" ? (
+              <div className="spinner !w-4 !h-4" />
+            ) : state === "done" ? (
+              <Check className={`w-4 h-4 ${palette.icon}`} />
+            ) : state === "failed" ? (
+              <X className={`w-4 h-4 ${palette.icon}`} />
+            ) : state === "skipped" ? (
+              <Minus className={`w-4 h-4 ${palette.icon}`} />
+            ) : (
+              <Icon className={`w-4 h-4 ${palette.icon}`} />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className={`text-[12px] font-semibold ${palette.label} leading-tight`}>{label}</div>
+            <div className="text-[10px] text-[#9ca3af] uppercase tracking-wide mt-0.5 tabular-nums">{statusLabel}</div>
+          </div>
+        </div>
+        <div className="mt-2 h-1 rounded-full bg-[#eef0f3] dark:bg-[#2a2f3d] overflow-hidden">
+          <div
+            className={`h-full ${palette.bar} transition-all duration-300 ease-out`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SubmissionProgress({ kind, phases }: { kind: SubmitKind; phases: SubmissionPhases }) {
+  if (kind === "binary") {
+    return (
+      <div className="flex">
+        <PhaseStep label="Binary Upload" phase={phases.binary} icon={Package} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-stretch gap-2">
+      <PhaseStep label="Binary" phase={phases.binary} icon={Package} />
+      <div className="flex items-center text-[#d1d5db] dark:text-[#3a4050] shrink-0">
+        <ChevronRight className="w-4 h-4" />
+      </div>
+      <PhaseStep label="Metadata" phase={phases.metadata} icon={FileEdit} />
+      <div className="flex items-center text-[#d1d5db] dark:text-[#3a4050] shrink-0">
+        <ChevronRight className="w-4 h-4" />
+      </div>
+      <PhaseStep label="Screenshots" phase={phases.screenshots} icon={ImageIcon} />
+    </div>
+  );
+}
 
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
@@ -151,7 +295,9 @@ function LocaleFlag({ locale, className }: { locale: string; className?: string 
     <img
       src={`/country-flags/${getLocaleFlag(locale)}.svg`}
       alt=""
-      className={className ?? "h-[14px] w-auto object-contain shrink-0 rounded-xs"}
+      width={20}
+      height={15}
+      className={className ?? "h-[14px] w-[19px] object-contain shrink-0 rounded-xs"}
       onError={(e) => {
         (e.currentTarget as HTMLImageElement).style.display = "none";
       }}
@@ -179,6 +325,12 @@ function getDeviceLabel(url: string): string {
     if (re.test(filename)) return label;
   }
   return "Other";
+}
+
+function thumbUrl(url: string, width: 200 | 300 | 400 | 600 | 800): string {
+  const rel = url.replace(/^\/screenshots\//, "");
+  if (rel === url) return url;
+  return `/screenshots-thumb/${width}/${rel}`;
 }
 
 const SUBMIT_STATUS_DEFAULT = { dot: "bg-gray-300", text: "text-gray-500" };
@@ -887,9 +1039,12 @@ function ScreenshotsPanel({
                           aria-label={`Open ${label} screenshot preview`}
                         >
                           <img
-                            src={url}
+                            src={thumbUrl(url, 300)}
+                            srcSet={`${thumbUrl(url, 300)} 1x, ${thumbUrl(url, 600)} 2x`}
                             alt={`${label} screenshot`}
                             draggable={false}
+                            loading="lazy"
+                            decoding="async"
                             className="h-[200px] w-auto rounded-xl border border-[#eef0f3] object-cover shadow-sm group-hover/img:shadow-md group-hover/img:opacity-90 transition-all"
                           />
                         </button>
@@ -1209,11 +1364,14 @@ export default function Versions({ addToast }: Props) {
   const [visibleLoadingLocale, setVisibleLoadingLocale] = useState<string | null>(null);
   const addLocaleRef = useRef<HTMLDivElement>(null);
   const [submitting, setSubmitting] = useState<string | null>(null);
+  const [submitKind, setSubmitKind] = useState<SubmitKind | null>(null);
   const [submitStatus, setSubmitStatus] = useState<{
     active: boolean;
     status: string;
     logs: string[];
     errors: string[];
+    phases?: SubmissionPhases;
+    action?: SubmitKind;
     jobId?: string;
   } | null>(null);
   const [showLogs, setShowLogs] = useState(false);
@@ -1284,10 +1442,17 @@ export default function Versions({ addToast }: Props) {
 
   const pollStatus = useCallback(async () => {
     try {
-      const s = await apiGet<{ active: boolean; status: string; logs: string[]; errors: string[]; jobId?: string }>(
-        "/submissions/status",
-      );
+      const s = await apiGet<{
+        active: boolean;
+        status: string;
+        logs: string[];
+        errors: string[];
+        phases?: SubmissionPhases;
+        action?: SubmitKind;
+        jobId?: string;
+      }>("/submissions/status");
       setSubmitStatus(s);
+      if (s.action && !submitKind) setSubmitKind(s.action);
       if (!s.active && pollRef.current) {
         clearInterval(pollRef.current);
         pollRef.current = null;
@@ -1364,11 +1529,17 @@ export default function Versions({ addToast }: Props) {
       return;
     }
     setSubmitting(kind);
-    setShowLogs(true);
+    setSubmitKind(kind);
+    setShowLogs(false);
     setSubmitStatus({ active: true, status: "preparing", logs: [], errors: [] });
     try {
       const res = await apiPost(`/submissions/${kind}`, { bundleId: getActiveBundleId() });
-      const fallback = kind === "metadata" ? "Metadata push started" : kind === "binary" ? "Binary upload started" : "Submit for review started";
+      const fallback =
+        kind === "metadata"
+          ? "Metadata push started"
+          : kind === "binary"
+            ? "Binary upload started"
+            : "Submit for review started";
       addToast(res.message || fallback, "success");
       startPolling();
     } catch (e: any) {
@@ -1634,18 +1805,23 @@ export default function Versions({ addToast }: Props) {
       )}
 
       <fieldset disabled={!canWrite} className="contents">
-        {submitStatus && submitStatus.status !== "idle" && (
+        {submitStatus && submitStatus.status !== "idle" && submitKind && (
           <div className={`${cardCls} mb-5 py-3.5`}>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2.5">
                 {(() => {
                   const c = SUBMIT_STATUS_COLORS[submitStatus.status] ?? SUBMIT_STATUS_DEFAULT;
+                  const label =
+                    submitKind === "review"
+                      ? "Submit for Review"
+                      : submitKind === "metadata"
+                        ? "Push Metadata"
+                        : "Upload Binary";
                   return (
                     <>
                       <span className={`w-2 h-2 rounded-full shrink-0 ${c.dot}`} />
-                      <span className={`text-[13px] font-medium capitalize ${c.text}`}>
-                        Status - {submitStatus.status}
-                      </span>
+                      <span className={`text-[13px] font-semibold ${textPrimary}`}>{label}</span>
+                      <span className={`text-[11px] ${c.text} capitalize`}>· {submitStatus.status}</span>
                     </>
                   );
                 })()}
@@ -1657,10 +1833,11 @@ export default function Versions({ addToast }: Props) {
                 {showLogs ? "Hide" : "Show"} logs
               </button>
             </div>
+            {submitStatus.phases && <SubmissionProgress kind={submitKind} phases={submitStatus.phases} />}
             {submitStatus.errors.length > 0 && (
-              <div className="mt-2.5 p-2.5 bg-red-50 rounded-lg border border-red-100">
+              <div className="mt-3 p-2.5 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-900/40">
                 {submitStatus.errors.map((e, i) => (
-                  <p key={i} className="text-xs text-red-600">
+                  <p key={i} className="text-xs text-red-600 dark:text-red-300">
                     {e}
                   </p>
                 ))}
@@ -1793,7 +1970,7 @@ export default function Versions({ addToast }: Props) {
               <div className="flex items-start gap-2.5">
                 <LocaleFlag
                   locale={activeLoc.locale}
-                  className="w-auto h-[17px] rounded-xs object-cover shrink-0 mt-1"
+                  className="w-[23px] h-[17px] rounded-xs object-contain shrink-0 mt-1"
                 />
                 <div>
                   <div className={`text-[16px] font-semibold ${textPrimary} leading-tight`}>
@@ -1848,7 +2025,9 @@ export default function Versions({ addToast }: Props) {
                 />
                 {data.ageRating !== undefined && (
                   <div className="group">
-                    <div className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide mb-1.5 flex items-center gap-2`}>
+                    <div
+                      className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide mb-1.5 flex items-center gap-2`}
+                    >
                       Age Rating
                     </div>
                     <div className="flex items-center gap-2">

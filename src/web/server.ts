@@ -29,6 +29,8 @@ import { adminRouter } from "./api/admin";
 import { billingRouter, handleLemonSqueezyWebhook } from "./api/billing";
 import { notificationService } from "../services/notifications/notification.js";
 import { initScheduler as initASOScheduler } from "../autonomous";
+import { ipaDownloadTokens, appStoreInfoTokens } from "../services/fastlane";
+import { serveScreenshotThumb } from "../services/screenshot-thumb";
 import fs from "fs";
 
 const app = express();
@@ -41,6 +43,7 @@ app.use(
     contentSecurityPolicy: false,
   }),
 );
+
 const allowedOrigins = env.CORS_ORIGIN
   ? env.CORS_ORIGIN.split(",").map((o) => o.trim())
   : ["http://localhost:5173", "http://localhost:5174"];
@@ -51,6 +54,7 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization,MCP-Protocol-Version");
+
     if (req.method === "OPTIONS") {
       res.sendStatus(204);
       return;
@@ -65,12 +69,13 @@ app.use((req, res, next) => {
     credentials: true,
   })(req, res, next);
 });
+
 app.post("/api/billing/webhook", express.raw({ type: "application/json" }), async (req, res) => {
   try {
     const result = await handleLemonSqueezyWebhook(req.body as Buffer, req.header("x-signature") ?? undefined);
     res.json(result);
   } catch (err) {
-    logger.warn({ err: String(err) }, "lemon squeezy webhook rejected");
+    logger.warn("lemon squeezy webhook rejected", { err: String(err) });
     res.status(400).json({ error: String(err) });
   }
 });
@@ -98,6 +103,42 @@ app.use("/api/admin", adminRouter);
 app.use("/api/billing", billingRouter);
 app.use("/oauth", oauthRouter);
 
+app.get("/internal/ipa/:token", (req, res) => {
+  const ipaPath = ipaDownloadTokens.get(req.params.token as string);
+  if (!ipaPath) {
+    res.status(404).end();
+    return;
+  }
+
+  ipaDownloadTokens.delete(req.params.token as string);
+  if (!fs.existsSync(ipaPath)) {
+    res.status(404).end();
+    return;
+  }
+
+  res.setHeader("Content-Type", "application/octet-stream");
+  res.setHeader("Content-Disposition", "attachment; filename=app.ipa");
+  fs.createReadStream(ipaPath).pipe(res);
+});
+
+app.get("/internal/appstoreinfo/:token", (req, res) => {
+  const plistPath = appStoreInfoTokens.get(req.params.token as string);
+  if (!plistPath) {
+    res.status(404).end();
+    return;
+  }
+
+  appStoreInfoTokens.delete(req.params.token as string);
+  if (!fs.existsSync(plistPath)) {
+    res.status(404).end();
+    return;
+  }
+
+  res.setHeader("Content-Type", "application/xml");
+  res.setHeader("Content-Disposition", "attachment; filename=AppStoreInfo.plist");
+  fs.createReadStream(plistPath).pipe(res);
+});
+
 app.get("/.well-known/oauth-protected-resource", (req, res) => {
   const base = `${req.protocol}://${req.get("host")}`;
   res.json({
@@ -122,36 +163,10 @@ app.get("/.well-known/oauth-authorization-server", (req, res) => {
 app.post("/mcp", mcpAuth, createMcpHandler());
 
 const screenshotsDir = path.join(process.cwd(), "screenshots");
+app.get("/screenshots-thumb/:width/*", requireAuth, serveScreenshotThumb);
 app.use("/screenshots", express.static(screenshotsDir));
 
-const DOCS_PORT = 3030;
 const ADMIN_PORT = 5174;
-
-const docsDist = path.join(process.cwd(), "docs/build");
-if (process.env.NODE_ENV === "production") {
-  app.use("/docs", express.static(docsDist));
-  app.get("/docs/*", (_req, res) => res.sendFile(path.join(docsDist, "index.html")));
-} else {
-  app.use("/docs", (req, res) => {
-    const proxyReq = http.request(
-      {
-        hostname: "localhost",
-        port: DOCS_PORT,
-        path: "/docs" + req.url,
-        method: req.method,
-        headers: { ...req.headers, host: `localhost:${DOCS_PORT}` },
-      },
-      (proxyRes) => {
-        res.writeHead(proxyRes.statusCode ?? 200, proxyRes.headers);
-        proxyRes.pipe(res);
-      },
-    );
-    req.pipe(proxyReq);
-    proxyReq.on("error", () => {
-      res.status(502).send("Docs dev server not running — cd docs-site && npm start -- --port 3030");
-    });
-  });
-}
 
 const adminDist = path.join(__dirname, "../../admin/dist");
 if (process.env.NODE_ENV === "production") {
@@ -174,6 +189,7 @@ if (process.env.NODE_ENV === "production") {
         proxyRes.pipe(res);
       },
     );
+
     req.pipe(proxyReq);
     proxyReq.on("error", () => {
       res.status(502).send("Admin dev server not running — cd admin && npm run dev");
@@ -216,5 +232,6 @@ function shutdown() {
     prisma.$disconnect().then(() => process.exit(0));
   });
 }
+
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);

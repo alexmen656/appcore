@@ -594,3 +594,13 @@ model AppStoreVersionLocalization {
   @@unique([versionId, locale])
   @@index([versionId])
 }
+
+model AscRateLimit {
+  id            String   @id @default(cuid())
+  teamId        String   @unique
+  hourLimit     Int
+  hourRemaining Int
+  updatedAt     DateTime @updatedAt
+
+  @@index([teamId])
+}

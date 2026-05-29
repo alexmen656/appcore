@@ -128,6 +128,8 @@ submissionsRouter.get("/status", requireAuth, async (_req, res) => {
       active: submission.status === "preparing" || submission.status === "running",
       jobId: submission.jobId,
       status: submission.status,
+      action: submission.action,
+      phases: submission.phases,
       logs: submission.logs.slice(-100),
       errors: submission.errors,
       startedAt: submission.startedAt,

@@ -2,6 +2,7 @@ import { prisma } from "./database";
 import { decryptNullable } from "./encryption";
 
 export interface EffectiveSettings {
+  teamId: string;
   ascIssuerId: string;
   ascKeyId: string;
   ascPrivateKey: string;
@@ -20,12 +21,11 @@ export async function getTeamSettings(teamId: string) {
   return prisma.teamSettings.findUnique({ where: { teamId } });
 }
 
-export async function getEffectiveSettingsForTeam(
-  teamId: string,
-): Promise<EffectiveSettings> {
+export async function getEffectiveSettingsForTeam(teamId: string): Promise<EffectiveSettings> {
   const s = await getTeamSettings(teamId);
 
   return {
+    teamId,
     ascIssuerId: s?.ascIssuerId ?? "",
     ascKeyId: s?.ascKeyId ?? "",
     ascPrivateKey: decryptNullable(s?.ascPrivateKey) ?? "",
@@ -33,9 +33,7 @@ export async function getEffectiveSettingsForTeam(
   };
 }
 
-export async function getEffectiveSettings(
-  userId: string,
-): Promise<EffectiveSettings> {
+export async function getEffectiveSettings(userId: string): Promise<EffectiveSettings> {
   const teamId = await getTeamIdForUser(userId);
   if (!teamId) return getEffectiveSettingsForTeam("");
   return getEffectiveSettingsForTeam(teamId);

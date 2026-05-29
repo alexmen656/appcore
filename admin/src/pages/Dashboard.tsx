@@ -12,6 +12,7 @@ import {
   Key,
   Bell,
   Activity,
+  Gauge,
 } from "lucide-react";
 import {
   AreaChart,
@@ -42,6 +43,14 @@ interface TypePoint {
   count: number;
 }
 
+interface RateLimitEntry {
+  teamId: string;
+  teamName: string;
+  hourLimit: number;
+  hourRemaining: number;
+  updatedAt: string;
+}
+
 interface DashboardStats {
   users: number;
   teams: number;
@@ -54,6 +63,7 @@ interface DashboardStats {
   oauthClients: number;
   deviceTokens: number;
   analytics: number;
+  ascRateLimits?: RateLimitEntry[];
   charts?: {
     usersOverTime: ChartPoint[];
     appsOverTime: ChartPoint[];
@@ -175,6 +185,54 @@ export default function Dashboard() {
           </Card>
         ))}
       </div>
+
+      {(loading || (stats?.ascRateLimits && stats.ascRateLimits.length > 0)) && (
+        <Card>
+          <CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-3">
+            <Gauge className="h-4 w-4 text-orange-500" />
+            <CardTitle className="text-base">ASC Rate Limits (pro Team)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="text-sm text-muted-foreground">Lade…</div>
+            ) : (
+              <div className="space-y-4">
+                {stats!.ascRateLimits!.map((rl) => {
+                  const pct = Math.round((rl.hourRemaining / rl.hourLimit) * 100);
+                  const color =
+                    pct <= 10 ? "bg-red-500" : pct <= 30 ? "bg-yellow-500" : "bg-green-500";
+                  const updatedAgo = Math.round(
+                    (Date.now() - new Date(rl.updatedAt).getTime()) / 60000,
+                  );
+                  return (
+                    <div key={rl.teamId} className="space-y-1.5">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium truncate max-w-[200px]" title={rl.teamId}>
+                          {rl.teamName}
+                        </span>
+                        <span
+                          className={`font-mono text-xs ${pct <= 10 ? "text-red-600 font-bold" : pct <= 30 ? "text-yellow-600" : "text-muted-foreground"}`}
+                        >
+                          {rl.hourRemaining.toLocaleString("de-DE")} / {rl.hourLimit.toLocaleString("de-DE")} ({pct}%)
+                        </span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${color}`}
+                          style={{ width: `${Math.max(pct, 1)}%` }}
+                        />
+                      </div>
+                      <div className="text-xs text-muted-foreground text-right">
+                        aktualisiert vor {updatedAgo} Min.
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

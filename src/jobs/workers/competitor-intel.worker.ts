@@ -1,5 +1,5 @@
 import type { Job } from "pg-boss";
-import { logger, getEffectiveSettingsForTeam } from "../../config";
+import { logger } from "../../config";
 import { CompetitorIntelService } from "../../services/competitor-intel";
 
 export const QUEUE_NAME = "competitor-intel";
@@ -10,11 +10,10 @@ export interface CompetitorIntelData {
 }
 
 export async function handler([job]: Job<CompetitorIntelData>[]): Promise<void> {
-  const { data: { teamId, bundleId }, id } = job;
+  const { data: { bundleId }, id } = job;
   logger.info(`[BOSS] Starting "${QUEUE_NAME}" job ${id} for ${bundleId}…`);
 
-  const settings = await getEffectiveSettingsForTeam(teamId);
-  const result = await new CompetitorIntelService(settings).runFullIntelJob(bundleId);
+  const result = await new CompetitorIntelService().runFullIntelJob(bundleId);
 
   logger.info(`[BOSS] Competitor intel for ${bundleId} complete`, result);
   logger.info(`[BOSS] "${QUEUE_NAME}" job ${id} completed`);

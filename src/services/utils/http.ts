@@ -40,6 +40,8 @@ export type ResolvedRequestConfig = RequestConfig & {
 };
 
 type RequestInterceptor = (config: ResolvedRequestConfig) => ResolvedRequestConfig | Promise<ResolvedRequestConfig>;
+type ResponseFulfilled<T> = (response: HttpResponse<T>) => HttpResponse<T> | Promise<HttpResponse<T>>;
+type ResponseRejected = (error: any) => any;
 
 class InterceptorManager {
   private handlers: RequestInterceptor[] = [];
@@ -53,6 +55,33 @@ class InterceptorManager {
     let cfg = config;
     for (const h of this.handlers) cfg = await h(cfg);
     return cfg;
+  }
+}
+
+class ResponseInterceptorManager {
+  private handlers: { fulfilled: ResponseFulfilled<any>; rejected: ResponseRejected }[] = [];
+
+  use(fulfilled: ResponseFulfilled<any>, rejected: ResponseRejected): number {
+    this.handlers.push({ fulfilled, rejected });
+    return this.handlers.length - 1;
+  }
+
+  async runFulfilled<T>(response: HttpResponse<T>): Promise<HttpResponse<T>> {
+    let res: HttpResponse<T> = response;
+    for (const h of this.handlers) res = await h.fulfilled(res);
+    return res;
+  }
+
+  async runRejected(error: any): Promise<never> {
+    let err = error;
+    for (const h of this.handlers) {
+      try {
+        err = await h.rejected(err);
+      } catch (e) {
+        err = e;
+      }
+    }
+    throw err;
   }
 }
 
@@ -129,7 +158,10 @@ async function dispatch<T>(config: RequestConfig): Promise<HttpResponse<T>> {
   let fetchInit: Record<string, unknown> = { method, headers, body: body as FetchBody | undefined, signal };
   if (config.headersTimeout !== undefined) {
     const { Agent } = await import("undici");
-    (fetchInit as any).dispatcher = new Agent({ headersTimeout: config.headersTimeout, bodyTimeout: config.timeout ?? 0 });
+    (fetchInit as any).dispatcher = new Agent({
+      headersTimeout: config.headersTimeout,
+      bodyTimeout: config.timeout ?? 0,
+    });
   }
 
   let res: Response;
@@ -209,7 +241,10 @@ async function dispatch<T>(config: RequestConfig): Promise<HttpResponse<T>> {
 
 export class HttpClient {
   defaults: RequestConfig;
-  interceptors = { request: new InterceptorManager() };
+  interceptors = {
+    request: new InterceptorManager(),
+    response: new ResponseInterceptorManager(),
+  };
 
   constructor(defaults: RequestConfig = {}) {
     this.defaults = defaults;
@@ -222,7 +257,12 @@ export class HttpClient {
       headers: { ...(this.defaults.headers ?? {}), ...(config.headers ?? {}) },
     };
     const final = await this.interceptors.request.run(merged);
-    return dispatch<T>(final);
+    try {
+      const response = await dispatch<T>(final);
+      return this.interceptors.response.runFulfilled(response);
+    } catch (err) {
+      return this.interceptors.response.runRejected(err);
+    }
   }
 
   get<T = any>(url: string, config: RequestConfig = {}): Promise<HttpResponse<T>> {

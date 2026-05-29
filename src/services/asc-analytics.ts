@@ -14,6 +14,30 @@ function authHeaders(settings: EffectiveSettings) {
   };
 }
 
+function logRateLimit(headers: Record<string, any>, teamId?: string): void {
+  const header = headers?.["x-rate-limit"];
+  if (!header) return;
+
+  const lim = String(header).match(/user-hour-lim:(\d+)/)?.[1];
+  const rem = String(header).match(/user-hour-rem:(\d+)/)?.[1];
+  if (!lim || !rem) return;
+
+  const limit = parseInt(lim, 10);
+  const remaining = parseInt(rem, 10);
+  const pct = Math.round((remaining / limit) * 100);
+  logger.debug(`ASC rate limit: ${remaining}/${limit} remaining (${pct}%)`);
+
+  if (teamId) {
+    prisma.ascRateLimit
+      .upsert({
+        where: { teamId },
+        update: { hourLimit: limit, hourRemaining: remaining },
+        create: { teamId, hourLimit: limit, hourRemaining: remaining },
+      })
+      .catch((err: unknown) => logger.warn("Failed to persist ASC rate limit", err));
+  }
+}
+
 function parseTsv(raw: string): Record<string, string>[] {
   const lines = raw.split("\n").filter((l) => l.trim());
   if (lines.length < 2) return [];
@@ -79,6 +103,7 @@ export async function fetchSalesReports(
         },
         responseType: "arraybuffer",
       });
+      logRateLimit(resp.headers, settings.teamId);
 
       const raw = zlib.gunzipSync(Buffer.from(resp.data)).toString("utf-8");
       const rows = parseTsv(raw);
@@ -164,6 +189,7 @@ async function processAnalyticsRequest(
   let reportItems: Array<{ id: string; category: string }> = [];
   try {
     const reportsResp = await axios.get(`${BASE}/analyticsReportRequests/${requestId}/reports`, { headers });
+    logRateLimit(reportsResp.headers, settings.teamId);
     const reports: any[] = reportsResp.data?.data ?? [];
     logger.debug(
       `Analytics request ${requestId}: ${reports.length} report(s) – categories: ${reports.map((r) => r.attributes?.category).join(", ")}`,
@@ -198,6 +224,7 @@ async function processAnalyticsRequest(
         headers,
         params: { "filter[granularity]": "DAILY", limit: 200 },
       });
+      logRateLimit(instResp.headers, settings.teamId);
       const all: any[] = instResp.data?.data ?? [];
       instances = all.filter((inst: any) => {
         const pd: string | undefined = inst.attributes?.processingDate;
@@ -218,6 +245,7 @@ async function processAnalyticsRequest(
       let segmentUrls: string[] = [];
       try {
         const segResp = await axios.get(`${BASE}/analyticsReportInstances/${instance.id}/segments`, { headers });
+        logRateLimit(segResp.headers, settings.teamId);
         segmentUrls = (segResp.data?.data ?? []).map((s: any) => s.attributes?.url).filter(Boolean);
       } catch (err: any) {
         logger.warn(`Fetching segments for instance ${instance.id}: ${err?.message ?? err}`);
@@ -334,6 +362,7 @@ export async function fetchEngagementReport(
         },
         { headers },
       );
+      logRateLimit(createResp.headers, settings.teamId);
       requestId = createResp.data?.data?.id ?? null;
       if (!requestId) throw new Error("No request ID in create response");
       logger.info(`Created ONGOING analytics report request ${requestId} for ${bundleId}.`);
@@ -345,6 +374,7 @@ export async function fetchEngagementReport(
             headers,
             params: { "filter[accessType]": "ONGOING", limit: 10 },
           });
+          logRateLimit(listResp.headers, settings.teamId);
           const existing = (listResp.data?.data ?? []).find((r: any) => r.attributes?.accessType === "ONGOING");
           requestId = existing?.id ?? null;
           if (requestId) {
@@ -378,6 +408,7 @@ export async function fetchEngagementReport(
         },
         { headers },
       );
+      logRateLimit(snapResp.headers, settings.teamId);
       resolvedSnapshotId = snapResp.data?.data?.id ?? null;
       if (resolvedSnapshotId) {
         logger.info(
@@ -395,6 +426,7 @@ export async function fetchEngagementReport(
             headers,
             params: { "filter[accessType]": "ONE_TIME_SNAPSHOT", limit: 10 },
           });
+          logRateLimit(listResp.headers, settings.teamId);
           const existingSnap = (listResp.data?.data ?? []).find(
             (r: any) => r.attributes?.accessType === "ONE_TIME_SNAPSHOT",
           );
@@ -452,6 +484,7 @@ export async function fetchReviews(settings: EffectiveSettings, ascAppId: string
       headers,
       params,
     });
+    logRateLimit(resp.headers, settings.teamId);
 
     const reviews: any[] = resp.data?.data ?? [];
 

@@ -102,16 +102,15 @@ suggestionsRouter.post("/:id/apply", async (req, res) => {
     }
 
     const { AppStoreConnectClient } = await import("../../services/appstore-connect");
-    const asc = new AppStoreConnectClient({
-      issuerId: settings.ascIssuerId,
-      keyId: settings.ascKeyId,
-      privateKey: settings.ascPrivateKey,
-    });
+    const asc = new AppStoreConnectClient(
+      { issuerId: settings.ascIssuerId, keyId: settings.ascKeyId, privateKey: settings.ascPrivateKey },
+      { teamId: settings.teamId || undefined },
+    );
 
     const locale = suggestion.locale || "en-US";
     const changes: Record<string, string> = {};
     const typeKey = suggestion.type.toLowerCase();
-    
+
     if (typeKey === "title") changes.name = suggestion.suggestedValue;
     else if (typeKey === "subtitle") changes.subtitle = suggestion.suggestedValue;
     else if (typeKey === "keywords") changes.keywords = suggestion.suggestedValue;
@@ -199,11 +198,10 @@ suggestionsRouter.post("/auto-apply", async (req, res) => {
     }
 
     const { AppStoreConnectClient } = await import("../../services/appstore-connect");
-    const asc = new AppStoreConnectClient({
-      issuerId: settings.ascIssuerId,
-      keyId: settings.ascKeyId,
-      privateKey: settings.ascPrivateKey,
-    });
+    const asc = new AppStoreConnectClient(
+      { issuerId: settings.ascIssuerId, keyId: settings.ascKeyId, privateKey: settings.ascPrivateKey },
+      { teamId: settings.teamId || undefined },
+    );
 
     let totalApplied = 0;
     const results: { locale: string; applied: string[]; errors: string[] }[] = [];

@@ -416,11 +416,10 @@ async function resolveLatestVersionLocales(
   }
 
   try {
-    const asc = new AppStoreConnectClient({
-      issuerId: teamSettings.ascIssuerId,
-      keyId: teamSettings.ascKeyId,
-      privateKey,
-    });
+    const asc = new AppStoreConnectClient(
+      { issuerId: teamSettings.ascIssuerId, keyId: teamSettings.ascKeyId, privateKey },
+      { teamId: job.app.teamId },
+    );
     const ascAppId = String(job.app.trackId);
     const versionsFromAsc = await asc.listVersions(ascAppId);
     const latestVersion = versionsFromAsc.sort((a, b) =>

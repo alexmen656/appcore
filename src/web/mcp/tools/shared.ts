@@ -4,16 +4,13 @@ type EffectiveSettings = Awaited<ReturnType<typeof getEffectiveSettings>>;
 
 export const mcpToolMessages = {
   noBundleIdConfigured: "No bundleId configured.",
-  noBundleIdProvided:
-    "No bundleId provided. Call list_apps to see available apps.",
+  noBundleIdProvided: "No bundleId provided. Call list_apps to see available apps.",
   noBundleIdProvidedWithDefault:
     "No bundleId provided and no default configured. Call list_apps to see available apps.",
-  appStoreConnectCredentialsNotConfigured:
-    "App Store Connect credentials not configured.",
+  appStoreConnectCredentialsNotConfigured: "App Store Connect credentials not configured.",
   appStoreConnectCredentialsNotConfiguredInSettings:
     "App Store Connect credentials not configured. Set them in Marteso settings.",
-  noEditableVersionFound:
-    "No editable version found. Use list_asc_versions to see available versions.",
+  noEditableVersionFound: "No editable version found. Use list_asc_versions to see available versions.",
 };
 
 export function appNotFoundWithListApps(bundleId: string) {
@@ -46,29 +43,22 @@ export async function verifyMcpAppAccess(userId: string, bundleId: string) {
   return app;
 }
 
-export async function getSettingsWithBundleId(
-  userId: string,
-  bundleId?: string,
-) {
+export async function getSettingsWithBundleId(userId: string, bundleId?: string) {
   const settings = await getEffectiveSettings(userId);
   const resolvedBundleId = bundleId;
   return { settings, resolvedBundleId };
 }
 
 export function hasAscCredentials(settings: EffectiveSettings) {
-  return Boolean(
-    settings.ascIssuerId && settings.ascKeyId && settings.ascPrivateKey,
-  );
+  return Boolean(settings.ascIssuerId && settings.ascKeyId && settings.ascPrivateKey);
 }
 
 export async function createAscClient(settings: EffectiveSettings) {
-  const { AppStoreConnectClient } =
-    await import("../../../services/appstore-connect");
-  return new AppStoreConnectClient({
-    issuerId: settings.ascIssuerId,
-    keyId: settings.ascKeyId,
-    privateKey: settings.ascPrivateKey,
-  });
+  const { AppStoreConnectClient } = await import("../../../services/appstore-connect");
+  return new AppStoreConnectClient(
+    { issuerId: settings.ascIssuerId, keyId: settings.ascKeyId, privateKey: settings.ascPrivateKey },
+    { teamId: settings.teamId || undefined },
+  );
 }
 
 export async function resolveAscAppId(

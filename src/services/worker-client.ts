@@ -3,35 +3,7 @@ import { logger } from "../config";
 import { env } from "../config/env";
 import type { IncomingMessage } from "http";
 
-export interface WorkerDeliverParams {
-  locales: Record<
-    string,
-    {
-      name: string;
-      subtitle: string;
-      keywords: string;
-      description: string;
-      whatsNew: string;
-      promotionalText: string;
-      supportUrl: string;
-      marketingUrl: string;
-    }
-  >;
-  apiKey: {
-    key_id: string;
-    issuer_id: string;
-    key: string;
-    in_house: boolean;
-  };
-  bundleId: string;
-  action: "metadata" | "submit_for_review" | "binary";
-  copyright?: string;
-  screenshots?: Record<string, Array<{ filename: string; data: string }>>;
-  screenshotFallback?: string;
-  ipa?: string;
-}
-
-export interface WorkerDeliverResult {
+export interface WorkerUploadBinaryResult {
   ok: boolean;
   logs: string[];
   errors: string[];
@@ -85,6 +57,7 @@ export interface WorkerBuildResult {
   ipaBase64?: string;
   originalFilename?: string;
   sizeBytes?: number;
+  appStoreInfoBase64?: string;
 }
 
 export interface WorkerFrameitParams {
@@ -143,19 +116,6 @@ class FastlaneWorkerClient {
 
   async health(): Promise<WorkerHealthResult> {
     const res = await this.getClient().get("/worker/health");
-    return res.data;
-  }
-
-  async deliver(params: WorkerDeliverParams): Promise<WorkerDeliverResult> {
-    const localeCount = Object.keys(params.locales ?? {}).length;
-    const timeoutMs = Math.min(60 * 60 * 1000, 5 * 60 * 1000 + localeCount * 2 * 60 * 1000);
-    logger.info(
-      `[WorkerClient] Sending deliver task to worker (${localeCount} locale(s), timeout ${Math.round(timeoutMs / 60000)}min)...`,
-    );
-    const res = await this.getClient().post("/worker/deliver", params, {
-      timeout: timeoutMs,
-      headersTimeout: 0,
-    });
     return res.data;
   }
 
@@ -268,6 +228,73 @@ class FastlaneWorkerClient {
       timeout: 25 * 60 * 1000,
     });
     return res.data;
+  }
+
+  async uploadBinary(
+    params: { ipaUrl: string; keyId: string; issuerId: string; privateKey: string; appStoreInfoUrl?: string },
+    onLog?: (line: string) => void,
+  ): Promise<WorkerUploadBinaryResult> {
+    logger.info("[WorkerClient] Starting binary upload on worker via iTMSTransporter...");
+
+    const baseURL = env.TRANSPORTER_WORKER_URL ?? env.FASTLANE_WORKER_URL;
+    const secret = env.FASTLANE_WORKER_SECRET!;
+
+    if (!baseURL) throw new Error("No worker URL configured for upload-binary.");
+
+    const uploadClient = axios.create({
+      baseURL,
+      headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/json" },
+      timeout: 60_000,
+    });
+
+    const startRes = await uploadClient.post<{ ok: boolean; runId: string }>(
+      "/worker/upload-binary",
+      params as object,
+      {
+        timeout: 60_000,
+      },
+    );
+
+    const { runId } = startRes.data;
+    logger.info(`[WorkerClient] Binary upload job started: runId=${runId}`);
+
+    return new Promise((resolve, reject) => {
+      axios
+        .get<IncomingMessage>(`${baseURL}/worker/upload-binary/${runId}/stream`, {
+          headers: { Authorization: `Bearer ${secret}` },
+          responseType: "stream",
+          timeout: 30 * 60 * 1000,
+        })
+        .then(({ data: stream }) => {
+          let buf = "";
+          stream.on("data", (chunk: Buffer) => {
+            buf += chunk.toString();
+            const parts = buf.split("\n\n");
+            buf = parts.pop() ?? "";
+
+            for (const block of parts) {
+              let event = "message";
+              let data = "";
+
+              for (const line of block.split("\n")) {
+                if (line.startsWith("event: ")) event = line.slice(7).trim();
+                else if (line.startsWith("data: ")) data = line.slice(6);
+              }
+
+              if (!data) continue;
+              if (event === "log") {
+                onLog?.(JSON.parse(data) as string);
+              } else if (event === "result") {
+                stream.destroy();
+                resolve(JSON.parse(data) as WorkerUploadBinaryResult);
+              }
+            }
+          });
+          stream.on("end", () => reject(new Error("Worker SSE stream ended without a result event")));
+          stream.on("error", (err: Error) => reject(new Error(`Worker SSE stream error: ${err.message}`)));
+        })
+        .catch(reject);
+    });
   }
 }
 

@@ -1,10 +1,6 @@
 import { Router, Request, Response } from "express";
-import { exec } from "child_process";
-import { promisify } from "util";
 import os from "os";
 import { findFastlane } from "../fastlane-utils";
-
-const execAsync = promisify(exec);
 
 export const healthRouter = Router();
 

@@ -49,11 +49,7 @@ export async function handler([job]: Job<TranslateLocalizationData>[]): Promise<
       return;
     }
 
-    const translated = await new AIAnalyzer(bundleId).translateLocalization(
-      sourceLocale,
-      targetLocale,
-      sourceFields,
-    );
+    const translated = await new AIAnalyzer(bundleId).translateLocalization(sourceLocale, targetLocale, sourceFields);
     const appInfoUpdates: Record<string, string> = {};
     const versionUpdates: Record<string, string> = {};
 
@@ -63,11 +59,10 @@ export async function handler([job]: Job<TranslateLocalizationData>[]): Promise<
       (APP_INFO_FIELDS.has(field) ? appInfoUpdates : versionUpdates)[field] = trimmed;
     }
 
-    const asc = new AppStoreConnectClient({
-      issuerId: settings.ascIssuerId,
-      keyId: settings.ascKeyId,
-      privateKey: settings.ascPrivateKey,
-    });
+    const asc = new AppStoreConnectClient(
+      { issuerId: settings.ascIssuerId, keyId: settings.ascKeyId, privateKey: settings.ascPrivateKey },
+      { teamId },
+    );
 
     const persistedUpdates: Record<string, string> = {};
     if (appInfoLocalizationId && Object.keys(appInfoUpdates).length > 0) {

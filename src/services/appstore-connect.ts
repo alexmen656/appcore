@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from "./utils/http";
 import { logger, env } from "../config";
+import { prisma } from "../config/database";
 import { generateASCToken } from "./utils/asc-token";
 
 interface ASCAppInfo {
@@ -23,7 +24,7 @@ interface ASCAppInfoLocalization {
   };
 }
 
-interface ASCAppStoreVersion {
+export interface ASCAppStoreVersion {
   id: string;
   attributes: {
     versionString: string;
@@ -47,10 +48,45 @@ interface ASCVersionLocalization {
   };
 }
 
+export interface ASCScreenshotSet {
+  id: string;
+  attributes: {
+    screenshotDisplayType: string;
+  };
+}
+
+export interface ASCUploadOperation {
+  method: string;
+  url: string;
+  length: number;
+  offset: number;
+  requestHeaders: { name: string; value: string }[];
+}
+
+export interface ASCScreenshot {
+  id: string;
+  attributes: {
+    uploadOperations: ASCUploadOperation[];
+  };
+}
+
 export interface ASCCredentials {
   issuerId: string;
   keyId: string;
   privateKey: string;
+}
+
+export interface ASCRateLimit {
+  hourLimit: number;
+  hourRemaining: number;
+  updatedAt: Date;
+}
+
+function parseRateLimitHeader(header: string): { limit: number; remaining: number } | null {
+  const lim = header.match(/user-hour-lim:(\d+)/)?.[1];
+  const rem = header.match(/user-hour-rem:(\d+)/)?.[1];
+  if (!lim || !rem) return null;
+  return { limit: parseInt(lim, 10), remaining: parseInt(rem, 10) };
 }
 
 export class AppStoreConnectClient {
@@ -60,8 +96,10 @@ export class AppStoreConnectClient {
   private readonly issuerId: string;
   private readonly keyId: string;
   private readonly privateKey: string;
+  private readonly teamId: string | null;
+  private rateLimit: ASCRateLimit | null = null;
 
-  constructor(override?: Partial<ASCCredentials>) {
+  constructor(override?: Partial<ASCCredentials>, options?: { teamId?: string }) {
     const issuerId = override?.issuerId;
     const keyId = override?.keyId;
     const privateKey = override?.privateKey;
@@ -73,6 +111,7 @@ export class AppStoreConnectClient {
     this.issuerId = issuerId;
     this.keyId = keyId;
     this.privateKey = privateKey;
+    this.teamId = options?.teamId ?? null;
 
     this.client = axios.create({
       baseURL: "https://api.appstoreconnect.apple.com/v1",
@@ -84,6 +123,53 @@ export class AppStoreConnectClient {
       config.headers.Authorization = `Bearer ${token}`;
       return config;
     });
+
+    this.client.interceptors.response.use(
+      (response) => {
+        const header = response.headers["x-rate-limit"];
+        if (header) {
+          const parsed = parseRateLimitHeader(header);
+          if (parsed) {
+            this.updateRateLimit(parsed.limit, parsed.remaining);
+          }
+        }
+        return response;
+      },
+      (error: any) => {
+        const header = error?.response?.headers?.["x-rate-limit"];
+        if (header) {
+          const parsed = parseRateLimitHeader(header);
+          if (parsed) {
+            this.updateRateLimit(parsed.limit, parsed.remaining);
+          }
+        }
+        if (error?.response?.status === 429) {
+          const rl = this.rateLimit;
+          const limitStr = rl ? ` (${rl.hourRemaining}/${rl.hourLimit} remaining)` : "";
+          throw new Error(`ASC rate limit exceeded${limitStr}. Warte ~1 Stunde und versuche es erneut.`);
+        }
+        throw error;
+      },
+    );
+  }
+
+  private updateRateLimit(limit: number, remaining: number): void {
+    this.rateLimit = { hourLimit: limit, hourRemaining: remaining, updatedAt: new Date() };
+    const pct = Math.round((remaining / limit) * 100);
+    logger.debug(`ASC rate limit: ${remaining}/${limit} remaining (${pct}%)`);
+    if (this.teamId) {
+      prisma.ascRateLimit
+        .upsert({
+          where: { teamId: this.teamId },
+          update: { hourLimit: limit, hourRemaining: remaining },
+          create: { teamId: this.teamId, hourLimit: limit, hourRemaining: remaining },
+        })
+        .catch((err: unknown) => logger.warn("Failed to persist ASC rate limit", err));
+    }
+  }
+
+  getRateLimit(): ASCRateLimit | null {
+    return this.rateLimit;
   }
 
   private async getToken(): Promise<string> {
@@ -542,6 +628,74 @@ export class AppStoreConnectClient {
     }
 
     return { applied, errors, versionId, versionString };
+  }
+
+  async listScreenshotSets(localizationId: string): Promise<ASCScreenshotSet[]> {
+    const { data } = await this.client.get(`/appStoreVersionLocalizations/${localizationId}/appScreenshotSets`, {
+      params: { "fields[appScreenshotSets]": "screenshotDisplayType" },
+    });
+    return data.data ?? [];
+  }
+
+  async deleteScreenshotSet(setId: string): Promise<void> {
+    try {
+      await this.client.delete(`/appScreenshotSets/${setId}`);
+    } catch (err: any) {
+      if (err?.response?.status === 404) return;
+      this.throwASCError(err);
+    }
+  }
+
+  async createScreenshotSet(localizationId: string, displayType: string): Promise<ASCScreenshotSet> {
+    try {
+      const { data } = await this.client.post("/appScreenshotSets", {
+        data: {
+          type: "appScreenshotSets",
+          attributes: { screenshotDisplayType: displayType },
+          relationships: {
+            appStoreVersionLocalization: {
+              data: { type: "appStoreVersionLocalizations", id: localizationId },
+            },
+          },
+        },
+      });
+      return data.data;
+    } catch (err: any) {
+      this.throwASCError(err);
+    }
+  }
+
+  async reserveScreenshot(setId: string, fileName: string, fileSize: number): Promise<ASCScreenshot> {
+    try {
+      const { data } = await this.client.post("/appScreenshots", {
+        data: {
+          type: "appScreenshots",
+          attributes: { fileSize, fileName },
+          relationships: {
+            appScreenshotSet: {
+              data: { type: "appScreenshotSets", id: setId },
+            },
+          },
+        },
+      });
+      return data.data;
+    } catch (err: any) {
+      this.throwASCError(err);
+    }
+  }
+
+  async commitScreenshot(screenshotId: string, md5Hex: string): Promise<void> {
+    try {
+      await this.client.patch(`/appScreenshots/${screenshotId}`, {
+        data: {
+          type: "appScreenshots",
+          id: screenshotId,
+          attributes: { sourceFileChecksum: md5Hex, uploaded: true },
+        },
+      });
+    } catch (err: any) {
+      this.throwASCError(err);
+    }
   }
 
   async submitForReview(versionId: string): Promise<void> {
