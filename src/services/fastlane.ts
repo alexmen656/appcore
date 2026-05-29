@@ -53,12 +53,36 @@ interface LocaleEntry {
   marketingUrl: string;
 }
 
+export type PhaseState = "pending" | "running" | "done" | "skipped" | "failed";
+
+export interface PhaseProgress {
+  state: PhaseState;
+  current: number;
+  total: number;
+}
+
+export interface SubmissionPhases {
+  binary: PhaseProgress;
+  metadata: PhaseProgress;
+  screenshots: PhaseProgress;
+}
+
 interface ActiveSubmission {
   jobId: string;
   logs: string[];
   errors: string[];
   status: "preparing" | "running" | "completed" | "failed";
   startedAt: Date;
+  action: SubmitAction;
+  phases: SubmissionPhases;
+}
+
+function initialPhases(action: SubmitAction): SubmissionPhases {
+  return {
+    binary: { state: "pending", current: 0, total: 1 },
+    metadata: { state: action === "binary" ? "skipped" : "pending", current: 0, total: 0 },
+    screenshots: { state: action === "binary" ? "skipped" : "pending", current: 0, total: 0 },
+  };
 }
 
 const DIMENSION_TO_DISPLAY_TYPE: Record<string, string> = {
@@ -244,6 +268,8 @@ export class FastlaneService {
       errors: [],
       status: "preparing",
       startedAt: new Date(),
+      action,
+      phases: initialPhases(action),
     };
 
     activeSubmissions.set(jobId, submission);
@@ -253,21 +279,28 @@ export class FastlaneService {
     try {
       if (action === "binary") {
         submission.status = "running";
-        await this.runBinaryUpload({
+        submission.phases.binary.state = "running";
+        const binaryResult = await this.runBinaryUpload({
           onLog: (line) => submission.logs.push(line),
           onError: (line) => submission.errors.push(line),
         });
+        submission.phases.binary.state = binaryResult.errors.length > 0 ? "failed" : "done";
+        submission.phases.binary.current = submission.phases.binary.state === "done" ? 1 : 0;
       } else {
         submission.logs.push("Step 1: Uploading binary...");
         submission.status = "running";
+        submission.phases.binary.state = "running";
         const binaryResult = await this.runBinaryUpload({
           onLog: (line) => submission.logs.push(line),
           onError: (line) => submission.errors.push(line),
         });
 
         if (binaryResult.errors.length > 0) {
+          submission.phases.binary.state = "failed";
           throw new Error(`Binary upload failed: ${binaryResult.errors.join("; ")}`);
         }
+        submission.phases.binary.state = "done";
+        submission.phases.binary.current = 1;
 
         submission.logs.push("Step 2: Preparing metadata...");
         const prepared = await this.prepareMetadataLocales(action, overrides);
@@ -282,6 +315,7 @@ export class FastlaneService {
           appId: prepared.appId,
           version: prepared.version,
           action,
+          phases: submission.phases,
           onLog: (line) => submission.logs.push(line),
           onError: (line) => submission.errors.push(line),
         });
@@ -390,6 +424,7 @@ export class FastlaneService {
     screenshotPaths: Record<string, Array<{ filename: string; absPath: string }>>,
     locales: string[],
     onLog: (line: string) => void,
+    onScreenshotDone?: () => void,
   ): Promise<void> {
     const app = await this.asc.getApp(this.bundleId);
     if (!app) throw new Error("App not found in App Store Connect");
@@ -478,6 +513,7 @@ export class FastlaneService {
           onLog(`[Screenshots] ${locale}: committing ${img.filename}...`);
           await this.asc.commitScreenshot(reserved.id, md5);
           onLog(`[Screenshots] ${locale}: done ${img.filename} (${displayType})`);
+          onScreenshotDone?.();
           logRateLimit();
         }
       }
@@ -491,6 +527,7 @@ export class FastlaneService {
     version: ASCAppStoreVersion,
     appId: string,
     onLog: (line: string) => void,
+    onLocaleDone?: () => void,
   ): Promise<void> {
     onLog("Uploading metadata via App Store Connect API...");
 
@@ -549,6 +586,8 @@ export class FastlaneService {
         await this.asc.updateVersionLocalization(versionLoc.id, versionUpdates);
         onLog(`[Metadata] ${locale}: version localization updated`);
       }
+
+      onLocaleDone?.();
     }
 
     onLog("[Metadata] All metadata uploaded successfully");
@@ -559,10 +598,11 @@ export class FastlaneService {
     appId: string;
     version: ASCAppStoreVersion;
     action: SubmitAction;
+    phases: SubmissionPhases;
     onLog?: (line: string) => void;
     onError?: (line: string) => void;
   }): Promise<{ logs: string[]; errors: string[] }> {
-    const { localeData, appId, version, action, onLog, onError } = opts;
+    const { localeData, appId, version, action, phases, onLog, onError } = opts;
     const logs: string[] = [];
     const errors: string[] = [];
 
@@ -577,20 +617,45 @@ export class FastlaneService {
     };
 
     try {
-      await this.uploadMetadataViaASC(localeData, version, appId, pushLog);
+      phases.metadata.state = "running";
+      phases.metadata.total = Object.keys(localeData).length;
+      phases.metadata.current = 0;
+      await this.uploadMetadataViaASC(localeData, version, appId, pushLog, () => {
+        phases.metadata.current += 1;
+      });
+      phases.metadata.state = "done";
+      phases.metadata.current = phases.metadata.total;
 
       const screenshotPaths = await this.loadFramedScreenshotPaths();
       if (screenshotPaths && Object.keys(screenshotPaths).length > 0) {
         pushLog("Uploading screenshots via App Store Connect API...");
+        const targetLocales = Object.keys(localeData);
+        const fallbackLocale =
+          FALLBACK_LOCALES.find((l) => screenshotPaths[l]) ?? Object.keys(screenshotPaths)[0];
+        const fallbackCount = fallbackLocale ? (screenshotPaths[fallbackLocale]?.length ?? 0) : 0;
+        let totalScreenshots = 0;
+        for (const loc of targetLocales) {
+          totalScreenshots += (screenshotPaths[loc] ?? Array(fallbackCount).fill(null)).length;
+        }
+        phases.screenshots.state = "running";
+        phases.screenshots.total = totalScreenshots;
+        phases.screenshots.current = 0;
+
         try {
-          await this.uploadScreenshotsViaASC(screenshotPaths, Object.keys(localeData), pushLog);
+          await this.uploadScreenshotsViaASC(screenshotPaths, targetLocales, pushLog, () => {
+            phases.screenshots.current += 1;
+          });
+          phases.screenshots.state = "done";
+          phases.screenshots.current = phases.screenshots.total;
         } catch (ssErr: any) {
           const msg = ssErr instanceof Error ? ssErr.message : String(ssErr);
           pushLog(`[Screenshots] Upload failed (non-fatal): ${msg}`);
           pushLog("[Screenshots] Continuing. To fix: add Oracle Cloud egress rule for 17.0.0.0/8 HTTPS.");
+          phases.screenshots.state = "failed";
         }
       } else {
         pushLog("No framed screenshots found, skipping screenshot upload.");
+        phases.screenshots.state = "skipped";
       }
 
       if (action === "submit_for_review") {
