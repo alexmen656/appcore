@@ -142,6 +142,21 @@ export default function Login({ onAuth }: Props) {
     }
   };
 
+  const handleDemoLogin = async () => {
+    setError(null);
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/demo", { method: "POST", credentials: "include" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Demo login failed");
+      finishAuth(data.user);
+    } catch (err: any) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
   const handleAddPasskey = async () => {
     if (!pendingAuth) return;
     setPasskeyError(null);
@@ -282,6 +297,16 @@ export default function Login({ onAuth }: Props) {
           <GoogleIcon />
           {mode === "login" ? "Sign in with Google" : "Continue with Google"}
         </button>
+        {mode === "login" && (
+          <button
+            type="button"
+            disabled={loading}
+            onClick={handleDemoLogin}
+            className={`mt-2 w-full flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl border border-dashed ${borderDefault} bg-transparent text-sm font-medium ${textMuted} hover:bg-[#f8f9fb] dark:hover:bg-[#252b38] transition-colors disabled:opacity-50`}
+          >
+            Try Demo
+          </button>
+        )}
 
         <div className={`mt-5 text-center text-sm ${textMuted}`}>
           {mode === "login" ? (

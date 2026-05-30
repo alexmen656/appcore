@@ -429,7 +429,7 @@ authRouter.post("/logout", (_req, res) => {
   res.json({ ok: true });
 });
 
-const DEMO_EMAIL = "alexx.polan1@gmail.com"; //"demo@marteso.com";
+const DEMO_EMAIL = "demo@marteso.com"; //"demo@marteso.com";
 
 authRouter.post("/demo", async (_req, res) => {
   try {
@@ -459,6 +459,7 @@ authRouter.post("/demo", async (_req, res) => {
       role: user.role,
       teamId: membership.teamId,
       tokenVersion: user.tokenVersion,
+      isDemo: true,
     });
 
     setAuthCookie(res, token);
