@@ -1387,6 +1387,8 @@ export default function Versions({ addToast }: Props) {
   }, [versionId]);
 
   useEffect(() => {
+    const active = getActiveBundleId();
+    if (active && fetchedData && fetchedData.bundleId !== active) return;
     setData(fetchedData);
   }, [fetchedData]);
 

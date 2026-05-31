@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 const BASE = "/api";
 
 export const ACTIVE_BUNDLE_KEY = "appcore_active_bundle";
@@ -21,7 +21,7 @@ function buildUrl(path: string, query?: ApiQuery): string {
   for (const [key, value] of Object.entries(query ?? {})) {
     if (value !== undefined && value !== null) url.searchParams.set(key, String(value));
   }
-  
+
   const bundleId = getActiveBundleId();
   if (bundleId) url.searchParams.set("bundleId", bundleId);
   return url.toString().replace(window.location.origin, "");
@@ -60,9 +60,11 @@ export function useApi<T>(path: string, deps: any[] = [], skipBundleId = false) 
   const [data, setData] = useState<T | null>(() => apiCache.get(getUrl()) ?? null);
   const [loading, setLoading] = useState(() => !apiCache.has(getUrl()));
   const [error, setError] = useState<string | null>(null);
+  const reqIdRef = useRef(0);
 
   const refetch = useCallback(() => {
     const url = getUrl();
+    const reqId = ++reqIdRef.current;
     setLoading(true);
     setError(null);
     fetch(url, { credentials: "include", headers: authHeaders() })
@@ -72,10 +74,12 @@ export function useApi<T>(path: string, deps: any[] = [], skipBundleId = false) 
       })
       .then((d) => {
         apiCache.set(url, d);
+        if (reqId !== reqIdRef.current) return;
         setData(d);
         setLoading(false);
       })
       .catch((e) => {
+        if (reqId !== reqIdRef.current) return;
         setError(e.message);
         setLoading(false);
       });
@@ -83,25 +87,21 @@ export function useApi<T>(path: string, deps: any[] = [], skipBundleId = false) 
 
   useEffect(() => {
     const url = getUrl();
+    const applyFromCache = () => {
+      const c = apiCache.get(url);
+      if (!c) return false;
+      reqIdRef.current++;
+      setData(c as T);
+      setLoading(false);
+      return true;
+    };
     const pending = apiPreloading.get(url);
     if (pending) {
       pending.then(() => {
-        const c = apiCache.get(url);
-        if (c) {
-          setData(c as T);
-          setLoading(false);
-        } else {
-          refetch();
-        }
+        if (!applyFromCache()) refetch();
       });
     } else {
-      const c = apiCache.get(url);
-      if (c) {
-        setData(c as T);
-        setLoading(false);
-      } else {
-        refetch();
-      }
+      if (!applyFromCache()) refetch();
     }
   }, [refetch]);
 

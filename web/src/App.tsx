@@ -589,9 +589,19 @@ function VersionsSidebarSection({ navLinkClass }: { navLinkClass: (p: { isActive
         return 0;
       });
       setVersions(data);
-      if (location.pathname === "/versions" && data.length > 0) {
-        const best = data.find((v) => v.isEditable) ?? data[0];
-        navigate(`/versions/${best.versionId}`, { replace: true });
+
+      if (window.location.pathname.startsWith("/versions")) {
+        const rawId = window.location.pathname.match(/^\/versions\/(.+)$/)?.[1];
+        const currentId = rawId ? decodeURIComponent(rawId) : undefined;
+        const onCurrentApp = currentId ? data.some((v) => v.versionId === currentId) : false;
+        if (!onCurrentApp) {
+          if (data.length > 0) {
+            const best = data.find((v) => v.isEditable) ?? data[0];
+            navigate(`/versions/${best.versionId}`, { replace: true });
+          } else if (currentId) {
+            navigate("/versions", { replace: true });
+          }
+        }
       }
       data.slice(0, 5).forEach((v) => preloadApi(`/asc/versions?versionId=${encodeURIComponent(v.versionId)}`));
     } catch {
