@@ -300,9 +300,9 @@ async function processAnalyticsRequest(
                 reportItem.category === "APP_USAGE"
                   ? { sessions: metrics.sessions }
                   : {
-                      impressions: metrics.impressions,
-                      pageViews: metrics.pageViews,
-                    };
+                    impressions: metrics.impressions,
+                    pageViews: metrics.pageViews,
+                  };
               return prisma.appStoreAnalytics.upsert({
                 where: {
                   bundleId_reportDate_country: {
@@ -539,7 +539,18 @@ export async function syncAllAnalytics(
   _userId?: string,
 ): Promise<AnalyticsSyncResult> {
   try {
-    const downloadDays = await fetchSalesReports(settings, bundleId, ascAppId, 365);
+    const latestRecord = await prisma.appStoreAnalytics.findFirst({
+      where: { bundleId },
+      orderBy: { reportDate: "desc" },
+      select: { reportDate: true },
+    });
+    const isFirstSync = !latestRecord;
+    const salesDaysBack = isFirstSync ? 365 : 3;
+    const engagementDaysBack = isFirstSync ? 60 : 3;
+
+    logger.info(`Analytics sync for ${bundleId}: ${isFirstSync ? "first sync, full backfill" : `incremental, last ${salesDaysBack} days`}`);
+
+    const downloadDays = await fetchSalesReports(settings, bundleId, ascAppId, salesDaysBack);
 
     let reviewsFetched = 0;
     if (ascAppId) {
@@ -565,7 +576,7 @@ export async function syncAllAnalytics(
           bundleId,
           currentRequestId,
           currentSnapshotId,
-          60,
+          engagementDaysBack,
         );
         engagementRows = result.rows;
 
