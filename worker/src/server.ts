@@ -21,6 +21,8 @@ app.get("/health", async (_req, res) => {
 app.use("/worker", workerAuth, workerRouter);
 
 const server = app.listen(PORT, "0.0.0.0", () => {
+  server.keepAliveTimeout = 65_000;
+  server.headersTimeout = 70_000;
   console.log(`🔧 Fastlane Worker running on port ${PORT}`);
   console.log(`   Endpoints:`);
   console.log(`     GET  /health           - Health check (no auth)`);

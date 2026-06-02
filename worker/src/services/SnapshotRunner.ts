@@ -172,19 +172,19 @@ export class SnapshotRunner {
       configFile
         ? this.loadConfig(configFile, workDir, appName, DEFAULT_DEVICES, DEFAULT_LANGUAGES)
         : (() => {
-            this.push(
-              `[config] No config.json found - using defaults (scheme: ${appName}, devices: ${DEFAULT_DEVICES.join(", ")})`,
-            );
-            return {
-              descriptions: {},
-              frameConfig: {},
-              effectiveDevices: DEFAULT_DEVICES,
-              effectiveLanguages: DEFAULT_LANGUAGES,
-              appearance: "light" as const,
-              scheme: appName,
-              concurrency: 2,
-            };
-          })();
+          this.push(
+            `[config] No config.json found - using defaults (scheme: ${appName}, devices: ${DEFAULT_DEVICES.join(", ")})`,
+          );
+          return {
+            descriptions: {},
+            frameConfig: {},
+            effectiveDevices: DEFAULT_DEVICES,
+            effectiveLanguages: DEFAULT_LANGUAGES,
+            appearance: "light" as const,
+            scheme: appName,
+            concurrency: 2,
+          };
+        })();
 
     const simInfo = await SnapshotRunner.getIosSimulatorInfo();
     this.push(`[capture] Detected iOS simulator version: ${simInfo?.version ?? "unknown"}`);
@@ -352,9 +352,29 @@ export class SnapshotRunner {
         await execAsync(`xcrun simctl bootstatus "${udid}" -b`, { timeout: 120_000 });
         await execAsync(`xcrun simctl ui "${udid}" appearance ${appearance}`);
         await execAsync(`xcrun simctl shutdown "${udid}"`);
+        await this.waitForSimulatorShutdown(udid);
       } catch {
         this.push(`[capture] Warning: could not set appearance on ${udid}`);
       }
+    }
+  }
+
+  private async waitForSimulatorShutdown(udid: string, timeoutMs = 30_000): Promise<void> {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      try {
+        const { stdout } = await execAsync("xcrun simctl list devices --json", { timeout: 10_000 });
+        const data = JSON.parse(stdout) as Record<string, unknown>;
+        const devices = Object.values(data.devices as Record<string, unknown[]>).flat() as Array<{
+          udid: string;
+          state: string;
+        }>;
+        const device = devices.find((d) => d.udid === udid);
+        if (!device || device.state === "Shutdown") return;
+      } catch {
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 1_000));
     }
   }
 
@@ -403,6 +423,7 @@ export class SnapshotRunner {
         if (UDID_RE.test(device)) {
           try {
             await execAsync(`xcrun simctl shutdown "${device}"`, { timeout: 30_000 });
+            await this.waitForSimulatorShutdown(device);
           } catch {
             // ignore
           }
@@ -472,9 +493,7 @@ export class SnapshotRunner {
   ): Promise<void> {
     const xcResults = fs.readdirSync(testLogsDir).filter((n) => n.endsWith(".xcresult"));
     const collected: string[] = [];
-    const langBase = lang.split("-")[0];
-    const langPrefix = `${langBase}__`;
-    const deviceTag = this.getDeviceTag(device);
+    const LANG_PREFIX_RE = /^[a-z]{2}(?:[-_][A-Za-z]{2})?__/;
 
     for (const xcName of xcResults) {
       const xcPath = path.join(testLogsDir, xcName);
@@ -487,10 +506,10 @@ export class SnapshotRunner {
         continue;
       }
 
-      const relevant = [...nameMap.entries()].filter(([, name]) => name.startsWith(langPrefix));
+      const relevant = [...nameMap.entries()].filter(([, name]) => LANG_PREFIX_RE.test(name));
 
       for (const [payloadId, attName] of relevant) {
-        const baseName = path.basename(attName.slice(langPrefix.length));
+        const baseName = path.basename(attName.replace(LANG_PREFIX_RE, ""));
         const deviceNameWithSize = this.getDeviceNameWithSize(device);
         const cleanName = `${baseName}__${deviceNameWithSize}.png`;
         const outPath = path.join(this.tmpDir, `snap-${this.runId}-${cleanName}`);

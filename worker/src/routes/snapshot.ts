@@ -127,9 +127,10 @@ snapshotRouter.get("/snapshot/:runId/xcresult/:filename", (req: Request, res: Re
     return;
   }
 
-  const artifactsDir = path.join(process.cwd(), "logs", "snapshots", runId);
+  const artifactsDir = path.join(process.cwd(), "logs", "captures", runId);
   const filePath = path.join(artifactsDir, filename);
   const resolved = path.resolve(filePath);
+  
   if (!resolved.startsWith(path.resolve(artifactsDir) + path.sep)) {
     res.status(400).json({ error: "Invalid path" });
     return;
