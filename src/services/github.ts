@@ -84,14 +84,35 @@ export async function listUserRepos(accessToken: string): Promise<GitHubRepo[]> 
   return repos;
 }
 
+const IGNORED_DIRS = new Set(["node_modules", "Pods", "Carthage", "fastlane", "build", "DerivedData", "vendor"]);
+const MAX_DIR_DEPTH = 3;
+
 export async function listRepoDirs(accessToken: string, repoFullName: string): Promise<string[]> {
-  const { data } = await axios.get<{ type: string; name: string; path: string }[]>(
-    `${GITHUB_API}/repos/${repoFullName}/contents`,
-    {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    },
-  );
-  return data.filter((e) => e.type === "dir").map((e) => e.name);
+  const results: string[] = [];
+
+  const walk = async (dirPath: string, depth: number): Promise<void> => {
+    const { data } = await axios.get<{ type: string; name: string; path: string }[]>(
+      `${GITHUB_API}/repos/${repoFullName}/contents/${dirPath}`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    );
+
+    const subdirs = data.filter(
+      (e) => e.type === "dir" && !e.name.startsWith(".") && !IGNORED_DIRS.has(e.name),
+    );
+
+    for (const dir of subdirs) {
+      results.push(dir.path);
+      if (depth < MAX_DIR_DEPTH) {
+        await walk(dir.path, depth + 1);
+      }
+    }
+  };
+
+  await walk("", 1);
+  results.sort();
+  return results;
 }
 
 export async function createWebhook(accessToken: string, repoFullName: string, secret: string): Promise<number> {
