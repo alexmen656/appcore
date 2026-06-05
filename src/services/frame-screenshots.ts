@@ -31,7 +31,25 @@ export async function frameWithFastlane(
     data: fs.readFileSync(f).toString("base64"),
   }));
 
-  const result = await workerClient.frameit({ images, options });
+  let result: Awaited<ReturnType<typeof workerClient.frameit>>;
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      result = await workerClient.frameit({ images, options });
+      lastErr = undefined;
+      break;
+    } catch (err) {
+      lastErr = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg === "terminated" || msg.includes("terminated")) {
+        await new Promise((r) => setTimeout(r, 1_000 * (attempt + 1)));
+        continue;
+      }
+      throw err;
+    }
+  }
+  if (lastErr !== undefined) throw lastErr;
+  result = result!;
 
   if (!result.ok) {
     throw new Error(`Worker frameit failed: ${result.error ?? "unknown error"}`);
