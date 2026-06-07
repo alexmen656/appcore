@@ -355,10 +355,17 @@ export function RepoLinker({
           <div
             className={`flex items-center justify-between gap-3 bg-[#f8f9fb] dark:bg-[#252b38] border ${borderDefault} rounded-xl px-4 py-2.5 w-full`}
           >
-            <div>
-              <div className={`text-sm font-medium ${textPrimary}`}>Framework</div>
-              <div className={`text-[11px] ${textSecondary}`}>
-                Auto-detected on link - change it here if it&apos;s wrong.
+            <div className="flex">
+              <img
+                src={(link.framework ?? "native") === "capacitor" ? "/capacitor.svg" : "/native.svg"}
+                alt={(link.framework ?? "native") === "capacitor" ? "Capacitor" : "Native"}
+                className="h-7 w-auto pr-2 self-center"
+              />
+              <div>
+                <div className={`text-sm font-medium ${textPrimary}`}>Framework</div>
+                <div className={`text-[11px] ${textSecondary}`}>
+                  Auto-detected on link - change it here if it&apos;s wrong.
+                </div>
               </div>
             </div>
             <select
