@@ -11,6 +11,7 @@ const LOG_INTERESTING_RE =
   /Test (case|suite)|Testing (started|failed|passed|completed)|TEST (BUILD|EXECUTE|SUCCEEDED|FAILED)|encountered an error|error:|warning:|^\*\*|fatal|timed out|Compile|Linking|CodeSign|^Run-|FAIL/i;
 
 const UDID_RE = /^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$/i;
+const XCODEBUILD_TIMEOUT_MS = 12 * 60_000;
 
 const DEFAULT_LANGUAGES = ["en-US"];
 const DEFAULT_DEVICES = [
@@ -177,19 +178,19 @@ export class SnapshotRunner {
       configFile
         ? this.loadConfig(configFile, workDir, appName, DEFAULT_DEVICES, DEFAULT_LANGUAGES)
         : (() => {
-          this.push(
-            `[config] No config.json found - using defaults (scheme: ${appName}, devices: ${DEFAULT_DEVICES.join(", ")})`,
-          );
-          return {
-            descriptions: {},
-            frameConfig: {},
-            effectiveDevices: DEFAULT_DEVICES,
-            effectiveLanguages: DEFAULT_LANGUAGES,
-            appearance: "light" as const,
-            scheme: appName,
-            concurrency: 2,
-          };
-        })();
+            this.push(
+              `[config] No config.json found - using defaults (scheme: ${appName}, devices: ${DEFAULT_DEVICES.join(", ")})`,
+            );
+            return {
+              descriptions: {},
+              frameConfig: {},
+              effectiveDevices: DEFAULT_DEVICES,
+              effectiveLanguages: DEFAULT_LANGUAGES,
+              appearance: "light" as const,
+              scheme: appName,
+              concurrency: 2,
+            };
+          })();
 
     const simInfo = await SnapshotRunner.getIosSimulatorInfo();
     this.push(`[capture] Detected iOS simulator version: ${simInfo?.version ?? "unknown"}`);
@@ -411,9 +412,18 @@ export class SnapshotRunner {
         const derivedDataPath = path.join(this.tmpDir, `DerivedData-${device.replace(/[^a-zA-Z0-9]/g, "_")}`);
         const testLogsDir = path.join(derivedDataPath, "Logs", "Test");
 
-        this.push(`[capture] [${deviceLabel}] ${lang} - running UI tests ...`);
+        const shutdownDevice = async () => {
+          if (!UDID_RE.test(device)) return;
+          try {
+            await execAsync(`xcrun simctl shutdown "${device}"`, { timeout: 30_000 });
+            await this.waitForSimulatorShutdown(device);
+          } catch {
+            // ignore
+          }
+        };
 
-        const testFailed = await this.runXcodebuild(
+        this.push(`[capture] [${deviceLabel}] ${lang} - running UI tests ...`);
+        let testFailed = await this.runXcodebuild(
           scheme,
           projectArg,
           destination,
@@ -425,14 +435,23 @@ export class SnapshotRunner {
           envVars,
         );
 
-        if (UDID_RE.test(device)) {
-          try {
-            await execAsync(`xcrun simctl shutdown "${device}"`, { timeout: 30_000 });
-            await this.waitForSimulatorShutdown(device);
-          } catch {
-            // ignore
-          }
+        if (testFailed) {
+          await shutdownDevice();
+          this.push(`[capture] [${deviceLabel}] ${lang} - retrying after failure ...`);
+          testFailed = await this.runXcodebuild(
+            scheme,
+            projectArg,
+            destination,
+            derivedDataPath,
+            workDir,
+            lang,
+            localeId,
+            deviceLabel,
+            envVars,
+          );
         }
+
+        await shutdownDevice();
 
         if (fs.existsSync(testLogsDir)) {
           await this.extractScreenshots(testLogsDir, lang, device, screenshots, testFailed, deviceLabel);
@@ -472,9 +491,9 @@ export class SnapshotRunner {
 
       const { stdout } = await execAsync(`${xcodebuildCmd} 2>&1`, {
         cwd: workDir,
-        timeout: 1800_000,
+        timeout: XCODEBUILD_TIMEOUT_MS,
         env: { ...process.env, ...(envVars ?? {}) },
-        maxBuffer: 10 * 1024 * 1024,
+        maxBuffer: 20 * 1024 * 1024,
       });
 
       const elapsed = Math.round((Date.now() - testStart) / 1000);
@@ -485,9 +504,6 @@ export class SnapshotRunner {
       const elapsed = Math.round((Date.now() - testStart) / 1000);
       this.push(`[capture] [${deviceLabel}] ${lang}: tests failed in ${elapsed}s`);
 
-      // xcodebuild output is combined into stdout via 2>&1. Surface the relevant
-      // lines so failures (build errors, signing, destination, …) are diagnosable
-      // instead of swallowed.
       const e = execErr as { stdout?: string; stderr?: string };
       const allLines = `${e.stdout ?? ""}${e.stderr ?? ""}`.split("\n").filter(Boolean);
       const interesting = allLines.filter((l) => LOG_INTERESTING_RE.test(l));
