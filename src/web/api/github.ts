@@ -15,6 +15,7 @@ import {
   getGitHubUser,
   listUserRepos,
   listRepoDirs,
+  detectFramework,
   linkRepoToApp,
   unlinkRepoFromApp,
   verifyWebhookSignature,
@@ -190,9 +191,24 @@ githubRouter.get("/repo-dirs/:owner/:repo", requireAuth, loadTeamSettings, async
   }
 });
 
+githubRouter.get("/detect-framework/:owner/:repo", requireAuth, loadTeamSettings, async (req: Request, res: Response) => {
+  try {
+    const settings = req.teamSettings;
+    if (!settings?.githubAccessToken) {
+      res.status(400).json({ error: "GitHub not connected" });
+      return;
+    }
+    const repoFullName = `${req.params.owner}/${req.params.repo}`;
+    const framework = await detectFramework(decryptNullable(settings.githubAccessToken)!, repoFullName);
+    res.json({ framework });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 githubRouter.post("/link", writeAuth, async (req: Request, res: Response) => {
   try {
-    const { appId, repoFullName, iosDir } = req.body;
+    const { appId, repoFullName, iosDir, framework } = req.body;
     if (!appId || !repoFullName) {
       res.status(400).json({ error: "appId and repoFullName required" });
       return;
@@ -200,7 +216,27 @@ githubRouter.post("/link", writeAuth, async (req: Request, res: Response) => {
     const app = await verifyAppOwnership(req, res, appId);
     if (!app) return;
 
-    await linkRepoToApp(req.user!.userId, appId, repoFullName, iosDir ?? null);
+    await linkRepoToApp(req.user!.userId, appId, repoFullName, iosDir ?? null, framework ?? null);
+    res.json({ ok: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+githubRouter.put("/framework/:appId", writeAuth, async (req: Request, res: Response) => {
+  try {
+    const owned = await verifyAppOwnership(req, res, req.params.appId as string);
+    if (!owned) return;
+
+    const { framework } = req.body as { framework?: string };
+    if (framework !== "capacitor" && framework !== "native") {
+      res.status(400).json({ error: "framework must be 'capacitor' or 'native'" });
+      return;
+    }
+    await prisma.app.update({
+      where: { id: req.params.appId as string },
+      data: { githubFramework: framework },
+    });
     res.json({ ok: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -236,6 +272,7 @@ githubRouter.get("/app-repo/:appId", requireAuth, async (req: Request, res: Resp
         githubRepoName: true,
         githubRepoFullName: true,
         githubIosDir: true,
+        githubFramework: true,
       },
     });
     res.json({
@@ -244,6 +281,7 @@ githubRouter.get("/app-repo/:appId", requireAuth, async (req: Request, res: Resp
       repoOwner: app?.githubRepoOwner ?? null,
       repoName: app?.githubRepoName ?? null,
       iosDir: app?.githubIosDir ?? null,
+      framework: app?.githubFramework ?? null,
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

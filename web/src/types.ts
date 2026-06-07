@@ -270,12 +270,15 @@ export interface GitHubRepo {
   htmlUrl: string;
 }
 
+export type Framework = "capacitor" | "native";
+
 export interface AppRepoLink {
   linked: boolean;
   repoFullName: string | null;
   repoOwner: string | null;
   repoName: string | null;
   iosDir: string | null;
+  framework: Framework | null;
 }
 
 export interface BuildJob {

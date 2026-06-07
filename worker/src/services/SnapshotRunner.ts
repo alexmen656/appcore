@@ -26,6 +26,7 @@ export interface SnapshotParams {
   branch?: string;
   appName: string;
   iosDir?: string;
+  framework?: string;
   envVars?: Record<string, string>;
 }
 
@@ -146,7 +147,7 @@ export class SnapshotRunner {
   // ---------------------------------------------------------------------------
 
   private async execute(): Promise<void> {
-    const { repoUrl, accessToken, branch, appName, iosDir, envVars } = this.params;
+    const { repoUrl, accessToken, branch, appName, iosDir, framework, envVars } = this.params;
 
     fs.mkdirSync(this.tmpDir, { recursive: true });
     fs.mkdirSync(this.logsDir, { recursive: true });
@@ -169,7 +170,7 @@ export class SnapshotRunner {
 
     const workDir = resolveRepoWorkDir(this.tmpDir, iosDir, this.logs);
 
-    await prepareNativeDeps(this.tmpDir, workDir, (line) => this.push(line));
+    await prepareNativeDeps(this.tmpDir, workDir, (line) => this.push(line), framework);
 
     const configFile = findConfigFile(workDir);
     const { descriptions, frameConfig, effectiveDevices, effectiveLanguages, appearance, scheme, concurrency } =

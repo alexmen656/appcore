@@ -15,6 +15,7 @@ interface BuildRequest {
   appName: string;
   bundleId: string;
   iosDir?: string;
+  framework?: string;
   gymScheme?: string;
   exportMethod?: string;
   signingCertP12?: string;
@@ -33,6 +34,7 @@ buildRouter.post("/build", async (req: Request, res: Response) => {
     appName,
     bundleId,
     iosDir,
+    framework,
     gymScheme,
     exportMethod = "app-store",
     signingCertP12,
@@ -80,7 +82,7 @@ buildRouter.post("/build", async (req: Request, res: Response) => {
 
     const workDir = resolveRepoWorkDir(tmpDir, iosDir, logs);
 
-    await prepareNativeDeps(tmpDir, workDir, (line) => logs.push(line));
+    await prepareNativeDeps(tmpDir, workDir, (line) => logs.push(line), framework);
 
     let resolvedScheme = gymScheme;
     const configFile = findConfigFile(workDir);

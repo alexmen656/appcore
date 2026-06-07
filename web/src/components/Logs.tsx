@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, ChevronDown, GitBranch } from "lucide-react";
-import { useApi, apiPost, getActiveBundleId, authHeaders } from "../hooks/useApi";
+import { useApi, apiPost, apiPut, getActiveBundleId, authHeaders } from "../hooks/useApi";
 import {
   badgeOutline,
   borderDefault,
@@ -12,7 +12,12 @@ import {
   textPrimary,
   textSecondary,
 } from "../styles";
-import type { GitHubRepo, AppRepoLink, ScreenshotJob, BuildJob, AppItem } from "../types";
+import type { GitHubRepo, AppRepoLink, ScreenshotJob, BuildJob, AppItem, Framework } from "../types";
+
+const FRAMEWORK_LABELS: Record<Framework, string> = {
+  capacitor: "Capacitor",
+  native: "iOS native",
+};
 
 const LOG_PREFIX_COLORS: { prefix: string; color: string }[] = [
   { prefix: "[capture]", color: "#38bdf8" },
@@ -199,6 +204,9 @@ export function RepoLinker({
   const [dirs, setDirs] = useState<string[] | null>(null);
   const [loadingDirs, setLoadingDirs] = useState(false);
   const [selectedDir, setSelectedDir] = useState<string>("");
+  const [framework, setFramework] = useState<Framework>("native");
+  const [detectingFramework, setDetectingFramework] = useState(false);
+  const [savingFramework, setSavingFramework] = useState(false);
   const [step, setStep] = useState<"repo" | "dir">("repo");
   const [linking, setLinking] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
@@ -234,11 +242,27 @@ export function RepoLinker({
     }
   };
 
+  const detectFramework = async (repoFullName: string) => {
+    const [owner, repo] = repoFullName.split("/");
+    setDetectingFramework(true);
+    try {
+      const res = await fetch(`/api/github/detect-framework/${owner}/${repo}`, { headers: authHeaders() });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = (await res.json()) as { framework: Framework };
+      setFramework(data.framework);
+    } catch {
+      setFramework("native");
+    } finally {
+      setDetectingFramework(false);
+    }
+  };
+
   const handleRepoNext = () => {
     if (!selectedRepo) return;
     setStep("dir");
     setSelectedDir("");
     loadDirs(selectedRepo);
+    detectFramework(selectedRepo);
   };
 
   const handleLink = async () => {
@@ -249,6 +273,7 @@ export function RepoLinker({
         appId,
         repoFullName: selectedRepo,
         iosDir: selectedDir || null,
+        framework,
       });
       addToast(`Linked ${selectedRepo} → ${appName}`, "success");
       setShowPicker(false);
@@ -260,6 +285,19 @@ export function RepoLinker({
       addToast(err.message, "error");
     } finally {
       setLinking(false);
+    }
+  };
+
+  const handleFrameworkChange = async (next: Framework) => {
+    setSavingFramework(true);
+    try {
+      await apiPut(`/github/framework/${appId}`, { framework: next });
+      addToast(`Framework set to ${FRAMEWORK_LABELS[next]}`, "success");
+      refetch();
+    } catch (err: any) {
+      addToast(err.message, "error");
+    } finally {
+      setSavingFramework(false);
     }
   };
 
@@ -278,6 +316,7 @@ export function RepoLinker({
     setShowPicker(true);
     setStep("repo");
     setSelectedDir("");
+    setFramework(link?.framework ?? "native");
     if (!repos) loadRepos();
   };
 
@@ -289,7 +328,7 @@ export function RepoLinker({
       </p>
 
       {link?.linked ? (
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3">
           <div
             className={`flex justify-between gap-2 bg-[#f8f9fb] dark:bg-[#252b38] border ${borderDefault} rounded-xl px-4 py-2.5 w-full`}
           >
@@ -312,6 +351,25 @@ export function RepoLinker({
                 </button>
               )}
             </div>
+          </div>
+          <div
+            className={`flex items-center justify-between gap-3 bg-[#f8f9fb] dark:bg-[#252b38] border ${borderDefault} rounded-xl px-4 py-2.5 w-full`}
+          >
+            <div>
+              <div className={`text-sm font-medium ${textPrimary}`}>Framework</div>
+              <div className={`text-[11px] ${textSecondary}`}>
+                Auto-detected on link - change it here if it&apos;s wrong.
+              </div>
+            </div>
+            <select
+              className={`px-3 py-1.5 rounded-lg border ${borderDefault} bg-white dark:bg-[#1c2028] text-sm ${textPrimary} disabled:opacity-50`}
+              value={link.framework ?? "native"}
+              disabled={savingFramework}
+              onChange={(e) => handleFrameworkChange(e.target.value as Framework)}
+            >
+              <option value="capacitor">{FRAMEWORK_LABELS.capacitor}</option>
+              <option value="native">{FRAMEWORK_LABELS.native}</option>
+            </select>
           </div>
         </div>
       ) : (
@@ -387,6 +445,21 @@ export function RepoLinker({
                       </option>
                     ))}
                   </select>
+
+                  <h3 className={`text-sm font-medium ${textPrimary} mb-0.5`}>Framework</h3>
+                  <p className={`text-xs ${textSecondary} mb-3`}>
+                    {detectingFramework ? "Detecting…" : "Auto-detected - change it if it's wrong."}
+                  </p>
+                  <select
+                    className={`w-full px-3 py-2 rounded-xl border ${borderDefault} bg-white dark:bg-[#1c2028] text-sm ${textPrimary} mb-3 disabled:opacity-50`}
+                    value={framework}
+                    disabled={detectingFramework}
+                    onChange={(e) => setFramework(e.target.value as Framework)}
+                  >
+                    <option value="capacitor">{FRAMEWORK_LABELS.capacitor}</option>
+                    <option value="native">{FRAMEWORK_LABELS.native}</option>
+                  </select>
+
                   <div className="flex gap-2">
                     <button className={btnPrimary} onClick={handleLink} disabled={linking}>
                       {linking ? "Linking…" : "Link"}
@@ -489,11 +562,11 @@ function JobRow({
     loading: logsLoading,
     error: logsError,
   } = useLazyLogs(!isActive && expanded ? `/github/screenshots/${job.appId}/${job.id}/logs` : null);
-  const { lines: streamLines, done: streamDone, liveCount } = useStreamingLogs(
-    isActive ? job.id : null,
-    isActive ? job.appId : null,
-    expanded,
-  );
+  const {
+    lines: streamLines,
+    done: streamDone,
+    liveCount,
+  } = useStreamingLogs(isActive ? job.id : null, isActive ? job.appId : null, expanded);
 
   const logsRef = useRef<HTMLPreElement>(null);
 
