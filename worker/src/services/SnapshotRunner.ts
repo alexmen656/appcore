@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { execAsync, resolveRepoWorkDir, findConfigFile } from "../routes/shared";
+import { prepareNativeDeps } from "../native";
 import { type SnapshotJobResult } from "../log-bus";
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -167,6 +168,9 @@ export class SnapshotRunner {
     this.push(`[repo] Clone complete`);
 
     const workDir = resolveRepoWorkDir(this.tmpDir, iosDir, this.logs);
+
+    await prepareNativeDeps(this.tmpDir, workDir, (line) => this.push(line));
+
     const configFile = findConfigFile(workDir);
     const { descriptions, frameConfig, effectiveDevices, effectiveLanguages, appearance, scheme, concurrency } =
       configFile
@@ -479,6 +483,17 @@ export class SnapshotRunner {
     } catch (execErr) {
       const elapsed = Math.round((Date.now() - testStart) / 1000);
       this.push(`[capture] [${deviceLabel}] ${lang}: tests failed in ${elapsed}s`);
+
+      // xcodebuild output is combined into stdout via 2>&1. Surface the relevant
+      // lines so failures (build errors, signing, destination, …) are diagnosable
+      // instead of swallowed.
+      const e = execErr as { stdout?: string; stderr?: string };
+      const allLines = `${e.stdout ?? ""}${e.stderr ?? ""}`.split("\n").filter(Boolean);
+      const interesting = allLines.filter((l) => LOG_INTERESTING_RE.test(l));
+      for (const l of (interesting.length ? interesting : allLines).slice(-15)) {
+        this.push(`[capture]   [${deviceLabel}] ${l.trim()}`);
+      }
+
       return true;
     }
   }

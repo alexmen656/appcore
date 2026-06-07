@@ -4,6 +4,7 @@ import path from "path";
 import os from "os";
 import { findFastlane } from "../fastlane-utils";
 import { execAsync, buildWithGym, resolveRepoWorkDir, findConfigFile } from "./shared";
+import { prepareNativeDeps } from "../native";
 
 export const buildRouter = Router();
 
@@ -78,6 +79,8 @@ buildRouter.post("/build", async (req: Request, res: Response) => {
     logs.push("[repo] Clone complete");
 
     const workDir = resolveRepoWorkDir(tmpDir, iosDir, logs);
+
+    await prepareNativeDeps(tmpDir, workDir, (line) => logs.push(line));
 
     let resolvedScheme = gymScheme;
     const configFile = findConfigFile(workDir);
