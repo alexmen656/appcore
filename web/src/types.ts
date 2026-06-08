@@ -492,3 +492,39 @@ export interface SubscriptionReviewScreenshot {
   width: number | null;
   height: number | null;
 }
+
+export interface ProductItem {
+  id: string;
+  name: string;
+  productId: string;
+  inAppPurchaseType: string;
+  state: string;
+  reviewNote: string | null;
+  familySharable: boolean;
+}
+
+export interface ProductLocalization {
+  id: string;
+  locale: string;
+  name: string;
+  description: string;
+  state: string;
+}
+
+export interface ProductPricePoint {
+  id: string;
+  customerPrice: string | null;
+  proceeds: string | null;
+  territory: string | null;
+  currency: string | null;
+}
+
+export interface ProductPrice {
+  id: string;
+  territory: string | null;
+  currency: string | null;
+  customerPrice: string | null;
+  proceeds: string | null;
+  startDate: string | null;
+  pricePointId: string | null;
+}

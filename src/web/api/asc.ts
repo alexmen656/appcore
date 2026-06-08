@@ -288,7 +288,7 @@ async function invalidateVersionCache(bundleId: string): Promise<void> {
       where: { bundleId },
       data: { syncedAt: new Date(0) },
     })
-    .catch(() => {});
+    .catch(() => { });
 }
 
 async function ascClientForUser(userId: string): Promise<AppStoreConnectClient> {
@@ -298,8 +298,8 @@ async function ascClientForUser(userId: string): Promise<AppStoreConnectClient> 
   });
   const s = membership
     ? await prisma.teamSettings.findUnique({
-        where: { teamId: membership.teamId },
-      })
+      where: { teamId: membership.teamId },
+    })
     : null;
   if (s?.ascIssuerId && s?.ascKeyId && s?.ascPrivateKey) {
     return new AppStoreConnectClient(
@@ -650,7 +650,7 @@ ascRouter.patch(
           where: { id: bodyVersionId },
           data: { copyright: value || null },
         })
-        .catch(() => {});
+        .catch(() => { });
       res.json({ ok: true, field, value });
       return;
     }
@@ -712,7 +712,7 @@ ascRouter.patch(
         where: localizationWhere,
         data: { [field]: value },
       })
-      .catch(() => {});
+      .catch(() => { });
 
     const updatedLocalization = await prisma.appStoreVersionLocalization.findFirst({
       where: localizationWhere,
@@ -1593,9 +1593,9 @@ ascRouter.get(
       assetDeliveryState: d.attributes?.assetDeliveryState ?? null,
       imageUrl: asset?.templateUrl
         ? asset.templateUrl
-            .replace("{w}", String(asset.width ?? 320))
-            .replace("{h}", String(asset.height ?? 180))
-            .replace("{f}", "png")
+          .replace("{w}", String(asset.width ?? 320))
+          .replace("{h}", String(asset.height ?? 180))
+          .replace("{f}", "png")
         : null,
       width: asset?.width ?? null,
       height: asset?.height ?? null,
@@ -1658,6 +1658,326 @@ ascRouter.delete(
     const { id } = req.params;
     const asc = await ascClientForUser(req.user!.userId);
     await asc.client.delete(`/subscriptionAppStoreReviewScreenshots/${id}`);
+    res.json({ ok: true });
+  }),
+);
+
+ascRouter.get(
+  "/products",
+  bundleAccess("query"),
+  handle("listProducts", async (req, res) => {
+    const bundleId = req.query.bundleId as string;
+    const asc = await ascClientForUser(req.user!.userId);
+    const app = await asc.getApp(bundleId);
+    if (!app) {
+      res.status(404).json({ error: "App not found in App Store Connect" });
+      return;
+    }
+    const { data: resp } = await asc.client.get(`/apps/${app.id}/inAppPurchasesV2`, {
+      params: {
+        "fields[inAppPurchasesV2]": "name,productId,inAppPurchaseType,state,reviewNote,familySharable",
+        limit: 200,
+      },
+    });
+    const products = (resp.data ?? []).map((p: any) => ({
+      id: p.id,
+      name: p.attributes?.name ?? "",
+      productId: p.attributes?.productId ?? "",
+      inAppPurchaseType: p.attributes?.inAppPurchaseType ?? "CONSUMABLE",
+      state: p.attributes?.state ?? "",
+      reviewNote: p.attributes?.reviewNote ?? null,
+      familySharable: p.attributes?.familySharable ?? false,
+    }));
+    res.json(products);
+  }),
+);
+
+ascRouter.post(
+  "/products",
+  bundleAccess("body"),
+  handle("createProduct", async (req, res) => {
+    const { name, productId, inAppPurchaseType, reviewNote } = req.body as {
+      name: string;
+      productId: string;
+      inAppPurchaseType: string;
+      reviewNote?: string;
+    };
+
+    if (!name || !productId || !inAppPurchaseType) {
+      res.status(400).json({ error: "name, productId, inAppPurchaseType are required" });
+      return;
+    }
+
+    const asc = await ascClientForUser(req.user!.userId);
+    const app = await asc.getApp(req.bundleApp!.bundleId);
+
+    if (!app) {
+      res.status(404).json({ error: "App not found" });
+      return;
+    }
+
+    const attrs: Record<string, any> = { name, productId, inAppPurchaseType };
+    if (reviewNote) attrs.reviewNote = reviewNote;
+
+    const { data: resp } = await asc.client.post("/inAppPurchasesV2", {
+      data: {
+        type: "inAppPurchasesV2",
+        attributes: attrs,
+        relationships: {
+          app: { data: { type: "apps", id: app.id } },
+        },
+      },
+    });
+
+    res.status(201).json({
+      id: resp.data.id,
+      name: resp.data.attributes?.name ?? name,
+      productId: resp.data.attributes?.productId ?? productId,
+      inAppPurchaseType: resp.data.attributes?.inAppPurchaseType ?? inAppPurchaseType,
+      state: resp.data.attributes?.state ?? "",
+      reviewNote: resp.data.attributes?.reviewNote ?? null,
+      familySharable: resp.data.attributes?.familySharable ?? false,
+    });
+  }),
+);
+
+ascRouter.patch(
+  "/products/:id",
+  handle("updateProduct", async (req, res) => {
+    const { id } = req.params;
+    const { name, reviewNote } = req.body as { name?: string; reviewNote?: string | null };
+    const asc = await ascClientForUser(req.user!.userId);
+    const attrs: Record<string, any> = {};
+
+    if (name !== undefined) attrs.name = name;
+    if (reviewNote !== undefined) attrs.reviewNote = reviewNote;
+
+    await asc.client.patch(`/inAppPurchasesV2/${id}`, {
+      data: { type: "inAppPurchasesV2", id, attributes: attrs },
+    });
+
+    res.json({ ok: true });
+  }),
+);
+
+ascRouter.delete(
+  "/products/:id",
+  handle("deleteProduct", async (req, res) => {
+    const { id } = req.params;
+    const asc = await ascClientForUser(req.user!.userId);
+
+    await asc.client.delete(`/inAppPurchasesV2/${id}`);
+    res.json({ ok: true });
+  }),
+);
+
+ascRouter.get(
+  "/products/:id/localizations",
+  handle("listProductLocalizations", async (req, res) => {
+    const { id } = req.params;
+    const asc = await ascClientForUser(req.user!.userId);
+    const { data: resp } = await asc.client.get(`/inAppPurchasesV2/${id}/inAppPurchaseLocalizations`, {
+      params: {
+        "fields[inAppPurchaseLocalizations]": "locale,name,description,state",
+        limit: 50,
+      },
+    });
+
+    const locs = (resp.data ?? []).map((l: any) => ({
+      id: l.id,
+      locale: l.attributes?.locale ?? "",
+      name: l.attributes?.name ?? "",
+      description: l.attributes?.description ?? "",
+      state: l.attributes?.state ?? "",
+    }));
+    res.json(locs);
+  }),
+);
+
+ascRouter.post(
+  "/products/localizations",
+  handle("createProductLocalization", async (req, res) => {
+    const { productId: iapId, locale, name, description } = req.body as {
+      productId: string;
+      locale: string;
+      name: string;
+      description?: string;
+    };
+
+    if (!iapId || !locale || !name) {
+      res.status(400).json({ error: "productId, locale, name required" });
+      return;
+    }
+
+    const asc = await ascClientForUser(req.user!.userId);
+    const { data: resp } = await asc.client.post("/inAppPurchaseLocalizations", {
+      data: {
+        type: "inAppPurchaseLocalizations",
+        attributes: { locale, name, description: description ?? "" },
+        relationships: {
+          inAppPurchaseV2: { data: { type: "inAppPurchasesV2", id: iapId } },
+        },
+      },
+    });
+
+    res.status(201).json({
+      id: resp.data.id,
+      locale: resp.data.attributes?.locale ?? locale,
+      name: resp.data.attributes?.name ?? name,
+      description: resp.data.attributes?.description ?? "",
+      state: resp.data.attributes?.state ?? "",
+    });
+  }),
+);
+
+ascRouter.patch(
+  "/products/localizations/:id",
+  handle("updateProductLocalization", async (req, res) => {
+    const { id } = req.params;
+    const { name, description } = req.body as { name?: string; description?: string };
+    const asc = await ascClientForUser(req.user!.userId);
+    const attrs: Record<string, any> = {};
+
+    if (name !== undefined) attrs.name = name;
+    if (description !== undefined) attrs.description = description;
+
+    await asc.client.patch(`/inAppPurchaseLocalizations/${id}`, {
+      data: { type: "inAppPurchaseLocalizations", id, attributes: attrs },
+    });
+
+    res.json({ ok: true });
+  }),
+);
+
+ascRouter.delete(
+  "/products/localizations/:id",
+  handle("deleteProductLocalization", async (req, res) => {
+    const { id } = req.params;
+    const asc = await ascClientForUser(req.user!.userId);
+
+    await asc.client.delete(`/inAppPurchaseLocalizations/${id}`);
+    res.json({ ok: true });
+  }),
+);
+
+ascRouter.get(
+  "/products/:id/price-points",
+  handle("listProductPricePoints", async (req, res) => {
+    const { id } = req.params;
+    const territory = req.query.territory as string | undefined;
+    const asc = await ascClientForUser(req.user!.userId);
+    const params: Record<string, any> = {
+      "fields[inAppPurchasePricePoints]": "customerPrice,proceeds,territory",
+      limit: 200,
+    };
+
+    if (territory) params["filter[territory]"] = territory;
+
+    const { data: resp } = await asc.client.get(`/inAppPurchasesV2/${id}/pricePoints`, { params });
+    const points = (resp.data ?? []).map((p: any) => ({
+      id: p.id,
+      customerPrice: p.attributes?.customerPrice ?? null,
+      proceeds: p.attributes?.proceeds ?? null,
+      territory: p.attributes?.territory ?? null,
+      currency: null,
+    }));
+
+    res.json(points);
+  }),
+);
+
+ascRouter.get(
+  "/products/:id/prices",
+  handle("listProductPrices", async (req, res) => {
+    const { id } = req.params;
+    const asc = await ascClientForUser(req.user!.userId);
+    try {
+      const { data: resp } = await asc.client.get(`/inAppPurchasesV2/${id}/iapPriceSchedule`, {
+        params: {
+          include: "manualPrices,manualPrices.territory,manualPrices.inAppPurchasePricePoint",
+          "fields[inAppPurchasePriceSchedules]": "manualPrices",
+          "fields[inAppPurchasePrices]": "startDate,territory,inAppPurchasePricePoint",
+          "fields[territories]": "currency",
+          "fields[inAppPurchasePricePoints]": "customerPrice,proceeds",
+          limit: 200,
+        },
+      });
+
+      const included: any[] = resp.included ?? [];
+      const priceMap = new Map<string, any>();
+      const terrMap = new Map<string, any>();
+      const ppMap = new Map<string, any>();
+
+      for (const item of included) {
+        if (item.type === "inAppPurchasePrices") priceMap.set(item.id, item);
+        if (item.type === "territories") terrMap.set(item.id, item);
+        if (item.type === "inAppPurchasePricePoints") ppMap.set(item.id, item);
+      }
+
+      const manualRefs: any[] = resp.data?.relationships?.manualPrices?.data ?? [];
+      const prices = manualRefs.map((ref: any) => {
+        const price = priceMap.get(ref.id);
+        const terrId = price?.relationships?.territory?.data?.id;
+        const ppId = price?.relationships?.inAppPurchasePricePoint?.data?.id;
+        const terr = terrId ? terrMap.get(terrId) : null;
+        const pp = ppId ? ppMap.get(ppId) : null;
+
+        return {
+          id: ref.id,
+          territory: terrId ?? null,
+          currency: terr?.attributes?.currency ?? null,
+          customerPrice: pp?.attributes?.customerPrice ?? null,
+          proceeds: pp?.attributes?.proceeds ?? null,
+          startDate: price?.attributes?.startDate ?? null,
+          pricePointId: ppId ?? null,
+        };
+      });
+
+      res.json(prices);
+    } catch {
+      res.json([]);
+    }
+  }),
+);
+
+ascRouter.post(
+  "/products/prices",
+  handle("setProductPrice", async (req, res) => {
+    const { productId: iapId, pricePointId, territory } = req.body as {
+      productId: string;
+      pricePointId: string;
+      territory: string;
+    };
+
+    if (!iapId || !pricePointId || !territory) {
+      res.status(400).json({ error: "productId, pricePointId, territory required" });
+      return;
+    }
+
+    const asc = await ascClientForUser(req.user!.userId);
+    await asc.client.post("/inAppPurchasePriceSchedules", {
+      data: {
+        type: "inAppPurchasePriceSchedules",
+        relationships: {
+          inAppPurchase: { data: { type: "inAppPurchasesV2", id: iapId } },
+          manualPrices: {
+            data: [{ type: "inAppPurchasePrices", id: "1" }],
+          },
+        },
+      },
+      included: [
+        {
+          type: "inAppPurchasePrices",
+          id: "1",
+          attributes: { startDate: null },
+          relationships: {
+            inAppPurchasePricePoint: { data: { type: "inAppPurchasePricePoints", id: pricePointId } },
+            territory: { data: { type: "territories", id: territory } },
+          },
+        },
+      ],
+    });
+
     res.json({ ok: true });
   }),
 );

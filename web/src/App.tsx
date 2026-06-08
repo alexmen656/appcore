@@ -1220,7 +1220,7 @@ export default function App() {
               <Route path="/versions/:versionId" element={<Versions addToast={addToast} />} />
               <Route path="/versions" element={<Versions addToast={addToast} />} />
               <Route path="/monetization/subscriptions" element={<MonetizationSubscriptions addToast={addToast} />} />
-              <Route path="/monetization/products" element={<MonetizationProducts />} />
+              <Route path="/monetization/products" element={<MonetizationProducts addToast={addToast} />} />
               <Route path="/game-center/leaderboards" element={<GameCenterLeaderboards addToast={addToast} />} />
               <Route path="/game-center/achievements" element={<GameCenterAchievements addToast={addToast} />} />
               <Route path="/game-center/challenges" element={<GameCenterChallenges addToast={addToast} />} />
