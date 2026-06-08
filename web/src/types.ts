@@ -67,6 +67,17 @@ export interface AscApp {
   iconUrl: string | null;
 }
 
+export interface StoreApp {
+  trackId: string;
+  name: string;
+  bundleId: string;
+  sellerName: string;
+  iconUrl: string | null;
+  rating: number | null;
+  ratingsCount: number | null;
+  genre: string | null;
+}
+
 export interface AppInfo {
   name: string;
   bundleId: string;

@@ -289,7 +289,7 @@ async function invalidateVersionCache(bundleId: string): Promise<void> {
       where: { bundleId },
       data: { syncedAt: new Date(0) },
     })
-    .catch(() => { });
+    .catch(() => {});
 }
 
 async function ascClientForUser(userId: string): Promise<AppStoreConnectClient> {
@@ -299,8 +299,8 @@ async function ascClientForUser(userId: string): Promise<AppStoreConnectClient> 
   });
   const s = membership
     ? await prisma.teamSettings.findUnique({
-      where: { teamId: membership.teamId },
-    })
+        where: { teamId: membership.teamId },
+      })
     : null;
   if (s?.ascIssuerId && s?.ascKeyId && s?.ascPrivateKey) {
     return new AppStoreConnectClient(
@@ -339,6 +339,44 @@ ascRouter.get(
         sku: a.attributes.sku ?? null,
         primaryLocale: a.attributes.primaryLocale ?? null,
         iconUrl: iconMap.get(a.id) ?? null,
+      })),
+    );
+  }),
+);
+
+ascRouter.get(
+  "/store-search",
+  handle("storeSearch", async (req, res) => {
+    const q = ((req.query.q as string) ?? "").trim();
+
+    if (!q) {
+      res.json([]);
+      return;
+    }
+
+    const { AppStoreScraper } = await import("../../services/appstore-scraper");
+    const scraper = new AppStoreScraper("us");
+    const isUrl = /https?:\/\//i.test(q);
+    const idMatch = q.match(/id(\d{5,})/) ?? q.match(/\/(\d{5,})(?:[/?#]|$)/);
+
+    let results;
+    if (isUrl && idMatch) {
+      const app = await scraper.lookupByTrackId(Number(idMatch[1]));
+      results = app ? [app] : [];
+    } else {
+      results = await scraper.searchApps(q, 8);
+    }
+
+    res.json(
+      results.map((r) => ({
+        trackId: String(r.trackId),
+        name: r.trackName,
+        bundleId: r.bundleId,
+        sellerName: r.sellerName,
+        iconUrl: r.artworkUrl512 ?? null,
+        rating: r.averageUserRating ?? null,
+        ratingsCount: r.userRatingCount ?? null,
+        genre: r.primaryGenreName ?? null,
       })),
     );
   }),
@@ -651,7 +689,7 @@ ascRouter.patch(
           where: { id: bodyVersionId },
           data: { copyright: value || null },
         })
-        .catch(() => { });
+        .catch(() => {});
       res.json({ ok: true, field, value });
       return;
     }
@@ -713,7 +751,7 @@ ascRouter.patch(
         where: localizationWhere,
         data: { [field]: value },
       })
-      .catch(() => { });
+      .catch(() => {});
 
     const updatedLocalization = await prisma.appStoreVersionLocalization.findFirst({
       where: localizationWhere,
@@ -1594,9 +1632,9 @@ ascRouter.get(
       assetDeliveryState: d.attributes?.assetDeliveryState ?? null,
       imageUrl: asset?.templateUrl
         ? asset.templateUrl
-          .replace("{w}", String(asset.width ?? 320))
-          .replace("{h}", String(asset.height ?? 180))
-          .replace("{f}", "png")
+            .replace("{w}", String(asset.width ?? 320))
+            .replace("{h}", String(asset.height ?? 180))
+            .replace("{f}", "png")
         : null,
       width: asset?.width ?? null,
       height: asset?.height ?? null,
@@ -1793,7 +1831,12 @@ ascRouter.get(
 ascRouter.post(
   "/products/localizations",
   handle("createProductLocalization", async (req, res) => {
-    const { productId: iapId, locale, name, description } = req.body as {
+    const {
+      productId: iapId,
+      locale,
+      name,
+      description,
+    } = req.body as {
       productId: string;
       locale: string;
       name: string;
@@ -1936,7 +1979,11 @@ ascRouter.get(
 ascRouter.post(
   "/products/prices",
   handle("setProductPrice", async (req, res) => {
-    const { productId: iapId, pricePointId, territory } = req.body as {
+    const {
+      productId: iapId,
+      pricePointId,
+      territory,
+    } = req.body as {
       productId: string;
       pricePointId: string;
       territory: string;
