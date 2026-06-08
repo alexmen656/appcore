@@ -61,7 +61,7 @@ function FieldGrid({ record, fields }: { record: Rec; fields: ModelField[] }) {
     <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
       {fields.map((f) => (
         <div key={f.name} className="flex flex-col gap-0.5">
-          <dt className="text-xs font-medium text-muted-foreground">{f.name}</dt>
+          <dt className="text-xs font-medium text-muted-foreground">{f.display}</dt>
           <dd className="text-sm break-words">{fmtScalar(record[f.name], f)}</dd>
         </div>
       ))}

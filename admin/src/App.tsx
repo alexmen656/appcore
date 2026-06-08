@@ -75,8 +75,7 @@ export default function App() {
               to="/"
               end
               className={({ isActive }) =>
-                `flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${
-                  isActive ? "bg-primary text-primary-foreground" : "hover:bg-accent"
+                `flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${isActive ? "bg-primary text-primary-foreground" : "hover:bg-accent"
                 }`
               }
             >
@@ -92,8 +91,7 @@ export default function App() {
             <NavLink
               to="/jobs"
               className={({ isActive }) =>
-                `flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors ${
-                  isActive ? "bg-primary text-primary-foreground" : "hover:bg-accent"
+                `flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors ${isActive ? "bg-primary text-primary-foreground" : "hover:bg-accent"
                 }`
               }
             >
@@ -114,8 +112,7 @@ export default function App() {
                     key={model.apiPath}
                     to={`/models/${model.apiPath}`}
                     className={({ isActive }) =>
-                      `flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors ${
-                        isActive ? "bg-primary text-primary-foreground" : "hover:bg-accent"
+                      `flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors ${isActive ? "bg-primary text-primary-foreground" : "hover:bg-accent"
                       }`
                     }
                   >

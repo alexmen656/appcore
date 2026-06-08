@@ -16,7 +16,7 @@ export async function login(email: string, password: string): Promise<void> {
 }
 
 export async function logout(): Promise<void> {
-  await fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
+  await fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => { });
 }
 
 export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {

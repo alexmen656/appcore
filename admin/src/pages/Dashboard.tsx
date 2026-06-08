@@ -160,7 +160,7 @@ export default function Dashboard() {
       <div>
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Systemübersicht — alle Daten auf einen Blick
+          System Overview and Key Metrics
         </p>
       </div>
 

@@ -88,7 +88,7 @@ function RecordForm({
       {editableFields.map((field) => (
         <div key={field.name} className="space-y-2">
           <Label htmlFor={field.name}>
-            {field.name}
+            {field.display}
             {field.required && <span className="text-destructive ml-1">*</span>}
           </Label>
           {field.type === "boolean" ? (
@@ -219,7 +219,7 @@ export default function ModelCrud() {
                 <TableHeader>
                   <TableRow>
                     {visibleFields.map((f) => (
-                      <TableHead key={f.name}>{f.name}</TableHead>
+                      <TableHead key={f.name}>{f.display}</TableHead>
                     ))}
                     <TableHead className="w-32">Aktionen</TableHead>
                   </TableRow>
@@ -277,7 +277,6 @@ export default function ModelCrud() {
         </CardContent>
       </Card>
 
-      {/* Create Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
@@ -288,7 +287,6 @@ export default function ModelCrud() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Dialog */}
       <Dialog open={!!editRecord} onOpenChange={(open) => !open && setEditRecord(null)}>
         <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
@@ -306,7 +304,6 @@ export default function ModelCrud() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
