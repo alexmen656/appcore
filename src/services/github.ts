@@ -84,14 +84,70 @@ export async function listUserRepos(accessToken: string): Promise<GitHubRepo[]> 
   return repos;
 }
 
+const IGNORED_DIRS = new Set(["node_modules", "Pods", "Carthage", "fastlane", "build", "DerivedData", "vendor"]);
+const MAX_DIR_DEPTH = 3;
+
 export async function listRepoDirs(accessToken: string, repoFullName: string): Promise<string[]> {
-  const { data } = await axios.get<{ type: string; name: string; path: string }[]>(
-    `${GITHUB_API}/repos/${repoFullName}/contents`,
-    {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    },
-  );
-  return data.filter((e) => e.type === "dir").map((e) => e.name);
+  const results: string[] = [];
+
+  const walk = async (dirPath: string, depth: number): Promise<void> => {
+    const { data } = await axios.get<{ type: string; name: string; path: string }[]>(
+      `${GITHUB_API}/repos/${repoFullName}/contents/${dirPath}`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    );
+
+    const subdirs = data.filter((e) => e.type === "dir" && !e.name.startsWith(".") && !IGNORED_DIRS.has(e.name));
+
+    for (const dir of subdirs) {
+      results.push(dir.path);
+      if (depth < MAX_DIR_DEPTH) {
+        await walk(dir.path, depth + 1);
+      }
+    }
+  };
+
+  await walk("", 1);
+  results.sort();
+  return results;
+}
+
+export type Framework = "capacitor" | "native";
+
+export async function detectFramework(accessToken: string, repoFullName: string): Promise<Framework> {
+  const headers = { Authorization: `Bearer ${accessToken}` };
+  try {
+    const { data } = await axios.get<{ type: string; name: string }[]>(`${GITHUB_API}/repos/${repoFullName}/contents`, {
+      headers,
+    });
+    const names = new Set(data.map((e) => e.name));
+
+    if (["capacitor.config.ts", "capacitor.config.js", "capacitor.config.json"].some((f) => names.has(f))) {
+      return "capacitor";
+    }
+
+    if (names.has("package.json")) {
+      try {
+        const { data: pkgFile } = await axios.get<{ content?: string; encoding?: string }>(
+          `${GITHUB_API}/repos/${repoFullName}/contents/package.json`,
+          { headers },
+        );
+        const raw =
+          pkgFile.content && pkgFile.encoding === "base64"
+            ? Buffer.from(pkgFile.content, "base64").toString("utf8")
+            : "";
+        const pkg = JSON.parse(raw || "{}");
+        const deps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
+        if (deps["@capacitor/core"] || deps["@capacitor/ios"]) return "capacitor";
+      } catch {
+        /* fall through to native */
+      }
+    }
+  } catch (err: any) {
+    logger.warn(`detectFramework failed for ${repoFullName}: ${err.message}`);
+  }
+  return "native";
 }
 
 export async function createWebhook(accessToken: string, repoFullName: string, secret: string): Promise<number> {
@@ -142,6 +198,7 @@ export async function linkRepoToApp(
   appId: string,
   repoFullName: string,
   iosDir?: string | null,
+  framework?: string | null,
 ): Promise<void> {
   const membership = await prisma.teamMember.findFirst({
     where: { userId },
@@ -177,6 +234,7 @@ export async function linkRepoToApp(
       githubWebhookId: BigInt(webhookId),
       githubWebhookSecret: secret,
       githubIosDir: iosDir ?? null,
+      githubFramework: framework ?? null,
     },
   });
 

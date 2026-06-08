@@ -140,6 +140,7 @@ async function runWorkerScreenshotGeneration(
         appName: job.app.name,
         bundleId: job.app.bundleId,
         iosDir: job.app.githubIosDir ?? undefined,
+        framework: job.app.githubFramework ?? undefined,
         envVars,
       },
       log,

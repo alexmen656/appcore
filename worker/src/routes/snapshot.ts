@@ -16,12 +16,13 @@ interface SnapshotRequest {
   appName: string;
   bundleId: string;
   iosDir?: string;
+  framework?: string;
   exportMethod?: string;
   envVars?: Record<string, string>;
 }
 
 snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
-  const { repoUrl, accessToken, branch, appName, iosDir, envVars } = req.body as SnapshotRequest;
+  const { repoUrl, accessToken, branch, appName, iosDir, framework, envVars } = req.body as SnapshotRequest;
 
   if (!repoUrl || !accessToken || !appName) {
     res.status(400).json({ error: "Missing required fields" });
@@ -43,7 +44,12 @@ snapshotRouter.post("/snapshot", async (req: Request, res: Response) => {
 
   res.json({ ok: true, runId });
 
-  const runner = new SnapshotRunner(runId, { repoUrl, accessToken, branch, appName, iosDir, envVars }, emitLog, finish);
+  const runner = new SnapshotRunner(
+    runId,
+    { repoUrl, accessToken, branch, appName, iosDir, framework, envVars },
+    emitLog,
+    finish,
+  );
   runner.run().catch(() => {
     /* errors are captured inside SnapshotRunner */
   });
