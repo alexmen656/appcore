@@ -503,7 +503,6 @@ export interface ProductItem {
   inAppPurchaseType: string;
   state: string;
   reviewNote: string | null;
-  familySharable: boolean;
 }
 
 export interface ProductLocalization {
@@ -511,7 +510,6 @@ export interface ProductLocalization {
   locale: string;
   name: string;
   description: string;
-  state: string;
 }
 
 export interface ProductPricePoint {

@@ -96,8 +96,9 @@ function handle(label: string, fn: (req: Request, res: Response) => Promise<void
     try {
       await fn(req, res);
     } catch (err: any) {
-      logger.error(`ASC ${label} failed`, err);
-      res.status(500).json({ error: err.message ?? String(err) });
+      const ascErrors = err?.response?.data?.errors;
+      logger.error(`ASC ${label} failed`, ascErrors ?? err);
+      res.status(500).json({ error: "An error occurred. Please try again." });
     }
   };
 }
@@ -1662,6 +1663,19 @@ ascRouter.delete(
   }),
 );
 
+const ASC_V2 = "https://api.appstoreconnect.apple.com/v2";
+
+function mapProduct(p: any) {
+  return {
+    id: p.id,
+    name: p.attributes?.name ?? "",
+    productId: p.attributes?.productId ?? "",
+    inAppPurchaseType: p.attributes?.inAppPurchaseType ?? "CONSUMABLE",
+    state: p.attributes?.state ?? "",
+    reviewNote: p.attributes?.reviewNote ?? null,
+  };
+}
+
 ascRouter.get(
   "/products",
   bundleAccess("query"),
@@ -1669,26 +1683,20 @@ ascRouter.get(
     const bundleId = req.query.bundleId as string;
     const asc = await ascClientForUser(req.user!.userId);
     const app = await asc.getApp(bundleId);
+
     if (!app) {
       res.status(404).json({ error: "App not found in App Store Connect" });
       return;
     }
+
     const { data: resp } = await asc.client.get(`/apps/${app.id}/inAppPurchasesV2`, {
       params: {
-        "fields[inAppPurchasesV2]": "name,productId,inAppPurchaseType,state,reviewNote,familySharable",
+        "fields[inAppPurchases]": "name,productId,inAppPurchaseType,state,reviewNote",
         limit: 200,
       },
     });
-    const products = (resp.data ?? []).map((p: any) => ({
-      id: p.id,
-      name: p.attributes?.name ?? "",
-      productId: p.attributes?.productId ?? "",
-      inAppPurchaseType: p.attributes?.inAppPurchaseType ?? "CONSUMABLE",
-      state: p.attributes?.state ?? "",
-      reviewNote: p.attributes?.reviewNote ?? null,
-      familySharable: p.attributes?.familySharable ?? false,
-    }));
-    res.json(products);
+
+    res.json((resp.data ?? []).map(mapProduct));
   }),
 );
 
@@ -1710,7 +1718,6 @@ ascRouter.post(
 
     const asc = await ascClientForUser(req.user!.userId);
     const app = await asc.getApp(req.bundleApp!.bundleId);
-
     if (!app) {
       res.status(404).json({ error: "App not found" });
       return;
@@ -1719,25 +1726,15 @@ ascRouter.post(
     const attrs: Record<string, any> = { name, productId, inAppPurchaseType };
     if (reviewNote) attrs.reviewNote = reviewNote;
 
-    const { data: resp } = await asc.client.post("/inAppPurchasesV2", {
+    const { data: resp } = await asc.client.post(`${ASC_V2}/inAppPurchases`, {
       data: {
-        type: "inAppPurchasesV2",
+        type: "inAppPurchases",
         attributes: attrs,
-        relationships: {
-          app: { data: { type: "apps", id: app.id } },
-        },
+        relationships: { app: { data: { type: "apps", id: app.id } } },
       },
     });
 
-    res.status(201).json({
-      id: resp.data.id,
-      name: resp.data.attributes?.name ?? name,
-      productId: resp.data.attributes?.productId ?? productId,
-      inAppPurchaseType: resp.data.attributes?.inAppPurchaseType ?? inAppPurchaseType,
-      state: resp.data.attributes?.state ?? "",
-      reviewNote: resp.data.attributes?.reviewNote ?? null,
-      familySharable: resp.data.attributes?.familySharable ?? false,
-    });
+    res.status(201).json(mapProduct(resp.data));
   }),
 );
 
@@ -1752,8 +1749,8 @@ ascRouter.patch(
     if (name !== undefined) attrs.name = name;
     if (reviewNote !== undefined) attrs.reviewNote = reviewNote;
 
-    await asc.client.patch(`/inAppPurchasesV2/${id}`, {
-      data: { type: "inAppPurchasesV2", id, attributes: attrs },
+    await asc.client.patch(`${ASC_V2}/inAppPurchases/${id}`, {
+      data: { type: "inAppPurchases", id, attributes: attrs },
     });
 
     res.json({ ok: true });
@@ -1765,8 +1762,7 @@ ascRouter.delete(
   handle("deleteProduct", async (req, res) => {
     const { id } = req.params;
     const asc = await ascClientForUser(req.user!.userId);
-
-    await asc.client.delete(`/inAppPurchasesV2/${id}`);
+    await asc.client.delete(`${ASC_V2}/inAppPurchases/${id}`);
     res.json({ ok: true });
   }),
 );
@@ -1776,21 +1772,21 @@ ascRouter.get(
   handle("listProductLocalizations", async (req, res) => {
     const { id } = req.params;
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await asc.client.get(`/inAppPurchasesV2/${id}/inAppPurchaseLocalizations`, {
+    const { data: resp } = await asc.client.get(`${ASC_V2}/inAppPurchases/${id}/inAppPurchaseLocalizations`, {
       params: {
         "fields[inAppPurchaseLocalizations]": "locale,name,description,state",
         limit: 50,
       },
     });
 
-    const locs = (resp.data ?? []).map((l: any) => ({
-      id: l.id,
-      locale: l.attributes?.locale ?? "",
-      name: l.attributes?.name ?? "",
-      description: l.attributes?.description ?? "",
-      state: l.attributes?.state ?? "",
-    }));
-    res.json(locs);
+    res.json(
+      (resp.data ?? []).map((l: any) => ({
+        id: l.id,
+        locale: l.attributes?.locale ?? "",
+        name: l.attributes?.name ?? "",
+        description: l.attributes?.description ?? "",
+      })),
+    );
   }),
 );
 
@@ -1815,7 +1811,7 @@ ascRouter.post(
         type: "inAppPurchaseLocalizations",
         attributes: { locale, name, description: description ?? "" },
         relationships: {
-          inAppPurchaseV2: { data: { type: "inAppPurchasesV2", id: iapId } },
+          inAppPurchaseV2: { data: { type: "inAppPurchases", id: iapId } },
         },
       },
     });
@@ -1825,7 +1821,6 @@ ascRouter.post(
       locale: resp.data.attributes?.locale ?? locale,
       name: resp.data.attributes?.name ?? name,
       description: resp.data.attributes?.description ?? "",
-      state: resp.data.attributes?.state ?? "",
     });
   }),
 );
@@ -1854,7 +1849,6 @@ ascRouter.delete(
   handle("deleteProductLocalization", async (req, res) => {
     const { id } = req.params;
     const asc = await ascClientForUser(req.user!.userId);
-
     await asc.client.delete(`/inAppPurchaseLocalizations/${id}`);
     res.json({ ok: true });
   }),
@@ -1873,16 +1867,16 @@ ascRouter.get(
 
     if (territory) params["filter[territory]"] = territory;
 
-    const { data: resp } = await asc.client.get(`/inAppPurchasesV2/${id}/pricePoints`, { params });
-    const points = (resp.data ?? []).map((p: any) => ({
-      id: p.id,
-      customerPrice: p.attributes?.customerPrice ?? null,
-      proceeds: p.attributes?.proceeds ?? null,
-      territory: p.attributes?.territory ?? null,
-      currency: null,
-    }));
-
-    res.json(points);
+    const { data: resp } = await asc.client.get(`${ASC_V2}/inAppPurchases/${id}/pricePoints`, { params });
+    res.json(
+      (resp.data ?? []).map((p: any) => ({
+        id: p.id,
+        customerPrice: p.attributes?.customerPrice ?? null,
+        proceeds: p.attributes?.proceeds ?? null,
+        territory: p.attributes?.territory ?? null,
+        currency: null,
+      })),
+    );
   }),
 );
 
@@ -1892,14 +1886,14 @@ ascRouter.get(
     const { id } = req.params;
     const asc = await ascClientForUser(req.user!.userId);
     try {
-      const { data: resp } = await asc.client.get(`/inAppPurchasesV2/${id}/iapPriceSchedule`, {
+      const { data: resp } = await asc.client.get(`${ASC_V2}/inAppPurchases/${id}/iapPriceSchedule`, {
         params: {
           include: "manualPrices,manualPrices.territory,manualPrices.inAppPurchasePricePoint",
           "fields[inAppPurchasePriceSchedules]": "manualPrices",
           "fields[inAppPurchasePrices]": "startDate,territory,inAppPurchasePricePoint",
           "fields[territories]": "currency",
           "fields[inAppPurchasePricePoints]": "customerPrice,proceeds",
-          limit: 200,
+          "limit[manualPrices]": 200,
         },
       });
 
@@ -1915,25 +1909,24 @@ ascRouter.get(
       }
 
       const manualRefs: any[] = resp.data?.relationships?.manualPrices?.data ?? [];
-      const prices = manualRefs.map((ref: any) => {
-        const price = priceMap.get(ref.id);
-        const terrId = price?.relationships?.territory?.data?.id;
-        const ppId = price?.relationships?.inAppPurchasePricePoint?.data?.id;
-        const terr = terrId ? terrMap.get(terrId) : null;
-        const pp = ppId ? ppMap.get(ppId) : null;
-
-        return {
-          id: ref.id,
-          territory: terrId ?? null,
-          currency: terr?.attributes?.currency ?? null,
-          customerPrice: pp?.attributes?.customerPrice ?? null,
-          proceeds: pp?.attributes?.proceeds ?? null,
-          startDate: price?.attributes?.startDate ?? null,
-          pricePointId: ppId ?? null,
-        };
-      });
-
-      res.json(prices);
+      res.json(
+        manualRefs.map((ref: any) => {
+          const price = priceMap.get(ref.id);
+          const terrId = price?.relationships?.territory?.data?.id;
+          const ppId = price?.relationships?.inAppPurchasePricePoint?.data?.id;
+          const terr = terrId ? terrMap.get(terrId) : null;
+          const pp = ppId ? ppMap.get(ppId) : null;
+          return {
+            id: ref.id,
+            territory: terrId ?? null,
+            currency: terr?.attributes?.currency ?? null,
+            customerPrice: pp?.attributes?.customerPrice ?? null,
+            proceeds: pp?.attributes?.proceeds ?? null,
+            startDate: price?.attributes?.startDate ?? null,
+            pricePointId: ppId ?? null,
+          };
+        }),
+      );
     } catch {
       res.json([]);
     }
@@ -1959,10 +1952,9 @@ ascRouter.post(
       data: {
         type: "inAppPurchasePriceSchedules",
         relationships: {
-          inAppPurchase: { data: { type: "inAppPurchasesV2", id: iapId } },
-          manualPrices: {
-            data: [{ type: "inAppPurchasePrices", id: "1" }],
-          },
+          inAppPurchase: { data: { type: "inAppPurchases", id: iapId } },
+          baseTerritory: { data: { type: "territories", id: territory } },
+          manualPrices: { data: [{ type: "inAppPurchasePrices", id: "1" }] },
         },
       },
       included: [

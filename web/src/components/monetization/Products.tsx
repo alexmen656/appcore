@@ -38,7 +38,7 @@ interface Props {
 const TYPE_LABELS: Record<string, string> = {
   CONSUMABLE: "Consumable",
   NON_CONSUMABLE: "Non-Consumable",
-  NON_RENEWABLE_SUBSCRIPTION: "Non-Renewable Subscription",
+  NON_RENEWING_SUBSCRIPTION: "Non-Renewing Subscription",
 };
 
 const TYPES = Object.keys(TYPE_LABELS);
