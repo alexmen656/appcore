@@ -36,7 +36,7 @@ final class APIService {
 
     func register(email: String, password: String, name: String) async throws -> AuthResponse {
         let body: [String: String] = ["email": email, "password": password, "name": name]
-        let response: AuthResponse = try await post("/api/auth/register", body: body, authenticated: false)
+        let response: AuthResponse = try await post("/api/auth/signup", body: body, authenticated: false)
         self.token = response.token
         return response
     }

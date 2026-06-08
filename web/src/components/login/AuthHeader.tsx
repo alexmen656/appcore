@@ -1,6 +1,6 @@
 import { textPrimary } from "../../styles";
 interface Props {
-  mode: "login" | "register";
+  mode: "login" | "signup";
 }
 
 export default function AuthHeader({ mode }: Props) {

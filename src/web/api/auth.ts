@@ -65,7 +65,7 @@ setInterval(
   5 * 60 * 1000,
 );
 
-authRouter.post("/register", async (req, res) => {
+authRouter.post("/signup", async (req, res) => {
   try {
     const { email, password, name, inviteToken } = req.body as {
       email?: string;

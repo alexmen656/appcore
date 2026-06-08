@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { KeyRound } from "lucide-react";
 import AuthHeader from "./AuthHeader";
 import type { AuthUser } from "../../types";
@@ -8,6 +9,7 @@ export type { AuthUser };
 
 interface Props {
   onAuth: (user: AuthUser) => void;
+  mode?: "login" | "signup";
 }
 
 async function passkeySignIn(email: string): Promise<{ user: AuthUser }> {
@@ -19,6 +21,7 @@ async function passkeySignIn(email: string): Promise<{ user: AuthUser }> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email: email || undefined }),
   });
+
   const optData = await optRes.json();
   if (!optRes.ok) throw new Error(optData.error ?? "Failed to start passkey auth");
 
@@ -31,6 +34,7 @@ async function passkeySignIn(email: string): Promise<{ user: AuthUser }> {
       assertionResponse: assertion,
     }),
   });
+
   const verifyData = await verifyRes.json();
   if (!verifyRes.ok) throw new Error(verifyData.error ?? "Passkey verification failed");
 
@@ -45,6 +49,7 @@ async function passkeyRegister(): Promise<void> {
     credentials: "include",
     headers: { "Content-Type": "application/json" },
   });
+
   const optData = await optRes.json();
   if (!optRes.ok) throw new Error(optData.error ?? "Failed to start passkey registration");
 
@@ -61,8 +66,8 @@ async function passkeyRegister(): Promise<void> {
   if (!verifyRes.ok) throw new Error(verifyData.error ?? "Passkey registration failed");
 }
 
-export default function Login({ onAuth }: Props) {
-  const [mode, setMode] = useState<"login" | "register">("login");
+export default function Login({ onAuth, mode = "login" }: Props) {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -81,9 +86,9 @@ export default function Login({ onAuth }: Props) {
     setError(null);
     setLoading(true);
     try {
-      const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
+      const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/signup";
       const body: Record<string, string> = { email, password };
-      if (mode === "register" && name) body.name = name;
+      if (mode === "signup" && name) body.name = name;
       const res = await fetch(endpoint, {
         method: "POST",
         credentials: "include",
@@ -217,7 +222,7 @@ export default function Login({ onAuth }: Props) {
       <div className={`w-[400px] bg-white dark:bg-[#1c2028] rounded-2xl shadow-xl border ${borderDefault} p-10`}>
         <AuthHeader mode={mode} />
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {mode === "register" && (
+          {mode === "signup" && (
             <label className="flex flex-col gap-1.5">
               <span className={`text-sm font-medium ${textPrimary}`}>Name</span>
               <input
@@ -315,11 +320,11 @@ export default function Login({ onAuth }: Props) {
               <button
                 className="text-[#D94412] font-medium hover:underline"
                 onClick={() => {
-                  setMode("register");
                   setError(null);
+                  navigate("/signup");
                 }}
               >
-                Register
+                Sign up
               </button>
             </>
           ) : (
@@ -328,8 +333,8 @@ export default function Login({ onAuth }: Props) {
               <button
                 className="text-[#D94412] font-medium hover:underline"
                 onClick={() => {
-                  setMode("login");
                   setError(null);
+                  navigate("/login");
                 }}
               >
                 Sign in

@@ -25,7 +25,7 @@ export default function InviteAccept({ onAuth }: { onAuth: (u: AuthUser) => void
 
   const [invite, setInvite] = useState<InviteInfo | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [mode, setMode] = useState<"register" | "login">("register");
+  const [mode, setMode] = useState<"signup" | "login">("signup");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,8 +39,8 @@ export default function InviteAccept({ onAuth }: { onAuth: (u: AuthUser) => void
         r.ok
           ? r.json()
           : r.json().then((e: any) => {
-              throw new Error(e.error);
-            }),
+            throw new Error(e.error);
+          }),
       )
       .then((d: InviteInfo) => {
         setInvite(d);
@@ -54,8 +54,8 @@ export default function InviteAccept({ onAuth }: { onAuth: (u: AuthUser) => void
     setSubmitting(true);
     setError(null);
     try {
-      const endpoint = mode === "register" ? "/api/auth/register" : "/api/auth/login";
-      const body = mode === "register" ? { email, password, name, inviteToken: token } : { email, password };
+      const endpoint = mode === "signup" ? "/api/auth/signup" : "/api/auth/login";
+      const body = mode === "signup" ? { email, password, name, inviteToken: token } : { email, password };
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -95,7 +95,7 @@ export default function InviteAccept({ onAuth }: { onAuth: (u: AuthUser) => void
         <div className="max-w-sm w-full text-center">
           <div className="text-[26px] font-bold text-[#D94412] tracking-[-0.3px] mb-8">marteso</div>
           <div className="p-6 bg-white dark:bg-[#1c2028] border border-[#e5e7eb] dark:border-[#2a2f3d] rounded-2xl">
-            <p className="text-sm font-semibold text-[#1a1a2e] dark:text-[#e8eaf0] mb-1">Ungültige Einladung</p>
+            <p className="text-sm font-semibold text-[#1a1a2e] dark:text-[#e8eaf0] mb-1">Invalid invitation</p>
             <p className="text-xs text-gray-400 dark:text-[#5c6478]">{loadError}</p>
           </div>
         </div>
@@ -117,16 +117,16 @@ export default function InviteAccept({ onAuth }: { onAuth: (u: AuthUser) => void
         <div className="text-[26px] font-bold text-[#D94412] tracking-[-0.3px] mb-8 text-center">marteso</div>
 
         <div className="mb-4 p-4 bg-[#fef2f3] dark:bg-[#2a1f23] border border-[#D94412]/20 rounded-xl text-center">
-          <p className="text-sm font-semibold text-[#1a1a2e] dark:text-[#e8eaf0]">Du wurdest eingeladen</p>
+          <p className="text-sm font-semibold text-[#1a1a2e] dark:text-[#e8eaf0]">You've been invited</p>
           <p className="text-sm text-gray-600 dark:text-[#8b93a5] mt-0.5">
-            Team <strong className="text-[#D94412]">{invite.teamName}</strong> als{" "}
-            <strong className="text-[#D94412]">{ROLE_LABELS[invite.role] ?? invite.role}</strong> beizutreten
+            to join team <strong className="text-[#D94412]">{invite.teamName}</strong> as{" "}
+            <strong className="text-[#D94412]">{ROLE_LABELS[invite.role] ?? invite.role}</strong>
           </p>
         </div>
 
         <div className="bg-white dark:bg-[#1c2028] border border-[#e5e7eb] dark:border-[#2a2f3d] rounded-2xl p-6">
           <div className="flex rounded-lg bg-[#f7f8fa] dark:bg-[#252b38] p-0.5 mb-5">
-            {(["register", "login"] as const).map((m) => (
+            {(["signup", "login"] as const).map((m) => (
               <button
                 key={m}
                 onClick={() => {
@@ -135,13 +135,13 @@ export default function InviteAccept({ onAuth }: { onAuth: (u: AuthUser) => void
                 }}
                 className={`flex-1 py-1.5 text-sm font-semibold rounded-md transition-all ${mode === m ? "bg-white dark:bg-[#1c2028] text-[#1a1a2e] dark:text-[#e8eaf0] shadow-sm" : "text-gray-500 dark:text-[#5c6478]"}`}
               >
-                {m === "register" ? "Registrieren" : "Anmelden"}
+                {m === "signup" ? "Sign up" : "Sign in"}
               </button>
             ))}
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            {mode === "register" && (
+            {mode === "signup" && (
               <input
                 type="text"
                 placeholder="Name"
@@ -152,7 +152,7 @@ export default function InviteAccept({ onAuth }: { onAuth: (u: AuthUser) => void
             )}
             <input
               type="email"
-              placeholder="E-Mail"
+              placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -160,7 +160,7 @@ export default function InviteAccept({ onAuth }: { onAuth: (u: AuthUser) => void
             />
             <input
               type="password"
-              placeholder="Passwort"
+              placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -173,7 +173,7 @@ export default function InviteAccept({ onAuth }: { onAuth: (u: AuthUser) => void
               disabled={submitting}
               className="mt-1 py-2.5 rounded-xl bg-[#D94412] text-white text-sm font-semibold hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {submitting ? "…" : mode === "register" ? "Registrieren & Beitreten" : "Anmelden & Beitreten"}
+              {submitting ? "…" : mode === "signup" ? "Sign up & Join" : "Sign in & Join"}
             </button>
           </form>
         </div>
