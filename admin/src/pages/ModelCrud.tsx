@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { getModelConfig, type ModelField } from "@/lib/models";
-import { useAdminApi, adminCreate, adminUpdate, adminDelete } from "@/lib/api";
+import { useAdminApi, adminCreate, adminUpdate, adminDelete, apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +17,7 @@ import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
   AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface PaginatedResponse {
   data: Record<string, unknown>[];
@@ -142,12 +142,25 @@ export default function ModelCrud() {
   const [editRecord, setEditRecord] = useState<Record<string, unknown> | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const queryParams = `?page=${page}&pageSize=25${search ? `&search=${encodeURIComponent(search)}` : ""}`;
   const { data, loading, refetch } = useAdminApi<PaginatedResponse>(`/${modelPath}${queryParams}`);
 
+  const editId = searchParams.get("edit");
+  useEffect(() => {
+    if (!editId || !modelPath) return;
+    apiFetch<Record<string, unknown>>(`/${modelPath}/${editId}`)
+      .then(setEditRecord)
+      .catch(() => { })
+      .finally(() => {
+        searchParams.delete("edit");
+        setSearchParams(searchParams, { replace: true });
+      });
+  }, [editId, modelPath]);
+
   if (!config) {
-    return <div className="p-8 text-center text-muted-foreground">Model nicht gefunden</div>;
+    return <div className="p-8 text-center text-muted-foreground">Model not found</div>;
   }
 
   const visibleFields = config.fields.filter((f) => !f.hidden);
@@ -208,7 +221,7 @@ export default function ModelCrud() {
                     {visibleFields.map((f) => (
                       <TableHead key={f.name}>{f.name}</TableHead>
                     ))}
-                    <TableHead className="w-24">Aktionen</TableHead>
+                    <TableHead className="w-32">Aktionen</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -219,6 +232,11 @@ export default function ModelCrud() {
                       ))}
                       <TableCell>
                         <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" asChild>
+                            <Link to={`/models/${modelPath}/${record.id as string}`}>
+                              <Eye className="h-4 w-4" />
+                            </Link>
+                          </Button>
                           <Button variant="ghost" size="icon" onClick={() => setEditRecord(record)}>
                             <Pencil className="h-4 w-4" />
                           </Button>

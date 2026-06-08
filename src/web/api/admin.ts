@@ -59,6 +59,100 @@ function getModel(name: string): PrismaDelegate | null {
   return models[name] ?? null;
 }
 
+const userSelect = {
+  id: true,
+  email: true,
+  name: true,
+  role: true,
+  createdAt: true,
+} as const;
+
+const detailIncludes: Record<string, any> = {
+  user: {
+    teamMembers: {
+      include: {
+        team: {
+          include: {
+            settings: true,
+            subscription: true,
+            members: { include: { user: { select: userSelect } } },
+            apps: { select: { id: true, name: true, bundleId: true, isOwnApp: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: "asc" },
+    },
+    passkeys: {
+      select: { id: true, name: true, deviceType: true, createdAt: true, lastUsedAt: true },
+    },
+  },
+  team: {
+    settings: true,
+    subscription: true,
+    members: {
+      include: { user: { select: userSelect } },
+      orderBy: { createdAt: "asc" },
+    },
+    invites: { orderBy: { createdAt: "desc" } },
+    apps: { select: { id: true, name: true, bundleId: true, isOwnApp: true, country: true } },
+  },
+  teamMember: {
+    user: { select: userSelect },
+    team: {
+      include: {
+        settings: true,
+        members: { include: { user: { select: userSelect } } },
+        apps: { select: { id: true, name: true, bundleId: true } },
+      },
+    },
+  },
+  teamSettings: {
+    team: {
+      include: {
+        members: { include: { user: { select: userSelect } } },
+        apps: { select: { id: true, name: true, bundleId: true } },
+      },
+    },
+  },
+  app: {
+    team: {
+      include: {
+        settings: true,
+        members: { include: { user: { select: userSelect } } },
+      },
+    },
+  },
+};
+
+const SECRET_KEYS = new Set([
+  "passwordHash",
+  "ascPrivateKey",
+  "githubAccessToken",
+  "githubWebhookSecret",
+  "signingCertP12",
+  "signingCertPassword",
+  "signingProvisioningProfile",
+  "snapshotEnvVars",
+  "reviewerDemoPassword",
+  "clientSecret",
+]);
+
+function redactSecrets(value: any): any {
+  if (Array.isArray(value)) return value.map(redactSecrets);
+  if (value && typeof value === "object" && !(value instanceof Date)) {
+    const out: Record<string, any> = {};
+    for (const [k, v] of Object.entries(value)) {
+      if (SECRET_KEYS.has(k)) {
+        out[k] = v == null ? null : "•••••• (set)";
+      } else {
+        out[k] = redactSecrets(v);
+      }
+    }
+    return out;
+  }
+  return value;
+}
+
 const searchFields: Record<string, string[]> = {
   user: ["email", "name"],
   team: ["name"],
@@ -300,6 +394,26 @@ router.get("/:model", async (req: Request, res: Response) => {
   ]);
 
   res.json({ data, total, page, pageSize });
+});
+
+router.get("/detail/:model/:id", async (req: Request, res: Response) => {
+  const modelName = req.params.model as string;
+  const delegate = getModel(modelName);
+  if (!delegate) {
+    res.status(404).json({ error: "Model not found" });
+    return;
+  }
+
+  const include = detailIncludes[modelName];
+  const record = await delegate.findUnique({
+    where: { id: req.params.id as string },
+    ...(include ? { include } : {}),
+  });
+  if (!record) {
+    res.status(404).json({ error: "Record not found" });
+    return;
+  }
+  res.json(redactSecrets(record));
 });
 
 router.get("/:model/:id", async (req: Request, res: Response) => {

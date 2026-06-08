@@ -4,6 +4,7 @@ import { modelConfigs, modelCategories } from "@/lib/models";
 import { logout } from "@/lib/api";
 import Dashboard from "@/pages/Dashboard";
 import ModelCrud from "@/pages/ModelCrud";
+import RecordDetail from "@/pages/RecordDetail";
 import LoginPage from "@/pages/Login";
 import BossJobs from "@/pages/BossJobs";
 import {
@@ -142,6 +143,7 @@ export default function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/jobs" element={<BossJobs />} />
             <Route path="/models/:model" element={<ModelCrud />} />
+            <Route path="/models/:model/:id" element={<RecordDetail />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
