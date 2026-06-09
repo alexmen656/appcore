@@ -79,6 +79,7 @@ authRouter.post("/signup", async (req, res) => {
       res.status(400).json({ error: "email and password required" });
       return;
     }
+
     if (password.length < 8) {
       res.status(400).json({ error: "Password must be at least 8 characters" });
       return;
@@ -92,7 +93,6 @@ authRouter.post("/signup", async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 12);
     const displayName = name ?? email.split("@")[0];
-
     let invite = inviteToken ? await prisma.teamInvite.findUnique({ where: { token: inviteToken } }) : null;
 
     if (invite && (invite.acceptedAt || invite.expiresAt < new Date())) {
@@ -137,7 +137,6 @@ authRouter.post("/signup", async (req, res) => {
       tokenVersion: user.tokenVersion,
     });
     setAuthCookie(res, token);
-
     founderWelcome({ to: user.email, name: user.name ?? displayName });
 
     res.status(201).json({
@@ -191,7 +190,9 @@ authRouter.post("/login", async (req, res) => {
       teamId: membership?.teamId ?? null,
       tokenVersion: user.tokenVersion,
     });
+
     setAuthCookie(res, token);
+
     res.json({
       user: {
         id: user.id,
@@ -218,10 +219,12 @@ authRouter.post("/accept-invite", requireAuth, async (req, res) => {
     const invite = await prisma.teamInvite.findUnique({
       where: { token: inviteToken },
     });
+
     if (!invite || invite.acceptedAt || invite.expiresAt < new Date()) {
       res.status(400).json({ error: "Invalid or expired invite" });
       return;
     }
+
     if (invite.email.trim().toLowerCase() !== req.user!.email.trim().toLowerCase()) {
       res.status(403).json({ error: "This invite is for a different email address" });
       return;
@@ -238,6 +241,7 @@ authRouter.post("/accept-invite", requireAuth, async (req, res) => {
       },
       update: { role: invite.role },
     });
+
     await prisma.teamInvite.update({
       where: { id: invite.id },
       data: { acceptedAt: new Date() },
@@ -247,6 +251,7 @@ authRouter.post("/accept-invite", requireAuth, async (req, res) => {
       where: { id: req.user!.userId },
       select: { tokenVersion: true },
     });
+
     const newToken = signToken({
       userId: req.user!.userId,
       email: req.user!.email,
@@ -254,6 +259,7 @@ authRouter.post("/accept-invite", requireAuth, async (req, res) => {
       teamId: invite.teamId,
       tokenVersion: freshUser?.tokenVersion ?? 0,
     });
+
     setAuthCookie(res, newToken);
     res.json({ ok: true, teamId: invite.teamId });
   } catch (err) {
@@ -282,12 +288,15 @@ authRouter.get("/me", requireAuth, async (req, res) => {
         },
       },
     });
+
     if (!user) {
       res.status(404).json({ error: "User not found" });
       return;
     }
+
     const membership = user.teamMembers[0];
     const { passwordHash, ...rest } = user;
+
     res.json({
       ...rest,
       passwordSet: passwordHash != null,
@@ -333,6 +342,7 @@ authRouter.patch("/profile", requireAuth, async (req, res) => {
       data: updates,
       select: { id: true, email: true, name: true, role: true },
     });
+
     res.json(user);
   } catch (err) {
     res.status(500).json({ error: String(err) });
@@ -392,6 +402,7 @@ authRouter.get("/users", requireAuth, async (req, res) => {
       res.status(403).json({ error: "Forbidden" });
       return;
     }
+
     const users = await prisma.user.findMany({
       select: {
         id: true,
@@ -402,6 +413,7 @@ authRouter.get("/users", requireAuth, async (req, res) => {
       },
       orderBy: { createdAt: "asc" },
     });
+
     res.json(users);
   } catch (err) {
     res.status(500).json({ error: String(err) });
@@ -742,6 +754,7 @@ authRouter.get("/google/start", (_req, res) => {
     res.status(500).json({ error: "Google sign-in is not configured" });
     return;
   }
+
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: `${env.APP_URL}/api/auth/google/callback`,
@@ -750,6 +763,7 @@ authRouter.get("/google/start", (_req, res) => {
     state: signSignInState(),
     access_type: "online",
   });
+
   res.json({ url: `https://accounts.google.com/o/oauth2/v2/auth?${params}` });
 });
 
