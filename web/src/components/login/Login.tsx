@@ -4,6 +4,7 @@ import { KeyRound } from "lucide-react";
 import AuthHeader from "./AuthHeader";
 import type { AuthUser } from "../../types";
 import { borderDefault, btnPrimary, inputCls, textMuted, textPrimary } from "../../styles";
+import { usePostHog } from "@posthog/react";
 
 export type { AuthUser };
 
@@ -68,6 +69,7 @@ async function passkeyRegister(): Promise<void> {
 
 export default function Login({ onAuth, mode = "login" }: Props) {
   const navigate = useNavigate();
+  const posthog = usePostHog();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -100,8 +102,12 @@ export default function Login({ onAuth, mode = "login" }: Props) {
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
 
       if (mode === "signup") {
+        posthog?.identify(data.user.id, { email: data.user.email, name: data.user.name ?? undefined });
+        posthog?.capture("user_signed_up", { method: "email" });
         finishAuth(data.user);
       } else {
+        posthog?.identify(data.user.id, { email: data.user.email, name: data.user.name ?? undefined });
+        posthog?.capture("user_logged_in", { method: "email" });
         setPendingAuth({ user: data.user });
       }
     } catch (err: any) {
@@ -116,6 +122,8 @@ export default function Login({ onAuth, mode = "login" }: Props) {
     setLoading(true);
     try {
       const data = await passkeySignIn(email);
+      posthog?.identify(data.user.id, { email: data.user.email, name: data.user.name ?? undefined });
+      posthog?.capture("user_logged_in", { method: "passkey" });
       finishAuth(data.user);
     } catch (err: any) {
       setError(err.message);
@@ -160,6 +168,8 @@ export default function Login({ onAuth, mode = "login" }: Props) {
       const res = await fetch("/api/auth/demo", { method: "POST", credentials: "include" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Demo login failed");
+      posthog?.identify(data.user.id, { email: data.user.email, name: data.user.name ?? undefined });
+      posthog?.capture("user_logged_in", { method: "demo" });
       finishAuth(data.user);
     } catch (err: any) {
       setError(err.message);

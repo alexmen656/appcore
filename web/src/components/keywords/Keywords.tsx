@@ -13,6 +13,7 @@ import { ChevronDown, Search, X } from "lucide-react";
 import { useApi, apiPost, apiDelete, authHeaders, getActiveBundleId } from "../../hooks/useApi";
 import { useClickOutside } from "../../hooks/useClickOutside";
 import { usePermissions } from "../../hooks/usePermissions";
+import { usePostHog } from "@posthog/react";
 import { COUNTRIES } from "./KeywordForm";
 import KeywordTable, { Keyword, SortKey } from "./KeywordTable";
 import RankingHistoryChart, { HistoryData } from "./RankingHistoryChart";
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export default function Keywords({ addToast }: Props) {
+  const posthog = usePostHog();
   const { canWrite } = usePermissions();
   const writeTip = !canWrite ? "Viewer role cannot perform this action" : undefined;
   const { data, loading, refetch } = useApi<Keyword[]>("/keywords");
@@ -49,6 +51,9 @@ export default function Keywords({ addToast }: Props) {
       const res = await apiPost(`/actions/${endpoint}`, {
         bundleId: getActiveBundleId(),
       });
+      if (endpoint === "discover-keywords") {
+        posthog?.capture("keyword_discovery_started", { bundle_id: getActiveBundleId() });
+      }
       addToast(res.message || `${label} started`, "success");
       setTimeout(refetch, 2000);
     } catch (e: any) {
@@ -111,6 +116,7 @@ export default function Keywords({ addToast }: Props) {
           }),
         ),
       );
+      posthog?.capture("keyword_added", { count: terms.length, country: country.code });
       addToast(
         terms.length === 1
           ? `Keyword "${terms[0]}" (${country.code.toUpperCase()}) added`
@@ -134,6 +140,7 @@ export default function Keywords({ addToast }: Props) {
     }
     try {
       await apiDelete(`/keywords/${id}`);
+      posthog?.capture("keyword_deleted", { keyword: term });
       addToast(`Keyword "${term}" removed`, "info");
       refetch();
     } catch (e: any) {

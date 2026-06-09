@@ -16,6 +16,7 @@ import {
 import { authHeaders, setActiveBundleId } from "../hooks/useApi";
 import { borderDefault, btnPrimary, btnSecondary, inputCls, textMuted, textPrimary, textSecondary } from "../styles";
 import type { StoreApp } from "../types";
+import { usePostHog } from "@posthog/react";
 
 interface Props {
   onComplete: () => void;
@@ -529,6 +530,7 @@ function ResultsScreen({ data, onContinue }: { data: ScanData; onContinue: () =>
 }
 
 export default function Onboarding({ onComplete }: Props) {
+  const posthog = usePostHog();
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<StoreApp[] | null>(null);
@@ -579,6 +581,7 @@ export default function Onboarding({ onComplete }: Props) {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+      posthog?.capture("app_imported", { bundle_id: app.bundleId, app_name: app.name });
       setActiveBundleId(app.bundleId);
       setImportedBundle(app.bundleId);
       setPhase("scan");
@@ -589,11 +592,16 @@ export default function Onboarding({ onComplete }: Props) {
     }
   };
 
+  const handleOnboardingComplete = () => {
+    posthog?.capture("onboarding_completed");
+    onComplete();
+  };
+
   if (phase === "scan" && importedBundle) {
     return (
       <ScanScreen
         bundleId={importedBundle}
-        onSkip={onComplete}
+        onSkip={handleOnboardingComplete}
         onDone={(d) => {
           setScanData(d);
           setPhase("results");
@@ -603,7 +611,7 @@ export default function Onboarding({ onComplete }: Props) {
   }
 
   if (phase === "results" && scanData) {
-    return <ResultsScreen data={scanData} onContinue={onComplete} />;
+    return <ResultsScreen data={scanData} onContinue={handleOnboardingComplete} />;
   }
 
   return (

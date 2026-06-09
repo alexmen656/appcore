@@ -3,6 +3,7 @@ import { borderDefault, pageTitle, textMuted, textPrimary, textSecondary } from 
 import { ChevronDown, Users } from "lucide-react";
 import { useApi, apiPost, apiDelete, getActiveBundleId } from "../../hooks/useApi";
 import { useClickOutside } from "../../hooks/useClickOutside";
+import { usePostHog } from "@posthog/react";
 import OwnAppCard, { AppItem } from "./OwnAppCard";
 import CompetitorCard from "./CompetitorCard";
 import CompetitorDetailModal from "./CompetitorDetailModal";
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function Competitors({ addToast }: Props) {
+  const posthog = usePostHog();
   const { data, loading, refetch } = useApi<AppItem[]>("/apps");
   const [discovering, setDiscovering] = useState(false);
   const [intelRunning, setIntelRunning] = useState(false);
@@ -29,6 +31,7 @@ export default function Competitors({ addToast }: Props) {
       const res = await apiPost("/actions/discover-competitors", {
         bundleId: getActiveBundleId(),
       });
+      posthog?.capture("competitor_discovery_started", { bundle_id: getActiveBundleId() });
       addToast(res.message || "Competitor discovery started", "success");
       setTimeout(refetch, 3000);
     } catch (e: any) {

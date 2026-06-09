@@ -2,6 +2,7 @@ import { Fragment, useState, useEffect, useCallback } from "react";
 import { textPrimary } from "../styles";
 import { authHeaders } from "../hooks/useApi";
 import { Pencil, Plus, X, LayoutGrid, Trash2 } from "lucide-react";
+import { usePostHog } from "@posthog/react";
 
 interface AppOption {
   id: string;
@@ -98,6 +99,7 @@ export default function Team({
   addToast: (msg: string, type: "success" | "error" | "info") => void;
   currentUserId: string;
 }) {
+  const posthog = usePostHog();
   const [data, setData] = useState<TeamData | null>(null);
   const [loading, setLoading] = useState(true);
   const [myRole, setMyRole] = useState<TeamRole | null>(null);
@@ -171,6 +173,8 @@ export default function Team({
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+      posthog?.capture("team_member_invited", { role: inviteRole })
+      
       addToast(`Invitation sent to ${inviteEmail}`, "success");
       setInviteEmail("");
       setInviteRole("MEMBER");

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { usePostHog } from "@posthog/react";
 import { borderDefault, textMuted, textPrimary, textSecondary } from "./styles";
 import { Routes, Route, NavLink, Navigate, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -970,6 +971,7 @@ function SettingsSidebar({ navLinkClass }: { navLinkClass: (p: { isActive: boole
 }
 
 export default function App() {
+  const posthog = usePostHog();
   const { data: dash } = useApi<DashboardData>("/dashboard");
   const { toasts, addToast } = useToast();
   const location = useLocation();
@@ -1048,6 +1050,9 @@ export default function App() {
           const decoded = JSON.parse(atob(padded));
           setUser(decoded);
           setAuthLoading(false);
+          const oauthMethod = hash.includes("gh_") ? "github" : "google";
+          posthog?.identify(decoded.id, { email: decoded.email, name: decoded.name ?? undefined });
+          posthog?.capture(isNew ? "user_signed_up" : "user_logged_in", { method: oauthMethod });
           if (isNew) checkOnboarding(decoded);
           return;
         } catch {
@@ -1078,6 +1083,7 @@ export default function App() {
   }, []);
 
   const handleLogout = () => {
+    posthog?.reset();
     fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => { });
     setUser(null);
   };

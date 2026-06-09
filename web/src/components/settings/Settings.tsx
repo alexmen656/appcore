@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useApi, apiPut } from "../../hooks/useApi";
 import { usePermissions } from "../../hooks/usePermissions";
+import { usePostHog } from "@posthog/react";
 import AscCredentialsSection from "./AscCredentialsSection";
 import GitHubSection from "./GitHubSection";
 import PresetMetadataSection from "./PresetMetadataSection";
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function Settings({ addToast }: Props) {
+  const posthog = usePostHog();
   const { canManageTeam } = usePermissions();
   const { data, loading, refetch } = useApi<SettingsData>("/settings");
   const [form, setForm] = useState<Partial<SettingsData>>({});
@@ -32,6 +34,7 @@ export default function Settings({ addToast }: Props) {
     setSaving(true);
     try {
       await apiPut("/settings", form);
+      posthog?.capture("settings_saved");
       addToast("Settings saved", "success");
       refetch();
     } catch (err: any) {

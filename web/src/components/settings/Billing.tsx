@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { CreditCard, Check } from "lucide-react";
 import { useApi, apiPost } from "../../hooks/useApi";
 import { usePermissions } from "../../hooks/usePermissions";
+import { usePostHog } from "@posthog/react";
 import type { BillingStatus } from "../../types";
 import {
   badge,
@@ -29,6 +30,7 @@ function statusLabel(s: string): string {
 }
 
 export default function Billing({ addToast }: Props) {
+  const posthog = usePostHog();
   const { canManageTeam } = usePermissions();
   const { data, loading, refetch } = useApi<BillingStatus>("/billing", [], true);
   const [busy, setBusy] = useState<null | "monthly" | "yearly" | "portal">(null);
@@ -45,6 +47,7 @@ export default function Billing({ addToast }: Props) {
   const startCheckout = async (interval: "monthly" | "yearly") => {
     setBusy(interval);
     try {
+      posthog?.capture("checkout_started", { interval });
       const { url } = await apiPost<{ url: string }>("/billing/checkout", { interval });
       window.location.href = url;
     } catch (err: any) {

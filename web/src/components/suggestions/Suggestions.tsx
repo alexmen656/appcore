@@ -20,6 +20,7 @@ import { usePermissions } from "../../hooks/usePermissions";
 import SuggestionCard from "./SuggestionCard";
 import SuggestionDetail from "./SuggestionDetail";
 import type { Suggestion } from "../../types";
+import { usePostHog } from "@posthog/react";
 
 interface SuggestionsData {
   suggestions: Record<string, Suggestion[]>;
@@ -30,6 +31,7 @@ interface Props {
 }
 
 export default function Suggestions({ addToast }: Props) {
+  const posthog = usePostHog();
   const { canWrite } = usePermissions();
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
@@ -49,6 +51,7 @@ export default function Suggestions({ addToast }: Props) {
     setAnalyzing(true);
     try {
       const res = await apiPost("/actions/analyze", { bundleId: getActiveBundleId() });
+      posthog?.capture("ai_analysis_started", { bundle_id: getActiveBundleId() });
       addToast(res.message || "AI analysis started", "success");
       setTimeout(refetch, 5000);
     } catch (e: any) {
@@ -74,7 +77,10 @@ export default function Suggestions({ addToast }: Props) {
     }
     setActing(id);
     try {
+      const item = items.find((s) => s.id === id);
       await apiPost(`/suggestions/${id}/${action}`);
+      const eventMap = { approve: "suggestion_approved", reject: "suggestion_rejected", apply: "suggestion_applied" } as const;
+      posthog?.capture(eventMap[action], { suggestion_id: id, type: item?.type, locale: item?.locale });
       addToast(
         `Suggestion ${action === "approve" ? "approved" : action === "reject" ? "rejected" : "applied"}`,
         "success",
