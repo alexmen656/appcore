@@ -1,5 +1,18 @@
-import { useState } from "react";
-import { Check, Search, ArrowLeft, Star } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  Check,
+  Search,
+  ArrowLeft,
+  ArrowRight,
+  Star,
+  Type,
+  Tag,
+  Image as ImageIcon,
+  Users,
+  AlignLeft,
+  TrendingUp,
+  type LucideIcon,
+} from "lucide-react";
 import { authHeaders, setActiveBundleId } from "../hooks/useApi";
 import { borderDefault, btnPrimary, btnSecondary, inputCls, textMuted, textPrimary, textSecondary } from "../styles";
 import type { StoreApp } from "../types";
@@ -200,11 +213,10 @@ function StepIndicator({ step }: { step: 1 | 2 }) {
     <div className="flex items-center gap-3 mb-8">
       <div className="flex items-center gap-2">
         <div
-          className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-            step >= 1
-              ? "bg-gradient-to-br from-[#D94412] to-[#C4001E] text-white"
-              : "bg-[#eef0f3] dark:bg-[#2a2f3d] text-[#9ca3af]"
-          }`}
+          className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${step >= 1
+            ? "bg-gradient-to-br from-[#D94412] to-[#C4001E] text-white"
+            : "bg-[#eef0f3] dark:bg-[#2a2f3d] text-[#9ca3af]"
+            }`}
         >
           {step > 1 ? <Check className="w-3 h-3" /> : "1"}
         </div>
@@ -213,11 +225,10 @@ function StepIndicator({ step }: { step: 1 | 2 }) {
       <div className="flex-1 h-px bg-[#eef0f3] dark:bg-[#2a2f3d]" />
       <div className="flex items-center gap-2">
         <div
-          className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-            step >= 2
-              ? "bg-gradient-to-br from-[#D94412] to-[#C4001E] text-white"
-              : "bg-[#eef0f3] dark:bg-[#2a2f3d] text-[#9ca3af]"
-          }`}
+          className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${step >= 2
+            ? "bg-gradient-to-br from-[#D94412] to-[#C4001E] text-white"
+            : "bg-[#eef0f3] dark:bg-[#2a2f3d] text-[#9ca3af]"
+            }`}
         >
           2
         </div>
@@ -240,6 +251,283 @@ function AppAvatar({ url, name, size = "md" }: { url?: string | null; name: stri
   );
 }
 
+interface ScanFinding {
+  key: string;
+  title: string;
+  desc: string;
+  impact: "high" | "med";
+}
+
+interface ScanData {
+  ready: true;
+  app: { name: string; iconUrl: string | null; rating: number | null; ratingsCount: number | null; category: string | null } | null;
+  score: number;
+  target: number;
+  findings: ScanFinding[];
+}
+
+const FINDING_ICONS: Record<string, LucideIcon> = {
+  keyword: Search,
+  title: Type,
+  subtitle: Tag,
+  screenshots: ImageIcon,
+  competitor: Users,
+  description: AlignLeft,
+};
+
+const SCAN_STEPS = [
+  "Reading your App Store listing",
+  "Checking keyword coverage",
+  "Scanning competitor rankings",
+  "Calculating your ASO score",
+];
+
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#f8f9fb] dark:bg-[#0f1117] px-4">
+      <div className="w-full max-w-[520px]">
+        <div className="flex items-center gap-2.5 justify-center mb-8">
+          <img src="/logo.svg" alt="Marteso" className="h-[30px] w-auto" />
+          <span className="text-[32px] font-bold tracking-[-0.3px] bg-gradient-to-br from-[#D94412] to-[#C4001E] bg-clip-text text-transparent">
+            marteso
+          </span>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ScoreRing({ value }: { value: number }) {
+  const size = 116;
+  const stroke = 10;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const color = value < 70 ? "#f59e0b" : "#10b981";
+  const [off, setOff] = useState(c);
+  useEffect(() => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const t = setTimeout(() => setOff(c - (value / 100) * c), reduce ? 0 : 150);
+    return () => clearTimeout(t);
+  }, [value, c]);
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          className="text-[#eef0f3] dark:text-[#2a2f3d]"
+          stroke="currentColor"
+          strokeWidth={stroke}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke={color}
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={off}
+          style={{ transition: "stroke-dashoffset 1.1s cubic-bezier(.22,.61,.36,1)" }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className={`text-3xl font-bold ${textPrimary}`}>{value}</span>
+        <span className={`text-[11px] ${textMuted}`}>/ 100</span>
+      </div>
+    </div>
+  );
+}
+
+function ScanScreen({
+  bundleId,
+  onDone,
+  onSkip,
+}: {
+  bundleId: string;
+  onDone: (data: ScanData) => void;
+  onSkip: () => void;
+}) {
+  const [pct, setPct] = useState(0);
+  const dataRef = useRef<ScanData | null>(null);
+  const doneRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const started = Date.now();
+    (async () => {
+      while (!cancelled && !dataRef.current && Date.now() - started < 30000) {
+        try {
+          const res = await fetch(`/api/asc/scan?bundleId=${encodeURIComponent(bundleId)}`, {
+            headers: authHeaders(),
+          });
+          const d = await res.json();
+          if (res.ok && d.ready) {
+            dataRef.current = d as ScanData;
+            break;
+          }
+        } catch {
+          /* keep polling */
+        }
+        await new Promise((r) => setTimeout(r, 1200));
+      }
+
+      if (!cancelled && !dataRef.current) onSkip();
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [bundleId]);
+
+  useEffect(() => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const id = setInterval(() => {
+      setPct((p) => {
+        const ceiling = dataRef.current ? 100 : 90;
+        if (p >= ceiling) return ceiling;
+        const inc = reduce ? 40 : p > 80 ? 0.8 : p > 60 ? 1.3 : 2;
+        return Math.min(ceiling, p + inc);
+      });
+    }, 55);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (pct >= 100 && dataRef.current && !doneRef.current) {
+      doneRef.current = true;
+      const t = setTimeout(() => onDone(dataRef.current!), 500);
+      return () => clearTimeout(t);
+    }
+  }, [pct]);
+
+  const cur = Math.min(SCAN_STEPS.length - 1, Math.floor(pct / 25));
+
+  return (
+    <Shell>
+      <div className={`bg-white dark:bg-[#1c2028] rounded-2xl shadow-xl border ${borderDefault} p-8`}>
+        <div className="flex flex-col items-center text-center">
+          <div className="relative w-16 h-16 flex items-center justify-center mb-5">
+            <span className="absolute inset-0 rounded-2xl bg-[#C4001E]/20 animate-ping" />
+            <span className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-[#D94412] to-[#C4001E] flex items-center justify-center">
+              <Search className="w-7 h-7 text-white" />
+            </span>
+          </div>
+          <div className={`text-lg font-bold ${textPrimary}`}>Scanning your App Store presence…</div>
+          <div className={`text-sm ${textSecondary} mt-1`}>{SCAN_STEPS[cur]}</div>
+
+          <div className="w-full h-2 rounded-full bg-[#eef0f3] dark:bg-[#2a2f3d] mt-6 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-[#D94412] to-[#C4001E] transition-[width] duration-200"
+              style={{ width: pct + "%" }}
+            />
+          </div>
+          <div className={`text-xs ${textMuted} mt-2 self-end`}>{Math.round(pct)}%</div>
+
+          <div className="w-full flex flex-col gap-2.5 mt-6">
+            {SCAN_STEPS.map((s, i) => {
+              const done = pct >= (i + 1) * 25;
+              const active = !done && cur === i;
+              return (
+                <div
+                  key={i}
+                  className={`flex items-center gap-2.5 text-[13px] ${done || active ? textPrimary : textMuted}`}
+                >
+                  <span
+                    className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${done
+                      ? "bg-emerald-500 text-white"
+                      : active
+                        ? "border-2 border-[#C4001E]"
+                        : "border-2 border-[#eef0f3] dark:border-[#2a2f3d]"
+                      }`}
+                  >
+                    {done ? (
+                      <Check className="w-3 h-3" />
+                    ) : active ? (
+                      <span className="w-2 h-2 rounded-full bg-[#C4001E] animate-pulse" />
+                    ) : null}
+                  </span>
+                  {s}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </Shell>
+  );
+}
+
+function ResultsScreen({ data, onContinue }: { data: ScanData; onContinue: () => void }) {
+  const { app, score, target, findings } = data;
+  const appName = app?.name ?? "your app";
+  return (
+    <Shell>
+      <div className={`bg-white dark:bg-[#1c2028] rounded-2xl shadow-xl border ${borderDefault} p-8`}>
+        <div className={`text-[11px] font-semibold uppercase tracking-[0.09em] ${textMuted} mb-5`}>
+          Quick scan complete
+        </div>
+
+        <div className="flex items-center gap-5 mb-7">
+          <ScoreRing value={score} />
+          <div className="min-w-0">
+            <div className={`text-[11px] font-semibold uppercase tracking-wide ${textMuted}`}>ASO score</div>
+            <div className={`text-xl font-bold ${textPrimary} mt-0.5`}>
+              {score < 50 ? "Plenty of upside" : score < 75 ? "Solid, room to grow" : "Looking strong"}
+            </div>
+            <p className={`text-sm ${textSecondary} mt-1`}>
+              Every gap we found is a quick win. Close these {findings.length} and {appName} can climb fast.
+            </p>
+            <div className="inline-flex items-center gap-1.5 mt-2.5 text-[12px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 rounded-full px-2.5 py-1">
+              <TrendingUp className="w-3 h-3" /> ~{target}/100 within reach
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          {findings.map((f) => {
+            const Icon = FINDING_ICONS[f.key] ?? Search;
+            return (
+              <div
+                key={f.key}
+                className={`flex items-center gap-3.5 px-4 py-3 bg-[#f7f8fa] dark:bg-[#252b38] rounded-xl border ${borderDefault}`}
+              >
+                <div className="w-9 h-9 rounded-lg bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] flex items-center justify-center text-[#C4001E] shrink-0">
+                  <Icon className="w-[18px] h-[18px]" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className={`text-sm font-semibold ${textPrimary}`}>{f.title}</div>
+                  <div className={`text-[12.5px] ${textSecondary} leading-snug`}>{f.desc}</div>
+                </div>
+                <span
+                  className={`shrink-0 inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full ${f.impact === "high"
+                    ? "text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400"
+                    : "text-amber-700 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400"
+                    }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${f.impact === "high" ? "bg-red-500" : "bg-amber-500"}`} />
+                  {f.impact === "high" ? "High impact" : "Medium"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        <button onClick={onContinue} className={`${btnPrimary} w-full justify-center mt-6 !py-2.5 !text-[15px]`}>
+          View full analysis
+          <ArrowRight className="w-4 h-4" />
+        </button>
+        <p className={`text-center text-xs ${textMuted} mt-3`}>
+          Based on a live scan of your public App Store listing.
+        </p>
+      </div>
+    </Shell>
+  );
+}
+
 export default function Onboarding({ onComplete }: Props) {
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
@@ -248,6 +536,9 @@ export default function Onboarding({ onComplete }: Props) {
   const [selected, setSelected] = useState<StoreApp | null>(null);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  const [phase, setPhase] = useState<"setup" | "scan" | "results">("setup");
+  const [importedBundle, setImportedBundle] = useState<string | null>(null);
+  const [scanData, setScanData] = useState<ScanData | null>(null);
 
   const step: 1 | 2 = selected ? 2 : 1;
 
@@ -289,13 +580,31 @@ export default function Onboarding({ onComplete }: Props) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
       setActiveBundleId(app.bundleId);
-      onComplete();
+      setImportedBundle(app.bundleId);
+      setPhase("scan");
     } catch (err: any) {
       setImportError(err.message ?? "Import failed");
     } finally {
       setImporting(false);
     }
   };
+
+  if (phase === "scan" && importedBundle) {
+    return (
+      <ScanScreen
+        bundleId={importedBundle}
+        onSkip={onComplete}
+        onDone={(d) => {
+          setScanData(d);
+          setPhase("results");
+        }}
+      />
+    );
+  }
+
+  if (phase === "results" && scanData) {
+    return <ResultsScreen data={scanData} onContinue={onComplete} />;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f8f9fb] dark:bg-[#0f1117] px-4">
