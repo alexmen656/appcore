@@ -33,6 +33,36 @@ export async function teamInvite({
   });
 }
 
+export function founderWelcome({ to, name }: { to: string; name: string }): void {
+  setTimeout(
+    () => {
+      notificationService
+        .sendPlainEmail({
+          to,
+          from: "Alex from marteso <alex@marteso.com>",
+          replyTo: "alex@marteso.com",
+          subject: "Welcome to marteso",
+          text: `Hey ${(name ?? "").trim().split(/\s+/)[0] || "there"},
+
+               Alex here - founder of marteso. Just wanted to reach out personally and say thanks for signing up. Really glad to have you on board.
+
+               We're building marteso because ASO today is way too complicated - too many tools, too much guesswork, not enough clarity. My goal: within a few minutes you should see what's actually going on with your app and which levers will move the needle.
+
+               One small ask: just reply to this email with the one thing that's bugging you most about your app right now, or where you'd want help. I read every reply myself and feed it straight into the roadmap.
+
+               If anything's broken or unclear, hit me up directly - I'll help personally.
+
+               Cheers,
+               Alex
+               Founder, marteso
+          `,
+        })
+        .catch(() => {});
+    },
+    180_000 + Math.floor(Math.random() * 150_000),
+  ).unref?.();
+}
+
 export function keywordRankChange(
   keywordTerm: string,
   oldRank: number | null,

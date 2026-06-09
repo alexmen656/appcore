@@ -234,6 +234,34 @@ class NotificationService {
     }
   }
 
+  async sendPlainEmail(opts: {
+    to: string;
+    subject: string;
+    text: string;
+    from?: string;
+    replyTo?: string;
+  }): Promise<"sent" | "skipped" | "failed"> {
+    if (!env.RESEND_API_KEY) {
+      logger.warn(`[email] RESEND_API_KEY not set - skipping plain "${opts.subject}" to ${opts.to}`);
+      return "skipped";
+    }
+
+    try {
+      await new Resend(env.RESEND_API_KEY).emails.send({
+        from: opts.from ?? env.EMAIL_FROM,
+        to: opts.to,
+        subject: opts.subject,
+        text: opts.text,
+        replyTo: opts.replyTo,
+      });
+
+      return "sent";
+    } catch (err) {
+      logger.error("[email] sendPlainEmail failed", err);
+      return "failed";
+    }
+  }
+
   async notify(userId: string, options: NotifyOptions): Promise<NotifyResult> {
     const result: NotifyResult = {};
     await Promise.all([

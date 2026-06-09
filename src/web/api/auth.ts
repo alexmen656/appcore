@@ -16,6 +16,7 @@ import type {
 } from "@simplewebauthn/server";
 import { logger, prisma, env } from "../../config";
 import { signToken, requireAuth } from "../auth";
+import { founderWelcome } from "../../services/notifications/templates";
 
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 
@@ -136,6 +137,9 @@ authRouter.post("/signup", async (req, res) => {
       tokenVersion: user.tokenVersion,
     });
     setAuthCookie(res, token);
+
+    founderWelcome({ to: user.email, name: user.name ?? displayName });
+
     res.status(201).json({
       user: {
         id: user.id,
