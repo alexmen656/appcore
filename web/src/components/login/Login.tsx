@@ -98,7 +98,12 @@ export default function Login({ onAuth, mode = "login" }: Props) {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      setPendingAuth({ user: data.user });
+
+      if (mode === "signup") {
+        finishAuth(data.user);
+      } else {
+        setPendingAuth({ user: data.user });
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
