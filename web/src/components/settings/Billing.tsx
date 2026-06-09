@@ -38,8 +38,10 @@ export default function Billing({ addToast }: Props) {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("billing") === "success") {
+      posthog?.capture("checkout_completed");
       addToast("Subscription activated", "success");
       refetch();
+
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
@@ -59,6 +61,7 @@ export default function Billing({ addToast }: Props) {
   const openPortal = async () => {
     setBusy("portal");
     try {
+      posthog?.capture("billing_portal_opened");
       const { url } = await apiPost<{ url: string }>("/billing/portal");
       window.location.href = url;
     } catch (err: any) {

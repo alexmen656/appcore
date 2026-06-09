@@ -214,10 +214,11 @@ function StepIndicator({ step }: { step: 1 | 2 }) {
     <div className="flex items-center gap-3 mb-8">
       <div className="flex items-center gap-2">
         <div
-          className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${step >= 1
-            ? "bg-gradient-to-br from-[#D94412] to-[#C4001E] text-white"
-            : "bg-[#eef0f3] dark:bg-[#2a2f3d] text-[#9ca3af]"
-            }`}
+          className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+            step >= 1
+              ? "bg-gradient-to-br from-[#D94412] to-[#C4001E] text-white"
+              : "bg-[#eef0f3] dark:bg-[#2a2f3d] text-[#9ca3af]"
+          }`}
         >
           {step > 1 ? <Check className="w-3 h-3" /> : "1"}
         </div>
@@ -226,10 +227,11 @@ function StepIndicator({ step }: { step: 1 | 2 }) {
       <div className="flex-1 h-px bg-[#eef0f3] dark:bg-[#2a2f3d]" />
       <div className="flex items-center gap-2">
         <div
-          className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${step >= 2
-            ? "bg-gradient-to-br from-[#D94412] to-[#C4001E] text-white"
-            : "bg-[#eef0f3] dark:bg-[#2a2f3d] text-[#9ca3af]"
-            }`}
+          className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+            step >= 2
+              ? "bg-gradient-to-br from-[#D94412] to-[#C4001E] text-white"
+              : "bg-[#eef0f3] dark:bg-[#2a2f3d] text-[#9ca3af]"
+          }`}
         >
           2
         </div>
@@ -261,7 +263,13 @@ interface ScanFinding {
 
 interface ScanData {
   ready: true;
-  app: { name: string; iconUrl: string | null; rating: number | null; ratingsCount: number | null; category: string | null } | null;
+  app: {
+    name: string;
+    iconUrl: string | null;
+    rating: number | null;
+    ratingsCount: number | null;
+    category: string | null;
+  } | null;
   score: number;
   target: number;
   findings: ScanFinding[];
@@ -438,12 +446,13 @@ function ScanScreen({
                   className={`flex items-center gap-2.5 text-[13px] ${done || active ? textPrimary : textMuted}`}
                 >
                   <span
-                    className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${done
-                      ? "bg-emerald-500 text-white"
-                      : active
-                        ? "border-2 border-[#C4001E]"
-                        : "border-2 border-[#eef0f3] dark:border-[#2a2f3d]"
-                      }`}
+                    className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
+                      done
+                        ? "bg-emerald-500 text-white"
+                        : active
+                          ? "border-2 border-[#C4001E]"
+                          : "border-2 border-[#eef0f3] dark:border-[#2a2f3d]"
+                    }`}
                   >
                     {done ? (
                       <Check className="w-3 h-3" />
@@ -504,10 +513,11 @@ function ResultsScreen({ data, onContinue }: { data: ScanData; onContinue: () =>
                   <div className={`text-[12.5px] ${textSecondary} leading-snug`}>{f.desc}</div>
                 </div>
                 <span
-                  className={`shrink-0 inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full ${f.impact === "high"
-                    ? "text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400"
-                    : "text-amber-700 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400"
-                    }`}
+                  className={`shrink-0 inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full ${
+                    f.impact === "high"
+                      ? "text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400"
+                      : "text-amber-700 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400"
+                  }`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${f.impact === "high" ? "bg-red-500" : "bg-amber-500"}`} />
                   {f.impact === "high" ? "High impact" : "Medium"}
@@ -592,8 +602,8 @@ export default function Onboarding({ onComplete }: Props) {
     }
   };
 
-  const handleOnboardingComplete = () => {
-    posthog?.capture("onboarding_completed");
+  const handleOnboardingComplete = (completedScan: boolean) => {
+    posthog?.capture("onboarding_completed", { completed_scan: completedScan });
     onComplete();
   };
 
@@ -601,8 +611,16 @@ export default function Onboarding({ onComplete }: Props) {
     return (
       <ScanScreen
         bundleId={importedBundle}
-        onSkip={handleOnboardingComplete}
+        onSkip={() => handleOnboardingComplete(false)}
         onDone={(d) => {
+          posthog?.capture("aso_scan_completed", {
+            bundle_id: importedBundle,
+            score: d.score,
+            target: d.target,
+            findings_count: d.findings.length,
+            high_impact_findings: d.findings.filter((f) => f.impact === "high").length,
+          });
+
           setScanData(d);
           setPhase("results");
         }}
@@ -611,7 +629,7 @@ export default function Onboarding({ onComplete }: Props) {
   }
 
   if (phase === "results" && scanData) {
-    return <ResultsScreen data={scanData} onContinue={handleOnboardingComplete} />;
+    return <ResultsScreen data={scanData} onContinue={() => handleOnboardingComplete(true)} />;
   }
 
   return (

@@ -183,6 +183,8 @@ export default function Login({ onAuth, mode = "login" }: Props) {
     setPasskeyLoading(true);
     try {
       await passkeyRegister();
+      posthog?.capture("passkey_added");
+      
       finishAuth(pendingAuth.user);
     } catch (err: any) {
       setPasskeyError(err.message);
@@ -220,7 +222,10 @@ export default function Login({ onAuth, mode = "login" }: Props) {
               {passkeyLoading ? "Setting up…" : "Set up Passkey"}
             </button>
             <button
-              onClick={() => finishAuth(pendingAuth.user)}
+              onClick={() => {
+                posthog?.capture("passkey_skipped");
+                finishAuth(pendingAuth.user);
+              }}
               disabled={passkeyLoading}
               className="w-full px-4 py-2.5 rounded-xl text-sm font-medium text-[#6b7280] dark:text-[#8b9ab0] hover:bg-[#f8f9fb] dark:hover:bg-[#252b38] transition-colors"
             >

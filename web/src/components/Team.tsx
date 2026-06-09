@@ -173,8 +173,12 @@ export default function Team({
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
-      posthog?.capture("team_member_invited", { role: inviteRole })
-      
+
+      posthog?.capture("team_member_invited", {
+        role: inviteRole,
+        email_domain: inviteEmail.trim().split("@")[1] ?? null,
+      });
+
       addToast(`Invitation sent to ${inviteEmail}`, "success");
       setInviteEmail("");
       setInviteRole("MEMBER");
