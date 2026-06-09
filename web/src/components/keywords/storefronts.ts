@@ -6,7 +6,7 @@ export interface StorefrontOption {
   lang: string;
 }
 
-const LANGUAGE_BY_COUNTRY: Record<string, string> = {
+export const LANGUAGE_BY_COUNTRY: Record<string, string> = {
   ae: "ar",
   ao: "pt",
   ar: "es",

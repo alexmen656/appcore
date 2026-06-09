@@ -9,12 +9,13 @@ import {
   textPrimary,
   textSecondary,
 } from "../../styles";
-import { ChevronDown, Search, X } from "lucide-react";
+import { ChevronDown, Search, Target, X } from "lucide-react";
 import { useApi, apiPost, apiDelete, authHeaders, getActiveBundleId } from "../../hooks/useApi";
 import { useClickOutside } from "../../hooks/useClickOutside";
 import { usePermissions } from "../../hooks/usePermissions";
 import { usePostHog } from "@posthog/react";
 import { COUNTRIES } from "./KeywordForm";
+import { LANGUAGE_BY_COUNTRY } from "./storefronts";
 import KeywordTable, { Keyword, SortKey } from "./KeywordTable";
 import RankingHistoryChart, { HistoryData } from "./RankingHistoryChart";
 
@@ -27,6 +28,7 @@ export default function Keywords({ addToast }: Props) {
   const { canWrite } = usePermissions();
   const writeTip = !canWrite ? "Viewer role cannot perform this action" : undefined;
   const { data, loading, refetch } = useApi<Keyword[]>("/keywords");
+  const { data: keywordFieldsData } = useApi<{ keywordFields: Record<string, string> }>("/asc/keyword-fields");
   const [newTerm, setNewTerm] = useState("");
   const [newCountry, setNewCountry] = useState("de");
   const [adding, setAdding] = useState(false);
@@ -81,6 +83,29 @@ export default function Keywords({ addToast }: Props) {
   const keywords = data || [];
   const availableCountries = [...new Set(keywords.map((k) => k.country))].sort();
   const filtered = filterCountry ? keywords.filter((k) => k.country === filterCountry) : keywords;
+
+  const keywordFields = keywordFieldsData?.keywordFields ?? {};
+  const resolveLocale = (country: string): string | null => {
+    const lang = LANGUAGE_BY_COUNTRY[country] ?? "en";
+    const exact = `${lang}-${country.toUpperCase()}`;
+    if (keywordFields[exact] != null) return exact;
+    const prefix = `${lang}-`;
+    return Object.keys(keywordFields).find((l) => l.startsWith(prefix)) ?? null;
+  };
+
+  const coverageLocale = filterCountry ? resolveLocale(filterCountry) : null;
+  const coverageField = coverageLocale ? (keywordFields[coverageLocale] ?? "") : "";
+  const coverageFieldLc = coverageField.toLowerCase();
+  const coverageTotal = filtered.length;
+  const coverageCovered = filterCountry
+    ? filtered.filter((k) => {
+        const term = k.term.trim().toLowerCase();
+        return term.length > 0 && coverageFieldLc.includes(term);
+      }).length
+    : 0;
+  const coverageChars = coverageField.length;
+  const coverageRatio = coverageTotal > 0 ? coverageCovered / coverageTotal : 0;
+
   const sorted = [...filtered].sort((a, b) => {
     let cmp = 0;
     if (sortBy === "popularity") cmp = (a.popularity ?? -1) - (b.popularity ?? -1);
@@ -94,16 +119,20 @@ export default function Keywords({ addToast }: Props) {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!canWrite) {
       addToast("Viewer role cannot perform this action", "error");
       return;
     }
+
     const terms = newTerm
       .split(",")
       .map((t) => t.trim())
       .filter(Boolean);
+
     if (terms.length === 0) return;
     setAdding(true);
+
     const country = COUNTRIES.find((c) => c.code === newCountry) ?? COUNTRIES[0];
     try {
       await Promise.all(
@@ -116,13 +145,16 @@ export default function Keywords({ addToast }: Props) {
           }),
         ),
       );
+
       posthog?.capture("keyword_added", { count: terms.length, country: country.code });
+
       addToast(
         terms.length === 1
           ? `Keyword "${terms[0]}" (${country.code.toUpperCase()}) added`
           : `${terms.length} keywords (${country.code.toUpperCase()}) added`,
         "success",
       );
+
       setNewTerm("");
       setAddModalOpen(false);
       refetch();
@@ -154,9 +186,11 @@ export default function Keywords({ addToast }: Props) {
       setHistory(null);
       return;
     }
+
     setSelectedKeyword(kw);
     setHistory(null);
     setHistoryLoading(true);
+
     try {
       const res = await fetch(`/api/keywords/${kw.id}/history`, {
         headers: authHeaders(),
@@ -308,6 +342,23 @@ export default function Keywords({ addToast }: Props) {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {filterCountry && coverageLocale && coverageTotal > 0 && (
+        <div className="flex items-center gap-3 mb-3 px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/15 border border-blue-100 dark:border-blue-900/30">
+          <Target className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+          <div className={`text-[13px] font-medium ${textPrimary} shrink-0`}>
+            {coverageCovered} of {coverageTotal} target keyword{coverageTotal === 1 ? "" : "s"} covered in your{" "}
+            {coverageLocale} keyword field
+          </div>
+          <div className="flex-1 h-1.5 rounded-full bg-blue-100 dark:bg-blue-900/30 overflow-hidden min-w-[60px]">
+            <div
+              className="h-full bg-blue-500 dark:bg-blue-400 rounded-full transition-all"
+              style={{ width: `${Math.round(coverageRatio * 100)}%` }}
+            />
+          </div>
+          <div className={`text-[12px] tabular-nums ${textMuted} shrink-0`}>{coverageChars} / 100 chars</div>
         </div>
       )}
 

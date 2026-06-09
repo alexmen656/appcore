@@ -2938,3 +2938,28 @@ ascRouter.delete(
 ascRouter.get("/supported-locales", async (req, res) => {
   res.json(Object.keys(LOCALE_MAP));
 });
+
+ascRouter.get(
+  "/keyword-fields",
+  bundleAccess("query"),
+  handle("getKeywordFields", async (req, res) => {
+    const bundleId = req.query.bundleId as string;
+    let version = await prisma.appStoreVersion.findFirst({
+      where: { bundleId, appStoreState: { in: [...EDITABLE_STATES] } },
+      include: { localizations: { select: { locale: true, keywords: true } } },
+      orderBy: { syncedAt: "desc" },
+    });
+    if (!version) {
+      version = await prisma.appStoreVersion.findFirst({
+        where: { bundleId },
+        include: { localizations: { select: { locale: true, keywords: true } } },
+        orderBy: { syncedAt: "desc" },
+      });
+    }
+    const fields: Record<string, string> = {};
+    for (const loc of version?.localizations ?? []) {
+      fields[loc.locale] = loc.keywords ?? "";
+    }
+    res.json({ keywordFields: fields });
+  }),
+);
