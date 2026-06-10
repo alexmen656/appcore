@@ -174,10 +174,10 @@ export class AppStoreScraper {
 
     logger.debug(
       `Keyword "${term}": popularity=${popularity} ` +
-        `(ac=${autocompleteScore} depth=${depthScore} eng=${engagementScore} qual=${qualityScore} ` +
-        `exactIdx=${exactIndex} prefixIdx=${prefixIndex} results=${resultCount} mult=${popularityMultiplier}), ` +
-        `difficulty=${difficulty} (blendedAvg=${Math.round(blendedAvgRatings)} domBonus=${dominanceBonus}), ` +
-        `volume=${searchVolume}`,
+      `(ac=${autocompleteScore} depth=${depthScore} eng=${engagementScore} qual=${qualityScore} ` +
+      `exactIdx=${exactIndex} prefixIdx=${prefixIndex} results=${resultCount} mult=${popularityMultiplier}), ` +
+      `difficulty=${difficulty} (blendedAvg=${Math.round(blendedAvgRatings)} domBonus=${dominanceBonus}), ` +
+      `volume=${searchVolume}`,
     );
 
     return { results, popularity, difficulty, searchVolume };
@@ -207,10 +207,47 @@ export class AppStoreScraper {
     return data.results[0] ?? null;
   }
 
+  private parseServerData($: cheerio.CheerioAPI): any | null {
+    const raw = $("#serialized-server-data").html();
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch (error) {
+      logger.warn("Failed to parse App Store serialized-server-data", {
+        error: error instanceof Error ? error.message : error,
+      });
+      return null;
+    }
+  }
+
+  private buildArtworkUrl(screenshot: any): string | null {
+    const template = screenshot?.template;
+    if (typeof template !== "string" || !template.includes("{w}")) return null;
+    const width = screenshot.width ?? 1290;
+    const height = screenshot.height ?? 2796;
+    const crop = typeof screenshot.crop === "string" ? screenshot.crop : "bb";
+    const rawFormat = screenshot.variants?.[0]?.format;
+    const format = rawFormat === "jpeg" ? "jpg" : rawFormat || "jpg";
+    return template
+      .replace("{w}", String(width))
+      .replace("{h}", String(height))
+      .replace("{c}", crop)
+      .replace("{f}", format);
+  }
+
+  private extractScreenshots(serverData: any): string[] {
+    const items = serverData?.data?.[0]?.data?.shelfMapping?.product_media_phone_?.items;
+    if (!Array.isArray(items)) return [];
+    return items
+      .map((item: any) => this.buildArtworkUrl(item?.screenshot))
+      .filter((url: string | null): url is string => Boolean(url));
+  }
+
   async scrapeAppStorePage(trackId: number): Promise<{
     subtitle?: string;
     fullDescription?: string;
     whatsNew?: string;
+    screenshots?: string[];
     ratings?: { average: number; count: number };
   } | null> {
     try {
@@ -223,9 +260,14 @@ export class AppStoreScraper {
       });
 
       const $ = cheerio.load(html);
+      const serverData = this.parseServerData($);
+      const lockup = serverData?.data?.[0]?.data?.lockup;
 
       const subtitle =
-        $('h2[class*="subtitle"]').text().trim() || $(".app-header__subtitle").text().trim() || undefined;
+        (typeof lockup?.subtitle === "string" ? lockup.subtitle.trim() : "") ||
+        $('h2[class*="subtitle"]').text().trim() ||
+        $(".app-header__subtitle").text().trim() ||
+        undefined;
 
       const fullDescription =
         $('[data-test-id="description"] .we-truncate__child').text().trim() ||
@@ -234,7 +276,9 @@ export class AppStoreScraper {
 
       const whatsNew = $('[data-test-id="version-notes"]').text().trim() || undefined;
 
-      return { subtitle, fullDescription, whatsNew };
+      const screenshots = this.extractScreenshots(serverData);
+
+      return { subtitle, fullDescription, whatsNew, screenshots };
     } catch (error) {
       logger.warn(`Failed to scrape App Store page for track ${trackId}`, {
         error: error instanceof Error ? error.message : error,
@@ -267,9 +311,7 @@ export class AppStoreScraper {
         const versionFromH4 = siblingText.match(/^(?:Version\s+)?([\d]+(?:\.[\d]+)+)$/i)?.[1] ?? null;
 
         const container = timeEl.closest("li, .version-history__item, section, [data-test-id]");
-
         const containerText = (container.length ? container : timeEl.parent()).text();
-
         const versionFromText = containerText.match(/Version\s+([\d]+(?:\.[\d]+)*)/i)?.[1] ?? null;
 
         const version = versionFromH4 ?? versionFromText;
@@ -369,6 +411,9 @@ export class AppStoreScraper {
     }
 
     const description = itunesData.description;
+    const screenshotUrls =
+      itunesData.screenshotUrls?.length ? itunesData.screenshotUrls : webData?.screenshots ?? [];
+
     await prisma.appSnapshot.create({
       data: {
         appId: app.id,
@@ -380,7 +425,7 @@ export class AppStoreScraper {
         price: itunesData.price,
         version: itunesData.version,
         releaseNotes: itunesData.releaseNotes ?? webData?.whatsNew,
-        screenshotUrls: itunesData.screenshotUrls,
+        screenshotUrls,
         iconUrl: itunesData.artworkUrl512,
         developerName: itunesData.sellerName,
         category: itunesData.primaryGenreName,
