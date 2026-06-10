@@ -22,6 +22,75 @@ There are 3 apps:
 
 Note: If you're getting error 500 or 429 there is unfortunately nothing I can do since Apple's rate limiting is very aggressive.
 
+## What's new from my HCTG submission (starting 05/06/2026)
+
+Last HCTG commit: Update README.md (1ef1c6af17489883f9d05bed8ea7d4ddc08f76ac)
+
+**Auth, onboarding & signup**
+
+- Added Google OAuth and GitHub login as alternatives to email/password
+- Split sign up into its own page and redesigned the onboarding flow to reduce friction (skip passkeys on signup, only show onboarding to new users)
+- Added a quick ASO check step to onboarding so new users see value immediately
+- Switched auth tokens from localStorage to httpOnly cookies and hardened JWT + token revocation
+- Added a demo access mode with a dedicated middleware so reviewers can poke around without signing up
+- New Security page in settings (password change, passkeys) and personalized welcome email on signup
+
+**Permissions & roles**
+
+- Introduced `appAccess`, `bundleAccess` and `loadTeamSettings` middlewares and ported `apps.ts` / `keywords.ts` / `asc.ts` / `team.ts` over to them; team-id checks now live in `requireAuth`
+- Wired role checks through both backend and the Versions frontend
+- Fixed several security issues in `asc.ts` and `team.ts` uncovered while refactoring
+
+**ASC pipeline — replacing Fastlane**
+
+- Replaced Fastlane `deliver` for screenshot, metadata and binary uploads with custom App Store Connect upload logic
+- IPAs are now uploaded via the macOS worker through Transporter instead of Fastlane
+- Added a "Push Binary" action with auto version increment
+- All ASC traffic is now routed through the DO server; ASC rate limits are logged, tracked in the DB and surfaced in the admin panel
+- Optimized the ASC client and `FastlaneService` to make significantly fewer API calls
+
+**Screenshot pipeline**
+
+- Added Capacitor app support and auto-detection of the app framework (with an icon in the framework selector)
+- Allowed nested subdirectories when locating the iOS app
+- Added timeout + retry logic to the snapshot runner, fixed OOM crashes and a broken pipeline regression
+- Auto-generate screenshot thumbnails for faster dashboard loads
+- Improved font selection for non-latin alphabet languages in frameit
+
+**ASO & AI quality**
+
+- Improved Quick Scan output quality with AI (+ temperature fix for GPT-5.5)
+- New keyword coverage view in Keywords
+- Removed per-team AI API keys — Marteso now uses its own keys
+- Fixed App Store scraper returning empty subtitle and no screenshots
+- Fixed metadata push failing for apps with many localizations
+
+**Monetization**
+
+- Added in-app products (one-time purchases) support
+- Added a billing page in settings (not production-ready yet)
+
+**Analytics**
+
+- Set up PostHog with additional product events
+- Optimized analytics sync
+
+**Admin panel**
+
+- Display names instead of raw IDs, with linked navigation between users → teams → settings etc.
+
+**Performance**
+
+- Added Prisma indexes that cut dashboard load time by ~10s
+- Frontend now only loads the user's own apps
+- Added a progress bar to Versions, fixed stale version showing after app switch and a CLS issue
+
+**Infra & housekeeping**
+
+- Migrated domain from `marteso.com` to `app.marteso.com` and removed the `/app/` prefix
+- Outsourced landing page and docs into their own repos
+- Added favicon
+
 ## Screenshots
 
 | Admin                            | Landing                              |
@@ -271,6 +340,10 @@ Marteso is actively developed. Some features are experimental or incomplete:
 - iOS companion app
 - docs
 
+## Hour count
+
+Regarding the hour count: I've logged 157h on Hackatime, but 112h were already submitted to HCTG. Please approve only 45h for this. (Horizons shows 150h because the first 7h were logged before Horizons started, but those are included in the HCTG submission.)
+
 ## AI transparency
 
 - Screenshot pipeline: AI was mainly used for debugging Xcode-related code around screenshot generation.
@@ -278,6 +351,7 @@ Marteso is actively developed. Some features are experimental or incomplete:
 - MCP server: AI was used because recreating all web API endpoints again in a different format for the AI is mostly just repetitive busywork.
 - Docs: All markdown docs are currently written with AI assistance because I had no time to write proper docs yet. This is subject to change in the future.
 - iOS app: The iOS app was developed with strong AI assistance. Its primary goal is sending notifications.
+- What's new section in the Readme.md (summary of 100+ commits)
 
 ## Credits
 
