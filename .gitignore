@@ -8,3 +8,6 @@ builds
 
 #Auto created by posthog setup wizard
 web/.claude
+
+* Production database references
+seed-demo.ts

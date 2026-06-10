@@ -542,9 +542,10 @@ function AnalyticsSidebarSection({ navLinkClass }: { navLinkClass: (p: { isActiv
               to={link.to}
               end={link.end}
               className={({ isActive }) =>
-                `flex items-center px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-all ${isActive
-                  ? "bg-white text-[#1a1a2e] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.06)] dark:bg-[#1f242e] dark:text-[#e8eaf0] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
-                  : "text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0]"
+                `flex items-center px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-all ${
+                  isActive
+                    ? "bg-white text-[#1a1a2e] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.06)] dark:bg-[#1f242e] dark:text-[#e8eaf0] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
+                    : "text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0]"
                 }`
               }
             >
@@ -782,10 +783,11 @@ function VersionsSidebarSection({ navLinkClass }: { navLinkClass: (p: { isActive
               <NavLink
                 key={v.versionId}
                 to={`/versions/${v.versionId}`}
-                className={`flex items-center justify-between gap-2 px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-all ${isActive
-                  ? "bg-white text-[#1a1a2e] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.06)] dark:bg-[#1f242e] dark:text-[#e8eaf0] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
-                  : "text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0]"
-                  }`}
+                className={`flex items-center justify-between gap-2 px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-all ${
+                  isActive
+                    ? "bg-white text-[#1a1a2e] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.06)] dark:bg-[#1f242e] dark:text-[#e8eaf0] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
+                    : "text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0]"
+                }`}
               >
                 <span className="truncate">{v.versionString}</span>
                 <span className={`shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${stateColor}`}>
@@ -846,9 +848,10 @@ function GameCenterSidebarSection({ navLinkClass }: { navLinkClass: (p: { isActi
               key={link.to}
               to={link.to}
               className={({ isActive }) =>
-                `flex items-center px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-all ${isActive
-                  ? "bg-white text-[#1a1a2e] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.06)] dark:bg-[#1f242e] dark:text-[#e8eaf0] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
-                  : "text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0]"
+                `flex items-center px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-all ${
+                  isActive
+                    ? "bg-white text-[#1a1a2e] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.06)] dark:bg-[#1f242e] dark:text-[#e8eaf0] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
+                    : "text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0]"
                 }`
               }
             >
@@ -935,9 +938,10 @@ function MonetizationSidebarSection({ navLinkClass }: { navLinkClass: (p: { isAc
               key={link.to}
               to={link.to}
               className={({ isActive }) =>
-                `flex items-center px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-all ${isActive
-                  ? "bg-white text-[#1a1a2e] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.06)] dark:bg-[#1f242e] dark:text-[#e8eaf0] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
-                  : "text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0]"
+                `flex items-center px-2.5 py-[7px] rounded-lg text-[13px] font-medium transition-all ${
+                  isActive
+                    ? "bg-white text-[#1a1a2e] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.06)] dark:bg-[#1f242e] dark:text-[#e8eaf0] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3)]"
+                    : "text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0]"
                 }`
               }
             >
@@ -1098,7 +1102,7 @@ export default function App() {
   const handleLogout = () => {
     posthog?.capture("user_logged_out");
     posthog?.reset();
-    fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => { });
+    fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
     setUser(null);
   };
 
@@ -1137,9 +1141,10 @@ export default function App() {
   }
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-sm font-medium mb-0.5 transition-all [&_svg]:w-[18px] [&_svg]:h-[18px] ${isActive
-      ? "bg-white text-[#1a1a2e] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.06)] dark:bg-[#1f242e] dark:text-[#e8eaf0] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3)] [&_svg]:opacity-100"
-      : "text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] [&_svg]:opacity-60"
+    `flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-sm font-medium mb-0.5 transition-all [&_svg]:w-[18px] [&_svg]:h-[18px] ${
+      isActive
+        ? "bg-white text-[#1a1a2e] font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.04),0_1px_3px_rgba(0,0,0,0.06)] dark:bg-[#1f242e] dark:text-[#e8eaf0] dark:shadow-[0_1px_2px_rgba(0,0,0,0.3)] [&_svg]:opacity-100"
+        : "text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] hover:text-[#1a1a2e] dark:hover:text-[#e8eaf0] [&_svg]:opacity-60"
     }`;
 
   return (
@@ -1149,17 +1154,17 @@ export default function App() {
         <ToastContainer toasts={toasts} />
         {user.email === "demo@marteso.com" && (
           <div className="shrink-0 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800/40 px-4 py-2 flex items-center justify-center gap-3 text-sm text-amber-800 dark:text-amber-300">
-            <span>Du nutzt den Demo-Account — Änderungen sind für alle sichtbar.</span>
+            <span>You are using a Demo Account - Changes are not saved.</span>
             <a
               href="#"
               onClick={(e) => {
                 e.preventDefault();
-                fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => { });
+                fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
                 setUser(null);
               }}
               className="font-semibold underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"
             >
-              Eigenen Account erstellen
+              Create Your Own Account
             </a>
           </div>
         )}

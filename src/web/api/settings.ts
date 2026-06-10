@@ -9,13 +9,14 @@ settingsRouter.use(requireAuth);
 settingsRouter.get("/", loadTeamSettings, async (req, res) => {
   try {
     const s = req.teamSettings;
+    const isDemo = req.user?.isDemo || req.user?.email === "demo@marteso.com";
 
     res.json({
-      ascIssuerId: s?.ascIssuerId ?? "",
-      ascKeyId: s?.ascKeyId ?? "",
+      ascIssuerId: isDemo ? (s?.ascIssuerId ? "••••••••" : "") : (s?.ascIssuerId ?? ""),
+      ascKeyId: isDemo ? (s?.ascKeyId ? "••••••••" : "") : (s?.ascKeyId ?? ""),
       ascPrivateKey: s?.ascPrivateKey ? "••••••••" : "",
       ascPrivateKeySet: !!s?.ascPrivateKey,
-      ascVendorNumber: s?.ascVendorNumber ?? "",
+      ascVendorNumber: isDemo ? (s?.ascVendorNumber ? "••••••••" : "") : (s?.ascVendorNumber ?? ""),
       presetCopyright: s?.presetCopyright ?? "",
       reviewerFirstName: s?.reviewerFirstName ?? "",
       reviewerLastName: s?.reviewerLastName ?? "",
