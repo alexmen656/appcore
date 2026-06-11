@@ -1,4 +1,4 @@
-import { Router, type Request, type Response } from "express";
+import { Router, type Response } from "express";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
@@ -193,6 +193,10 @@ authRouter.post("/login", async (req, res) => {
 
     setAuthCookie(res, token);
 
+    const passkeyCount = await prisma.passkeyCredential.count({
+      where: { userId: user.id },
+    });
+
     res.json({
       user: {
         id: user.id,
@@ -202,6 +206,7 @@ authRouter.post("/login", async (req, res) => {
         teamId: membership?.teamId ?? null,
         teamRole: user.role === "ADMIN" ? "OWNER" : (membership?.role ?? null),
       },
+      hasPasskeys: passkeyCount > 0,
     });
   } catch (err) {
     res.status(500).json({ error: String(err) });
