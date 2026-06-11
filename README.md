@@ -352,6 +352,7 @@ Regarding the hour count: I've logged 157h on Hackatime, but 112h were already s
 - Docs: All markdown docs are currently written with AI assistance because I had no time to write proper docs yet. This is subject to change in the future.
 - iOS app: The iOS app was developed with strong AI assistance. Its primary goal is sending notifications.
 - What's new section in the Readme.md (summary of 100+ commits)
+- 60% of Admin MCP
 
 ## Credits
 

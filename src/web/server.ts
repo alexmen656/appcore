@@ -21,6 +21,7 @@ import { submissionsRouter } from "./api/submissions";
 import { githubRouter } from "./api/github";
 import { requireAuth, loadTeamRole, requireWriteRole, demoGuard } from "./auth";
 import { mcpAuth, createMcpHandler } from "./mcp";
+import { adminMcpAuth, createAdminMcpHandler } from "./mcp-admin";
 import pushRouter from "./api/push";
 import { autonomousRouter } from "./api/autonomous";
 import { teamRouter } from "./api/team";
@@ -50,7 +51,12 @@ const allowedOrigins = env.CORS_ORIGIN
 
 app.use((req, res, next) => {
   const p = req.path;
-  if (p.startsWith("/oauth") || p.startsWith("/mcp") || p.startsWith("/.well-known")) {
+  if (
+    p.startsWith("/oauth") ||
+    p.startsWith("/mcp") ||
+    p.startsWith("/mcp-admin") ||
+    p.startsWith("/.well-known")
+  ) {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization,MCP-Protocol-Version");
@@ -161,6 +167,16 @@ app.get("/.well-known/oauth-authorization-server", (req, res) => {
   });
 });
 app.post("/mcp", mcpAuth, createMcpHandler());
+
+app.get("/.well-known/oauth-protected-resource-admin", (req, res) => {
+  const base = `${req.protocol}://${req.get("host")}`;
+  res.json({
+    resource: `${base}/mcp-admin`,
+    authorization_servers: [base],
+  });
+});
+
+app.post("/mcp-admin", adminMcpAuth, createAdminMcpHandler());
 
 const screenshotsDir = path.join(process.cwd(), "screenshots");
 app.get("/screenshots-thumb/:width/*", requireAuth, serveScreenshotThumb);
