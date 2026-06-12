@@ -9,7 +9,7 @@ import {
   textPrimary,
   textSecondary,
 } from "../../styles";
-import { ChevronDown, Search, Target, X } from "lucide-react";
+import { ChevronDown, LayoutGrid, List, Search, Target, X } from "lucide-react";
 import { useApi, apiPost, apiDelete, authHeaders, getActiveBundleId } from "../../hooks/useApi";
 import { useClickOutside } from "../../hooks/useClickOutside";
 import { usePermissions } from "../../hooks/usePermissions";
@@ -17,7 +17,11 @@ import { usePostHog } from "@posthog/react";
 import { COUNTRIES } from "./KeywordForm";
 import { LANGUAGE_BY_COUNTRY } from "./storefronts";
 import KeywordTable, { Keyword, SortKey, opportunityScore } from "./KeywordTable";
+import KeywordMatrix from "./KeywordMatrix";
+import MarketSelector from "./MarketSelector";
 import RankingHistoryChart, { HistoryData } from "./RankingHistoryChart";
+
+type ViewMode = "list" | "matrix";
 
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
@@ -39,6 +43,7 @@ export default function Keywords({ addToast }: Props) {
   const [sortBy, setSortBy] = useState<SortKey>("popularity");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [filterCountry, setFilterCountry] = useState("");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedKeyword, setSelectedKeyword] = useState<Keyword | null>(null);
   const [history, setHistory] = useState<HistoryData | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -297,26 +302,38 @@ export default function Keywords({ addToast }: Props) {
       </div>
       <p className={`text-sm ${textMuted} mb-8`}>Track keyword rankings and discover new opportunities</p>
 
-      {availableCountries.length > 1 && (
-        <div className="flex items-center gap-2.5 flex-wrap mb-6">
-          <div className="flex-1" />
-          <select
-            className={`${inputCls} cursor-pointer`}
-            value={filterCountry}
-            onChange={(e) => setFilterCountry(e.target.value)}
+      <div className="flex items-center gap-2.5 flex-wrap mb-6">
+        <div className="flex-1" />
+        {availableCountries.length > 0 && (
+          <MarketSelector value={filterCountry} options={availableCountries} onChange={setFilterCountry} />
+        )}
+        <div
+          className={`inline-flex items-center p-1 rounded-full border ${borderDefault} bg-gray-50/60 dark:bg-[#181c24]`}
+        >
+          <button
+            onClick={() => setViewMode("list")}
+            aria-pressed={viewMode === "list"}
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold transition-all ${
+              viewMode === "list"
+                ? `bg-white dark:bg-[#252b38] ${textPrimary} shadow-[0_1px_2px_rgba(0,0,0,0.06)]`
+                : `${textMuted} hover:${textSecondary.replace(/^text-/, "text-")}`
+            }`}
           >
-            <option value="">All Markets</option>
-            {availableCountries.map((code) => {
-              const label = COUNTRIES.find((c) => c.code === code)?.label ?? code.toUpperCase();
-              return (
-                <option key={code} value={code}>
-                  {label}
-                </option>
-              );
-            })}
-          </select>
+            <List className="w-3.5 h-3.5" /> List
+          </button>
+          <button
+            onClick={() => setViewMode("matrix")}
+            aria-pressed={viewMode === "matrix"}
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold transition-all ${
+              viewMode === "matrix"
+                ? `bg-white dark:bg-[#252b38] ${textPrimary} shadow-[0_1px_2px_rgba(0,0,0,0.06)]`
+                : `${textMuted}`
+            }`}
+          >
+            <LayoutGrid className="w-3.5 h-3.5" /> Matrix
+          </button>
         </div>
-      )}
+      </div>
 
       {addModalOpen && (
         <div
@@ -407,6 +424,8 @@ export default function Keywords({ addToast }: Props) {
           <div className={`text-sm font-medium ${textSecondary} mb-1`}>No keywords tracked yet</div>
           <div className={`text-xs ${textMuted}`}>Add keywords above or run a competitor keyword extraction</div>
         </div>
+      ) : viewMode === "matrix" ? (
+        <KeywordMatrix keywords={sorted} onSelect={loadHistory} />
       ) : (
         <KeywordTable
           keywords={sorted}
