@@ -42,6 +42,10 @@ function isFresh(syncedAt: Date): boolean {
   return Date.now() - syncedAt.getTime() < CACHE_TTL_MS;
 }
 
+function isDemoBundle(bundleId: string | undefined | null): boolean {
+  return typeof bundleId === "string" && bundleId.startsWith("com.marteso.demo.");
+}
+
 function isFirstVersionLocalizationSet(localizations: Array<{ whatsNew?: string | null }>): boolean {
   return localizations.every((l) => !(typeof l.whatsNew === "string" && l.whatsNew.trim().length > 0));
 }
@@ -290,7 +294,7 @@ async function invalidateVersionCache(bundleId: string): Promise<void> {
       where: { bundleId },
       data: { syncedAt: new Date(0) },
     })
-    .catch(() => { });
+    .catch(() => {});
 }
 
 async function ascClientForUser(userId: string): Promise<AppStoreConnectClient> {
@@ -300,8 +304,8 @@ async function ascClientForUser(userId: string): Promise<AppStoreConnectClient> 
   });
   const s = membership
     ? await prisma.teamSettings.findUnique({
-      where: { teamId: membership.teamId },
-    })
+        where: { teamId: membership.teamId },
+      })
     : null;
   if (s?.ascIssuerId && s?.ascKeyId && s?.ascPrivateKey) {
     return new AppStoreConnectClient(
@@ -450,12 +454,13 @@ ascRouter.get(
     const bundleId = req.query.bundleId as string;
     const refresh = req.query.refresh === "true";
 
-    if (!refresh) {
+    const demoBundle = isDemoBundle(bundleId);
+    if (!refresh || demoBundle) {
       const cached = await prisma.appStoreVersion.findMany({
         where: { bundleId },
         orderBy: { syncedAt: "desc" },
       });
-      if (cached.length > 0 && isFresh(cached[0].syncedAt)) {
+      if (cached.length > 0 && (demoBundle || isFresh(cached[0].syncedAt))) {
         res.json(
           cached.map((v) => ({
             versionId: v.id,
@@ -467,6 +472,11 @@ ascRouter.get(
         );
         return;
       }
+    }
+
+    if (demoBundle) {
+      res.json([]);
+      return;
     }
 
     const asc = await ascClientForUser(req.user!.userId);
@@ -501,20 +511,22 @@ ascRouter.get(
     const requestedLocale = (req.query.locale as string) || undefined;
     const refresh = req.query.refresh === "true";
 
-    if (!refresh) {
+    const demoBundle = isDemoBundle(bundleId);
+    if (!refresh || demoBundle) {
       let cached: any = null;
+      const sinceFilter = demoBundle ? undefined : new Date(Date.now() - CACHE_TTL_MS);
       if (versionId) {
         cached = await prisma.appStoreVersion.findFirst({
           where: { id: versionId, bundleId },
           include: { localizations: true },
         });
-        if (cached && !isFresh(cached.syncedAt)) cached = null;
+        if (cached && !demoBundle && !isFresh(cached.syncedAt)) cached = null;
       } else if (bundleId) {
         cached = await prisma.appStoreVersion.findFirst({
           where: {
             bundleId,
             appStoreState: { in: [...EDITABLE_STATES] },
-            syncedAt: { gte: new Date(Date.now() - CACHE_TTL_MS) },
+            ...(sinceFilter ? { syncedAt: { gte: sinceFilter } } : {}),
           },
           include: { localizations: true },
           orderBy: { syncedAt: "desc" },
@@ -523,7 +535,7 @@ ascRouter.get(
           cached = await prisma.appStoreVersion.findFirst({
             where: {
               bundleId,
-              syncedAt: { gte: new Date(Date.now() - CACHE_TTL_MS) },
+              ...(sinceFilter ? { syncedAt: { gte: sinceFilter } } : {}),
             },
             include: { localizations: true },
             orderBy: { syncedAt: "desc" },
@@ -533,7 +545,7 @@ ascRouter.get(
 
       if (cached && cached.localizations.length > 0) {
         let primaryLocale: string | null = null;
-        if (!requestedLocale && bundleId) {
+        if (!requestedLocale && bundleId && !demoBundle) {
           const asc = await ascClientForUser(req.user!.userId);
           const app = await asc.getApp(bundleId).catch(() => null);
           primaryLocale = app?.attributes.primaryLocale ?? null;
@@ -567,6 +579,11 @@ ascRouter.get(
         });
         return;
       }
+    }
+
+    if (demoBundle) {
+      res.status(404).json({ error: "Demo app version cache not populated" });
+      return;
     }
 
     const asc = await ascClientForUser(req.user!.userId);
@@ -692,7 +709,7 @@ ascRouter.patch(
           where: { id: bodyVersionId },
           data: { copyright: value || null },
         })
-        .catch(() => { });
+        .catch(() => {});
       res.json({ ok: true, field, value });
       return;
     }
@@ -754,7 +771,7 @@ ascRouter.patch(
         where: localizationWhere,
         data: { [field]: value },
       })
-      .catch(() => { });
+      .catch(() => {});
 
     const updatedLocalization = await prisma.appStoreVersionLocalization.findFirst({
       where: localizationWhere,
@@ -1635,9 +1652,9 @@ ascRouter.get(
       assetDeliveryState: d.attributes?.assetDeliveryState ?? null,
       imageUrl: asset?.templateUrl
         ? asset.templateUrl
-          .replace("{w}", String(asset.width ?? 320))
-          .replace("{h}", String(asset.height ?? 180))
-          .replace("{f}", "png")
+            .replace("{w}", String(asset.width ?? 320))
+            .replace("{h}", String(asset.height ?? 180))
+            .replace("{f}", "png")
         : null,
       width: asset?.width ?? null,
       height: asset?.height ?? null,
