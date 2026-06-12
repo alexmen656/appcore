@@ -17,6 +17,7 @@ import { usePostHog } from "@posthog/react";
 import { COUNTRIES } from "./KeywordForm";
 import { LANGUAGE_BY_COUNTRY } from "./storefronts";
 import KeywordTable, { Keyword, SortKey, opportunityScore } from "./KeywordTable";
+import KeywordFilters, { emptyFilters, KeywordFilterState } from "./KeywordFilters";
 import KeywordMatrix from "./KeywordMatrix";
 import MarketSelector from "./MarketSelector";
 import RankingHistoryChart, { HistoryData } from "./RankingHistoryChart";
@@ -44,6 +45,7 @@ export default function Keywords({ addToast }: Props) {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [filterCountry, setFilterCountry] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [filters, setFilters] = useState<KeywordFilterState>(emptyFilters);
   const [selectedKeyword, setSelectedKeyword] = useState<Keyword | null>(null);
   const [history, setHistory] = useState<HistoryData | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -146,7 +148,53 @@ export default function Keywords({ addToast }: Props) {
   const coverageChars = coverageField.length;
   const coverageRatio = coverageTotal > 0 ? coverageCovered / coverageTotal : 0;
 
-  const sorted = [...filtered].sort((a, b) => {
+  const numOrNull = (s: string): number | null => {
+    if (s.trim() === "") return null;
+    const n = Number(s);
+    return Number.isFinite(n) ? n : null;
+  };
+  const inRange = (v: number | null, lo: number | null, hi: number | null): boolean => {
+    if (lo == null && hi == null) return true;
+    if (v == null) return false;
+    if (lo != null && v < lo) return false;
+    if (hi != null && v > hi) return false;
+    return true;
+  };
+  const popLo = numOrNull(filters.popMin);
+  const popHi = numOrNull(filters.popMax);
+  const diffLo = numOrNull(filters.diffMin);
+  const diffHi = numOrNull(filters.diffMax);
+  const oppLo = numOrNull(filters.oppMin);
+  const oppHi = numOrNull(filters.oppMax);
+
+  const userFiltered = filtered.filter((k) => {
+    if (!inRange(k.popularity, popLo, popHi)) return false;
+    if (!inRange(k.difficulty, diffLo, diffHi)) return false;
+    if (!inRange(opportunityScore(k.popularity, k.difficulty), oppLo, oppHi)) return false;
+
+    if (filters.rank !== "all") {
+      const r = k.ourRank;
+      if (filters.rank === "ranked" && r == null) return false;
+      if (filters.rank === "unranked" && r != null) return false;
+      if (filters.rank === "top10" && (r == null || r > 10)) return false;
+      if (filters.rank === "top20" && (r == null || r > 20)) return false;
+      if (filters.rank === "top50" && (r == null || r > 50)) return false;
+    }
+
+    if (filters.coverage === "covered" && !coveredIds.has(k.id)) return false;
+    if (filters.coverage === "uncovered" && coveredIds.has(k.id)) return false;
+
+    if (filters.trend !== "all") {
+      const t = k.rankTrend;
+      if (filters.trend === "up" && !(t != null && t > 0)) return false;
+      if (filters.trend === "down" && !(t != null && t < 0)) return false;
+      if (filters.trend === "flat" && !(t != null && t === 0)) return false;
+    }
+
+    return true;
+  });
+
+  const sorted = [...userFiltered].sort((a, b) => {
     let cmp = 0;
     if (sortBy === "popularity") cmp = (a.popularity ?? -1) - (b.popularity ?? -1);
     else if (sortBy === "rank") cmp = (a.ourRank ?? 999) - (b.ourRank ?? 999);
@@ -307,6 +355,7 @@ export default function Keywords({ addToast }: Props) {
         {availableCountries.length > 0 && (
           <MarketSelector value={filterCountry} options={availableCountries} onChange={setFilterCountry} />
         )}
+        <KeywordFilters value={filters} onChange={setFilters} />
         <div
           className={`inline-flex items-center p-1 rounded-full border ${borderDefault} bg-gray-50/60 dark:bg-[#181c24]`}
         >
@@ -454,7 +503,7 @@ export default function Keywords({ addToast }: Props) {
 
       <div className="text-xs text-gray-400 dark:text-[#5c6478] mt-2">
         {sorted.length}
-        {filterCountry ? ` of ${keywords.length}` : ""} keyword
+        {sorted.length !== keywords.length ? ` of ${keywords.length}` : ""} keyword
         {sorted.length !== 1 ? "s" : ""} tracked
       </div>
     </div>
