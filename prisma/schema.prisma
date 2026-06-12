@@ -270,9 +270,7 @@ model KeywordRanking {
   country   String   @default("de")
   trackedAt DateTime @default(now())
 
-  @@index([appId, keywordId])
   @@index([keywordId, trackedAt])
-  @@index([appId, trackedAt])
   @@index([trackedAt])
   @@index([appId, keywordId, trackedAt(sort: Desc)])
   @@index([keywordId, appId, trackedAt(sort: Desc)])
