@@ -63,7 +63,7 @@ export default function App() {
     <div className="flex h-screen">
       <aside className="w-64 border-r bg-card flex flex-col">
         <div className="p-4 border-b flex items-center gap-3">
-          <img src="/admin/logo.svg" alt="Marteso" className="h-9 w-9 shrink-0" />
+          <img src="/logo.svg" alt="Marteso" className="h-9 w-9 shrink-0" />
           <div>
             <h2 className="font-bold text-base leading-tight">Marteso Admin</h2>
             <p className="text-xs text-muted-foreground">System Administration</p>

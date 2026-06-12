@@ -2,7 +2,6 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import path from "path";
-import http from "http";
 import { env, logger, prisma } from "../config";
 import { appsRouter } from "./api/apps";
 import { suggestionsRouter } from "./api/suggestions";
@@ -21,7 +20,6 @@ import { submissionsRouter } from "./api/submissions";
 import { githubRouter } from "./api/github";
 import { requireAuth, loadTeamRole, requireWriteRole, demoGuard } from "./auth";
 import { mcpAuth, createMcpHandler } from "./mcp";
-import { adminMcpAuth, createAdminMcpHandler } from "./mcp-admin";
 import pushRouter from "./api/push";
 import { autonomousRouter } from "./api/autonomous";
 import { teamRouter } from "./api/team";
@@ -168,50 +166,14 @@ app.get("/.well-known/oauth-authorization-server", (req, res) => {
 });
 app.post("/mcp", mcpAuth, createMcpHandler());
 
-app.get("/.well-known/oauth-protected-resource-admin", (req, res) => {
-  const base = `${req.protocol}://${req.get("host")}`;
-  res.json({
-    resource: `${base}/mcp-admin`,
-    authorization_servers: [base],
-  });
-});
-
-app.post("/mcp-admin", adminMcpAuth, createAdminMcpHandler());
-
 const screenshotsDir = path.join(process.cwd(), "screenshots");
 app.get("/screenshots-thumb/:width/*", requireAuth, serveScreenshotThumb);
 app.use("/screenshots", express.static(screenshotsDir));
 
-const ADMIN_PORT = 5174;
-
-const adminDist = path.join(__dirname, "../../admin/dist");
-if (process.env.NODE_ENV === "production") {
-  app.use("/admin", express.static(adminDist));
-  app.get("/admin/*", (_req, res) => {
-    res.sendFile(path.join(adminDist, "index.html"));
-  });
-} else {
-  app.use("/admin", (req, res) => {
-    const proxyReq = http.request(
-      {
-        hostname: "localhost",
-        port: ADMIN_PORT,
-        path: "/admin" + req.url,
-        method: req.method,
-        headers: { ...req.headers, host: `localhost:${ADMIN_PORT}` },
-      },
-      (proxyRes) => {
-        res.writeHead(proxyRes.statusCode ?? 200, proxyRes.headers);
-        proxyRes.pipe(res);
-      },
-    );
-
-    req.pipe(proxyReq);
-    proxyReq.on("error", () => {
-      res.status(502).send("Admin dev server not running — cd admin && npm run dev");
-    });
-  });
-}
+const ADMIN_HOST = env.ADMIN_URL ?? "https://admin.marteso.com";
+app.all(/^\/admin(\/.*)?$/, (req, res) => {
+  res.redirect(308, ADMIN_HOST + (req.path.replace(/^\/admin/, "") || "/"));
+});
 
 const webDist = path.join(__dirname, "../../web/dist");
 app.use(express.static(webDist));

@@ -73,6 +73,10 @@ const envSchema = z.object({
 
   WEB_PORT: z.string().optional(),
 
+  ADMIN_WEB_PORT: z.string().optional(),
+
+  ADMIN_URL: z.string().default("https://admin.marteso.com"),
+
   ADMIN_MCP_TOKEN: z.string().min(24).optional(),
 
   // Logging
