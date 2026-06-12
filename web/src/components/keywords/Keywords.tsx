@@ -1,25 +1,16 @@
 import { useState, useRef, useCallback } from "react";
-import {
-  borderDefault,
-  inputCls,
-  btnPrimary,
-  btnSecondary,
-  pageTitle,
-  textMuted,
-  textPrimary,
-  textSecondary,
-} from "../../styles";
-import { ChevronDown, LayoutGrid, List, Search, Target, X } from "lucide-react";
+import { borderDefault, pageTitle, textMuted, textPrimary, textSecondary } from "../../styles";
+import { ChevronDown, LayoutGrid, List, Plus, Search, Target } from "lucide-react";
 import { useApi, apiPost, apiDelete, authHeaders, getActiveBundleId } from "../../hooks/useApi";
 import { useClickOutside } from "../../hooks/useClickOutside";
 import { usePermissions } from "../../hooks/usePermissions";
 import { usePostHog } from "@posthog/react";
-import { COUNTRIES } from "./KeywordForm";
 import { LANGUAGE_BY_COUNTRY } from "./storefronts";
 import KeywordTable, { Keyword, SortKey, opportunityScore } from "./KeywordTable";
 import KeywordFilters, { emptyFilters, KeywordFilterState } from "./KeywordFilters";
 import KeywordMatrix from "./KeywordMatrix";
 import MarketSelector from "./MarketSelector";
+import AddKeywordsModal from "./AddKeywordsModal";
 import RankingHistoryChart, { HistoryData } from "./RankingHistoryChart";
 
 type ViewMode = "list" | "matrix";
@@ -37,9 +28,6 @@ export default function Keywords({ addToast }: Props) {
     keywordFields: Record<string, string>;
     indexedText?: Record<string, string>;
   }>("/asc/keyword-fields");
-  const [newTerm, setNewTerm] = useState("");
-  const [newCountry, setNewCountry] = useState("de");
-  const [adding, setAdding] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortKey>("popularity");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -104,10 +92,6 @@ export default function Keywords({ addToast }: Props) {
     return Object.keys(keywordFields).find((l) => l.startsWith(prefix)) ?? null;
   };
 
-  // Apple indexes title + subtitle + keyword field as one token pool and builds search
-  // combinations from those words, so a multi-word term counts as covered when every one of
-  // its words appears somewhere in the pool (word order is irrelevant). Falls back to the
-  // keyword field alone if the combined indexed text isn't available.
   const tokenize = (s: string): string[] =>
     s
       .toLowerCase()
@@ -207,54 +191,6 @@ export default function Keywords({ addToast }: Props) {
     return sortDir === "asc" ? cmp : -cmp;
   });
 
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!canWrite) {
-      addToast("Viewer role cannot perform this action", "error");
-      return;
-    }
-
-    const terms = newTerm
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean);
-
-    if (terms.length === 0) return;
-    setAdding(true);
-
-    const country = COUNTRIES.find((c) => c.code === newCountry) ?? COUNTRIES[0];
-    try {
-      await Promise.all(
-        terms.map((term) =>
-          apiPost("/keywords", {
-            term,
-            country: country.code,
-            language: country.lang,
-            bundleId: getActiveBundleId(),
-          }),
-        ),
-      );
-
-      posthog?.capture("keyword_added", { count: terms.length, country: country.code });
-
-      addToast(
-        terms.length === 1
-          ? `Keyword "${terms[0]}" (${country.code.toUpperCase()}) added`
-          : `${terms.length} keywords (${country.code.toUpperCase()}) added`,
-        "success",
-      );
-
-      setNewTerm("");
-      setAddModalOpen(false);
-      refetch();
-    } catch (e: any) {
-      addToast(e.message, "error");
-    } finally {
-      setAdding(false);
-    }
-  };
-
   const handleDelete = async (id: string, term: string) => {
     if (!canWrite) {
       addToast("Viewer role cannot perform this action", "error");
@@ -335,15 +271,6 @@ export default function Keywords({ addToast }: Props) {
               >
                 Track Rankings
               </button>
-              <button
-                onClick={() => {
-                  setMenuOpen(false);
-                  setAddModalOpen(true);
-                }}
-                className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left`}
-              >
-                Add Keywords
-              </button>
             </div>
           )}
         </div>
@@ -356,6 +283,18 @@ export default function Keywords({ addToast }: Props) {
           <MarketSelector value={filterCountry} options={availableCountries} onChange={setFilterCountry} />
         )}
         <KeywordFilters value={filters} onChange={setFilters} />
+        <button
+          onClick={() => setAddModalOpen(true)}
+          disabled={!canWrite}
+          title={writeTip ?? "3 new AI suggestions"}
+          className={`relative inline-flex items-center gap-1.5 pl-3 pr-3.5 py-[7px] rounded-full border ${borderDefault} bg-white dark:bg-[#1c2028] text-[13px] font-medium ${textPrimary} hover:border-[#D94412] hover:text-[#D94412] transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Add keywords
+          <span className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#D94412] text-white text-[10px] font-bold tabular-nums ring-2 ring-white dark:ring-[#0f1117]">
+            3
+          </span>
+        </button>
         <div
           className={`inline-flex items-center p-1 rounded-full border ${borderDefault} bg-gray-50/60 dark:bg-[#181c24]`}
         >
@@ -384,69 +323,16 @@ export default function Keywords({ addToast }: Props) {
         </div>
       </div>
 
-      {addModalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-          onClick={(e) => e.target === e.currentTarget && setAddModalOpen(false)}
-        >
-          <div
-            className={`bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-2xl shadow-xl w-full max-w-md mx-4 p-6`}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className={`text-base font-semibold ${textPrimary}`}>Add Keywords</h2>
-              <button
-                onClick={() => setAddModalOpen(false)}
-                className={`p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-[#252b38] transition-colors ${textMuted}`}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <form onSubmit={handleAdd} className="flex flex-col gap-3">
-              <div>
-                <label className={`block text-xs font-medium ${textSecondary} mb-1.5`}>
-                  Keywords
-                  <span className={`ml-1.5 font-normal ${textMuted}`}>(comma-separated)</span>
-                </label>
-                <textarea
-                  className={`${inputCls} resize-none h-24`}
-                  placeholder="fitness tracker, calorie counter, workout log…"
-                  value={newTerm}
-                  onChange={(e) => setNewTerm(e.target.value)}
-                  autoFocus
-                />
-              </div>
-              <div>
-                <label className={`block text-xs font-medium ${textSecondary} mb-1.5`}>Store / Market</label>
-                <select
-                  className={`${inputCls} cursor-pointer`}
-                  value={newCountry}
-                  onChange={(e) => setNewCountry(e.target.value)}
-                >
-                  {COUNTRIES.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex justify-end gap-2 mt-1">
-                <button type="button" className={btnSecondary} onClick={() => setAddModalOpen(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className={btnPrimary} disabled={adding || !newTerm.trim()}>
-                  {adding ? (
-                    <>
-                      <div className="spinner !w-3.5 !h-3.5" /> Adding…
-                    </>
-                  ) : (
-                    "Add Keywords"
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <AddKeywordsModal
+        open={addModalOpen}
+        onClose={() => setAddModalOpen(false)}
+        defaultCountry={filterCountry}
+        onAdded={(count) => {
+          posthog?.capture("keyword_added", { count });
+          refetch();
+        }}
+        addToast={addToast}
+      />
 
       {filterCountry && coverageLocale && coverageTotal > 0 && (
         <div className="flex items-center gap-3 mb-3 px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-900/15 border border-blue-100 dark:border-blue-900/30">
