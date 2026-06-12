@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { borderDefault, pageTitle, textMuted, textPrimary, textSecondary } from "../../styles";
-import { ChevronDown, LayoutGrid, List, Plus, Search, Target } from "lucide-react";
+import { ChevronDown, LayoutGrid, List, MoreHorizontal, Plus, Search, Target, Upload } from "lucide-react";
 import { useApi, apiPost, apiDelete, authHeaders, getActiveBundleId } from "../../hooks/useApi";
 import { useClickOutside } from "../../hooks/useClickOutside";
 import { usePermissions } from "../../hooks/usePermissions";
@@ -11,6 +11,7 @@ import KeywordFilters, { emptyFilters, KeywordFilterState } from "./KeywordFilte
 import KeywordMatrix from "./KeywordMatrix";
 import MarketSelector from "./MarketSelector";
 import AddKeywordsModal from "./AddKeywordsModal";
+import ImportKeywordsModal from "./ImportKeywordsModal";
 import RankingHistoryChart, { HistoryData } from "./RankingHistoryChart";
 
 type ViewMode = "list" | "matrix";
@@ -29,6 +30,13 @@ export default function Keywords({ addToast }: Props) {
     indexedText?: Record<string, string>;
   }>("/asc/keyword-fields");
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+  useClickOutside(
+    moreRef,
+    useCallback(() => setMoreOpen(false), []),
+  );
   const [sortBy, setSortBy] = useState<SortKey>("popularity");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [filterCountry, setFilterCountry] = useState("");
@@ -321,6 +329,33 @@ export default function Keywords({ addToast }: Props) {
             <LayoutGrid className="w-3.5 h-3.5" /> Matrix
           </button>
         </div>
+        <div ref={moreRef} className="relative">
+          <button
+            onClick={() => setMoreOpen((o) => !o)}
+            title="More actions"
+            className={`inline-flex items-center justify-center w-9 h-9 rounded-full border ${borderDefault} bg-white dark:bg-[#1c2028] ${textSecondary} hover:border-gray-300 dark:hover:border-[#3a4050] hover:${textPrimary} transition-all`}
+          >
+            <MoreHorizontal className="w-4 h-4" />
+          </button>
+          {moreOpen && (
+            <div
+              className={`absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-xl shadow-lg py-1 min-w-[200px]`}
+            >
+              <button
+                onClick={() => {
+                  setMoreOpen(false);
+                  setImportModalOpen(true);
+                }}
+                disabled={!canWrite}
+                title={writeTip}
+                className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                <Upload className={`w-3.5 h-3.5 ${textSecondary}`} />
+                Import keywords
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <AddKeywordsModal
@@ -329,6 +364,17 @@ export default function Keywords({ addToast }: Props) {
         defaultCountry={filterCountry}
         onAdded={(count) => {
           posthog?.capture("keyword_added", { count });
+          refetch();
+        }}
+        addToast={addToast}
+      />
+
+      <ImportKeywordsModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        defaultCountry={filterCountry}
+        onImported={(count) => {
+          posthog?.capture("keywords_imported", { count });
           refetch();
         }}
         addToast={addToast}
