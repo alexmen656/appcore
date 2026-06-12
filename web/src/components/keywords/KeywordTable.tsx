@@ -98,16 +98,15 @@ export default function KeywordTable({
     >
       <table className="w-full border-collapse table-fixed">
         <colgroup>
-          <col style={{ width: "21%" }} />
+          <col style={{ width: "23%" }} />
+          <col style={{ width: "10%" }} />
+          <col style={{ width: "11%" }} />
           <col style={{ width: "9%" }} />
           <col style={{ width: "10%" }} />
-          <col style={{ width: "8%" }} />
           <col style={{ width: "9%" }} />
-          <col style={{ width: "7%" }} />
           <col style={{ width: "8%" }} />
-          <col style={{ width: "7%" }} />
           <col style={{ width: "12%" }} />
-          <col style={{ width: "9%" }} />
+          <col style={{ width: "8%" }} />
         </colgroup>
         <thead>
           <tr>
@@ -116,7 +115,6 @@ export default function KeywordTable({
             {col("popularity", "Popularity")}
             {col("difficulty", "Difficulty")}
             {col("opportunity", "Opportunity")}
-            <th className={TH}>Results</th>
             {col("rank", "Our Rank")}
             <th className={TH}>Trend</th>
             <th className={TH}>Top Competitors</th>
@@ -194,9 +192,6 @@ export default function KeywordTable({
                     <span className="text-gray-400 dark:text-[#5c6478]">—</span>
                   );
                 })()}
-              </td>
-              <td className={`${TD} ${textSecondary}`}>
-                {k.searchVolume != null ? k.searchVolume : <span className={`${textMuted}`}>--</span>}
               </td>
               <td className={TD}>
                 {k.ourRank != null ? (

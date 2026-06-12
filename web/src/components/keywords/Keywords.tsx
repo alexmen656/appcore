@@ -1,7 +1,7 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { borderDefault, pageTitle, textMuted, textPrimary, textSecondary } from "../../styles";
 import { ChevronDown, LayoutGrid, List, MoreHorizontal, Plus, Search, Target, Upload } from "lucide-react";
-import { useApi, apiPost, apiDelete, authHeaders, getActiveBundleId } from "../../hooks/useApi";
+import { useApi, apiGet, apiPost, apiDelete, authHeaders, getActiveBundleId } from "../../hooks/useApi";
 import { useClickOutside } from "../../hooks/useClickOutside";
 import { usePermissions } from "../../hooks/usePermissions";
 import { usePostHog } from "@posthog/react";
@@ -24,7 +24,22 @@ export default function Keywords({ addToast }: Props) {
   const posthog = usePostHog();
   const { canWrite } = usePermissions();
   const writeTip = !canWrite ? "Viewer role cannot perform this action" : undefined;
-  const { data, loading, refetch } = useApi<Keyword[]>("/keywords");
+  const [items, setItems] = useState<Keyword[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const refetch = useCallback(() => {
+    setLoading(true);
+    apiGet<{ items: Keyword[]; total: number }>("/keywords")
+      .then((res) => setItems(res.items))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    refetch();
+    const handler = () => refetch();
+    window.addEventListener("app-changed", handler);
+    return () => window.removeEventListener("app-changed", handler);
+  }, [refetch]);
   const { data: keywordFieldsData } = useApi<{
     keywordFields: Record<string, string>;
     indexedText?: Record<string, string>;
@@ -86,7 +101,7 @@ export default function Keywords({ addToast }: Props) {
     }
   };
 
-  const keywords = data || [];
+  const keywords = items;
   const availableCountries = [...new Set(keywords.map((k) => k.country))].sort();
   const filtered = filterCountry ? keywords.filter((k) => k.country === filterCountry) : keywords;
 
