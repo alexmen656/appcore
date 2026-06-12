@@ -2791,20 +2791,23 @@ ascRouter.get(
     const bundleId = req.query.bundleId as string;
     let version = await prisma.appStoreVersion.findFirst({
       where: { bundleId, appStoreState: { in: [...EDITABLE_STATES] } },
-      include: { localizations: { select: { locale: true, keywords: true } } },
+      include: { localizations: { select: { locale: true, name: true, subtitle: true, keywords: true } } },
       orderBy: { syncedAt: "desc" },
     });
     if (!version) {
       version = await prisma.appStoreVersion.findFirst({
         where: { bundleId },
-        include: { localizations: { select: { locale: true, keywords: true } } },
+        include: { localizations: { select: { locale: true, name: true, subtitle: true, keywords: true } } },
         orderBy: { syncedAt: "desc" },
       });
     }
     const fields: Record<string, string> = {};
+    const indexedText: Record<string, string> = {};
+
     for (const loc of version?.localizations ?? []) {
       fields[loc.locale] = loc.keywords ?? "";
+      indexedText[loc.locale] = [loc.name, loc.subtitle, loc.keywords].filter(Boolean).join(" ");
     }
-    res.json({ keywordFields: fields });
+    res.json({ keywordFields: fields, indexedText });
   }),
 );

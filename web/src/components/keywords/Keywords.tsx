@@ -28,7 +28,10 @@ export default function Keywords({ addToast }: Props) {
   const { canWrite } = usePermissions();
   const writeTip = !canWrite ? "Viewer role cannot perform this action" : undefined;
   const { data, loading, refetch } = useApi<Keyword[]>("/keywords");
-  const { data: keywordFieldsData } = useApi<{ keywordFields: Record<string, string> }>("/asc/keyword-fields");
+  const { data: keywordFieldsData } = useApi<{
+    keywordFields: Record<string, string>;
+    indexedText?: Record<string, string>;
+  }>("/asc/keyword-fields");
   const [newTerm, setNewTerm] = useState("");
   const [newCountry, setNewCountry] = useState("de");
   const [adding, setAdding] = useState(false);
@@ -85,6 +88,7 @@ export default function Keywords({ addToast }: Props) {
   const filtered = filterCountry ? keywords.filter((k) => k.country === filterCountry) : keywords;
 
   const keywordFields = keywordFieldsData?.keywordFields ?? {};
+  const indexedText = keywordFieldsData?.indexedText ?? {};
   const resolveLocale = (country: string): string | null => {
     const lang = LANGUAGE_BY_COUNTRY[country] ?? "en";
     const exact = `${lang}-${country.toUpperCase()}`;
@@ -93,16 +97,47 @@ export default function Keywords({ addToast }: Props) {
     return Object.keys(keywordFields).find((l) => l.startsWith(prefix)) ?? null;
   };
 
+  // Apple indexes title + subtitle + keyword field as one token pool and builds search
+  // combinations from those words, so a multi-word term counts as covered when every one of
+  // its words appears somewhere in the pool (word order is irrelevant). Falls back to the
+  // keyword field alone if the combined indexed text isn't available.
+  const tokenize = (s: string): string[] =>
+    s
+      .toLowerCase()
+      .split(/[\s,]+/)
+      .map((t) => t.trim())
+      .filter(Boolean);
+
+  const stemWord = (w: string): string => {
+    if (w.length > 3 && w.endsWith("ies")) return w.slice(0, -3) + "y";
+    if (w.length > 3 && /(s|x|z|ch|sh)es$/.test(w)) return w.slice(0, -2);
+    if (w.length > 2 && w.endsWith("s") && !w.endsWith("ss")) return w.slice(0, -1);
+    return w;
+  };
+
+  const poolWordsCache = new Map<string, Set<string>>();
+  const poolWordsForLocale = (locale: string): Set<string> => {
+    let words = poolWordsCache.get(locale);
+    if (!words) {
+      words = new Set(tokenize(indexedText[locale] ?? keywordFields[locale] ?? "").map(stemWord));
+      poolWordsCache.set(locale, words);
+    }
+    return words;
+  };
+  const isCovered = (term: string, country: string): boolean => {
+    const locale = resolveLocale(country);
+    if (!locale) return false;
+    const poolWords = poolWordsForLocale(locale);
+    if (poolWords.size === 0) return false;
+    const words = tokenize(term);
+    return words.length > 0 && words.every((w) => poolWords.has(stemWord(w)));
+  };
+  const coveredIds = new Set(keywords.filter((k) => isCovered(k.term, k.country)).map((k) => k.id));
+
   const coverageLocale = filterCountry ? resolveLocale(filterCountry) : null;
   const coverageField = coverageLocale ? (keywordFields[coverageLocale] ?? "") : "";
-  const coverageFieldLc = coverageField.toLowerCase();
   const coverageTotal = filtered.length;
-  const coverageCovered = filterCountry
-    ? filtered.filter((k) => {
-        const term = k.term.trim().toLowerCase();
-        return term.length > 0 && coverageFieldLc.includes(term);
-      }).length
-    : 0;
+  const coverageCovered = filterCountry ? filtered.filter((k) => coveredIds.has(k.id)).length : 0;
   const coverageChars = coverageField.length;
   const coverageRatio = coverageTotal > 0 ? coverageCovered / coverageTotal : 0;
 
@@ -350,7 +385,7 @@ export default function Keywords({ addToast }: Props) {
           <Target className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
           <div className={`text-[13px] font-medium ${textPrimary} shrink-0`}>
             {coverageCovered} of {coverageTotal} target keyword{coverageTotal === 1 ? "" : "s"} covered in your{" "}
-            {coverageLocale} keyword field
+            {coverageLocale} metadata
           </div>
           <div className="flex-1 h-1.5 rounded-full bg-blue-100 dark:bg-blue-900/30 overflow-hidden min-w-[60px]">
             <div
@@ -373,6 +408,7 @@ export default function Keywords({ addToast }: Props) {
       ) : (
         <KeywordTable
           keywords={sorted}
+          coveredIds={coveredIds}
           selectedKeyword={selectedKeyword}
           sortBy={sortBy}
           sortDir={sortDir}
