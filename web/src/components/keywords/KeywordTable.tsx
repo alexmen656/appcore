@@ -3,7 +3,19 @@ import type { Keyword } from "../../types";
 import { TrendingUp, TrendingDown, ChevronUp, ChevronDown, Check } from "lucide-react";
 
 export type { Keyword };
-export type SortKey = "term" | "country" | "popularity" | "difficulty" | "rank" | "tracked";
+export type SortKey = "term" | "country" | "popularity" | "difficulty" | "opportunity" | "rank" | "tracked";
+
+export const opportunityScore = (popularity: number | null, difficulty: number | null): number | null => {
+  if (popularity == null || difficulty == null) return null;
+  return (popularity * (100 - difficulty)) / 100;
+};
+
+const oppTagCls = (s: number) =>
+  s > 50
+    ? "bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/25 dark:text-emerald-300 dark:ring-emerald-800/50"
+    : s > 25
+      ? "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/25 dark:text-amber-300 dark:ring-amber-800/50"
+      : "bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/25 dark:text-red-300 dark:ring-red-800/50";
 
 const rankColor = (rank: number | null) => {
   if (rank == null) return "text-gray-400 dark:text-[#5c6478]";
@@ -86,14 +98,15 @@ export default function KeywordTable({
     >
       <table className="w-full border-collapse table-fixed">
         <colgroup>
-          <col style={{ width: "23%" }} />
+          <col style={{ width: "21%" }} />
           <col style={{ width: "9%" }} />
+          <col style={{ width: "10%" }} />
+          <col style={{ width: "8%" }} />
+          <col style={{ width: "9%" }} />
+          <col style={{ width: "7%" }} />
+          <col style={{ width: "8%" }} />
+          <col style={{ width: "7%" }} />
           <col style={{ width: "12%" }} />
-          <col style={{ width: "9%" }} />
-          <col style={{ width: "8%" }} />
-          <col style={{ width: "9%" }} />
-          <col style={{ width: "8%" }} />
-          <col style={{ width: "13%" }} />
           <col style={{ width: "9%" }} />
         </colgroup>
         <thead>
@@ -102,6 +115,7 @@ export default function KeywordTable({
             {col("country", "Store")}
             {col("popularity", "Popularity")}
             {col("difficulty", "Difficulty")}
+            {col("opportunity", "Opportunity")}
             <th className={TH}>Results</th>
             {col("rank", "Our Rank")}
             <th className={TH}>Trend</th>
@@ -165,6 +179,21 @@ export default function KeywordTable({
                     <span className="text-gray-400 dark:text-[#5c6478]">—</span>
                   )}
                 </span>
+              </td>
+              <td className={TD}>
+                {(() => {
+                  const opp = opportunityScore(k.popularity, k.difficulty);
+                  return opp != null ? (
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold ring-1 ring-inset tabular-nums ${oppTagCls(opp)}`}
+                      title="Popularity × (100 − Difficulty) / 100"
+                    >
+                      {opp.toFixed(0)}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 dark:text-[#5c6478]">—</span>
+                  );
+                })()}
               </td>
               <td className={`${TD} ${textSecondary}`}>
                 {k.searchVolume != null ? k.searchVolume : <span className={`${textMuted}`}>--</span>}

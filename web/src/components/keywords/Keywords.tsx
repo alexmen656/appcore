@@ -16,7 +16,7 @@ import { usePermissions } from "../../hooks/usePermissions";
 import { usePostHog } from "@posthog/react";
 import { COUNTRIES } from "./KeywordForm";
 import { LANGUAGE_BY_COUNTRY } from "./storefronts";
-import KeywordTable, { Keyword, SortKey } from "./KeywordTable";
+import KeywordTable, { Keyword, SortKey, opportunityScore } from "./KeywordTable";
 import RankingHistoryChart, { HistoryData } from "./RankingHistoryChart";
 
 interface Props {
@@ -146,6 +146,8 @@ export default function Keywords({ addToast }: Props) {
     if (sortBy === "popularity") cmp = (a.popularity ?? -1) - (b.popularity ?? -1);
     else if (sortBy === "rank") cmp = (a.ourRank ?? 999) - (b.ourRank ?? 999);
     else if (sortBy === "difficulty") cmp = (a.difficulty ?? -1) - (b.difficulty ?? -1);
+    else if (sortBy === "opportunity")
+      cmp = (opportunityScore(a.popularity, a.difficulty) ?? -1) - (opportunityScore(b.popularity, b.difficulty) ?? -1);
     else if (sortBy === "tracked") cmp = (a.trackingCount ?? 0) - (b.trackingCount ?? 0);
     else if (sortBy === "country") cmp = a.country.localeCompare(b.country);
     else cmp = a.term.localeCompare(b.term);
