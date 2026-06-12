@@ -108,7 +108,12 @@ export default function Login({ onAuth, mode = "login" }: Props) {
       } else {
         posthog?.identify(data.user.id, { email: data.user.email, name: data.user.name ?? undefined });
         posthog?.capture("user_logged_in", { method: "email" });
-        setPendingAuth({ user: data.user });
+
+        if (data.hasPasskeys) {
+          finishAuth(data.user);
+        } else {
+          setPendingAuth({ user: data.user });
+        }
       }
     } catch (err: any) {
       setError(err.message);
@@ -126,7 +131,13 @@ export default function Login({ onAuth, mode = "login" }: Props) {
       posthog?.capture("user_logged_in", { method: "passkey" });
       finishAuth(data.user);
     } catch (err: any) {
-      setError(err.message);
+      // User dismissed/aborted the system passkey dialog (or it timed out) —
+      // that's a deliberate cancel, not an error worth surfacing.
+      if (err?.name === "NotAllowedError" || err?.name === "AbortError") {
+        posthog?.capture("passkey_login_cancelled");
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -184,10 +195,20 @@ export default function Login({ onAuth, mode = "login" }: Props) {
     try {
       await passkeyRegister();
       posthog?.capture("passkey_added");
-      
+
       finishAuth(pendingAuth.user);
     } catch (err: any) {
-      setPasskeyError(err.message);
+      // Cancelled/timed-out dialog or an already-synced passkey — none of these
+      // are real errors; just continue without nagging the user.
+      if (err?.name === "NotAllowedError" || err?.name === "AbortError") {
+        posthog?.capture("passkey_skipped");
+        finishAuth(pendingAuth.user);
+      } else if (err?.name === "InvalidStateError") {
+        posthog?.capture("passkey_already_exists");
+        finishAuth(pendingAuth.user);
+      } else {
+        setPasskeyError(err.message);
+      }
     } finally {
       setPasskeyLoading(false);
     }

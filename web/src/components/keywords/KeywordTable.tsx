@@ -1,6 +1,6 @@
 import { TD, TH, borderDefault, btnSecSm, textMuted, textPrimary, textSecondary } from "../../styles";
 import type { Keyword } from "../../types";
-import { TrendingUp, TrendingDown, ChevronUp, ChevronDown } from "lucide-react";
+import { TrendingUp, TrendingDown, ChevronUp, ChevronDown, Check } from "lucide-react";
 
 export type { Keyword };
 export type SortKey = "term" | "country" | "popularity" | "difficulty" | "rank" | "tracked";
@@ -40,6 +40,7 @@ const diffColor = (d: number | null) =>
 
 interface Props {
   keywords: Keyword[];
+  coveredIds: Set<string>;
   selectedKeyword: Keyword | null;
   sortBy: SortKey;
   sortDir: "asc" | "desc";
@@ -59,6 +60,7 @@ function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
 
 export default function KeywordTable({
   keywords,
+  coveredIds,
   selectedKeyword,
   sortBy,
   sortDir,
@@ -115,7 +117,17 @@ export default function KeywordTable({
               className={`cursor-pointer hover:bg-gray-50/60 dark:hover:bg-white/[0.03] ${selectedKeyword?.id === k.id ? "!bg-blue-50/60 dark:!bg-blue-900/20" : ""}`}
             >
               <td className={`${TD} font-medium ${textPrimary} truncate`} title={k.term}>
-                {k.term}
+                <span className="inline-flex items-center gap-1.5 min-w-0">
+                  {coveredIds.has(k.id) && (
+                    <span
+                      title="Covered in your app metadata (title, subtitle or keywords)"
+                      className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-100 dark:bg-emerald-900/30 shrink-0"
+                    >
+                      <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" strokeWidth={3} />
+                    </span>
+                  )}
+                  <span className="truncate">{k.term}</span>
+                </span>
               </td>
               <td className={`${TD} ${textSecondary}`}>
                 <span className="inline-flex items-center gap-1.5">

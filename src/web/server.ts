@@ -2,7 +2,6 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import path from "path";
-import http from "http";
 import { env, logger, prisma } from "../config";
 import { appsRouter } from "./api/apps";
 import { suggestionsRouter } from "./api/suggestions";
@@ -50,7 +49,12 @@ const allowedOrigins = env.CORS_ORIGIN
 
 app.use((req, res, next) => {
   const p = req.path;
-  if (p.startsWith("/oauth") || p.startsWith("/mcp") || p.startsWith("/.well-known")) {
+  if (
+    p.startsWith("/oauth") ||
+    p.startsWith("/mcp") ||
+    p.startsWith("/mcp-admin") ||
+    p.startsWith("/.well-known")
+  ) {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization,MCP-Protocol-Version");
@@ -166,36 +170,10 @@ const screenshotsDir = path.join(process.cwd(), "screenshots");
 app.get("/screenshots-thumb/:width/*", requireAuth, serveScreenshotThumb);
 app.use("/screenshots", express.static(screenshotsDir));
 
-const ADMIN_PORT = 5174;
-
-const adminDist = path.join(__dirname, "../../admin/dist");
-if (process.env.NODE_ENV === "production") {
-  app.use("/admin", express.static(adminDist));
-  app.get("/admin/*", (_req, res) => {
-    res.sendFile(path.join(adminDist, "index.html"));
-  });
-} else {
-  app.use("/admin", (req, res) => {
-    const proxyReq = http.request(
-      {
-        hostname: "localhost",
-        port: ADMIN_PORT,
-        path: "/admin" + req.url,
-        method: req.method,
-        headers: { ...req.headers, host: `localhost:${ADMIN_PORT}` },
-      },
-      (proxyRes) => {
-        res.writeHead(proxyRes.statusCode ?? 200, proxyRes.headers);
-        proxyRes.pipe(res);
-      },
-    );
-
-    req.pipe(proxyReq);
-    proxyReq.on("error", () => {
-      res.status(502).send("Admin dev server not running — cd admin && npm run dev");
-    });
-  });
-}
+const ADMIN_HOST = env.ADMIN_URL ?? "https://admin.marteso.com";
+app.all(/^\/admin(\/.*)?$/, (req, res) => {
+  res.redirect(308, ADMIN_HOST + (req.path.replace(/^\/admin/, "") || "/"));
+});
 
 const webDist = path.join(__dirname, "../../web/dist");
 app.use(express.static(webDist));

@@ -34,7 +34,7 @@ const envSchema = z.object({
   GITHUB_CLIENT_ID: z.string().optional(),
   GITHUB_CLIENT_SECRET: z.string().optional(),
   GITHUB_WEBHOOK_BASE_URL: z.string().optional(),
-  
+
   // GitHub OAuth — Sign in with GitHub (separate app, minimal scopes)
   GITHUB_AUTH_CLIENT_ID: z.string().optional(),
   GITHUB_AUTH_CLIENT_SECRET: z.string().optional(),
@@ -72,6 +72,12 @@ const envSchema = z.object({
   ENCRYPTION_KEY: z.string().length(64).optional(),
 
   WEB_PORT: z.string().optional(),
+
+  ADMIN_WEB_PORT: z.string().optional(),
+
+  ADMIN_URL: z.string().default("https://admin.marteso.com"),
+
+  ADMIN_MCP_TOKEN: z.string().min(24).optional(),
 
   // Logging
   LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),

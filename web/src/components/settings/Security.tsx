@@ -97,7 +97,19 @@ export default function Security({ addToast }: Props) {
       setShowNameInput(false);
       await load();
     } catch (err: any) {
-      addToast(err.message ?? "Failed to add passkey", "error");
+      if (err?.name === "InvalidStateError") {
+        // The authenticator (e.g. iCloud Keychain, shared across the user's
+        // Apple devices) already holds a passkey for this account, so it
+        // refuses to register a duplicate. This is expected — not a failure.
+        addToast("This device already has a passkey for your account.", "info");
+        setShowNameInput(false);
+        setNewPasskeyName("");
+      } else if (err?.name === "NotAllowedError") {
+        // User dismissed the system prompt or it timed out — stay quiet-ish.
+        addToast("Passkey setup was cancelled.", "info");
+      } else {
+        addToast(err.message ?? "Failed to add passkey", "error");
+      }
     } finally {
       setAdding(false);
     }
