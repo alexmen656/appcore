@@ -3,7 +3,7 @@ import type { Keyword } from "../../types";
 import { TrendingUp, TrendingDown, ChevronUp, ChevronDown, Check } from "lucide-react";
 
 export type { Keyword };
-export type SortKey = "term" | "country" | "popularity" | "difficulty" | "opportunity" | "rank" | "tracked";
+export type SortKey = "term" | "country" | "popularity" | "difficulty" | "opportunity" | "rank";
 
 export const opportunityScore = (popularity: number | null, difficulty: number | null): number | null => {
   if (popularity == null || difficulty == null) return null;
@@ -238,11 +238,6 @@ export default function KeywordTable({
                   <span className="text-gray-400 dark:text-[#5c6478]">—</span>
                 )}
               </td>
-              {/* <td
-                className={`${TD} ${textMuted} text-xs`}
-              >
-                {k.trackingCount}×
-              </td> */}
               <td className={TD}>
                 <button
                   className={`${btnSecSm} !text-red-500 !border-red-100 dark:!border-red-900/40 hover:!bg-red-50 dark:hover:!bg-red-900/20`}

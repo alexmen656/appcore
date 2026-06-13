@@ -21,8 +21,7 @@ keywordsRouter.get("/", bundleAccess("query", "bundleId"), async (req, res) => {
       updatedAt: Date;
       latestRank: number | null;
     };
-    const [pageRows, total] = await Promise.all([
-      prisma.$queryRaw<KeywordPageRow[]>`
+    const pageRows = await prisma.$queryRaw<KeywordPageRow[]>`
         WITH app_keyword_ids AS MATERIALIZED (
           SELECT DISTINCT "keywordId" AS id
           FROM "KeywordRanking"
@@ -47,9 +46,8 @@ keywordsRouter.get("/", bundleAccess("query", "bundleId"), async (req, res) => {
           LIMIT 1
         ) lr ON TRUE
         ORDER BY p.popularity DESC NULLS LAST
-      `,
-      prisma.keyword.count({ where: { rankings: { some: { appId: ownApp.id } } } }),
-    ]);
+      `;
+    const total = pageRows.length;
     const t1 = performance.now();
 
     const keywords = pageRows.map((r) => ({
@@ -79,7 +77,6 @@ keywordsRouter.get("/", bundleAccess("query", "bundleId"), async (req, res) => {
       appName: string;
       iconUrl: string | null;
     };
-    type CountRow = { keywordId: string; _count: { id: number } };
     type PrevRow = { keywordId: string; rank: number | null };
 
     const time = async <T>(label: string, p: Promise<T>): Promise<[T, number]> => {
@@ -87,7 +84,7 @@ keywordsRouter.get("/", bundleAccess("query", "bundleId"), async (req, res) => {
       const v = await p;
       return [v, performance.now() - s];
     };
-    const [[topCompRows, tComp], [ourRankingCounts, tCount], [previousRankings, tPrev]] = await Promise.all([
+    const [[topCompRows, tComp], [previousRankings, tPrev]] = await Promise.all([
       time(
         "comp",
         prisma.$queryRaw<CompRow[]>`
@@ -106,14 +103,6 @@ keywordsRouter.get("/", bundleAccess("query", "bundleId"), async (req, res) => {
         WHERE t."keywordId" = ANY(${keywordIds}::text[])
         ORDER BY t."keywordId", t.rank ASC
       `,
-      ),
-      time(
-        "count",
-        prisma.keywordRanking.groupBy({
-          by: ["keywordId"],
-          where: { keywordId: { in: keywordIds }, appId: ownApp.id },
-          _count: { id: true },
-        }),
       ),
       time(
         "prev",
@@ -136,7 +125,6 @@ keywordsRouter.get("/", bundleAccess("query", "bundleId"), async (req, res) => {
     }
 
     const previousRankMap = new Map(previousRankings.map((r) => [r.keywordId, r.rank]));
-    const countMap = new Map(ourRankingCounts.map((r) => [r.keywordId, r._count.id]));
     const result = keywords.map((k) => {
       const list = topCompetitorsMap.get(k.id) ?? [];
       const topCompetitors = list.map((r) => ({
@@ -145,7 +133,6 @@ keywordsRouter.get("/", bundleAccess("query", "bundleId"), async (req, res) => {
         rank: r.rank,
       }));
 
-      const ourRankingCount = countMap.get(k.id) ?? 0;
       const currentRank = k.rankings[0]?.rank ?? null;
       const previousRank = previousRankMap.get(k.id) ?? null;
       const rankTrend = currentRank != null && previousRank != null ? previousRank - currentRank : null;
@@ -161,7 +148,6 @@ keywordsRouter.get("/", bundleAccess("query", "bundleId"), async (req, res) => {
         ourRank: currentRank,
         rankTrend,
         topCompetitors,
-        trackingCount: ourRankingCount,
         suggestionCount: 0,
         updatedAt: k.updatedAt,
       };
@@ -170,10 +156,10 @@ keywordsRouter.get("/", bundleAccess("query", "bundleId"), async (req, res) => {
     const tTotal = performance.now() - t0;
     res.setHeader(
       "Server-Timing",
-      `keywords;dur=${(t1 - t0).toFixed(0)},comp;dur=${tComp.toFixed(0)},count;dur=${tCount.toFixed(0)},prev;dur=${tPrev.toFixed(0)},total;dur=${tTotal.toFixed(0)}`,
+      `keywords;dur=${(t1 - t0).toFixed(0)},comp;dur=${tComp.toFixed(0)},prev;dur=${tPrev.toFixed(0)},total;dur=${tTotal.toFixed(0)}`,
     );
     console.log(
-      `[keywords] n=${keywords.length} keywords=${(t1 - t0).toFixed(0)}ms comp=${tComp.toFixed(0)}ms count=${tCount.toFixed(0)}ms prev=${tPrev.toFixed(0)}ms total=${tTotal.toFixed(0)}ms`,
+      `[keywords] n=${keywords.length} keywords=${(t1 - t0).toFixed(0)}ms comp=${tComp.toFixed(0)}ms prev=${tPrev.toFixed(0)}ms total=${tTotal.toFixed(0)}ms`,
     );
     res.json({ items: result, total });
   } catch (err) {

@@ -158,7 +158,6 @@ export interface Keyword {
   rankTrend: number | null;
   // topCompetitor: { name: string; rank: number } | null;
   topCompetitors: { name: string; iconUrl: string | null; rank: number }[];
-  trackingCount: number;
   suggestionCount: number;
   updatedAt: string;
 }

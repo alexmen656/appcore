@@ -29,7 +29,7 @@ export default function Keywords({ addToast }: Props) {
 
   const refetch = useCallback(() => {
     setLoading(true);
-    apiGet<{ items: Keyword[]; total: number }>("/keywords")
+    apiGet<{ items: Keyword[] }>("/keywords")
       .then((res) => setItems(res.items))
       .finally(() => setLoading(false));
   }, []);
@@ -44,6 +44,7 @@ export default function Keywords({ addToast }: Props) {
     keywordFields: Record<string, string>;
     indexedText?: Record<string, string>;
   }>("/asc/keyword-fields");
+
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -52,6 +53,7 @@ export default function Keywords({ addToast }: Props) {
     moreRef,
     useCallback(() => setMoreOpen(false), []),
   );
+
   const [sortBy, setSortBy] = useState<SortKey>("popularity");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [filterCountry, setFilterCountry] = useState("");
@@ -74,9 +76,11 @@ export default function Keywords({ addToast }: Props) {
       const res = await apiPost(`/actions/${endpoint}`, {
         bundleId: getActiveBundleId(),
       });
+
       if (endpoint === "discover-keywords") {
         posthog?.capture("keyword_discovery_started", { bundle_id: getActiveBundleId() });
       }
+
       addToast(res.message || `${label} started`, "success");
       setTimeout(refetch, 2000);
     } catch (e: any) {
@@ -104,12 +108,13 @@ export default function Keywords({ addToast }: Props) {
   const keywords = items;
   const availableCountries = [...new Set(keywords.map((k) => k.country))].sort();
   const filtered = filterCountry ? keywords.filter((k) => k.country === filterCountry) : keywords;
-
   const keywordFields = keywordFieldsData?.keywordFields ?? {};
   const indexedText = keywordFieldsData?.indexedText ?? {};
+
   const resolveLocale = (country: string): string | null => {
     const lang = LANGUAGE_BY_COUNTRY[country] ?? "en";
     const exact = `${lang}-${country.toUpperCase()}`;
+
     if (keywordFields[exact] != null) return exact;
     const prefix = `${lang}-`;
     return Object.keys(keywordFields).find((l) => l.startsWith(prefix)) ?? null;
@@ -138,11 +143,14 @@ export default function Keywords({ addToast }: Props) {
     }
     return words;
   };
+
   const isCovered = (term: string, country: string): boolean => {
     const locale = resolveLocale(country);
     if (!locale) return false;
+
     const poolWords = poolWordsForLocale(locale);
     if (poolWords.size === 0) return false;
+
     const words = tokenize(term);
     return words.length > 0 && words.every((w) => poolWords.has(stemWord(w)));
   };
@@ -160,6 +168,7 @@ export default function Keywords({ addToast }: Props) {
     const n = Number(s);
     return Number.isFinite(n) ? n : null;
   };
+
   const inRange = (v: number | null, lo: number | null, hi: number | null): boolean => {
     if (lo == null && hi == null) return true;
     if (v == null) return false;
@@ -167,6 +176,7 @@ export default function Keywords({ addToast }: Props) {
     if (hi != null && v > hi) return false;
     return true;
   };
+  
   const popLo = numOrNull(filters.popMin);
   const popHi = numOrNull(filters.popMax);
   const diffLo = numOrNull(filters.diffMin);
@@ -208,7 +218,6 @@ export default function Keywords({ addToast }: Props) {
     else if (sortBy === "difficulty") cmp = (a.difficulty ?? -1) - (b.difficulty ?? -1);
     else if (sortBy === "opportunity")
       cmp = (opportunityScore(a.popularity, a.difficulty) ?? -1) - (opportunityScore(b.popularity, b.difficulty) ?? -1);
-    else if (sortBy === "tracked") cmp = (a.trackingCount ?? 0) - (b.trackingCount ?? 0);
     else if (sortBy === "country") cmp = a.country.localeCompare(b.country);
     else cmp = a.term.localeCompare(b.term);
     return sortDir === "asc" ? cmp : -cmp;
