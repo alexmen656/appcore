@@ -4,6 +4,33 @@ import { AppStoreScraper } from "./appstore-scraper";
 import { AppleSearchAdsClient } from "./search-ads";
 import { normalizeLanguage } from "./app-store-markets";
 
+export async function refreshKeywordTopApps(keywordId: string): Promise<void> {
+  await prisma.$executeRaw`
+    WITH latest_per_app AS (
+      SELECT DISTINCT ON ("appId") "appId", rank
+      FROM "KeywordRanking"
+      WHERE "keywordId" = ${keywordId} AND rank IS NOT NULL
+      ORDER BY "appId", "trackedAt" DESC
+    ),
+    top5 AS (
+      SELECT "appId", rank
+      FROM latest_per_app
+      ORDER BY rank ASC
+      LIMIT 5
+    ),
+    del AS (
+      DELETE FROM "KeywordTopApp"
+      WHERE "keywordId" = ${keywordId}
+        AND "appId" NOT IN (SELECT "appId" FROM top5)
+      RETURNING 1
+    )
+    INSERT INTO "KeywordTopApp" ("keywordId", "appId", "rank")
+    SELECT ${keywordId}, "appId", rank FROM top5
+    ON CONFLICT ("keywordId", "appId")
+    DO UPDATE SET rank = EXCLUDED.rank
+  `;
+}
+
 export class KeywordTracker {
   private searchAds: AppleSearchAdsClient | null = null;
   private searchAdsPopularity: Map<string, number> | null = null;
@@ -161,6 +188,8 @@ export class KeywordTracker {
           }),
         ),
     );
+
+    await refreshKeywordTopApps(keyword.id);
 
     logger.info(`Keyword "${keywordTerm}": our rank = ${rank ?? "not ranked"}`);
     return rank;

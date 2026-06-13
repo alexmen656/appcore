@@ -91,34 +91,20 @@ keywordsRouter.get("/", bundleAccess("query", "bundleId"), async (req, res) => {
       time(
         "comp",
         prisma.$queryRaw<CompRow[]>`
-        WITH latest_per_app AS (
-          SELECT DISTINCT ON ("keywordId", "appId")
-            "keywordId", "appId", rank
-          FROM "KeywordRanking"
-          WHERE "keywordId" = ANY(${keywordIds}::text[])
-            AND rank IS NOT NULL
-          ORDER BY "keywordId", "appId", "trackedAt" DESC
-        ),
-        ranked AS (
-          SELECT
-            "keywordId", "appId", rank,
-            ROW_NUMBER() OVER (PARTITION BY "keywordId" ORDER BY rank ASC) AS rn
-          FROM latest_per_app
-        ),
-        latest_icon AS (
-          SELECT DISTINCT ON ("appId")
-            "appId", "iconUrl"
-          FROM "AppSnapshot"
-          ORDER BY "appId", "scrapedAt" DESC
-        )
-        SELECT r."keywordId", r."appId", r.rank,
+        SELECT t."keywordId", t."appId", t.rank,
                a.name AS "appName",
                li."iconUrl"
-        FROM ranked r
-        JOIN "App" a ON a.id = r."appId"
-        LEFT JOIN latest_icon li ON li."appId" = r."appId"
-        WHERE r.rn <= 5
-        ORDER BY r."keywordId", r.rank ASC
+        FROM "KeywordTopApp" t
+        JOIN "App" a ON a.id = t."appId"
+        LEFT JOIN LATERAL (
+          SELECT "iconUrl"
+          FROM "AppSnapshot"
+          WHERE "appId" = t."appId"
+          ORDER BY "scrapedAt" DESC
+          LIMIT 1
+        ) li ON TRUE
+        WHERE t."keywordId" = ANY(${keywordIds}::text[])
+        ORDER BY t."keywordId", t.rank ASC
       `,
       ),
       time(

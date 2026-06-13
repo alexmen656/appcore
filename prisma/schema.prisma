@@ -186,6 +186,7 @@ model App {
   memberAccess               TeamMemberAppAccess[]
   snapshots                  AppSnapshot[]
   rankings                   KeywordRanking[]
+  topAppFor                  KeywordTopApp[]
   competitors                CompetitorRelation[]      @relation("app_competitors")
   competitorOf               CompetitorRelation[]      @relation("competitor_of")
   screenshotJobs             ScreenshotJob[]
@@ -251,6 +252,7 @@ model Keyword {
   difficulty   Float?
   searchVolume Int?
   rankings     KeywordRanking[]
+  topApps      KeywordTopApp[]
   suggestions  ASOSuggestion[]
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
@@ -274,6 +276,17 @@ model KeywordRanking {
   @@index([trackedAt])
   @@index([appId, keywordId, trackedAt(sort: Desc)])
   @@index([keywordId, appId, trackedAt(sort: Desc)])
+}
+
+model KeywordTopApp {
+  keywordId String
+  appId     String
+  rank      Int
+  keyword   Keyword @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+  app       App     @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@id([keywordId, appId])
+  @@index([keywordId, rank])
 }
 
 model CompetitorRelation {
