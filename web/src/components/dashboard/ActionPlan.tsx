@@ -6,7 +6,6 @@ import {
   Image as ImageIcon,
   Users,
   AlignLeft,
-  KeyRound,
   ArrowRight,
   TrendingUp,
   CheckCircle2,
@@ -14,6 +13,7 @@ import {
 } from "lucide-react";
 import { useApi } from "../../hooks/useApi";
 import { borderDefault, cardCls, textMuted, textPrimary, textSecondary } from "../../styles";
+import AscConnectCard from "../AscConnectCard";
 
 interface ScanFinding {
   key: string;
@@ -47,40 +47,18 @@ const CTA_BY_KEY: Record<string, CtaMeta> = {
 
 const FALLBACK_CTA: CtaMeta = { to: "/keywords", label: "Open Keywords", icon: Search };
 
-function AscConnectCard() {
-  return (
-    <div className="mb-5 rounded-2xl border border-[#D94412]/30 bg-gradient-to-br from-[#fff5f1] to-[#fdeee9] dark:from-[#2a1812] dark:to-[#231210] p-5">
-      <div className="flex items-start gap-4">
-        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#D94412] to-[#C4001E] flex items-center justify-center shrink-0 shadow-sm">
-          <KeyRound className="w-5 h-5 text-white" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className={`text-[15px] font-bold ${textPrimary}`}>Connect App Store Connect</div>
-          <p className={`text-[13px] ${textSecondary} mt-1 max-w-xl`}>
-            Add your App Store Connect API key to push metadata, sync versions, and apply AI suggestions straight to
-            your listing. Without it, Marteso can only read your public data.
-          </p>
-          <Link
-            to="/settings/team-settings"
-            className="inline-flex items-center gap-1.5 mt-3 px-4 py-2 rounded-xl text-[13px] font-semibold bg-[#D94412] text-white hover:bg-[#c80b24] transition-all"
-          >
-            <KeyRound className="w-3.5 h-3.5" />
-            Connect via API key
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function ActionPlan({ hasASC }: { hasASC: boolean }) {
   const { data: scan } = useApi<ScanResult>("/asc/scan");
   const findings = scan?.ready ? (scan.findings ?? []) : [];
 
   return (
     <>
-      {!hasASC && <AscConnectCard />}
+      {!hasASC && (
+        <AscConnectCard
+          className="mb-5"
+          description="Add your App Store Connect API key to push metadata, sync versions, and apply AI suggestions straight to your listing. Without it, Marteso can only read your public data."
+        />
+      )}
 
       {scan?.ready && (
         <div className={`${cardCls} mb-5`}>
@@ -121,7 +99,7 @@ export default function ActionPlan({ hasASC }: { hasASC: boolean }) {
                 return (
                   <div
                     key={f.key}
-                    className={`flex items-center gap-3.5 px-4 py-3 rounded-xl border ${borderDefault} bg-[#fafbfc] dark:bg-[#252b38]`}
+                    className={`flex items-cÏenter gap-3.5 px-4 py-3 rounded-xl border ${borderDefault} bg-[#fafbfc] dark:bg-[#252b38]`}
                   >
                     <div className="w-9 h-9 rounded-lg bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] flex items-center justify-center text-[#C4001E] shrink-0">
                       <Icon className="w-[18px] h-[18px]" />

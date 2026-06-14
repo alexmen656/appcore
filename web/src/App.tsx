@@ -42,6 +42,7 @@ import Team from "./components/Team";
 import InviteAccept from "./components/InviteAccept";
 import Onboarding from "./components/Onboarding";
 import SearchModal from "./components/SearchModal";
+import AscConnectCard from "./components/AscConnectCard";
 import type { AuthUser, DashboardData, AppItem, AscApp, VersionSummary } from "./types";
 import {
   LayoutDashboard,
@@ -82,6 +83,30 @@ const sidebarLinks = [
 const sidebarOperations = [
   { to: "/logs", label: "Logs", icon: Zap },
   { to: "/app-settings", label: "App Settings", icon: SettingsIcon },
+];
+
+// Routes whose data comes from the App Store Connect API. Without a key these
+// views render empty/broken, so we surface a connect CTA on each of them.
+// /dashboard is excluded — it shows its own connect card inside the action plan.
+const ASC_REQUIRED_VIEWS: { prefix: string; description: string }[] = [
+  {
+    prefix: "/versions",
+    description:
+      "Connect your App Store Connect API key to load and edit your app's versions, metadata and screenshots.",
+  },
+  {
+    prefix: "/monetization",
+    description: "Connect your App Store Connect API key to manage subscriptions and in-app purchases.",
+  },
+  {
+    prefix: "/game-center",
+    description:
+      "Connect your App Store Connect API key to manage Game Center leaderboards, achievements and challenges.",
+  },
+  {
+    prefix: "/analytics",
+    description: "Connect your App Store Connect API key to pull downloads, proceeds, impressions and reviews.",
+  },
 ];
 
 function AppAvatar({
@@ -1148,6 +1173,10 @@ export default function App() {
     return <Onboarding initialStep={onboardingStep} onComplete={finishOnboarding} />;
   }
 
+  const ascRequiredView = ASC_REQUIRED_VIEWS.find((v) => location.pathname.startsWith(v.prefix));
+  const hasASC = dash?.config?.hasASC ?? true;
+  const showAscBanner = !hasASC && !!ascRequiredView && !user.isDemo;
+
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-2.5 px-3 py-[9px] rounded-lg text-sm font-medium mb-0.5 transition-all [&_svg]:w-[18px] [&_svg]:h-[18px] ${
       isActive
@@ -1234,6 +1263,9 @@ export default function App() {
           </aside>
 
           <main className="relative z-30 flex-1 overflow-y-auto overscroll-contain px-7 py-6 bg-white dark:bg-[#0f1117] rounded-tl-2xl border-t border-l border-[rgba(16,24,40,0.06)] dark:border-[rgba(255,255,255,0.05)] shadow-[-4px_-4px_14px_-8px_rgba(16,24,40,0.05),0_-6px_16px_-8px_rgba(16,24,40,0.07)] dark:shadow-[-4px_-4px_14px_-8px_rgba(0,0,0,0.3),0_-6px_16px_-8px_rgba(0,0,0,0.35)]">
+            {showAscBanner && ascRequiredView && (
+              <AscConnectCard className="mb-5" description={ascRequiredView.description} />
+            )}
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />

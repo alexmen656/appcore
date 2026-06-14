@@ -4,7 +4,7 @@ import { RefreshCw, ArrowRight, Clock, Download, Eye, Monitor, Activity, DollarS
 import { useApi, apiPost, getActiveBundleId } from "../../hooks/useApi";
 import MetricsChart from "./MetricsChart";
 import type { ChartMarker } from "./MetricsChart";
-import type { AnalyticsSummary, DownloadsData, Review } from "../../types";
+import type { AnalyticsSummary, DashboardData, DownloadsData, Review } from "../../types";
 import { TD, TH, borderDefault, pageTitle, textMuted, textPrimary } from "../../styles";
 import { fmtNumber, fmtRevenue, fmtDateTime, fmtPct, countryName } from "../../utils/formatters";
 import { type RangeKey, RANGE_OPTIONS, rangeToParams, rangeLabel } from "../../utils/analyticsRange";
@@ -81,9 +81,7 @@ function StatCard({
           <span className={`text-[13px] font-semibold ${textPrimary}`}>{label}</span>
           {icon && <span className={`${textMuted}`}>{icon}</span>}
         </div>
-        <div className={`text-[40px] font-bold leading-none mb-2 ${dim ? textMuted : textPrimary}`}>
-          {value}
-        </div>
+        <div className={`text-[40px] font-bold leading-none mb-2 ${dim ? textMuted : textPrimary}`}>{value}</div>
         {sub && (
           <div className={`flex items-center gap-1.5 text-[13px] ${textMuted}`}>
             <Clock className="w-3.5 h-3.5 shrink-0" />
@@ -172,6 +170,9 @@ export default function Analytics({ addToast }: Props) {
     versionUpdates: { date: string; version: string }[];
   }>(`/analytics/markers?bundleId=${bundleId}`, [bundleId], true);
 
+  const { data: dash } = useApi<DashboardData>("/dashboard");
+  const hasASC = dash?.config?.hasASC ?? true;
+
   const markers: ChartMarker[] = useMemo(() => {
     const result: ChartMarker[] = [];
     if (markersData?.activatedAt) result.push({ date: markersData.activatedAt, type: "activation" });
@@ -253,12 +254,12 @@ export default function Analytics({ addToast }: Props) {
         </div>
       </div>
 
-      {!loading && !summary?.totalDownloads && (reviews ?? []).length === 0 && (
+      {!loading && !summary?.totalDownloads && (reviews ?? []).length === 0 && hasASC && (
         <div className="mb-5 px-4 py-3.5 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/40 text-[13px] text-amber-800 dark:text-amber-400">
           <strong>No analytics data yet.</strong> Make sure your{" "}
-          <a href="/settings" className="underline font-medium">
+          <Link to="/settings/team-settings" className="underline font-medium">
             Vendor Number
-          </a>{" "}
+          </Link>{" "}
           is configured in Settings, then click <strong>Sync Now</strong>.
         </div>
       )}
