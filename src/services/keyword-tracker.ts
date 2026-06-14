@@ -4,33 +4,6 @@ import { AppStoreScraper } from "./appstore-scraper";
 import { AppleSearchAdsClient } from "./search-ads";
 import { normalizeLanguage } from "./app-store-markets";
 
-export async function refreshKeywordTopApps(keywordId: string): Promise<void> {
-  await prisma.$executeRaw`
-    WITH latest_per_app AS (
-      SELECT DISTINCT ON ("appId") "appId", rank
-      FROM "KeywordRanking"
-      WHERE "keywordId" = ${keywordId} AND rank IS NOT NULL
-      ORDER BY "appId", "trackedAt" DESC
-    ),
-    top5 AS (
-      SELECT "appId", rank
-      FROM latest_per_app
-      ORDER BY rank ASC
-      LIMIT 5
-    ),
-    del AS (
-      DELETE FROM "KeywordTopApp"
-      WHERE "keywordId" = ${keywordId}
-        AND "appId" NOT IN (SELECT "appId" FROM top5)
-      RETURNING 1
-    )
-    INSERT INTO "KeywordTopApp" ("keywordId", "appId", "rank")
-    SELECT ${keywordId}, "appId", rank FROM top5
-    ON CONFLICT ("keywordId", "appId")
-    DO UPDATE SET rank = EXCLUDED.rank
-  `;
-}
-
 export class KeywordTracker {
   private searchAds: AppleSearchAdsClient | null = null;
   private searchAdsPopularity: Map<string, number> | null = null;
@@ -165,31 +138,19 @@ export class KeywordTracker {
       },
     });
 
-    const competitors = await prisma.competitorRelation.findMany({
-      where: { appId: ownApp.id },
-      include: { competitor: true },
-    });
-
-    await Promise.all(
-      competitors
-        .map((rel) => ({
-          rel,
-          compRank: results.findIndex((r) => r.bundleId === rel.competitor.bundleId) + 1 || null,
-        }))
-        .filter(({ compRank }) => compRank !== null)
-        .map(({ rel, compRank }) =>
-          prisma.keywordRanking.create({
-            data: {
-              keywordId: keyword.id,
-              appId: rel.competitorId,
-              rank: compRank,
-              country,
-            },
-          }),
-        ),
-    );
-
-    await refreshKeywordTopApps(keyword.id);
+    if (results.length > 0) {
+      await prisma.keywordSearchResult.createMany({
+        data: results.map((r, i) => ({
+          keywordId: keyword.id,
+          rank: i + 1,
+          trackId: r.trackId != null ? BigInt(r.trackId) : null,
+          bundleId: r.bundleId,
+          name: r.trackName,
+          iconUrl: r.artworkUrl512 ?? null,
+          country,
+        })),
+      });
+    }
 
     logger.info(`Keyword "${keywordTerm}": our rank = ${rank ?? "not ranked"}`);
     return rank;

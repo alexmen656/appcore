@@ -287,6 +287,48 @@ export class AppStoreScraper {
     }
   }
 
+  async scrapeMonetization(trackId: number): Promise<Array<{ name: string; price: string | null }>> {
+    try {
+      const url = `https://apps.apple.com/${this.country}/app/id${trackId}`;
+      const { data: html } = await axios.get<string>(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+          "Accept-Language": `${this.language},en;q=0.9`,
+        },
+      });
+
+      const $ = cheerio.load(html);
+      const items: Array<{ name: string; price: string | null }> = [];
+      const seen = new Set<string>();
+
+      $("dt").each((_, dt) => {
+        const term = $(dt).text().trim().toLowerCase();
+        if (!/in.?app purchase/.test(term)) return;
+
+        const dd = $(dt).nextAll("dd").first();
+        const listItems = dd.find("li");
+        const rows = listItems.length ? listItems : dd.find('[class*="list-with-numbers__item"]');
+
+        rows.each((__, li) => {
+          const $li = $(li);
+          const name =
+            $li.find('[class*="__title"]').first().text().trim() || $li.children("span").first().text().trim();
+          const price = $li.find('[class*="__price"]').first().text().trim() || null;
+          if (!name || seen.has(name)) return;
+          seen.add(name);
+          items.push({ name, price });
+        });
+      });
+
+      return items;
+    } catch (error) {
+      logger.warn(`Failed to scrape monetization for track ${trackId}`, {
+        error: error instanceof Error ? error.message : error,
+      });
+      return [];
+    }
+  }
+
   async scrapeVersionHistory(trackId: number): Promise<Array<{ version: string; date: string }>> {
     try {
       const url = `https://apps.apple.com/us/app/id${trackId}`;

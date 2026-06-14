@@ -178,12 +178,12 @@ export interface RankingEntry {
 }
 
 export interface KeywordCompetitorRow {
-  appId: string;
-  name: string;
   bundleId: string;
+  name: string;
   iconUrl: string | null;
   rank: number | null;
   isTracked: boolean;
+  isOwn: boolean;
 }
 
 export interface KeywordHistoryData {
@@ -469,6 +469,14 @@ export interface CompetitorDetail {
   metadataChanges: MetadataChange[];
   keywordRankings: CompetitorKeywordRanking[];
   untrackedKeywords?: string[];
+  inAppPurchases?: CompetitorInAppPurchase[];
+}
+
+export interface CompetitorInAppPurchase {
+  id: string;
+  name: string;
+  price: string | null;
+  kind: string;
 }
 
 export interface SubscriptionItem {

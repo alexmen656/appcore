@@ -437,6 +437,11 @@ appsRouter.get("/:id/competitor-detail", bundleAccess("query", "bundleId"), asyn
       take: 50,
     });
 
+    const inAppPurchases = await prisma.appInAppPurchase.findMany({
+      where: { appId: app.id },
+      orderBy: { position: "asc" },
+    });
+
     let keywordRankings: Array<{
       keyword: string;
       keywordId: string;
@@ -532,6 +537,12 @@ appsRouter.get("/:id/competitor-detail", bundleAccess("query", "bundleId"), asyn
       })),
       keywordRankings,
       untrackedKeywords,
+      inAppPurchases: inAppPurchases.map((p) => ({
+        id: p.id,
+        name: p.name,
+        price: p.price,
+        kind: p.kind,
+      })),
     });
   } catch (err) {
     res.status(500).json({ error: String(err) });

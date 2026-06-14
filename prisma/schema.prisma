@@ -186,7 +186,6 @@ model App {
   memberAccess               TeamMemberAppAccess[]
   snapshots                  AppSnapshot[]
   rankings                   KeywordRanking[]
-  topAppFor                  KeywordTopApp[]
   keywordGroups              KeywordGroup[]
   competitors                CompetitorRelation[]      @relation("app_competitors")
   competitorOf               CompetitorRelation[]      @relation("competitor_of")
@@ -196,6 +195,7 @@ model App {
   competitorReviews          CompetitorReview[]
   reviewSummaries            CompetitorReviewSummary[]
   metadataChanges            AppMetadataChange[]
+  inAppPurchases             AppInAppPurchase[]
   quickScanAi                AppQuickScanAi?
   createdAt                  DateTime                  @default(now())
   updatedAt                  DateTime                  @updatedAt
@@ -252,9 +252,9 @@ model Keyword {
   popularity   Float?
   difficulty   Float?
   searchVolume Int?
-  rankings     KeywordRanking[]
-  topApps      KeywordTopApp[]
-  suggestions  ASOSuggestion[]
+  rankings      KeywordRanking[]
+  searchResults KeywordSearchResult[]
+  suggestions   ASOSuggestion[]
   groupMembers KeywordGroupMember[]
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
@@ -306,15 +306,20 @@ model KeywordRanking {
   @@index([keywordId, appId, trackedAt(sort: Desc)])
 }
 
-model KeywordTopApp {
+model KeywordSearchResult {
+  id        String   @id @default(cuid())
   keywordId String
-  appId     String
+  keyword   Keyword  @relation(fields: [keywordId], references: [id], onDelete: Cascade)
   rank      Int
-  keyword   Keyword @relation(fields: [keywordId], references: [id], onDelete: Cascade)
-  app       App     @relation(fields: [appId], references: [id], onDelete: Cascade)
+  trackId   BigInt?
+  bundleId  String
+  name      String
+  iconUrl   String?
+  country   String   @default("de")
+  trackedAt DateTime @default(now())
 
-  @@id([keywordId, appId])
-  @@index([keywordId, rank])
+  @@index([keywordId, trackedAt])
+  @@index([keywordId, bundleId, trackedAt(sort: Desc)])
 }
 
 model CompetitorRelation {
@@ -453,6 +458,19 @@ model AppMetadataChange {
 
   @@index([appId, detectedAt])
   @@index([appId, field])
+}
+
+model AppInAppPurchase {
+  id        String   @id @default(cuid())
+  appId     String
+  app       App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+  name      String
+  price     String?
+  kind      String   @default("purchase")
+  position  Int      @default(0)
+  scrapedAt DateTime @default(now())
+
+  @@index([appId])
 }
 
 enum JobStatus {

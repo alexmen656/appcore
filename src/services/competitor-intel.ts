@@ -1,5 +1,8 @@
 import { prisma, logger } from "../config";
 import { AIClient } from "./ai-client";
+import { AppStoreScraper } from "./appstore-scraper";
+
+const SUBSCRIPTION_HINT = /\b(week|weekly|month|monthly|year|yearly|annual|quarter|season|sub|subscription|premium|plus|pro|unlimited)\b/i;
 
 interface ScrapedReview {
   externalId: string;
@@ -356,10 +359,55 @@ Be concise but thorough. Extract actionable insights.`;
     });
   }
 
+  async scrapeMonetizationForAllCompetitors(bundleId: string): Promise<{ products: number; apps: number }> {
+    const ownApp = await prisma.app.findUnique({
+      where: { bundleId },
+      include: { competitors: { include: { competitor: true } } },
+    });
+
+    if (!ownApp) throw new Error(`App not found: ${bundleId}`);
+
+    let products = 0;
+    let apps = 0;
+
+    for (const rel of ownApp.competitors) {
+      const comp = rel.competitor;
+      if (!comp.trackId) continue;
+
+      const scraper = new AppStoreScraper(comp.country);
+      const items = await scraper.scrapeMonetization(Number(comp.trackId));
+
+      await prisma.$transaction([
+        prisma.appInAppPurchase.deleteMany({ where: { appId: comp.id } }),
+        ...(items.length
+          ? [
+              prisma.appInAppPurchase.createMany({
+                data: items.map((item, i) => ({
+                  appId: comp.id,
+                  name: item.name,
+                  price: item.price,
+                  kind: SUBSCRIPTION_HINT.test(item.name) ? "subscription" : "purchase",
+                  position: i,
+                })),
+              }),
+            ]
+          : []),
+      ]);
+
+      products += items.length;
+      apps++;
+      await this.sleep(1000);
+    }
+
+    logger.info(`Scraped monetization for ${apps} competitors, ${products} products total`);
+    return { products, apps };
+  }
+
   async runFullIntelJob(bundleId: string): Promise<{
     reviewsScraped: number;
     appsSummarized: number;
     metadataChanges: number;
+    monetizationProducts: number;
   }> {
     logger.info(`Starting full competitor intel job for ${bundleId}`);
 
@@ -369,11 +417,13 @@ Be concise but thorough. Extract actionable insights.`;
 
     const { changes: metadataChanges } = await this.detectAllMetadataChanges(bundleId);
 
+    const { products: monetizationProducts } = await this.scrapeMonetizationForAllCompetitors(bundleId);
+
     logger.info(
-      `Competitor intel complete: ${reviewsScraped} reviews, ${appsSummarized} summaries, ${metadataChanges} changes`,
+      `Competitor intel complete: ${reviewsScraped} reviews, ${appsSummarized} summaries, ${metadataChanges} changes, ${monetizationProducts} monetization products`,
     );
 
-    return { reviewsScraped, appsSummarized, metadataChanges };
+    return { reviewsScraped, appsSummarized, metadataChanges, monetizationProducts };
   }
 
   private sleep(ms: number): Promise<void> {

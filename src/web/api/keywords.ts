@@ -72,7 +72,6 @@ keywordsRouter.get("/", bundleAccess("query", "bundleId"), async (req, res) => {
 
     type CompRow = {
       keywordId: string;
-      appId: string;
       rank: number;
       appName: string;
       iconUrl: string | null;
@@ -88,20 +87,22 @@ keywordsRouter.get("/", bundleAccess("query", "bundleId"), async (req, res) => {
       time(
         "comp",
         prisma.$queryRaw<CompRow[]>`
-        SELECT t."keywordId", t."appId", t.rank,
-               a.name AS "appName",
-               li."iconUrl"
-        FROM "KeywordTopApp" t
-        JOIN "App" a ON a.id = t."appId"
-        LEFT JOIN LATERAL (
-          SELECT "iconUrl"
-          FROM "AppSnapshot"
-          WHERE "appId" = t."appId"
-          ORDER BY "scrapedAt" DESC
-          LIMIT 1
-        ) li ON TRUE
-        WHERE t."keywordId" = ANY(${keywordIds}::text[])
-        ORDER BY t."keywordId", t.rank ASC
+        WITH latest AS (
+          SELECT DISTINCT ON ("keywordId", "bundleId")
+                 "keywordId", "bundleId", name, "iconUrl", rank
+          FROM "KeywordSearchResult"
+          WHERE "keywordId" = ANY(${keywordIds}::text[])
+          ORDER BY "keywordId", "bundleId", "trackedAt" DESC
+        ),
+        ranked AS (
+          SELECT "keywordId", name, "iconUrl", rank,
+                 ROW_NUMBER() OVER (PARTITION BY "keywordId" ORDER BY rank ASC) AS rn
+          FROM latest
+        )
+        SELECT "keywordId", name AS "appName", "iconUrl", rank
+        FROM ranked
+        WHERE rn <= 5
+        ORDER BY "keywordId", rank ASC
       `,
       ),
       time(
@@ -181,51 +182,45 @@ keywordsRouter.get("/:id/history", async (req, res) => {
     });
     if (!keyword) return res.status(404).json({ error: "Not found" });
 
-    const rankings = await prisma.keywordRanking.findMany({
-      where: { keywordId: req.params.id },
-      include: {
-        app: {
-          select: {
-            id: true,
-            name: true,
-            bundleId: true,
-            isOwnApp: true,
-            snapshots: { orderBy: { scrapedAt: "desc" }, take: 1, select: { iconUrl: true } },
-          },
-        },
-      },
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const results = await prisma.keywordSearchResult.findMany({
+      where: { keywordId: req.params.id, trackedAt: { gte: thirtyDaysAgo } },
+      select: { rank: true, bundleId: true, name: true, iconUrl: true, country: true, trackedAt: true },
       orderBy: { trackedAt: "desc" },
-      take: 100,
+      take: 2000,
     });
 
     const bundleId = req.query.bundleId as string | undefined;
     const ownApp = bundleId ? await prisma.app.findUnique({ where: { bundleId } }) : null;
 
-    let trackedIds = new Set<string>();
+    let trackedBundleIds = new Set<string>();
     if (ownApp) {
       const rels = await prisma.competitorRelation.findMany({
         where: { OR: [{ appId: ownApp.id }, { competitorId: ownApp.id }] },
+        include: { app: { select: { bundleId: true } }, competitor: { select: { bundleId: true } } },
       });
-      trackedIds = new Set(rels.map((r) => (r.appId === ownApp.id ? r.competitorId : r.appId)));
+      trackedBundleIds = new Set(
+        rels.map((r) => (r.appId === ownApp.id ? r.competitor.bundleId : r.app.bundleId)),
+      );
     }
 
-    const byApp = new Map<
+    // Latest snapshot row per app, sorted by rank — the full list of apps ranked in the most recent scrape.
+    const byBundle = new Map<
       string,
-      { appId: string; name: string; bundleId: string; iconUrl: string | null; rank: number | null; isTracked: boolean }
+      { bundleId: string; name: string; iconUrl: string | null; rank: number | null; isTracked: boolean; isOwn: boolean }
     >();
-    for (const r of rankings) {
-      if (r.app.isOwnApp || (ownApp && r.app.id === ownApp.id)) continue;
-      if (byApp.has(r.app.id)) continue;
-      byApp.set(r.app.id, {
-        appId: r.app.id,
-        name: r.app.name,
-        bundleId: r.app.bundleId,
-        iconUrl: r.app.snapshots[0]?.iconUrl ?? null,
+    for (const r of results) {
+      if (byBundle.has(r.bundleId)) continue;
+      byBundle.set(r.bundleId, {
+        bundleId: r.bundleId,
+        name: r.name,
+        iconUrl: r.iconUrl,
         rank: r.rank,
-        isTracked: trackedIds.has(r.app.id),
+        isTracked: trackedBundleIds.has(r.bundleId),
+        isOwn: bundleId != null && r.bundleId === bundleId,
       });
     }
-    const competitors = [...byApp.values()].sort((a, b) => (a.rank ?? 9999) - (b.rank ?? 9999));
+    const competitors = [...byBundle.values()].sort((a, b) => (a.rank ?? 9999) - (b.rank ?? 9999));
 
     res.json({
       keyword: {
@@ -235,10 +230,10 @@ keywordsRouter.get("/:id/history", async (req, res) => {
         difficulty: keyword.difficulty,
       },
       ownAppId: ownApp?.id ?? null,
-      rankings: rankings.map((r) => ({
+      rankings: results.map((r) => ({
         rank: r.rank,
-        appName: r.app.name,
-        appBundleId: r.app.bundleId,
+        appName: r.name,
+        appBundleId: r.bundleId,
         country: r.country,
         trackedAt: r.trackedAt,
       })),

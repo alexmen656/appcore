@@ -57,19 +57,19 @@ export default function RankingHistoryChart({
   const [tracked, setTracked] = useState<Set<string>>(new Set());
   const [adding, setAdding] = useState<Set<string>>(new Set());
 
-  const addCompetitor = async (appId: string, bundleId: string, name: string) => {
+  const addCompetitor = async (bundleId: string, name: string) => {
     if (!history?.ownAppId) return;
-    setAdding((prev) => new Set(prev).add(appId));
+    setAdding((prev) => new Set(prev).add(bundleId));
     try {
       await apiPost(`/apps/${history.ownAppId}/competitors`, { bundleId });
-      setTracked((prev) => new Set(prev).add(appId));
+      setTracked((prev) => new Set(prev).add(bundleId));
       addToast?.(`${name} added to competitors`, "success");
     } catch (e: any) {
       addToast?.(e.message, "error");
     } finally {
       setAdding((prev) => {
         const next = new Set(prev);
-        next.delete(appId);
+        next.delete(bundleId);
         return next;
       });
     }
@@ -244,7 +244,7 @@ export default function RankingHistoryChart({
           {history?.competitors && history.competitors.length > 0 && (
             <div className="mt-8">
               <div className={`mb-3 text-xs font-medium uppercase tracking-wide ${textMuted}`}>
-                Competitors ranking for this keyword
+                All apps ranking for this keyword
               </div>
               <div className={`overflow-hidden rounded-xl border ${borderDefault}`}>
                 <table className="w-full text-left">
@@ -257,11 +257,11 @@ export default function RankingHistoryChart({
                   </thead>
                   <tbody>
                     {history.competitors.map((c) => {
-                      const isTracked = c.isTracked || tracked.has(c.appId);
-                      const isAdding = adding.has(c.appId);
+                      const isTracked = c.isTracked || tracked.has(c.bundleId);
+                      const isAdding = adding.has(c.bundleId);
                       return (
                         <tr
-                          key={c.appId}
+                          key={c.bundleId}
                           className={`border-b last:border-b-0 ${borderDefault} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors`}
                         >
                           <td className="px-4 py-2.5">
@@ -283,13 +283,17 @@ export default function RankingHistoryChart({
                             {c.rank != null ? `#${c.rank}` : "—"}
                           </td>
                           <td className="px-4 py-2.5 text-right">
-                            {isTracked ? (
+                            {c.isOwn ? (
+                              <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#D94412]">
+                                You
+                              </span>
+                            ) : isTracked ? (
                               <span className={`inline-flex items-center gap-1 text-[12px] font-medium ${textMuted}`}>
                                 <Check className="w-3.5 h-3.5" /> Tracked
                               </span>
                             ) : (
                               <button
-                                onClick={() => addCompetitor(c.appId, c.bundleId, c.name)}
+                                onClick={() => addCompetitor(c.bundleId, c.name)}
                                 disabled={isAdding || !canWrite || !history.ownAppId}
                                 className="inline-flex items-center gap-1.5 px-2.5 py-[5px] rounded-lg text-[12px] font-semibold bg-[#F4C7A1] text-[#7a2d0a] hover:bg-[#f0b888] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                               >

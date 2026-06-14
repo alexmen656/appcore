@@ -4,7 +4,13 @@ import { borderDefault, textMuted, textPrimary, textSecondary } from "../../styl
 import { useNavigate } from "react-router-dom";
 import { authHeaders, getActiveBundleId, apiPost } from "../../hooks/useApi";
 import { Maximize2, X, ArrowRight, MessageSquare, RefreshCw, BarChart2, Plus, Check, Sparkles } from "lucide-react";
-import type { CompetitorDetail, CompetitorReview, CompetitorKeywordRanking, MetadataChange } from "../../types";
+import type {
+  CompetitorDetail,
+  CompetitorReview,
+  CompetitorKeywordRanking,
+  CompetitorInAppPurchase,
+  MetadataChange,
+} from "../../types";
 import AppIcon from "../competitors/AppIcon";
 
 interface Props {
@@ -214,6 +220,7 @@ export function OverviewTab({ data }: { data: CompetitorDetail }) {
           </div>
         </div>
       )}
+      <MonetizationSection items={data.inAppPurchases ?? []} />
       <div className="grid grid-cols-3 gap-3">
         <StatCard label="Reviews" value={data.reviews.length.toString()} sub="scraped" />
         <StatCard label="Changes" value={data.metadataChanges.length.toString()} sub="detected" />
@@ -222,6 +229,42 @@ export function OverviewTab({ data }: { data: CompetitorDetail }) {
           value={data.keywordRankings.filter((k) => k.competitorRank != null).length.toString()}
           sub="ranked"
         />
+      </div>
+    </div>
+  );
+}
+
+function MonetizationSection({ items }: { items: CompetitorInAppPurchase[] }) {
+  if (items.length === 0) return null;
+  const subscriptions = items.filter((i) => i.kind === "subscription");
+  const purchases = items.filter((i) => i.kind !== "subscription");
+
+  const row = (p: CompetitorInAppPurchase) => (
+    <div key={p.id} className={`flex items-center justify-between gap-3 px-4 py-2.5 border-b last:border-b-0 ${borderDefault}`}>
+      <div className="flex items-center gap-2 min-w-0">
+        <span
+          className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ring-1 ring-inset ${
+            p.kind === "subscription"
+              ? "bg-violet-50 text-violet-700 ring-violet-200 dark:bg-violet-900/25 dark:text-violet-300 dark:ring-violet-800/50"
+              : "bg-sky-50 text-sky-700 ring-sky-200 dark:bg-sky-900/25 dark:text-sky-300 dark:ring-sky-800/50"
+          }`}
+        >
+          {p.kind === "subscription" ? "Sub" : "IAP"}
+        </span>
+        <span className={`text-[13px] ${textPrimary} truncate`}>{p.name}</span>
+      </div>
+      <span className={`text-[13px] font-medium tabular-nums ${textSecondary} shrink-0`}>{p.price ?? "—"}</span>
+    </div>
+  );
+
+  return (
+    <div>
+      <div className={`text-xs font-medium uppercase tracking-wide ${textMuted} mb-2`}>
+        Monetization ({items.length} product{items.length === 1 ? "" : "s"}
+        {subscriptions.length > 0 ? ` · ${subscriptions.length} subscription${subscriptions.length === 1 ? "" : "s"}` : ""})
+      </div>
+      <div className={`bg-gray-50 dark:bg-[#1c2028] rounded-xl border ${borderDefault} overflow-hidden`}>
+        {[...subscriptions, ...purchases].map(row)}
       </div>
     </div>
   );
