@@ -110,7 +110,15 @@ export default function CompetitorDetailPage({ addToast }: Props) {
           {tab === "overview" && <OverviewTab data={data} />}
           {tab === "reviews" && <ReviewsTab data={data} />}
           {tab === "changes" && <ChangesTab changes={data.metadataChanges} />}
-          {tab === "keywords" && <KeywordsTab rankings={data.keywordRankings} />}
+          {tab === "keywords" && (
+            <KeywordsTab
+              rankings={data.keywordRankings}
+              untracked={data.untrackedKeywords ?? []}
+              country={data.country}
+              competitorName={data.name}
+              addToast={addToast}
+            />
+          )}
         </>
       )}
     </div>

@@ -12,7 +12,7 @@ import KeywordMatrix from "./KeywordMatrix";
 import MarketSelector from "./MarketSelector";
 import AddKeywordsModal from "./AddKeywordsModal";
 import ImportKeywordsModal from "./ImportKeywordsModal";
-import RankingHistoryChart, { HistoryData } from "./RankingHistoryChart";
+import RankingHistoryChart, { HistoryData, AppliedEvent } from "./RankingHistoryChart";
 
 type ViewMode = "list" | "matrix";
 
@@ -44,6 +44,13 @@ export default function Keywords({ addToast }: Props) {
     keywordFields: Record<string, string>;
     indexedText?: Record<string, string>;
   }>("/asc/keyword-fields");
+
+  const { data: appliedData } = useApi<{ suggestions: Record<string, AppliedEvent[]> }>(
+    "/suggestions?status=APPLIED&limit=500",
+  );
+  const appliedEvents: AppliedEvent[] = Object.values(appliedData?.suggestions ?? {})
+    .flat()
+    .filter((s) => s.appliedAt);
 
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
@@ -450,6 +457,7 @@ export default function Keywords({ addToast }: Props) {
           history={history}
           loading={historyLoading}
           ownBundleId={getActiveBundleId()}
+          events={appliedEvents}
           onClose={() => {
             setSelectedKeyword(null);
             setHistory(null);

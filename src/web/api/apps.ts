@@ -201,11 +201,85 @@ appsRouter.get("/:id", appAccess("params", "id"), async (req, res) => {
   }
 });
 
+const KEYWORD_STOPWORDS = new Set([
+  "the",
+  "and",
+  "for",
+  "your",
+  "with",
+  "app",
+  "from",
+  "you",
+  "are",
+  "all",
+  "new",
+  "get",
+  "now",
+  "pro",
+  "plus",
+  "best",
+  "free",
+  "one",
+  "out",
+  "our",
+  "any",
+  "can",
+  "use",
+  "von",
+  "und",
+  "der",
+  "die",
+  "das",
+  "für",
+  "mit",
+  "app",
+  "den",
+  "ein",
+  "eine",
+  "auf",
+  "ist",
+  "ihr",
+  "dein",
+  "deine",
+  "the",
+  "kostenlos",
+  "los",
+]);
+
+function extractCandidateKeywords(title: string | null, subtitle: string | null, tracked: Set<string>): string[] {
+  const text = `${title ?? ""} ${subtitle ?? ""}`.toLowerCase();
+  const tokens = text
+    .split(/[^\p{L}\p{N}]+/u)
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 3 && !/^\d+$/.test(t));
+
+  const candidates: string[] = [];
+  const seen = new Set<string>();
+  const add = (term: string) => {
+    if (term.length < 3 || seen.has(term) || tracked.has(term)) return;
+    seen.add(term);
+    candidates.push(term);
+  };
+
+  for (let i = 0; i < tokens.length; i++) {
+    const word = tokens[i];
+    const next = tokens[i + 1];
+    if (next && !KEYWORD_STOPWORDS.has(word) && !KEYWORD_STOPWORDS.has(next)) {
+      add(`${word} ${next}`);
+    }
+  }
+  for (const word of tokens) {
+    if (!KEYWORD_STOPWORDS.has(word)) add(word);
+  }
+
+  return candidates.slice(0, 15);
+}
+
 appsRouter.get("/:id/competitor-detail", bundleAccess("query", "bundleId"), async (req, res) => {
   try {
-    const bundleId = req.bundleApp!.id; //bug not only our id
+    const ownApp = req.bundleApp!;
     const app = await prisma.app.findUnique({
-      where: { id: bundleId },
+      where: { id: req.params.id },
       include: {
         snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 },
       },
@@ -237,14 +311,17 @@ appsRouter.get("/:id/competitor-detail", bundleAccess("query", "bundleId"), asyn
       competitorRank: number | null;
       ourRank: number | null;
     }> = [];
+    let untrackedKeywords: string[] = [];
 
-    if (bundleId) {
-      const ownApp = await prisma.app.findUnique({ where: { bundleId } });
-      if (ownApp) {
+    {
+      {
         const keywords = await prisma.keyword.findMany({
           where: { rankings: { some: { appId: ownApp.id } } },
           orderBy: { popularity: "desc" },
         });
+
+        const trackedSet = new Set(keywords.map((kw) => kw.term.toLowerCase()));
+        untrackedKeywords = extractCandidateKeywords(app.currentTitle, app.currentSubtitle, trackedSet);
 
         const kwIds = keywords.map((kw) => kw.id);
         const [compRankings, ownRankings] = await Promise.all([
@@ -321,6 +398,7 @@ appsRouter.get("/:id/competitor-detail", bundleAccess("query", "bundleId"), asyn
         detectedAt: c.detectedAt,
       })),
       keywordRankings,
+      untrackedKeywords,
     });
   } catch (err) {
     res.status(500).json({ error: String(err) });

@@ -450,6 +450,7 @@ export interface CompetitorDetail {
   reviewSummary: CompetitorReviewSummary | null;
   metadataChanges: MetadataChange[];
   keywordRankings: CompetitorKeywordRanking[];
+  untrackedKeywords?: string[];
 }
 
 export interface SubscriptionItem {

@@ -1,22 +1,46 @@
 import { useEffect } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+  ReferenceLine,
+} from "recharts";
 import { Keyword } from "./KeywordTable";
 import { btnSecSm, textMuted, textPrimary } from "../../styles";
 import type { RankingEntry, KeywordHistoryData } from "../../types";
 
 export type { KeywordHistoryData as HistoryData };
 
+export interface AppliedEvent {
+  type: string;
+  locale: string;
+  appliedAt: string;
+}
+
 const CHART_COLORS = ["#D94412", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"];
+
+const TYPE_LABEL: Record<string, string> = {
+  TITLE: "Title",
+  SUBTITLE: "Subtitle",
+  KEYWORDS: "Keywords",
+  DESCRIPTION: "Description",
+};
 
 interface Props {
   keyword: Keyword;
   history: KeywordHistoryData | null;
   loading: boolean;
   ownBundleId?: string | null;
+  events?: AppliedEvent[];
   onClose: () => void;
 }
 
-export default function RankingHistoryChart({ keyword, history, loading, ownBundleId, onClose }: Props) {
+export default function RankingHistoryChart({ keyword, history, loading, ownBundleId, events, onClose }: Props) {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -27,6 +51,7 @@ export default function RankingHistoryChart({ keyword, history, loading, ownBund
   }, [onClose]);
 
   const ownLabel = "Your App";
+  const bucketTime = new Map<string, number>();
   const chartData = (() => {
     if (!history?.rankings?.length) return [];
     const byTime = new Map<string, Record<string, number | null>>();
@@ -38,6 +63,7 @@ export default function RankingHistoryChart({ keyword, history, loading, ownBund
         minute: "2-digit",
       });
       if (!byTime.has(date)) byTime.set(date, {});
+      if (!bucketTime.has(date)) bucketTime.set(date, new Date(r.trackedAt).getTime());
       const label =
         ownBundleId && r.appBundleId === ownBundleId
           ? ownLabel
@@ -49,6 +75,29 @@ export default function RankingHistoryChart({ keyword, history, loading, ownBund
     return Array.from(byTime.entries())
       .reverse()
       .map(([date, ranks]) => ({ date, ...ranks }));
+  })();
+
+  const markers = (() => {
+    if (!events?.length || chartData.length === 0) return [];
+    const times = [...bucketTime.entries()].map(([label, ts]) => ({ label, ts }));
+    const minTs = Math.min(...times.map((t) => t.ts));
+    const maxTs = Math.max(...times.map((t) => t.ts));
+    const byLabel = new Map<string, Set<string>>();
+
+    for (const ev of events) {
+      const evTs = new Date(ev.appliedAt).getTime();
+      if (!Number.isFinite(evTs) || evTs < minTs || evTs > maxTs) continue;
+      let nearest = times[0];
+
+      for (const t of times) {
+        if (Math.abs(t.ts - evTs) < Math.abs(nearest.ts - evTs)) nearest = t;
+      }
+
+      const set = byLabel.get(nearest.label) ?? new Set<string>();
+      set.add(TYPE_LABEL[ev.type] ?? ev.type);
+      byLabel.set(nearest.label, set);
+    }
+    return [...byLabel.entries()].map(([label, types]) => ({ label, text: [...types].join(", ") }));
   })();
 
   const appNames = (() => {
@@ -127,6 +176,21 @@ export default function RankingHistoryChart({ keyword, history, loading, ownBund
                   labelStyle={{ fontWeight: 600, marginBottom: 4 }}
                 />
                 <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: 12 }} />
+                {markers.map((m) => (
+                  <ReferenceLine
+                    key={m.label}
+                    x={m.label}
+                    stroke="#D94412"
+                    strokeDasharray="4 3"
+                    strokeOpacity={0.7}
+                    label={{
+                      value: `✎ ${m.text}`,
+                      position: "top",
+                      fontSize: 10,
+                      fill: "#D94412",
+                    }}
+                  />
+                ))}
                 {appNames.map((name, i) => (
                   <Line
                     key={name}

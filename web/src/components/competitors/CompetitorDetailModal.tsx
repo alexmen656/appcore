@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { borderDefault, textMuted, textPrimary, textSecondary } from "../../styles";
 import { useNavigate } from "react-router-dom";
-import { authHeaders, getActiveBundleId } from "../../hooks/useApi";
-import { Maximize2, X, ArrowRight, MessageSquare, RefreshCw, BarChart2 } from "lucide-react";
+import { authHeaders, getActiveBundleId, apiPost } from "../../hooks/useApi";
+import { Maximize2, X, ArrowRight, MessageSquare, RefreshCw, BarChart2, Plus, Check, Sparkles } from "lucide-react";
 import type { CompetitorDetail, CompetitorReview, CompetitorKeywordRanking, MetadataChange } from "../../types";
 import AppIcon from "../competitors/AppIcon";
 
@@ -127,7 +127,15 @@ export default function CompetitorDetailModal({ appId, onClose, addToast }: Prop
               {tab === "overview" && <OverviewTab data={data} />}
               {tab === "reviews" && <ReviewsTab data={data} />}
               {tab === "changes" && <ChangesTab changes={data.metadataChanges} />}
-              {tab === "keywords" && <KeywordsTab rankings={data.keywordRankings} />}
+              {tab === "keywords" && (
+                <KeywordsTab
+                  rankings={data.keywordRankings}
+                  untracked={data.untrackedKeywords ?? []}
+                  country={data.country}
+                  competitorName={data.name}
+                  addToast={addToast}
+                />
+              )}
             </>
           )}
         </div>
@@ -354,7 +362,85 @@ export function ChangesTab({ changes }: { changes: MetadataChange[] }) {
   );
 }
 
-export function KeywordsTab({ rankings }: { rankings: CompetitorKeywordRanking[] }) {
+function StealKeywords({
+  untracked,
+  country,
+  competitorName,
+  addToast,
+}: {
+  untracked: string[];
+  country: string;
+  competitorName: string;
+  addToast: (msg: string, type: "success" | "error" | "info") => void;
+}) {
+  const [added, setAdded] = useState<Set<string>>(new Set());
+  const [adding, setAdding] = useState<string | null>(null);
+
+  const remaining = untracked.filter((t) => !added.has(t));
+  if (untracked.length === 0) return null;
+
+  const addKeyword = async (term: string) => {
+    setAdding(term);
+    try {
+      await apiPost("/keywords", { bundleId: getActiveBundleId(), term, country });
+      setAdded((prev) => new Set(prev).add(term));
+      addToast(`Tracking "${term}"`, "success");
+    } catch (err: any) {
+      addToast(`Failed to add "${term}": ${err.message}`, "error");
+    } finally {
+      setAdding(null);
+    }
+  };
+
+  return (
+    <div className="mb-5 rounded-xl border border-[#eef0f3] dark:border-[#2a2f3d] bg-[#fafbfc] dark:bg-[#1c2028] p-4">
+      <div className="flex items-center gap-2 mb-1">
+        <Sparkles className="w-3.5 h-3.5 text-[#D94412]" />
+        <span className={`text-[13px] font-semibold ${textPrimary}`}>Keywords to steal from {competitorName}</span>
+      </div>
+      <p className={`text-[12px] ${textMuted} mb-3`}>
+        Pulled from their title &amp; subtitle — not in your tracked set yet. Add the ones worth chasing.
+      </p>
+      {remaining.length === 0 ? (
+        <p className={`text-[12px] ${textMuted}`}>All caught up — every suggestion is now tracked.</p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {remaining.map((term) => (
+            <button
+              key={term}
+              onClick={() => addKeyword(term)}
+              disabled={adding === term}
+              className={`inline-flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 rounded-full border ${borderDefault} bg-white dark:bg-[#161920] text-[12px] font-medium ${textPrimary} hover:border-[#D94412] hover:text-[#D94412] transition-all disabled:opacity-50`}
+            >
+              {adding === term ? <div className="spinner !w-3 !h-3" /> : <Plus className="w-3 h-3" />}
+              {term}
+            </button>
+          ))}
+        </div>
+      )}
+      {added.size > 0 && (
+        <div className="flex items-center gap-1.5 mt-3 text-[12px] text-emerald-600 dark:text-emerald-400">
+          <Check className="w-3.5 h-3.5" />
+          {added.size} keyword{added.size === 1 ? "" : "s"} added — run tracking to fetch ranks.
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function KeywordsTab({
+  rankings,
+  untracked = [],
+  country = "us",
+  competitorName = "this app",
+  addToast,
+}: {
+  rankings: CompetitorKeywordRanking[];
+  untracked?: string[];
+  country?: string;
+  competitorName?: string;
+  addToast?: (msg: string, type: "success" | "error" | "info") => void;
+}) {
   const [sortBy, setSortBy] = useState<"keyword" | "competitor" | "ours" | "popularity">("popularity");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
@@ -380,13 +466,20 @@ export function KeywordsTab({ rankings }: { rankings: CompetitorKeywordRanking[]
     }
   });
 
+  const steal = addToast ? (
+    <StealKeywords untracked={untracked} country={country} competitorName={competitorName} addToast={addToast} />
+  ) : null;
+
   if (rankings.length === 0) {
     return (
-      <EmptyState
-        icon="keywords"
-        title="No keywords tracked"
-        subtitle="Add keywords in the Keywords page to see competitor rankings"
-      />
+      <>
+        {steal}
+        <EmptyState
+          icon="keywords"
+          title="No keywords tracked"
+          subtitle="Add keywords in the Keywords page to see competitor rankings"
+        />
+      </>
     );
   }
 
@@ -395,6 +488,7 @@ export function KeywordsTab({ rankings }: { rankings: CompetitorKeywordRanking[]
 
   return (
     <div className="overflow-x-auto -mx-2">
+      {steal}
       <table className="w-full">
         <thead>
           <tr className={`border-b ${borderDefault}`}>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, Fragment } from "react";
 import { useParams } from "react-router-dom";
 import { useApi, apiGet, apiPost, apiPatch, apiDelete, getActiveBundleId } from "../hooks/useApi";
 import { usePermissions } from "../hooks/usePermissions";
@@ -36,6 +36,8 @@ import {
   Image as ImageIcon,
   FileEdit,
   Minus,
+  Wand2,
+  Copy,
 } from "lucide-react";
 
 type PhaseState = "pending" | "running" | "done" | "skipped" | "failed";
@@ -53,15 +55,7 @@ interface SubmissionPhases {
   screenshots: PhaseProgress;
 }
 
-function PhaseStep({
-  label,
-  phase,
-  icon: Icon,
-}: {
-  label: string;
-  phase: PhaseProgress;
-  icon: typeof Package;
-}) {
+function PhaseStep({ label, phase, icon: Icon }: { label: string; phase: PhaseProgress; icon: typeof Package }) {
   const { state, current, total } = phase;
   const pct = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : state === "done" ? 100 : 0;
 
@@ -144,10 +138,7 @@ function PhaseStep({
           </div>
         </div>
         <div className="mt-2 h-1 rounded-full bg-[#eef0f3] dark:bg-[#2a2f3d] overflow-hidden">
-          <div
-            className={`h-full ${palette.bar} transition-all duration-300 ease-out`}
-            style={{ width: `${pct}%` }}
-          />
+          <div className={`h-full ${palette.bar} transition-all duration-300 ease-out`} style={{ width: `${pct}%` }} />
         </div>
       </div>
     </div>
@@ -197,6 +188,7 @@ const FIELD_META: {
   type: "input" | "textarea";
   hint?: string;
   maxLength?: number;
+  propagable?: boolean;
 }[] = [
   {
     key: "name",
@@ -204,6 +196,7 @@ const FIELD_META: {
     type: "input",
     hint: "Max 30 characters",
     maxLength: 30,
+    propagable: true,
   },
   {
     key: "subtitle",
@@ -245,18 +238,21 @@ const FIELD_META: {
     label: "Support URL",
     type: "input",
     hint: "URL to your support page",
+    propagable: true,
   },
   {
     key: "privacyPolicyUrl",
     label: "Privacy Policy URL",
     type: "input",
     hint: "URL to your privacy policy",
+    propagable: true,
   },
   {
     key: "marketingUrl",
     label: "Marketing URL",
     type: "input",
     hint: "URL to your app's marketing page",
+    propagable: true,
   },
 ];
 
@@ -522,12 +518,16 @@ function EditableField({
   localization,
   isEditable,
   onSave,
+  onApplyAll,
+  propagating,
 }: {
   field: (typeof FIELD_META)[number];
   value: string;
   localization: VersionLocalization;
   isEditable: boolean;
   onSave: (field: string, value: string, loc: VersionLocalization) => Promise<void>;
+  onApplyAll?: (field: string, value: string) => Promise<void>;
+  propagating?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -594,6 +594,17 @@ function EditableField({
             >
               {charCount}/{field.maxLength}
             </span>
+          )}
+          {!editing && isEditable && onApplyAll && value.trim() !== "" && (
+            <button
+              onClick={() => onApplyAll(field.key, value)}
+              disabled={propagating}
+              title="Copy this value to every other language"
+              className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1 text-[11px] text-[#9ca3af] font-medium hover:text-[#D94412] disabled:opacity-100"
+            >
+              {propagating ? <div className="spinner !w-3 !h-3" /> : <Copy className="w-3 h-3" />}
+              All languages
+            </button>
           )}
           {!editing && isEditable && (
             <button
@@ -669,6 +680,157 @@ function EditableField({
           }`}
         >
           {value || <span className="text-[#c8cdd3] dark:text-[#3a4050] italic">Empty</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function KeywordBudgetAnalyzer({
+  keywords,
+  title,
+  subtitle,
+  isEditable,
+  onApply,
+}: {
+  keywords: string;
+  title: string;
+  subtitle: string;
+  isEditable: boolean;
+  onApply: (optimized: string) => Promise<void>;
+}) {
+  const [applying, setApplying] = useState(false);
+  const MAX = 100;
+  const used = keywords.length;
+  if (used === 0) return null;
+
+  const norm = (s: string) => s.toLowerCase().trim();
+  const rawTokens = keywords
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  const indexedWords = new Set(
+    `${title} ${subtitle}`
+      .toLowerCase()
+      .split(/[\s,]+/)
+      .map((w) => w.trim())
+      .filter(Boolean),
+  );
+
+  const seen = new Set<string>();
+  const duplicates: string[] = [];
+  const overlaps: string[] = [];
+  const kept: string[] = [];
+  for (const tok of rawTokens) {
+    const key = norm(tok);
+    if (seen.has(key)) {
+      duplicates.push(tok);
+      continue;
+    }
+    seen.add(key);
+    const words = key.split(/\s+/).filter(Boolean);
+    if (words.length > 0 && words.every((w) => indexedWords.has(w))) {
+      overlaps.push(tok);
+      continue;
+    }
+    kept.push(tok);
+  }
+
+  const optimized = kept.join(",");
+  const cleanedWhitespace = keywords.replace(/\s*,\s*/g, ",").replace(/^\s+|\s+$/g, "");
+  const wastedSpaces = Math.max(0, used - cleanedWhitespace.length);
+  const reclaimable = Math.max(0, used - optimized.length);
+  const overLimit = Math.max(0, used - MAX);
+  const hasIssues = reclaimable > 0 || overLimit > 0;
+  const canOptimize = isEditable && optimized !== keywords && optimized.length > 0;
+
+  const pct = Math.min(100, Math.round((used / MAX) * 100));
+  const barColor = overLimit > 0 ? "bg-red-500" : used > MAX * 0.9 ? "bg-amber-500" : "bg-emerald-500";
+
+  const handleOptimize = async () => {
+    if (!canOptimize) return;
+    const ok = confirm(
+      `Optimize keywords?\n\nBefore (${used} chars):\n${keywords}\n\nAfter (${optimized.length} chars):\n${optimized}`,
+    );
+    if (!ok) return;
+    setApplying(true);
+    try {
+      await onApply(optimized);
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  return (
+    <div
+      className={`-mt-2 rounded-xl border px-3.5 py-3 ${
+        overLimit > 0
+          ? "border-red-200 bg-red-50/60 dark:border-red-900/40 dark:bg-red-900/15"
+          : hasIssues
+            ? "border-amber-200 bg-amber-50/60 dark:border-amber-900/40 dark:bg-amber-900/15"
+            : "border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/40 dark:bg-emerald-900/15"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Wand2 className={`w-3.5 h-3.5 shrink-0 ${textSecondary}`} />
+          <span className={`text-[12px] font-semibold ${textPrimary}`}>Keyword budget</span>
+          <span className={`text-[11px] tabular-nums ${textMuted}`}>
+            {used}/{MAX} chars
+          </span>
+        </div>
+        {canOptimize && (
+          <button
+            onClick={handleOptimize}
+            disabled={applying}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#D94412] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50"
+          >
+            {applying ? (
+              <>
+                <div className="spinner !w-3 !h-3" /> Optimizing…
+              </>
+            ) : (
+              <>
+                <Wand2 className="w-3 h-3" /> Reclaim {reclaimable}
+              </>
+            )}
+          </button>
+        )}
+      </div>
+
+      <div className="h-1.5 rounded-full bg-black/5 dark:bg-white/10 overflow-hidden mb-2.5">
+        <div className={`h-full ${barColor} transition-all`} style={{ width: `${pct}%` }} />
+      </div>
+
+      {hasIssues ? (
+        <div className="flex flex-col gap-1.5">
+          {overLimit > 0 && (
+            <div className="text-[11px] text-red-600 dark:text-red-300 font-medium">
+              {overLimit} char{overLimit === 1 ? "" : "s"} over the 100 limit — trim before submitting.
+            </div>
+          )}
+          {overlaps.length > 0 && (
+            <div className="text-[11px] text-[#6b7280] dark:text-[#8b93a5]">
+              <span className="font-semibold">Already in title/subtitle:</span> {overlaps.join(", ")}{" "}
+              <span className="opacity-70">(indexed already — redundant here)</span>
+            </div>
+          )}
+          {duplicates.length > 0 && (
+            <div className="text-[11px] text-[#6b7280] dark:text-[#8b93a5]">
+              <span className="font-semibold">Duplicates:</span> {duplicates.join(", ")}
+            </div>
+          )}
+          {wastedSpaces > 0 && (
+            <div className="text-[11px] text-[#6b7280] dark:text-[#8b93a5]">
+              <span className="font-semibold">{wastedSpaces}</span> char{wastedSpaces === 1 ? "" : "s"} wasted on spaces
+              after commas
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="text-[11px] text-emerald-700 dark:text-emerald-300">
+          No wasted characters — every keyword is unique and adds reach.
         </div>
       )}
     </div>
@@ -1361,6 +1523,7 @@ export default function Versions({ addToast }: Props) {
   const [showAddLocale, setShowAddLocale] = useState(false);
   const [addingLocale, setAddingLocale] = useState(false);
   const [removingLocale, setRemovingLocale] = useState<string | null>(null);
+  const [propagatingField, setPropagatingField] = useState<string | null>(null);
   const [visibleLoadingLocale, setVisibleLoadingLocale] = useState<string | null>(null);
   const addLocaleRef = useRef<HTMLDivElement>(null);
   const [submitting, setSubmitting] = useState<string | null>(null);
@@ -1733,6 +1896,55 @@ export default function Versions({ addToast }: Props) {
     [addToast, data?.versionId],
   );
 
+  const handleApplyAll = useCallback(
+    async (field: string, value: string) => {
+      if (!data?.versionId || !canWrite) return;
+      const targets = data.localizationSummaries.filter((l) => l.locale !== activeLocale);
+      if (targets.length === 0) {
+        addToast("No other languages to copy to", "info");
+        return;
+      }
+      if (
+        !confirm(`Copy ${field} to ${targets.length} other language${targets.length === 1 ? "" : "s"}?\n\n"${value}"`)
+      )
+        return;
+
+      setPropagatingField(field);
+      let ok = 0;
+      const failed: string[] = [];
+      for (const t of targets) {
+        try {
+          await apiPatch("/asc/versions/metadata", {
+            bundleId: getActiveBundleId(),
+            versionId: data.versionId,
+            locale: t.locale,
+            appInfoLocalizationId: t.appInfoLocalizationId,
+            versionLocalizationId: t.versionLocalizationId,
+            field,
+            value,
+          });
+          ok++;
+        } catch {
+          failed.push(t.locale);
+        }
+      }
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              localizations: current.localizations.map((l) =>
+                l.locale !== activeLocale ? { ...l, [field]: value } : l,
+              ),
+            }
+          : current,
+      );
+      setPropagatingField(null);
+      if (failed.length === 0) addToast(`Copied ${field} to ${ok} language${ok === 1 ? "" : "s"}`, "success");
+      else addToast(`Copied to ${ok}, failed for: ${failed.join(", ")}`, "error");
+    },
+    [data, activeLocale, canWrite, addToast],
+  );
+
   if (!versionId) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3 text-gray-400 dark:text-[#5c6478]">
@@ -1996,16 +2208,28 @@ export default function Versions({ addToast }: Props) {
             <div className={`text-[14px] font-bold -mb-1 ${textPrimary}`}>App Metadata</div>
 
             {FIELD_META.map((field) => (
-              <EditableField
-                key={field.key}
-                field={field}
-                value={(activeLoc as any)[field.key] ?? ""}
-                localization={activeLoc}
-                isEditable={
-                  canWrite && !isActiveLocaleTranslating && (data.isEditable || field.key === "promotionalText")
-                }
-                onSave={handleSave}
-              />
+              <Fragment key={field.key}>
+                <EditableField
+                  field={field}
+                  value={(activeLoc as any)[field.key] ?? ""}
+                  localization={activeLoc}
+                  isEditable={
+                    canWrite && !isActiveLocaleTranslating && (data.isEditable || field.key === "promotionalText")
+                  }
+                  onSave={handleSave}
+                  onApplyAll={field.propagable ? handleApplyAll : undefined}
+                  propagating={propagatingField === field.key}
+                />
+                {field.key === "keywords" && (
+                  <KeywordBudgetAnalyzer
+                    keywords={(activeLoc as any).keywords ?? ""}
+                    title={activeLoc.name ?? ""}
+                    subtitle={activeLoc.subtitle ?? ""}
+                    isEditable={canWrite && !isActiveLocaleTranslating && data.isEditable}
+                    onApply={(opt) => handleSave("keywords", opt, activeLoc)}
+                  />
+                )}
+              </Fragment>
             ))}
             <div className="pt-4 border-t border-[#f3f4f6] dark:border-[#2a2f3d]">
               <div className={`text-[11px] font-bold uppercase tracking-widest ${textMuted} mb-4`}>Version Info</div>
