@@ -183,10 +183,49 @@ keywordsRouter.get("/:id/history", async (req, res) => {
 
     const rankings = await prisma.keywordRanking.findMany({
       where: { keywordId: req.params.id },
-      include: { app: { select: { name: true, bundleId: true } } },
+      include: {
+        app: {
+          select: {
+            id: true,
+            name: true,
+            bundleId: true,
+            isOwnApp: true,
+            snapshots: { orderBy: { scrapedAt: "desc" }, take: 1, select: { iconUrl: true } },
+          },
+        },
+      },
       orderBy: { trackedAt: "desc" },
       take: 100,
     });
+
+    const bundleId = req.query.bundleId as string | undefined;
+    const ownApp = bundleId ? await prisma.app.findUnique({ where: { bundleId } }) : null;
+
+    let trackedIds = new Set<string>();
+    if (ownApp) {
+      const rels = await prisma.competitorRelation.findMany({
+        where: { OR: [{ appId: ownApp.id }, { competitorId: ownApp.id }] },
+      });
+      trackedIds = new Set(rels.map((r) => (r.appId === ownApp.id ? r.competitorId : r.appId)));
+    }
+
+    const byApp = new Map<
+      string,
+      { appId: string; name: string; bundleId: string; iconUrl: string | null; rank: number | null; isTracked: boolean }
+    >();
+    for (const r of rankings) {
+      if (r.app.isOwnApp || (ownApp && r.app.id === ownApp.id)) continue;
+      if (byApp.has(r.app.id)) continue;
+      byApp.set(r.app.id, {
+        appId: r.app.id,
+        name: r.app.name,
+        bundleId: r.app.bundleId,
+        iconUrl: r.app.snapshots[0]?.iconUrl ?? null,
+        rank: r.rank,
+        isTracked: trackedIds.has(r.app.id),
+      });
+    }
+    const competitors = [...byApp.values()].sort((a, b) => (a.rank ?? 9999) - (b.rank ?? 9999));
 
     res.json({
       keyword: {
@@ -195,6 +234,7 @@ keywordsRouter.get("/:id/history", async (req, res) => {
         popularity: keyword.popularity,
         difficulty: keyword.difficulty,
       },
+      ownAppId: ownApp?.id ?? null,
       rankings: rankings.map((r) => ({
         rank: r.rank,
         appName: r.app.name,
@@ -202,6 +242,7 @@ keywordsRouter.get("/:id/history", async (req, res) => {
         country: r.country,
         trackedAt: r.trackedAt,
       })),
+      competitors,
     });
   } catch (err) {
     res.status(500).json({ error: String(err) });

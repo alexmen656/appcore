@@ -177,6 +177,15 @@ export interface RankingEntry {
   trackedAt: string;
 }
 
+export interface KeywordCompetitorRow {
+  appId: string;
+  name: string;
+  bundleId: string;
+  iconUrl: string | null;
+  rank: number | null;
+  isTracked: boolean;
+}
+
 export interface KeywordHistoryData {
   keyword: {
     id: string;
@@ -184,7 +193,9 @@ export interface KeywordHistoryData {
     popularity: number | null;
     difficulty: number | null;
   };
+  ownAppId: string | null;
   rankings: RankingEntry[];
+  competitors?: KeywordCompetitorRow[];
 }
 
 export interface Suggestion {

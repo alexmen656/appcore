@@ -334,9 +334,11 @@ export default function Keywords({ addToast }: Props) {
     setHistoryLoading(true);
 
     try {
-      const res = await fetch(`/api/keywords/${kw.id}/history`, {
-        headers: authHeaders(),
-      });
+      const bundleId = getActiveBundleId();
+      const res = await fetch(
+        `/api/keywords/${kw.id}/history${bundleId ? `?bundleId=${encodeURIComponent(bundleId)}` : ""}`,
+        { headers: authHeaders() },
+      );
       setHistory(await res.json());
     } catch {
       addToast("Failed to load history", "error");
@@ -558,6 +560,7 @@ export default function Keywords({ addToast }: Props) {
           loading={historyLoading}
           ownBundleId={getActiveBundleId()}
           events={appliedEvents}
+          addToast={addToast}
           onClose={() => {
             setSelectedKeyword(null);
             setHistory(null);

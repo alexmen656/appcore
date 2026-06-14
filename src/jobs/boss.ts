@@ -103,7 +103,7 @@ export class BossScheduler {
     await this.boss.schedule(`${TRACK_KEYWORDS_QUEUE}/dispatch`, "0 */2 * * *", {}, { tz: "Europe/Berlin" });
 
     // ── scrape ──────────────────────────────────────────────────────────────
-    /* await this.boss.work(`${SCRAPE_QUEUE}/dispatch`, async () => {
+    await this.boss.work(`${SCRAPE_QUEUE}/dispatch`, async () => {
       const teams = await loadTeamApps();
       for (const team of teams) {
         for (const app of team.apps) {
@@ -119,10 +119,10 @@ export class BossScheduler {
     await this.boss.work(SCRAPE_QUEUE, scrapeHandler);
     await this.boss.schedule(
       `${SCRAPE_QUEUE}/dispatch`,
-      "0 0 * * *",
+      "0 */12 * * *",
       {},
       { tz: "Europe/Berlin" },
-    );*/
+    );
 
     // ── sync-analytics ──────────────────────────────────────────────────────
     await this.boss.work(`${SYNC_ANALYTICS_QUEUE}/dispatch`, async () => {
