@@ -187,6 +187,7 @@ model App {
   snapshots                  AppSnapshot[]
   rankings                   KeywordRanking[]
   topAppFor                  KeywordTopApp[]
+  keywordGroups              KeywordGroup[]
   competitors                CompetitorRelation[]      @relation("app_competitors")
   competitorOf               CompetitorRelation[]      @relation("competitor_of")
   screenshotJobs             ScreenshotJob[]
@@ -254,12 +255,39 @@ model Keyword {
   rankings     KeywordRanking[]
   topApps      KeywordTopApp[]
   suggestions  ASOSuggestion[]
+  groupMembers KeywordGroupMember[]
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
   @@unique([term, country])
   @@index([term])
   @@index([popularity])
+}
+
+model KeywordGroup {
+  id        String               @id @default(cuid())
+  appId     String
+  app       App                  @relation(fields: [appId], references: [id], onDelete: Cascade)
+  name      String
+  sortOrder Int                  @default(0)
+  members   KeywordGroupMember[]
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  @@index([appId])
+}
+
+model KeywordGroupMember {
+  id        String       @id @default(cuid())
+  groupId   String
+  group     KeywordGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  keywordId String
+  keyword   Keyword      @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+  appId     String
+
+  @@unique([appId, keywordId])
+  @@index([groupId])
+  @@index([keywordId])
 }
 
 model KeywordRanking {

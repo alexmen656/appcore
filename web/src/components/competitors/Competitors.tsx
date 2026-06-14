@@ -1,12 +1,14 @@
 import { useState, useRef, useCallback } from "react";
 import { borderDefault, pageTitle, textMuted, textPrimary, textSecondary } from "../../styles";
-import { ChevronDown, Users } from "lucide-react";
+import { ChevronDown, Plus, Users } from "lucide-react";
 import { useApi, apiPost, apiDelete, getActiveBundleId } from "../../hooks/useApi";
 import { useClickOutside } from "../../hooks/useClickOutside";
+import { usePermissions } from "../../hooks/usePermissions";
 import { usePostHog } from "@posthog/react";
 import OwnAppCard, { AppItem } from "./OwnAppCard";
 import CompetitorCard from "./CompetitorCard";
 import CompetitorDetailModal from "./CompetitorDetailModal";
+import AddCompetitorsModal from "./AddCompetitorsModal";
 
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
@@ -14,10 +16,12 @@ interface Props {
 
 export default function Competitors({ addToast }: Props) {
   const posthog = usePostHog();
+  const { canWrite } = usePermissions();
   const { data, loading, refetch } = useApi<AppItem[]>("/apps");
   const [discovering, setDiscovering] = useState(false);
   const [intelRunning, setIntelRunning] = useState(false);
   const [detailAppId, setDetailAppId] = useState<string | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   useClickOutside(
@@ -80,7 +84,17 @@ export default function Competitors({ addToast }: Props) {
     <div>
       <div className="flex items-start justify-between mb-1">
         <h1 className={`${pageTitle}`}>Competitors</h1>
-        <div ref={menuRef} className="relative flex items-stretch">
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setAddOpen(true)}
+            disabled={!canWrite || !ownApp}
+            title={!ownApp ? "Add your app first" : undefined}
+            className={`inline-flex items-center gap-1.5 pl-3 pr-3.5 py-[7px] rounded-full border ${borderDefault} bg-white dark:bg-[#1c2028] text-[13px] font-medium ${textPrimary} hover:border-[#D94412] hover:text-[#D94412] transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add competitor
+          </button>
+          <div ref={menuRef} className="relative flex items-stretch">
           <button
             onClick={discoverCompetitors}
             disabled={discovering || intelRunning}
@@ -118,6 +132,7 @@ export default function Competitors({ addToast }: Props) {
               </button>
             </div>
           )}
+          </div>
         </div>
       </div>
       <p className={`text-sm ${textMuted} mb-8`}>
@@ -152,6 +167,14 @@ export default function Competitors({ addToast }: Props) {
       {detailAppId && (
         <CompetitorDetailModal appId={detailAppId} onClose={() => setDetailAppId(null)} addToast={addToast} />
       )}
+
+      <AddCompetitorsModal
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        ownAppId={ownApp?.id ?? null}
+        onAdded={() => refetch()}
+        addToast={addToast}
+      />
     </div>
   );
 }

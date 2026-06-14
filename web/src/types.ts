@@ -159,7 +159,14 @@ export interface Keyword {
   // topCompetitor: { name: string; rank: number } | null;
   topCompetitors: { name: string; iconUrl: string | null; rank: number }[];
   suggestionCount: number;
+  groupId: string | null;
   updatedAt: string;
+}
+
+export interface KeywordGroup {
+  id: string;
+  name: string;
+  sortOrder: number;
 }
 
 export interface RankingEntry {

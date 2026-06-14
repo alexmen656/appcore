@@ -84,7 +84,7 @@ keywordsRouter.get("/", bundleAccess("query", "bundleId"), async (req, res) => {
       const v = await p;
       return [v, performance.now() - s];
     };
-    const [[topCompRows, tComp], [previousRankings, tPrev]] = await Promise.all([
+    const [[topCompRows, tComp], [previousRankings, tPrev], groupMembers] = await Promise.all([
       time(
         "comp",
         prisma.$queryRaw<CompRow[]>`
@@ -115,7 +115,13 @@ keywordsRouter.get("/", bundleAccess("query", "bundleId"), async (req, res) => {
         ORDER BY "keywordId", "trackedAt" DESC
       `,
       ),
+      prisma.keywordGroupMember.findMany({
+        where: { appId: ownApp.id, keywordId: { in: keywordIds } },
+        select: { keywordId: true, groupId: true },
+      }),
     ]);
+
+    const groupByKeyword = new Map(groupMembers.map((m) => [m.keywordId, m.groupId]));
 
     const topCompetitorsMap = new Map<string, CompRow[]>();
     for (const r of topCompRows) {
@@ -149,6 +155,7 @@ keywordsRouter.get("/", bundleAccess("query", "bundleId"), async (req, res) => {
         rankTrend,
         topCompetitors,
         suggestionCount: 0,
+        groupId: groupByKeyword.get(k.id) ?? null,
         updatedAt: k.updatedAt,
       };
     });
@@ -229,6 +236,122 @@ keywordsRouter.post("/", bundleAccess("body", "bundleId"), async (req, res) => {
     });
 
     res.json({ ok: true, keyword });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+keywordsRouter.get("/groups", bundleAccess("query", "bundleId"), async (req, res) => {
+  try {
+    const ownApp = req.bundleApp!;
+    const groups = await prisma.keywordGroup.findMany({
+      where: { appId: ownApp.id },
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      select: { id: true, name: true, sortOrder: true },
+    });
+    res.json({ groups });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+keywordsRouter.post("/groups", bundleAccess("body", "bundleId"), async (req, res) => {
+  try {
+    const ownApp = req.bundleApp!;
+    const name = String(req.body.name ?? "").trim();
+    if (!name) return res.status(400).json({ error: "name is required" });
+
+    const max = await prisma.keywordGroup.aggregate({
+      where: { appId: ownApp.id },
+      _max: { sortOrder: true },
+    });
+    const group = await prisma.keywordGroup.create({
+      data: { appId: ownApp.id, name, sortOrder: (max._max.sortOrder ?? -1) + 1 },
+      select: { id: true, name: true, sortOrder: true },
+    });
+    res.json({ group });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+async function loadOwnedGroup(req: any, res: any) {
+  const group = await prisma.keywordGroup.findUnique({
+    where: { id: req.params.id },
+    include: { app: { select: { teamId: true } } },
+  });
+  if (!group) {
+    res.status(404).json({ error: "Group not found" });
+    return null;
+  }
+  if (req.user.role !== "ADMIN" && group.app.teamId !== req.user.teamId) {
+    res.status(403).json({ error: "Not authorized" });
+    return null;
+  }
+  return group;
+}
+
+keywordsRouter.patch("/groups/:id", async (req, res) => {
+  try {
+    const group = await loadOwnedGroup(req, res);
+    if (!group) return;
+
+    const data: { name?: string; sortOrder?: number } = {};
+    if (req.body.name != null) {
+      const name = String(req.body.name).trim();
+      if (!name) return res.status(400).json({ error: "name cannot be empty" });
+      data.name = name;
+    }
+    if (req.body.sortOrder != null && Number.isFinite(Number(req.body.sortOrder))) {
+      data.sortOrder = Number(req.body.sortOrder);
+    }
+
+    const updated = await prisma.keywordGroup.update({
+      where: { id: group.id },
+      data,
+      select: { id: true, name: true, sortOrder: true },
+    });
+    res.json({ group: updated });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+keywordsRouter.delete("/groups/:id", async (req, res) => {
+  try {
+    const group = await loadOwnedGroup(req, res);
+    if (!group) return;
+    await prisma.keywordGroup.delete({ where: { id: group.id } });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+keywordsRouter.put("/:id/group", bundleAccess("body", "bundleId"), async (req, res) => {
+  try {
+    const ownApp = req.bundleApp!;
+    const keywordId = req.params.id;
+    const groupId: string | null = req.body.groupId ?? null;
+
+    if (groupId) {
+      const group = await prisma.keywordGroup.findFirst({
+        where: { id: groupId, appId: ownApp.id },
+        select: { id: true },
+      });
+      if (!group) return res.status(404).json({ error: "Group not found" });
+
+      await prisma.keywordGroupMember.upsert({
+        where: { appId_keywordId: { appId: ownApp.id, keywordId } },
+        create: { appId: ownApp.id, keywordId, groupId },
+        update: { groupId },
+      });
+    } else {
+      await prisma.keywordGroupMember.deleteMany({
+        where: { appId: ownApp.id, keywordId },
+      });
+    }
+    res.json({ ok: true, groupId });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }

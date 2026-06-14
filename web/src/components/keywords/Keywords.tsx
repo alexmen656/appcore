@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { borderDefault, pageTitle, textMuted, textPrimary, textSecondary } from "../../styles";
-import { ChevronDown, LayoutGrid, List, MoreHorizontal, Plus, Search, Target, Upload } from "lucide-react";
-import { useApi, apiGet, apiPost, apiDelete, authHeaders, getActiveBundleId } from "../../hooks/useApi";
+import { ChevronDown, FolderPlus, LayoutGrid, List, MoreHorizontal, Plus, Search, Target, Upload } from "lucide-react";
+import { useApi, apiGet, apiPost, apiPut, apiPatch, apiDelete, authHeaders, getActiveBundleId } from "../../hooks/useApi";
+import type { KeywordGroup } from "../../types";
 import { useClickOutside } from "../../hooks/useClickOutside";
 import { usePermissions } from "../../hooks/usePermissions";
 import { usePostHog } from "@posthog/react";
@@ -25,6 +26,9 @@ export default function Keywords({ addToast }: Props) {
   const { canWrite } = usePermissions();
   const writeTip = !canWrite ? "Viewer role cannot perform this action" : undefined;
   const [items, setItems] = useState<Keyword[]>([]);
+  const [groups, setGroups] = useState<KeywordGroup[]>([]);
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [creatingGroup, setCreatingGroup] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const refetch = useCallback(() => {
@@ -34,12 +38,22 @@ export default function Keywords({ addToast }: Props) {
       .finally(() => setLoading(false));
   }, []);
 
+  const refetchGroups = useCallback(() => {
+    apiGet<{ groups: KeywordGroup[] }>("/keywords/groups")
+      .then((res) => setGroups(res.groups))
+      .catch(() => setGroups([]));
+  }, []);
+
   useEffect(() => {
     refetch();
-    const handler = () => refetch();
+    refetchGroups();
+    const handler = () => {
+      refetch();
+      refetchGroups();
+    };
     window.addEventListener("app-changed", handler);
     return () => window.removeEventListener("app-changed", handler);
-  }, [refetch]);
+  }, [refetch, refetchGroups]);
   const { data: keywordFieldsData } = useApi<{
     keywordFields: Record<string, string>;
     indexedText?: Record<string, string>;
@@ -245,6 +259,69 @@ export default function Keywords({ addToast }: Props) {
     }
   };
 
+  const toggleCollapse = (id: string) =>
+    setCollapsed((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+
+  const requireWrite = (): boolean => {
+    if (!canWrite) {
+      addToast("Viewer role cannot perform this action", "error");
+      return false;
+    }
+    return true;
+  };
+
+  const handleCreateGroup = async (name: string) => {
+    if (!requireWrite()) return;
+    try {
+      const res = await apiPost<{ group: KeywordGroup }>("/keywords/groups", {
+        name,
+        bundleId: getActiveBundleId(),
+      });
+      setGroups((g) => [...g, res.group]);
+      setCreatingGroup(false);
+    } catch (e: any) {
+      addToast(e.message, "error");
+    }
+  };
+
+  const handleRenameGroup = async (id: string, name: string) => {
+    if (!requireWrite()) return;
+    try {
+      const res = await apiPatch<{ group: KeywordGroup }>(`/keywords/groups/${id}`, { name });
+      setGroups((g) => g.map((x) => (x.id === id ? res.group : x)));
+    } catch (e: any) {
+      addToast(e.message, "error");
+    }
+  };
+
+  const handleDeleteGroup = async (id: string) => {
+    if (!requireWrite()) return;
+    try {
+      await apiDelete(`/keywords/groups/${id}`);
+      setGroups((g) => g.filter((x) => x.id !== id));
+      setItems((list) => list.map((k) => (k.groupId === id ? { ...k, groupId: null } : k)));
+    } catch (e: any) {
+      addToast(e.message, "error");
+    }
+  };
+
+  const handleAssignGroup = async (keywordId: string, groupId: string | null) => {
+    if (!requireWrite()) return;
+    const prev = items;
+    setItems((list) => list.map((k) => (k.id === keywordId ? { ...k, groupId } : k)));
+    try {
+      await apiPut(`/keywords/${keywordId}/group`, { groupId, bundleId: getActiveBundleId() });
+    } catch (e: any) {
+      setItems(prev);
+      addToast(e.message, "error");
+    }
+  };
+
   const loadHistory = async (kw: Keyword) => {
     if (selectedKeyword?.id === kw.id) {
       setSelectedKeyword(null);
@@ -375,6 +452,19 @@ export default function Keywords({ addToast }: Props) {
               <button
                 onClick={() => {
                   setMoreOpen(false);
+                  setViewMode("list");
+                  setCreatingGroup(true);
+                }}
+                disabled={!canWrite}
+                title={writeTip}
+                className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                <FolderPlus className={`w-3.5 h-3.5 ${textSecondary}`} />
+                New group
+              </button>
+              <button
+                onClick={() => {
+                  setMoreOpen(false);
                   setImportModalOpen(true);
                 }}
                 disabled={!canWrite}
@@ -441,13 +531,23 @@ export default function Keywords({ addToast }: Props) {
       ) : (
         <KeywordTable
           keywords={sorted}
+          groups={groups}
+          collapsed={collapsed}
           coveredIds={coveredIds}
           selectedKeyword={selectedKeyword}
           sortBy={sortBy}
           sortDir={sortDir}
+          canWrite={canWrite}
+          creating={creatingGroup}
           onSort={handleSort}
           onRowClick={loadHistory}
           onDelete={handleDelete}
+          onToggleCollapse={toggleCollapse}
+          onCreateGroup={handleCreateGroup}
+          onCancelCreate={() => setCreatingGroup(false)}
+          onRenameGroup={handleRenameGroup}
+          onDeleteGroup={handleDeleteGroup}
+          onAssignGroup={handleAssignGroup}
         />
       )}
 

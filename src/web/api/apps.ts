@@ -2,6 +2,7 @@ import { Router } from "express";
 import { prisma } from "../../config";
 import { requireAuth, bundleAccess, appAccess } from "../auth";
 import { ensureAccentColor } from "../../services/utils/icon-accent";
+import { AppStoreScraper } from "../../services/appstore-scraper";
 
 export const appsRouter = Router();
 
@@ -117,6 +118,138 @@ appsRouter.delete("/:ownAppId/competitors/:competitorId", appAccess("params", "o
       },
     });
     res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+async function excludedBundleIds(ownAppId: string, ownBundleId: string): Promise<Set<string>> {
+  const rels = await prisma.competitorRelation.findMany({
+    where: { OR: [{ appId: ownAppId }, { competitorId: ownAppId }] },
+  });
+  const relatedIds = rels.map((r) => (r.appId === ownAppId ? r.competitorId : r.appId));
+  const relatedApps = relatedIds.length
+    ? await prisma.app.findMany({ where: { id: { in: relatedIds } }, select: { bundleId: true } })
+    : [];
+  return new Set<string>([ownBundleId, ...relatedApps.map((a) => a.bundleId)]);
+}
+
+appsRouter.get("/:id/competitor-search", appAccess("params", "id"), async (req, res) => {
+  try {
+    const ownApp = req.bundleApp!;
+    const q = ((req.query.q as string) ?? "").trim();
+    if (q.length < 2) {
+      res.json([]);
+      return;
+    }
+    const exclude = await excludedBundleIds(ownApp.id, ownApp.bundleId);
+    const scraper = new AppStoreScraper(ownApp.country, undefined, ownApp.bundleId);
+    const results = await scraper.searchApps(q, 15);
+    res.json(
+      results
+        .filter((r) => !exclude.has(r.bundleId))
+        .slice(0, 10)
+        .map((r) => ({
+          bundleId: r.bundleId,
+          name: r.trackName,
+          iconUrl: r.artworkUrl512 ?? null,
+          rating: r.averageUserRating ?? null,
+          ratingsCount: r.userRatingCount ?? null,
+          developerName: r.sellerName ?? null,
+        })),
+    );
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+appsRouter.get("/:id/competitor-suggestions", appAccess("params", "id"), async (req, res) => {
+  try {
+    const ownApp = req.bundleApp!;
+    const keywords = await prisma.keyword.findMany({
+      where: { rankings: { some: { appId: ownApp.id } } },
+      orderBy: { popularity: "desc" },
+      take: 5,
+    });
+    if (keywords.length === 0) {
+      res.json([]);
+      return;
+    }
+
+    const exclude = await excludedBundleIds(ownApp.id, ownApp.bundleId);
+    const scraper = new AppStoreScraper(ownApp.country, undefined, ownApp.bundleId);
+    const terms = keywords.map((k) => k.term);
+    const perTerm = await Promise.all(terms.map((t) => scraper.searchApps(t, 8).catch(() => [])));
+
+    const byBundle = new Map<string, { name: string; iconUrl: string | null; rating: number | null; ratingsCount: number | null; developerName: string | null; appearances: number; bestPos: number }>();
+    for (const results of perTerm) {
+      results.forEach((r, idx) => {
+        if (exclude.has(r.bundleId)) return;
+        const existing = byBundle.get(r.bundleId);
+        if (existing) {
+          existing.appearances++;
+          existing.bestPos = Math.min(existing.bestPos, idx);
+        } else {
+          byBundle.set(r.bundleId, {
+            name: r.trackName,
+            iconUrl: r.artworkUrl512 ?? null,
+            rating: r.averageUserRating ?? null,
+            ratingsCount: r.userRatingCount ?? null,
+            developerName: r.sellerName ?? null,
+            appearances: 1,
+            bestPos: idx,
+          });
+        }
+      });
+    }
+
+    const candidates = [...byBundle.entries()]
+      .map(([bundleId, c]) => ({
+        bundleId,
+        name: c.name,
+        iconUrl: c.iconUrl,
+        rating: c.rating,
+        ratingsCount: c.ratingsCount,
+        developerName: c.developerName,
+        relevance: Math.max(1, Math.round((c.appearances / terms.length) * 100) - c.bestPos),
+      }))
+      .sort((a, b) => b.relevance - a.relevance)
+      .slice(0, 8);
+
+    res.json(candidates);
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+appsRouter.post("/:id/competitors", appAccess("params", "id"), async (req, res) => {
+  try {
+    const ownApp = req.bundleApp!;
+    const bundleId = ((req.body?.bundleId as string) ?? "").trim();
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId is required" });
+      return;
+    }
+
+    const scraper = new AppStoreScraper(ownApp.country, undefined, ownApp.bundleId);
+    const competitorId = await scraper.scrapeAndSaveApp(bundleId, false);
+    if (!competitorId) {
+      res.status(404).json({ error: "App not found on the App Store" });
+      return;
+    }
+    if (competitorId === ownApp.id) {
+      res.status(400).json({ error: "Cannot add your own app as a competitor" });
+      return;
+    }
+
+    await prisma.competitorRelation.upsert({
+      where: { appId_competitorId: { appId: ownApp.id, competitorId } },
+      create: { appId: ownApp.id, competitorId },
+      update: {},
+    });
+
+    const saved = await prisma.app.findUnique({ where: { id: competitorId }, select: { name: true } });
+    res.json({ ok: true, name: saved?.name ?? bundleId });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
