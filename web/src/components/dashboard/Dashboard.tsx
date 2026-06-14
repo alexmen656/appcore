@@ -1,6 +1,7 @@
 import { useApi } from "../../hooks/useApi";
 import StatsGrid from "./StatsGrid";
 import AppInfoCard from "./AppInfoCard";
+import ActionPlan from "./ActionPlan";
 import RecentSuggestionsTable from "./RecentSuggestionsTable";
 import DownloadsChart from "../analytics/DownloadsChart";
 import type { DashboardData, DownloadsData } from "../../types";
@@ -17,11 +18,13 @@ export default function Dashboard() {
     );
   if (error) return <div className="py-20 text-center text-gray-400 dark:text-[#5c6478]">{error}</div>;
   if (!data) return null;
-  const { app, stats, lastJob, recentSuggestions } = data;
+  const { app, stats, config, lastJob, recentSuggestions } = data;
 
   return (
     <div>
       {app && <AppInfoCard app={app} />}
+
+      {app && <ActionPlan hasASC={config.hasASC} />}
 
       <StatsGrid stats={stats} />
 

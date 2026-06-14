@@ -992,6 +992,7 @@ export default function App() {
   const { data: dash } = useApi<DashboardData>("/dashboard");
   const { toasts, addToast } = useToast();
   const location = useLocation();
+  const navigate = useNavigate();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -1139,7 +1140,12 @@ export default function App() {
   }
 
   if (showOnboarding) {
-    return <Onboarding initialStep={onboardingStep} onComplete={() => setShowOnboarding(false)} />;
+    const finishOnboarding = () => {
+      clearApiCache();
+      setShowOnboarding(false);
+      navigate("/dashboard");
+    };
+    return <Onboarding initialStep={onboardingStep} onComplete={finishOnboarding} />;
   }
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
