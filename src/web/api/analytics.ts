@@ -6,7 +6,16 @@ import { QUEUE_NAME as SYNC_ANALYTICS_QUEUE } from "../../jobs/workers/sync-anal
 
 export const analyticsRouter = Router();
 
-function resolveSince(query: Record<string, any>): Date | null {
+async function getAnchorDate(bundleId: string): Promise<Date> {
+  const latest = await prisma.appStoreAnalytics.findFirst({
+    where: { bundleId },
+    orderBy: { reportDate: "desc" },
+    select: { reportDate: true },
+  });
+  return latest?.reportDate ?? new Date();
+}
+
+function resolveSince(query: Record<string, any>, anchor: Date): Date | null {
   if (query.period === "all") return null;
 
   if (query.startDate) {
@@ -14,20 +23,14 @@ function resolveSince(query: Record<string, any>): Date | null {
   }
 
   if (query.period === "ytd") {
-    const now = new Date();
-    return new Date(now.getFullYear(), 0, 1);
+    return new Date(anchor.getFullYear(), 0, 1);
   }
 
   const days = parseInt(query.days as string, 10);
-  if (!isNaN(days) && days > 0) {
-    const d = new Date();
-    d.setDate(d.getDate() - days);
-    return d;
-  }
-
-  const def = new Date();
-  def.setDate(def.getDate() - 30);
-  return def;
+  const n = !isNaN(days) && days > 0 ? days : 30;
+  const d = new Date(anchor);
+  d.setDate(d.getDate() - (n - 1));
+  return d;
 }
 
 function resolveUntil(query: Record<string, any>): Date | null {
@@ -39,7 +42,8 @@ function resolveUntil(query: Record<string, any>): Date | null {
 analyticsRouter.get("/summary", ...requireBundleAccess("query"), async (req, res) => {
   try {
     const bundleId = req.bundleApp!.bundleId;
-    const since = resolveSince(req.query);
+    const anchor = await getAnchorDate(bundleId);
+    const since = resolveSince(req.query, anchor);
     const until = resolveUntil(req.query);
     const dateFilter: Record<string, Date> = {};
 
@@ -92,7 +96,8 @@ analyticsRouter.get("/summary", ...requireBundleAccess("query"), async (req, res
 analyticsRouter.get("/downloads", ...requireBundleAccess("query"), async (req, res) => {
   try {
     const bundleId = req.bundleApp!.bundleId;
-    const since = resolveSince(req.query);
+    const anchor = await getAnchorDate(bundleId);
+    const since = resolveSince(req.query, anchor);
     const until = resolveUntil(req.query);
     const dateFilter: Record<string, Date> = {};
 
@@ -139,6 +144,7 @@ analyticsRouter.get("/downloads", ...requireBundleAccess("query"), async (req, r
         pageViews: 0,
         sessions: 0,
       });
+
       day.downloads += r.downloads;
       day.updates += r.updates;
       day.proceeds += r.proceeds;
@@ -151,6 +157,7 @@ analyticsRouter.get("/downloads", ...requireBundleAccess("query"), async (req, r
         impressions: 0,
         pageViews: 0,
       });
+      
       c.downloads += r.downloads;
       c.impressions += r.impressions;
       c.pageViews += r.pageViews;

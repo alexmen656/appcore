@@ -4,7 +4,7 @@ import { useApi, getActiveBundleId, authHeaders } from "../../hooks/useApi";
 import type { DownloadsData, CountryData } from "../../types";
 import { TD, TH, borderDefault, pageTitle, textMuted, textPrimary } from "../../styles";
 import { fmtNumber, countryName, fmtLargeNum } from "../../utils/formatters";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { TrendingUp, TrendingDown, ChevronUp, ChevronDown } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -18,6 +18,17 @@ import {
   CartesianGrid,
 } from "recharts";
 import { type RangeKey, RANGE_OPTIONS, rangeToParams, rangeLabel, prevPeriodParams } from "../../utils/analyticsRange";
+
+type CountrySortKey = "country" | "downloads" | "impressions" | "pageViews" | "conv" | "share";
+
+function SortIcon({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
+  return (
+    <span className={`inline-flex flex-col ml-0.5 leading-none ${active ? "opacity-100" : "opacity-25"}`}>
+      <ChevronUp className={`w-3 h-3 -mb-1 ${active && dir === "asc" ? "text-[#D94412]" : "text-current"}`} />
+      <ChevronDown className={`w-3 h-3 -mt-1 ${active && dir === "desc" ? "text-[#D94412]" : "text-current"}`} />
+    </span>
+  );
+}
 
 function TrendBadge({ current, prev }: { current: number; prev: number | undefined }) {
   if (prev === undefined || prev === null) return null;
@@ -43,12 +54,32 @@ export default function AnalyticsCountries() {
   const [customEnd, setCustomEnd] = useState("");
   const [showTrend, setShowTrend] = useState(false);
   const [prevCountryData, setPrevCountryData] = useState<CountryData[] | null>(null);
+  const [sortBy, setSortBy] = useState<CountrySortKey>("downloads");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const handleSort = (key: CountrySortKey) => {
+    if (key === sortBy) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setSortBy(key);
+      setSortDir(key === "country" ? "asc" : "desc");
+    }
+  };
 
   const params = useMemo(() => rangeToParams(range, customStart, customEnd), [range, customStart, customEnd]);
 
-  const prevParams = useMemo(() => prevPeriodParams(range, customStart, customEnd), [range, customStart, customEnd]);
-
   const { data: downloads, loading } = useApi<DownloadsData>(`/analytics/downloads?bundleId=${bundleId}${params}`);
+
+  const anchorDate = useMemo(() => {
+    const days = downloads?.byDay ?? [];
+    if (!days.length) return undefined;
+    const max = days.reduce((m, d) => (d.date > m ? d.date : m), days[0].date);
+    return new Date(max);
+  }, [downloads]);
+
+  const prevParams = useMemo(
+    () => prevPeriodParams(range, customStart, customEnd, anchorDate),
+    [range, customStart, customEnd, anchorDate],
+  );
 
   const hasEngagementData = (downloads?.byCountry ?? []).some((c) => c.impressions > 0 || c.pageViews > 0);
 
@@ -76,6 +107,56 @@ export default function AnalyticsCountries() {
   const prevByCountry = useMemo(
     () => Object.fromEntries((prevCountryData ?? []).map((c) => [c.country, c])),
     [prevCountryData],
+  );
+
+  const sortedCountries = useMemo(() => {
+    const rows = [...(downloads?.byCountry ?? [])];
+    rows.sort((a, b) => {
+      let cmp = 0;
+      switch (sortBy) {
+        case "country":
+          cmp = countryName(a.country).localeCompare(countryName(b.country));
+          break;
+        case "impressions":
+          cmp = a.impressions - b.impressions;
+          break;
+        case "pageViews":
+          cmp = a.pageViews - b.pageViews;
+          break;
+        case "conv": {
+          const ca = a.impressions > 0 ? a.downloads / a.impressions : -1;
+          const cb = b.impressions > 0 ? b.downloads / b.impressions : -1;
+          cmp = ca - cb;
+          break;
+        }
+        default:
+          cmp = a.downloads - b.downloads;
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return rows;
+  }, [downloads, sortBy, sortDir]);
+
+  const SortableTh = ({
+    sortKey,
+    label,
+    align = "left",
+    extra = "",
+  }: {
+    sortKey: CountrySortKey;
+    label: string;
+    align?: "left" | "right";
+    extra?: string;
+  }) => (
+    <th
+      className={`${TH} ${align === "right" ? "text-right" : ""} ${extra} cursor-pointer select-none hover:text-[#111827] dark:hover:text-[#e8eaf0] transition-colors`}
+      onClick={() => handleSort(sortKey)}
+    >
+      <span className={`inline-flex items-center gap-0.5 ${align === "right" ? "justify-end" : ""}`}>
+        {label}
+        <SortIcon active={sortBy === sortKey} dir={sortDir} />
+      </span>
+    </th>
   );
 
   return (
@@ -292,22 +373,22 @@ export default function AnalyticsCountries() {
           <table className="w-full">
             <thead>
               <tr>
-                <th className={TH}>Country</th>
-                <th className={`${TH} text-right`}>Downloads</th>
+                <SortableTh sortKey="country" label="Country" />
+                <SortableTh sortKey="downloads" label="Downloads" align="right" />
                 {hasEngagementData && (
                   <>
-                    <th className={`${TH} text-right`}>Impressions</th>
-                    <th className={`${TH} text-right`}>Page Views</th>
-                    <th className={`${TH} text-right`}>Conv. Rate</th>
+                    <SortableTh sortKey="impressions" label="Impressions" align="right" />
+                    <SortableTh sortKey="pageViews" label="Page Views" align="right" />
+                    <SortableTh sortKey="conv" label="Conv. Rate" align="right" />
                   </>
                 )}
-                <th className={`${TH} text-right pr-5`}>Share</th>
+                <SortableTh sortKey="share" label="Share" align="right" extra="pr-5" />
               </tr>
             </thead>
             <tbody>
               {(() => {
                 const total = (downloads?.byCountry ?? []).reduce((s, r) => s + r.downloads, 0);
-                return (downloads?.byCountry ?? []).map((r) => {
+                return sortedCountries.map((r) => {
                   const conv = r.impressions > 0 ? ((r.downloads / r.impressions) * 100).toFixed(1) + "%" : "—";
                   return (
                     <tr
