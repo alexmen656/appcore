@@ -1,0 +1,34 @@
+<!-- Marteso inline wordmark v2 - monoline, matches the m icon.
+     m mit 2% optischem Overshoot (Core). Geschlossene Scheiben a,o auf R=62 (leichter
+     Undershoot, damit sie nicht massiver wirken als das offene m).
+     Offene Buchstaben e,s auf voller Hoehe (wie m), fuer offene Innenraeume.
+     Letter-Spacing -30% (proportional, m als Anker; Koordinaten eingebacken). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-18 -40 1156 243" role="img" aria-label="Marteso">
+  <defs>
+    <linearGradient id="grad" gradientUnits="userSpaceOnUse" x1="0" y1="-22" x2="1151" y2="185">
+      <stop offset="0%" stop-color="#F95A1C"/>
+      <stop offset="100%" stop-color="#DD3418"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke="url(#grad)" stroke-width="40" stroke-linecap="round" stroke-linejoin="round">
+    <!-- m (Core + 2% optischer Overshoot) -->
+    <path d="M 18.16 166.33 L 18.16 77.59 A 46.92 46.92 0 0 1 112 77.59 L 112 145.93" stroke-width="40.8"/>
+    <path d="M 112 145.93 L 112 77.59 A 46.92 46.92 0 0 1 205.84 77.59 L 205.84 166.33" stroke-width="40.8"/>
+    <!-- a (Scheibe R62, Undershoot; Stamm voll) -->
+    <path d="M 321.3 36.5 A 62 62 0 1 1 321.3 160.5 A 62 62 0 1 1 321.3 36.5 Z"/>
+    <path d="M 383.3 32 L 383.3 165"/>
+    <!-- r -->
+    <path d="M 440.8 165 L 440.8 32"/>
+    <path d="M 440.8 78 A 46 46 0 0 1 486.8 32"/>
+    <!-- t (dezentes Fuesschen R34) -->
+    <path d="M 565.4 -2 L 565.4 131 A 34 34 0 0 0 599.4 165"/>
+    <path d="M 539.4 32 L 595.4 32"/>
+    <!-- e (R66.5; Balken 30 zentriert; Schale -6deg + Balken bis 815) -->
+    <path d="M 764.4 147.92 A 66.5 66.5 0 1 1 786.04 91.55"/>
+    <path d="M 790.4 98.5 L 653.4 98.5" stroke-width="30"/>
+    <!-- s (volle Hoehe; horizontal +20% -> rx48 ry33) -->
+    <path d="M 929.25 65.5 A 48 33 0 1 0 881.25 98.5 A 48 33 0 1 1 833.25 131.5"/>
+    <!-- o (Scheibe R62, Undershoot) -->
+    <path d="M 1038.25 36.5 A 62 62 0 1 1 1038.25 160.5 A 62 62 0 1 1 1038.25 36.5 Z"/>
+  </g>
+</svg>

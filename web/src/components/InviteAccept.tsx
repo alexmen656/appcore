@@ -93,7 +93,7 @@ export default function InviteAccept({ onAuth }: { onAuth: (u: AuthUser) => void
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#f8f9fb] dark:bg-[#0f1117] px-4">
         <div className="max-w-sm w-full text-center">
-          <div className="text-[26px] font-bold text-[#D94412] tracking-[-0.3px] mb-8">marteso</div>
+          <img src="/logo-wordmark.svg" alt="Marteso" className="h-[30px] w-auto mb-8 mx-auto" />
           <div className="p-6 bg-white dark:bg-[#1c2028] border border-[#e5e7eb] dark:border-[#2a2f3d] rounded-2xl">
             <p className="text-sm font-semibold text-[#1a1a2e] dark:text-[#e8eaf0] mb-1">Invalid invitation</p>
             <p className="text-xs text-gray-400 dark:text-[#5c6478]">{loadError}</p>
@@ -114,7 +114,7 @@ export default function InviteAccept({ onAuth }: { onAuth: (u: AuthUser) => void
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f8f9fb] dark:bg-[#0f1117] px-4">
       <div className="max-w-sm w-full">
-        <div className="text-[26px] font-bold text-[#D94412] tracking-[-0.3px] mb-8 text-center">marteso</div>
+        <img src="/logo-wordmark.svg" alt="Marteso" className="h-[30px] w-auto mb-8 mx-auto" />
 
         <div className="mb-4 p-4 bg-[#fef2f3] dark:bg-[#2a1f23] border border-[#D94412]/20 rounded-xl text-center">
           <p className="text-sm font-semibold text-[#1a1a2e] dark:text-[#e8eaf0]">You've been invited</p>

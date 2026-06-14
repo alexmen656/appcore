@@ -6,13 +6,8 @@ interface Props {
 export default function AuthHeader({ mode }: Props) {
   return (
     <>
-      <div className="flex items-center gap-3 mb-8">
-        <img src="/logo.svg" alt="Marteso" className="h-7 w-auto" />
-        <div>
-          <div className="text-3xl font-bold leading-tight bg-gradient-to-br from-[#D94412] to-[#C4001E] bg-clip-text text-transparent">
-            marteso
-          </div>
-        </div>
+      <div className="flex items-center mb-8">
+        <img src="/logo-wordmark.svg" alt="Marteso" className="h-9 w-auto" />
       </div>
       <h2 className={`text-[22px] font-bold ${textPrimary} mb-6 tracking-tight`}>
         {mode === "login" ? "Sign in to your account" : "Create an account"}
