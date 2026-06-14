@@ -351,7 +351,7 @@ function HelpMenu() {
       {open && (
         <div className="absolute right-0 top-[calc(100%+6px)] w-48 bg-white dark:bg-[#1c2028] border border-[#e5e7eb] dark:border-[#2a2f3d] rounded-xl shadow-lg z-50 overflow-hidden py-1">
           <a
-            href="https://app.marteso.com/docs"
+            href="https://docs.marteso.com/"
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setOpen(false)}
@@ -361,7 +361,9 @@ function HelpMenu() {
             Documentation
           </a>
           <a
-            href="/contact"
+            href="https://marteso.com/contact"
+            target="_blank"
+            rel="noopener noreferrer"
             onClick={() => setOpen(false)}
             className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-[#f7f8fa] dark:hover:bg-[#252b38] transition-colors text-[13px] text-[#1a1a2e] dark:text-[#e8eaf0] font-medium"
           >
