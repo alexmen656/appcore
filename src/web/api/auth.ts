@@ -841,16 +841,19 @@ authRouter.get("/google/callback", async (req, res) => {
         data: { email, name: displayName, role: "USER" },
         select: { id: true, email: true, name: true, role: true, tokenVersion: true },
       });
+      
       const team = await prisma.team.create({
         data: {
           name: `${displayName}'s Team`,
           members: { create: { userId: user.id, role: "OWNER" } },
         },
       });
+
       teamId = team.id;
       teamRole = "OWNER";
       isNew = true;
       logger.info(`New user signed up via Google: ${email}`);
+      founderWelcome({ to: user.email, name: user.name ?? displayName });
     }
 
     const jwtToken = signToken({
@@ -875,6 +878,7 @@ authRouter.get("/google/callback", async (req, res) => {
         }),
       ).toString("base64url"),
     });
+
     if (isNew) fragment.set("gg_new", "1");
     res.redirect(`${appUrl}/#${fragment}`);
   } catch (err: any) {
@@ -889,12 +893,14 @@ authRouter.get("/github/start", (_req, res) => {
     res.status(500).json({ error: "GitHub sign-in is not configured" });
     return;
   }
+
   const params = new URLSearchParams({
     client_id: clientId,
     scope: "user:email",
     state: signSignInState(),
     allow_signup: "true",
   });
+
   res.json({ url: `https://github.com/login/oauth/authorize?${params}` });
 });
 
@@ -965,16 +971,19 @@ authRouter.get("/github/callback", async (req, res) => {
         data: { email, name: displayName, role: "USER" },
         select: { id: true, email: true, name: true, role: true, tokenVersion: true },
       });
+
       const team = await prisma.team.create({
         data: {
           name: `${displayName}'s Team`,
           members: { create: { userId: user.id, role: "OWNER" } },
         },
       });
+
       teamId = team.id;
       teamRole = "OWNER";
       isNew = true;
       logger.info(`New user signed up via GitHub: ${email}`);
+      founderWelcome({ to: user.email, name: user.name ?? displayName });
     }
 
     const jwtToken = signToken({
