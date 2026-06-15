@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { borderDefault, pageTitle, textMuted, textPrimary, textSecondary } from "../../styles";
-import { ChevronDown, FolderPlus, LayoutGrid, List, Lock, MoreHorizontal, Plus, Search, Target, Upload } from "lucide-react";
+import { FolderPlus, LayoutGrid, List, Lock, MoreHorizontal, Plus, Search, Target, Upload } from "lucide-react";
 import {
   useApi,
   apiGet,
@@ -105,12 +105,6 @@ export default function Keywords({ addToast, isPro }: Props) {
   const [history, setHistory] = useState<HistoryData | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [running, setRunning] = useState<string | null>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  useClickOutside(
-    menuRef,
-    useCallback(() => setMenuOpen(false), []),
-  );
 
   const triggerAction = async (endpoint: string, label: string) => {
     setRunning(endpoint);
@@ -375,76 +369,8 @@ export default function Keywords({ addToast, isPro }: Props) {
 
   return (
     <div>
-      <div className="flex items-start justify-between mb-1">
-        <h1 className={`${pageTitle}`}>Keywords</h1>
-        <div ref={menuRef} className="relative flex items-stretch">
-          <button
-            onClick={() => triggerAction("discover-keywords", "Discover Keywords")}
-            disabled={!!running || !canWrite}
-            title={writeTip}
-            className="inline-flex items-center gap-1.5 pl-3.5 pr-3 py-2 rounded-l-xl text-sm font-semibold bg-[#D94412] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {running === "discover-keywords" ? (
-              <>
-                <div className="spinner !w-3.5 !h-3.5" /> Discovering…
-              </>
-            ) : (
-              "Discover Keywords"
-            )}
-          </button>
-          <div className="w-px bg-[#c80b24] opacity-40" />
-          <button
-            onClick={() => setMenuOpen((o) => !o)}
-            disabled={!!running || !canWrite}
-            title={writeTip}
-            className="px-2.5 rounded-r-xl bg-[#D94412] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="More actions"
-          >
-            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
-          </button>
-          {menuOpen && (
-            <div
-              className={`absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-xl shadow-lg py-1 min-w-[170px]`}
-            >
-              <button
-                onClick={() => {
-                  setMenuOpen(false);
-                  triggerAction("track-keywords", "Track Rankings");
-                }}
-                className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left`}
-              >
-                Track Rankings
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-      <p className={`text-sm ${textMuted} mb-8`}>Track keyword rankings and discover new opportunities</p>
-
+      <h1 className={`${pageTitle} mb-6`}>Keywords</h1>
       <div className="flex items-center gap-2.5 flex-wrap mb-6">
-        <div className="flex-1" />
-        {availableCountries.length > 0 && (
-          <MarketSelector value={filterCountry} options={availableCountries} onChange={setFilterCountry} />
-        )}
-        <KeywordFilters value={filters} onChange={setFilters} />
-        <button
-          onClick={() => setAddModalOpen(true)}
-          disabled={!canWrite}
-          title={writeTip ?? limitTip ?? (suggestionCount > 0 ? `${suggestionCount} new AI suggestions` : "Add keywords")}
-          className={`relative inline-flex items-center gap-1.5 pl-3 pr-3.5 py-[7px] rounded-full border text-[13px] font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-            atLimit
-              ? "border-[#D94412]/40 bg-[#D94412]/[0.06] text-[#D94412] hover:bg-[#D94412]/10"
-              : `${borderDefault} bg-white dark:bg-[#1c2028] ${textPrimary} hover:border-[#D94412] hover:text-[#D94412]`
-          }`}
-        >
-          {atLimit ? <Lock className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-          {atLimit ? "Upgrade to add more" : "Add keywords"}
-          {!atLimit && suggestionCount > 0 && (
-            <span className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#D94412] text-white text-[10px] font-bold tabular-nums ring-2 ring-white dark:ring-[#0f1117]">
-              {suggestionCount}
-            </span>
-          )}
-        </button>
         <div
           className={`inline-flex items-center p-1 rounded-full border ${borderDefault} bg-gray-50/60 dark:bg-[#181c24]`}
         >
@@ -471,6 +397,31 @@ export default function Keywords({ addToast, isPro }: Props) {
             <LayoutGrid className="w-3.5 h-3.5" /> Matrix
           </button>
         </div>
+        {availableCountries.length > 0 && (
+          <MarketSelector value={filterCountry} options={availableCountries} onChange={setFilterCountry} />
+        )}
+        <KeywordFilters value={filters} onChange={setFilters} />
+        <div className="flex-1" />
+        <button
+          onClick={() => setAddModalOpen(true)}
+          disabled={!canWrite}
+          title={
+            writeTip ?? limitTip ?? (suggestionCount > 0 ? `${suggestionCount} new AI suggestions` : "Add keywords")
+          }
+          className={`relative inline-flex items-center gap-1.5 pl-3 pr-3.5 py-[7px] rounded-full border text-[13px] font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+            atLimit
+              ? "border-[#D94412]/40 bg-[#D94412]/[0.06] text-[#D94412] hover:bg-[#D94412]/10"
+              : "border-[#D94412] bg-[#D94412] text-white hover:border-[#c80b24] hover:bg-[#c80b24]"
+          }`}
+        >
+          {atLimit ? <Lock className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+          {atLimit ? "Upgrade to add more" : "Add keywords"}
+          {!atLimit && suggestionCount > 0 && (
+            <span className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-white text-[#D94412] text-[10px] font-bold tabular-nums ring-2 ring-white dark:ring-[#0f1117]">
+              {suggestionCount}
+            </span>
+          )}
+        </button>
         <div ref={moreRef} className="relative">
           <button
             onClick={() => setMoreOpen((o) => !o)}
@@ -507,6 +458,18 @@ export default function Keywords({ addToast, isPro }: Props) {
               >
                 <Upload className={`w-3.5 h-3.5 ${textSecondary}`} />
                 Import keywords
+              </button>
+              <button
+                onClick={() => {
+                  setMoreOpen(false);
+                  triggerAction("track-keywords", "Track Rankings");
+                }}
+                disabled={!!running || !canWrite}
+                title={writeTip}
+                className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                <Target className={`w-3.5 h-3.5 ${textSecondary}`} />
+                {running === "track-keywords" ? "Tracking…" : "Track Rankings"}
               </button>
             </div>
           )}
