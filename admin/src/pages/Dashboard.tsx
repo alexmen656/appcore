@@ -13,6 +13,8 @@ import {
   Bell,
   Activity,
   Gauge,
+  CreditCard,
+  Euro,
 } from "lucide-react";
 import {
   AreaChart,
@@ -63,6 +65,10 @@ interface DashboardStats {
   oauthClients: number;
   deviceTokens: number;
   analytics: number;
+  subscriptions: number;
+  activeSubscriptions: number;
+  mrrEur: number;
+  subscriptionStatus?: StatusPoint[];
   ascRateLimits?: RateLimitEntry[];
   charts?: {
     usersOverTime: ChartPoint[];
@@ -150,6 +156,12 @@ const statCards = [
     icon: <BarChart3 className="h-4 w-4" />,
     color: "text-emerald-600",
   },
+  {
+    key: "activeSubscriptions" as const,
+    label: "Active Subscriptions",
+    icon: <CreditCard className="h-4 w-4" />,
+    color: "text-fuchsia-600",
+  },
 ];
 
 export default function Dashboard() {
@@ -186,15 +198,66 @@ export default function Dashboard() {
         ))}
       </div>
 
+      <Card>
+        <CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-3">
+          <Euro className="h-4 w-4 text-fuchsia-600" />
+          <CardTitle className="text-base">Billing — Subscriptions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-sm text-muted-foreground">Loading…</div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground">MRR (estimated)</div>
+                <div className="text-2xl font-bold">
+                  €{(stats?.mrrEur ?? 0).toLocaleString("en-US")}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  based on €19/mo & €190/yr
+                </div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground">Active Subscriptions</div>
+                <div className="text-2xl font-bold">
+                  {(stats?.activeSubscriptions ?? 0).toLocaleString("en-US")}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  of {(stats?.subscriptions ?? 0).toLocaleString("en-US")} total
+                </div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground">Status Breakdown</div>
+                {stats?.subscriptionStatus && stats.subscriptionStatus.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {stats.subscriptionStatus.map((s) => (
+                      <span
+                        key={s.status}
+                        className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium"
+                      >
+                        <span className="text-muted-foreground">{s.status}</span>
+                        <span>{s.count}</span>
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">No subscriptions</div>
+                )}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {(loading || (stats?.ascRateLimits && stats.ascRateLimits.length > 0)) && (
         <Card>
           <CardHeader className="flex flex-row items-center gap-2 space-y-0 pb-3">
             <Gauge className="h-4 w-4 text-orange-500" />
-            <CardTitle className="text-base">ASC Rate Limits (pro Team)</CardTitle>
+            <CardTitle className="text-base">ASC Rate Limits (per Team)</CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="text-sm text-muted-foreground">Lade…</div>
+              <div className="text-sm text-muted-foreground">Loading…</div>
             ) : (
               <div className="space-y-4">
                 {stats!.ascRateLimits!.map((rl) => {
@@ -223,7 +286,7 @@ export default function Dashboard() {
                         />
                       </div>
                       <div className="text-xs text-muted-foreground text-right">
-                        aktualisiert vor {updatedAgo} Min.
+                        updated {updatedAgo} min ago
                       </div>
                     </div>
                   );
@@ -238,13 +301,13 @@ export default function Dashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
-              Neue User (letzte 30 Tage)
+              New Users (last 30 days)
             </CardTitle>
           </CardHeader>
           <CardContent>
             {loading || !stats?.charts?.usersOverTime?.length ? (
               <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">
-                {loading ? "Lade…" : "Keine Daten"}
+                {loading ? "Loading…" : "No data"}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={200}>
@@ -264,7 +327,7 @@ export default function Dashboard() {
                   <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
                   <Tooltip
                     formatter={(v) => [v, "User"]}
-                    labelFormatter={(l) => `Datum: ${l}`}
+                    labelFormatter={(l) => `Date: ${l}`}
                   />
                   <Area
                     type="monotone"
@@ -282,13 +345,13 @@ export default function Dashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
-              Neue Apps (letzte 30 Tage)
+              New Apps (last 30 days)
             </CardTitle>
           </CardHeader>
           <CardContent>
             {loading || !stats?.charts?.appsOverTime?.length ? (
               <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">
-                {loading ? "Lade…" : "Keine Daten"}
+                {loading ? "Loading…" : "No data"}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={200}>
@@ -308,7 +371,7 @@ export default function Dashboard() {
                   <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
                   <Tooltip
                     formatter={(v) => [v, "Apps"]}
-                    labelFormatter={(l) => `Datum: ${l}`}
+                    labelFormatter={(l) => `Date: ${l}`}
                   />
                   <Area
                     type="monotone"
@@ -327,12 +390,12 @@ export default function Dashboard() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">ASO Suggestion Typen</CardTitle>
+            <CardTitle className="text-base">ASO Suggestion Types</CardTitle>
           </CardHeader>
           <CardContent>
             {loading || !stats?.charts?.suggestionTypes?.length ? (
               <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">
-                {loading ? "Lade…" : "Keine Daten"}
+                {loading ? "Loading…" : "No data"}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={200}>
@@ -363,12 +426,12 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Job Status Übersicht</CardTitle>
+            <CardTitle className="text-base">Job Status Overview</CardTitle>
           </CardHeader>
           <CardContent>
             {loading || !stats?.charts?.jobStatus?.length ? (
               <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">
-                {loading ? "Lade…" : "Keine Daten"}
+                {loading ? "Loading…" : "No data"}
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={200}>

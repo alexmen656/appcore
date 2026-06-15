@@ -241,7 +241,7 @@ export default function RecordDetail() {
 
       {loading || !record ? (
         <div className="py-12 text-center text-muted-foreground">
-          {loading ? "Lade…" : "Eintrag nicht gefunden"}
+          {loading ? "Loading…" : "Record not found"}
         </div>
       ) : (
         <>

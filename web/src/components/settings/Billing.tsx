@@ -89,7 +89,7 @@ export default function Billing({ addToast }: Props) {
 
       {!data?.configured && (
         <div className="mb-6 px-3 py-2 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-900/40 text-[12px] text-amber-800 dark:text-amber-300">
-          Billing is not configured. Set LEMONSQUEEZY_* environment variables to enable subscriptions.
+          Billing is currently unavailable. Please try again later.
         </div>
       )}
 

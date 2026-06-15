@@ -12,6 +12,7 @@ import {
   Smartphone, Camera, Search, TrendingUp, Lightbulb, FlaskConical,
   Swords, BarChart3, Star, MessageSquare, FileDiff, Image,
   Hammer, Key, Bell, Send, Fingerprint, BriefcaseBusiness, Gauge,
+  CreditCard,
 } from "lucide-react";
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -38,6 +39,7 @@ const iconMap: Record<string, React.ReactNode> = {
   "send": <Send className="h-4 w-4" />,
   "fingerprint": <Fingerprint className="h-4 w-4" />,
   "gauge": <Gauge className="h-4 w-4" />,
+  "credit-card": <CreditCard className="h-4 w-4" />,
 };
 
 export default function App() {
@@ -124,7 +126,7 @@ export default function App() {
           ))}
         </nav>
         <div className="p-3 border-t flex flex-col gap-1">
-          <a href="/app" className="text-xs text-muted-foreground hover:underline">← Zurück zur App</a>
+          <a href="/app" className="text-xs text-muted-foreground hover:underline">← Back to App</a>
           <button
             onClick={handleLogout}
             className="text-xs text-muted-foreground hover:underline text-left"

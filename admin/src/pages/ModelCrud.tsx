@@ -127,8 +127,8 @@ function RecordForm({
         </div>
       ))}
       <div className="flex justify-end gap-2 pt-4">
-        <Button type="button" variant="outline" onClick={onCancel}>Abbrechen</Button>
-        <Button type="submit" disabled={saving}>{saving ? "Speichern…" : "Speichern"}</Button>
+        <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
       </div>
     </form>
   );
@@ -200,10 +200,10 @@ export default function ModelCrud() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">
-              {data ? `${data.total} Einträge` : "Lade…"}
+              {data ? `${data.total} records` : "Loading…"}
             </CardTitle>
             <Input
-              placeholder="Suchen…"
+              placeholder="Search…"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               className="w-64"
@@ -212,7 +212,7 @@ export default function ModelCrud() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="py-8 text-center text-muted-foreground">Lade Daten…</div>
+            <div className="py-8 text-center text-muted-foreground">Loading data…</div>
           ) : (
             <>
               <Table>
@@ -250,7 +250,7 @@ export default function ModelCrud() {
                   {data?.data.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={visibleFields.length + 1} className="text-center text-muted-foreground py-8">
-                        Keine Einträge gefunden
+                        No records found
                       </TableCell>
                     </TableRow>
                   )}
@@ -281,7 +281,7 @@ export default function ModelCrud() {
         <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{config.name} erstellen</DialogTitle>
-            <DialogDescription>Neuen {config.name} Eintrag erstellen.</DialogDescription>
+            <DialogDescription>Create a new {config.name} record.</DialogDescription>
           </DialogHeader>
           <RecordForm fields={config.fields} onSubmit={handleCreate} onCancel={() => setCreateOpen(false)} />
         </DialogContent>
@@ -291,7 +291,7 @@ export default function ModelCrud() {
         <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{config.name} bearbeiten</DialogTitle>
-            <DialogDescription>Eintrag bearbeiten.</DialogDescription>
+            <DialogDescription>Edit record.</DialogDescription>
           </DialogHeader>
           {editRecord && (
             <RecordForm
@@ -307,15 +307,15 @@ export default function ModelCrud() {
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Eintrag löschen?</AlertDialogTitle>
+            <AlertDialogTitle>Delete record?</AlertDialogTitle>
             <AlertDialogDescription>
-              Soll dieser Eintrag wirklich gelöscht werden? Diese Aktion kann nicht rückgängig gemacht werden.
+              Are you sure you want to delete this record? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-white hover:bg-destructive/90">
-              Löschen
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

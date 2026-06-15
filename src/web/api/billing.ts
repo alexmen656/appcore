@@ -114,8 +114,7 @@ billingRouter.post("/checkout", requireAuth, async (req, res) => {
     });
 
     if (!r.ok) {
-      //const text = await r.text();
-      logger.error("lemon squeezy checkout creation failed");//{ status: r.status, text }, 
+      logger.error("lemon squeezy checkout creation failed");
       res.status(502).json({ error: "Failed to create checkout" });
       return;
     }

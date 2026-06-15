@@ -55,6 +55,7 @@ function getModel(name: string): PrismaDelegate | null {
     pushNotificationLog: prisma.pushNotificationLog,
     passkeyCredential: prisma.passkeyCredential,
     ascRateLimit: prisma.ascRateLimit,
+    subscription: prisma.subscription,
   };
   return models[name] ?? null;
 }
@@ -122,6 +123,17 @@ const detailIncludes: Record<string, any> = {
       },
     },
   },
+  subscription: {
+    team: {
+      include: {
+        members: {
+          include: { user: { select: userSelect } },
+          orderBy: { createdAt: "asc" },
+        },
+        apps: { select: { id: true, name: true, bundleId: true } },
+      },
+    },
+  },
 };
 
 const SECRET_KEYS = new Set([
@@ -177,6 +189,7 @@ const searchFields: Record<string, string[]> = {
   deviceToken: ["token", "userId", "bundleId"],
   pushNotificationLog: ["title", "deviceToken"],
   passkeyCredential: ["userId", "name"],
+  subscription: ["teamId", "lemonSubscriptionId", "lemonCustomerId", "status"],
 };
 
 router.get("/dashboard", async (_req: Request, res: Response) => {
@@ -200,6 +213,9 @@ router.get("/dashboard", async (_req: Request, res: Response) => {
     jobStatusCounts,
     suggestionTypeCounts,
     rateLimits,
+    subscriptionTotal,
+    subscriptionStatusCounts,
+    subscriptionIntervalCounts,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.team.count(),
@@ -239,7 +255,28 @@ router.get("/dashboard", async (_req: Request, res: Response) => {
       LEFT JOIN "Team" t ON t.id = r."teamId"
       ORDER BY r."hourRemaining" ASC
     `,
+    prisma.subscription.count(),
+    prisma.$queryRaw<{ status: string; count: number }[]>`
+      SELECT status, COUNT(*)::int as count FROM "Subscription" GROUP BY status ORDER BY count DESC
+    `,
+    prisma.$queryRaw<{ interval: string | null; count: number }[]>`
+      SELECT interval, COUNT(*)::int as count
+      FROM "Subscription"
+      WHERE status IN ('active', 'on_trial', 'paused')
+      GROUP BY interval
+    `,
   ]);
+
+  const activeSubscriptions = subscriptionStatusCounts
+    .filter((r) => ["active", "on_trial", "paused"].includes(r.status))
+    .reduce((sum, r) => sum + Number(r.count), 0);
+  const monthlyActive = Number(
+    subscriptionIntervalCounts.find((r) => r.interval === "monthly")?.count ?? 0,
+  );
+  const yearlyActive = Number(
+    subscriptionIntervalCounts.find((r) => r.interval === "yearly")?.count ?? 0,
+  );
+  const mrrEur = monthlyActive * 19 + yearlyActive * (190 / 12);
 
   const toChartData = (rows: { day: Date | string; count: number }[]) =>
     rows.map((r) => ({
@@ -259,6 +296,13 @@ router.get("/dashboard", async (_req: Request, res: Response) => {
     oauthClients,
     deviceTokens,
     analytics,
+    subscriptions: subscriptionTotal,
+    activeSubscriptions,
+    mrrEur: Math.round(mrrEur),
+    subscriptionStatus: subscriptionStatusCounts.map((r) => ({
+      status: r.status,
+      count: Number(r.count),
+    })),
     ascRateLimits: rateLimits.map((r) => ({
       teamId: r.teamId,
       teamName: r.teamName,

@@ -19,7 +19,7 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
       await login(email, password);
       onLogin();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Login fehlgeschlagen");
+      setError(err instanceof Error ? err.message : "Login failed");
     } finally {
       setLoading(false);
     }
@@ -30,12 +30,12 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Marteso Admin</CardTitle>
-          <CardDescription>Melde dich mit deinem Admin-Account an</CardDescription>
+          <CardDescription>Sign in with your admin account</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">E-Mail</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -47,7 +47,7 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Passwort</Label>
+              <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -59,7 +59,7 @@ export default function LoginPage({ onLogin }: { onLogin: () => void }) {
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Anmelden…" : "Anmelden"}
+              {loading ? "Signing in…" : "Sign in"}
             </Button>
           </form>
         </CardContent>

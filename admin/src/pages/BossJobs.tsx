@@ -116,7 +116,7 @@ export default function BossJobs() {
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={loading}>
           <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-          Aktualisieren
+          Refresh
         </Button>
       </div>
 
@@ -146,13 +146,13 @@ export default function BossJobs() {
                     <TableHead>Queue</TableHead>
                     <TableHead>Cron</TableHead>
                     <TableHead>Timezone</TableHead>
-                    <TableHead>Zuletzt aktualisiert</TableHead>
+                    <TableHead>Last updated</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading && (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-8">Lade…</TableCell>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground py-8">Loading…</TableCell>
                     </TableRow>
                   )}
                   {!loading && schedules.length === 0 && (
@@ -195,7 +195,7 @@ export default function BossJobs() {
 
       <div className="flex flex-wrap gap-3 items-center">
         <Input
-          placeholder="Suchen (Queue, ID…)"
+          placeholder="Search (queue, ID…)"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-56"
@@ -237,7 +237,7 @@ export default function BossJobs() {
               <TableBody>
                 {loading && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">Lade…</TableCell>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">Loading…</TableCell>
                   </TableRow>
                 )}
                 {!loading && filtered.length === 0 && (
