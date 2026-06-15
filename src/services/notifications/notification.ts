@@ -1,10 +1,25 @@
 import jwt from "jsonwebtoken";
 import http2 from "http2";
 import fs from "fs";
+import path from "path";
 import { Resend } from "resend";
 import { prisma } from "../../config/database.js";
 import { env } from "../../config/env.js";
 import { logger } from "../../config/logger.js";
+
+const WORDMARK_CID = "marteso-wordmark";
+let wordmarkCache: Buffer | null | undefined;
+
+function loadWordmark(): Buffer | null {
+  if (wordmarkCache !== undefined) return wordmarkCache;
+  try {
+    wordmarkCache = fs.readFileSync(path.join(__dirname, "assets", "logo-wordmark.png"));
+  } catch (err) {
+    logger.warn("[email] wordmark logo not found, falling back to text", { err });
+    wordmarkCache = null;
+  }
+  return wordmarkCache;
+}
 
 export interface APNsConfig {
   keyId: string;
@@ -28,6 +43,8 @@ export interface EmailContent {
   body: string;
   cta?: { label: string; url: string };
   footer?: string;
+  from?: string;
+  replyTo?: string;
 }
 
 export interface NotifyOptions {
@@ -204,11 +221,16 @@ class NotificationService {
     try {
       const { to, subject, ...content } = emailOpts;
 
+      const wordmark = loadWordmark();
+      const header = wordmark
+        ? `<img src="cid:${WORDMARK_CID}" alt="Marteso" width="120" style="height:auto;display:block;margin-bottom:24px;border:0;outline:none;text-decoration:none;" />`
+        : `<div style="font-size:24px;font-weight:800;color:#D94412;margin-bottom:24px;letter-spacing:-0.3px;">Marteso</div>`;
+
       const html = `<!DOCTYPE html>
       <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
       <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8f9fb;margin:0;padding:40px 20px;">
       <div style="max-width:480px;margin:0 auto;background:white;border-radius:16px;padding:40px;border:1px solid #e5e7eb;">
-      <div style="font-size:24px;font-weight:800;color:#D94412;margin-bottom:24px;letter-spacing:-0.3px;">marteso</div>
+      ${header}
       <h1 style="font-size:20px;font-weight:700;color:#1a1a2e;margin:0 0 12px;">${content.title}</h1>
       <div style="color:#6b7280;font-size:15px;line-height:1.6;margin:0 0 24px;">${content.body}</div>
       ${
@@ -222,10 +244,21 @@ class NotificationService {
       </div></body></html>`;
 
       await new Resend(env.RESEND_API_KEY).emails.send({
-        from: env.EMAIL_FROM,
+        from: content.from ?? env.EMAIL_FROM,
         to,
         subject,
         html,
+        replyTo: content.replyTo,
+        attachments: wordmark
+          ? [
+              {
+                filename: "logo-wordmark.png",
+                content: wordmark,
+                contentType: "image/png",
+                contentId: WORDMARK_CID,
+              },
+            ]
+          : undefined,
       });
 
       return "sent";

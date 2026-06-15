@@ -63,6 +63,35 @@ export function founderWelcome({ to, name }: { to: string; name: string }): void
   ).unref?.();
 }
 
+export async function premiumGranted({
+  to,
+  teamName,
+  endsAt,
+}: {
+  to: string;
+  teamName: string;
+  endsAt: Date | null;
+}): Promise<void> {
+  const expiryText = endsAt
+    ? `It will expire automatically on <strong style="color:#1a1a2e;">${endsAt.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })}</strong>. No action is needed from you.`
+    : `It won't expire. Pro is yours permanently.`;
+
+  await notificationService.sendEmail({
+    to,
+    from: "Alex from Marteso <alex@marteso.com>",
+    replyTo: "alex@marteso.com",
+    subject: "You've been granted Marteso Pro",
+    title: "Pro unlocked",
+    body: `Good news! Your team <strong style="color:#1a1a2e;">${teamName}</strong> has been automatically granted <strong style="color:#D94412;">Pro</strong> access. ${expiryText}`,
+    cta: { label: "Open Marteso", url: env.APP_URL },
+    footer: "Enjoy all Pro features. If you have any questions, just reply to this email.",
+  });
+}
+
 export function keywordRankChange(
   keywordTerm: string,
   oldRank: number | null,

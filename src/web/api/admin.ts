@@ -1,13 +1,9 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { Prisma } from "@prisma/client";
-import { prisma } from "../../config";
+import { prisma, logger } from "../../config";
 import { requireAuth } from "../auth";
-import {
-  ADMIN_GRANT_CUSTOMER,
-  PRO_STATUSES,
-  isAdminGrant,
-  isGrantExpired,
-} from "../../services/pro-grants";
+import { ADMIN_GRANT_CUSTOMER, PRO_STATUSES, isAdminGrant, isGrantExpired } from "../../services/pro-grants";
+import { premiumGranted } from "../../services/notifications/templates";
 
 (BigInt.prototype as any).toJSON = function () {
   return Number(this);
@@ -276,12 +272,8 @@ router.get("/dashboard", async (_req: Request, res: Response) => {
   const activeSubscriptions = subscriptionStatusCounts
     .filter((r) => ["active", "on_trial", "paused"].includes(r.status))
     .reduce((sum, r) => sum + Number(r.count), 0);
-  const monthlyActive = Number(
-    subscriptionIntervalCounts.find((r) => r.interval === "monthly")?.count ?? 0,
-  );
-  const yearlyActive = Number(
-    subscriptionIntervalCounts.find((r) => r.interval === "yearly")?.count ?? 0,
-  );
+  const monthlyActive = Number(subscriptionIntervalCounts.find((r) => r.interval === "monthly")?.count ?? 0);
+  const yearlyActive = Number(subscriptionIntervalCounts.find((r) => r.interval === "yearly")?.count ?? 0);
   const mrrEur = monthlyActive * 19 + yearlyActive * (190 / 12);
 
   const toChartData = (rows: { day: Date | string; count: number }[]) =>
@@ -475,7 +467,10 @@ router.post("/teams/:teamId/grant-pro", async (req: Request, res: Response) => {
 
   const team = await prisma.team.findUnique({
     where: { id: teamId },
-    include: { subscription: true },
+    include: {
+      subscription: true,
+      members: { where: { role: "OWNER" }, include: { user: true }, take: 1 },
+    },
   });
   if (!team) {
     res.status(404).json({ error: "Team not found" });
@@ -498,8 +493,7 @@ router.post("/teams/:teamId/grant-pro", async (req: Request, res: Response) => {
       return;
     }
     // Extend from the current end date if the grant is still in the future.
-    const base =
-      existing?.endsAt && new Date(existing.endsAt) > new Date() ? new Date(existing.endsAt) : new Date();
+    const base = existing?.endsAt && new Date(existing.endsAt) > new Date() ? new Date(existing.endsAt) : new Date();
     endsAt = new Date(base.getTime() + days * 86_400_000);
   }
 
@@ -525,6 +519,13 @@ router.post("/teams/:teamId/grant-pro", async (req: Request, res: Response) => {
     : await prisma.subscription.create({
         data: { teamId, lemonSubscriptionId: `admin_grant_${teamId}`, ...data },
       });
+
+  const ownerEmail = team.members[0]?.user.email;
+  if (ownerEmail) {
+    premiumGranted({ to: ownerEmail, teamName: team.name, endsAt }).catch((err) =>
+      logger.error("premium grant email failed", { err, teamId }),
+    );
+  }
 
   res.json({ ok: true, subscription });
 });
