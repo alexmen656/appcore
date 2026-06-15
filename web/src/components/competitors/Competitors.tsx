@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import { borderDefault, pageTitle, textMuted, textPrimary, textSecondary } from "../../styles";
-import { ChevronDown, LayoutGrid, List, Plus, Users } from "lucide-react";
+import { LayoutGrid, List, MoreHorizontal, Plus, Radar, Sparkles, Users } from "lucide-react";
 import { useApi, apiPost, apiDelete, getActiveBundleId } from "../../hooks/useApi";
 import { useClickOutside } from "../../hooks/useClickOutside";
 import { usePermissions } from "../../hooks/usePermissions";
@@ -25,12 +25,12 @@ export default function Competitors({ addToast }: Props) {
   const [intelRunning, setIntelRunning] = useState(false);
   const [detailAppId, setDetailAppId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  const menuRef = useRef<HTMLDivElement>(null);
+  const moreRef = useRef<HTMLDivElement>(null);
   useClickOutside(
-    menuRef,
-    useCallback(() => setMenuOpen(false), []),
+    moreRef,
+    useCallback(() => setMoreOpen(false), []),
   );
 
   const discoverCompetitors = async () => {
@@ -86,88 +86,78 @@ export default function Competitors({ addToast }: Props) {
 
   return (
     <div>
-      <div className="flex items-start justify-between mb-1">
-        <h1 className={`${pageTitle}`}>Competitors</h1>
-        <div className="flex items-center gap-2.5">
-          <div
-            className={`inline-flex items-center p-1 rounded-full border ${borderDefault} bg-gray-50/60 dark:bg-[#181c24]`}
-          >
-            <button
-              onClick={() => setViewMode("grid")}
-              aria-pressed={viewMode === "grid"}
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold transition-all ${
-                viewMode === "grid"
-                  ? `bg-white dark:bg-[#252b38] ${textPrimary} shadow-[0_1px_2px_rgba(0,0,0,0.06)]`
-                  : `${textMuted}`
-              }`}
-            >
-              <LayoutGrid className="w-3.5 h-3.5" /> Grid
-            </button>
-            <button
-              onClick={() => setViewMode("table")}
-              aria-pressed={viewMode === "table"}
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold transition-all ${
-                viewMode === "table"
-                  ? `bg-white dark:bg-[#252b38] ${textPrimary} shadow-[0_1px_2px_rgba(0,0,0,0.06)]`
-                  : `${textMuted}`
-              }`}
-            >
-              <List className="w-3.5 h-3.5" /> List
-            </button>
-          </div>
+      <h1 className={`${pageTitle} mb-6`}>Competitors</h1>
+      <div className="flex items-center gap-2.5 flex-wrap mb-6">
+        <div
+          className={`inline-flex items-center p-1 rounded-full border ${borderDefault} bg-gray-50/60 dark:bg-[#181c24]`}
+        >
           <button
-            onClick={() => setAddOpen(true)}
-            disabled={!canWrite || !ownApp}
-            title={!ownApp ? "Add your app first" : undefined}
-            className={`inline-flex items-center gap-1.5 pl-3 pr-3.5 py-[7px] rounded-full border ${borderDefault} bg-white dark:bg-[#1c2028] text-[13px] font-medium ${textPrimary} hover:border-[#D94412] hover:text-[#D94412] transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
+            onClick={() => setViewMode("grid")}
+            aria-pressed={viewMode === "grid"}
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold transition-all ${
+              viewMode === "grid" ? "bg-[#D94412] text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]" : `${textMuted}`
+            }`}
           >
-            <Plus className="w-3.5 h-3.5" />
-            Add competitor
+            <LayoutGrid className="w-3.5 h-3.5" /> Grid
           </button>
-          <div ref={menuRef} className="relative flex items-stretch">
           <button
-            onClick={discoverCompetitors}
-            disabled={discovering || intelRunning}
-            className="inline-flex items-center gap-1.5 pl-3.5 pr-3 py-2 rounded-l-xl text-sm font-semibold bg-[#D94412] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => setViewMode("table")}
+            aria-pressed={viewMode === "table"}
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold transition-all ${
+              viewMode === "table" ? "bg-[#D94412] text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]" : `${textMuted}`
+            }`}
           >
-            {discovering ? (
-              <>
-                <div className="spinner !w-3.5 !h-3.5" /> Discovering…
-              </>
-            ) : (
-              "Discover Competitors"
-            )}
+            <List className="w-3.5 h-3.5" /> List
           </button>
-          <div className="w-px bg-[#c80b24] opacity-40" />
+        </div>
+        <div className="flex-1" />
+        <button
+          onClick={() => setAddOpen(true)}
+          disabled={!canWrite || !ownApp}
+          title={!ownApp ? "Add your app first" : undefined}
+          className="inline-flex items-center gap-1.5 pl-3 pr-3.5 py-[7px] rounded-full border border-[#D94412] bg-[#D94412] text-white text-[13px] font-semibold hover:border-[#c80b24] hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Add competitor
+        </button>
+        <div ref={moreRef} className="relative">
           <button
-            onClick={() => setMenuOpen((o) => !o)}
-            disabled={discovering || intelRunning}
-            className="px-2.5 rounded-r-xl bg-[#D94412] text-white hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="More actions"
+            onClick={() => setMoreOpen((o) => !o)}
+            title="More actions"
+            className={`inline-flex items-center justify-center w-9 h-9 rounded-full border ${borderDefault} bg-white dark:bg-[#1c2028] ${textSecondary} hover:border-gray-300 dark:hover:border-[#3a4050] hover:${textPrimary} transition-all`}
           >
-            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
+            <MoreHorizontal className="w-4 h-4" />
           </button>
-          {menuOpen && (
+          {moreOpen && (
             <div
-              className={`absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-xl shadow-lg py-1 min-w-[160px]`}
+              className={`absolute right-0 top-full mt-1.5 z-50 bg-white dark:bg-[#1c2028] border ${borderDefault} rounded-xl shadow-lg py-1 min-w-[200px]`}
             >
               <button
                 onClick={() => {
-                  setMenuOpen(false);
+                  setMoreOpen(false);
+                  discoverCompetitors();
+                }}
+                disabled={discovering || intelRunning || !canWrite}
+                className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                <Sparkles className={`w-3.5 h-3.5 ${textSecondary}`} />
+                {discovering ? "Discovering…" : "Discover Competitors"}
+              </button>
+              <button
+                onClick={() => {
+                  setMoreOpen(false);
                   runCompetitorIntel();
                 }}
-                className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left`}
+                disabled={discovering || intelRunning || !canWrite}
+                className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                Gather Intel
+                <Radar className={`w-3.5 h-3.5 ${textSecondary}`} />
+                {intelRunning ? "Gathering…" : "Gather Intel"}
               </button>
             </div>
           )}
-          </div>
         </div>
       </div>
-      <p className={`text-sm ${textMuted} mb-8`}>
-        {competitors.length} competitor{competitors.length !== 1 ? "s" : ""} discovered and tracked
-      </p>
 
       {ownApp && <OwnAppCard app={ownApp} />}
 
