@@ -17,7 +17,7 @@ export async function handler([job]: Job<DiscoverKeywordsData>[]): Promise<void>
   const result = await new KeywordDiscoveryAgent(bundleId, settings).run();
 
   logger.info(
-    `[BOSS] Keyword discovery for ${bundleId} complete: ${result.discovered} found, ${result.scored} qualified, ${result.added} added`,
+    `[BOSS] Keyword discovery for ${bundleId} complete: ${result.discovered} found, ${result.scored} qualified, ${result.suggested} suggested`,
   );
   logger.info(`[BOSS] "${QUEUE_NAME}" job ${id} completed`);
 }

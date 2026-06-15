@@ -271,7 +271,53 @@ keywordsRouter.post("/", bundleAccess("body", "bundleId"), async (req, res) => {
       },
     });
 
+    await prisma.keywordSuggestion.updateMany({
+      where: {
+        appId: ownApp.id,
+        country: normalizedCountry,
+        term: { equals: term, mode: "insensitive" },
+        status: "PENDING",
+      },
+      data: { status: "ADDED" },
+    });
+
     res.json({ ok: true, keyword });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+keywordsRouter.get("/suggestions", bundleAccess("query", "bundleId"), async (req, res) => {
+  try {
+    const ownApp = req.bundleApp!;
+    const suggestions = await prisma.keywordSuggestion.findMany({
+      where: { appId: ownApp.id, status: "PENDING" },
+      orderBy: [{ popularity: "desc" }, { createdAt: "desc" }],
+      select: {
+        id: true,
+        term: true,
+        country: true,
+        language: true,
+        popularity: true,
+        difficulty: true,
+        searchVolume: true,
+      },
+    });
+    res.json({ items: suggestions, total: suggestions.length });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+keywordsRouter.post("/suggestions/:id/dismiss", bundleAccess("body", "bundleId"), async (req, res) => {
+  try {
+    const ownApp = req.bundleApp!;
+    const result = await prisma.keywordSuggestion.updateMany({
+      where: { id: req.params.id, appId: ownApp.id, status: "PENDING" },
+      data: { status: "DISMISSED" },
+    });
+    if (result.count === 0) return res.status(404).json({ error: "Suggestion not found" });
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }

@@ -298,27 +298,39 @@ export class AppStoreScraper {
       });
 
       const $ = cheerio.load(html);
+      const serverData = this.parseServerData($);
+      const infoItems = serverData?.data?.[0]?.data?.shelfMapping?.information?.items;
+      if (!Array.isArray(infoItems)) return [];
+
+      const section = infoItems.find((it: any) => /in.?app purchase/i.test(typeof it?.title === "string" ? it.title : ""));
+      if (!section) return [];
+
+      const pairs: Array<[string, string | null]> = [];
+      if (Array.isArray(section.items_V3)) {
+        for (const p of section.items_V3) {
+          const name = typeof p?.leadingText === "string" ? p.leadingText.trim() : "";
+          const price = typeof p?.trailingText === "string" ? p.trailingText.trim() : null;
+          if (name) pairs.push([name, price || null]);
+        }
+      } else if (Array.isArray(section.items)) {
+        for (const group of section.items) {
+          for (const tp of group?.textPairs ?? []) {
+            if (!Array.isArray(tp)) continue;
+            const name = typeof tp[0] === "string" ? tp[0].trim() : "";
+            const price = typeof tp[1] === "string" ? tp[1].trim() : null;
+            if (name) pairs.push([name, price || null]);
+          }
+        }
+      }
+
       const items: Array<{ name: string; price: string | null }> = [];
       const seen = new Set<string>();
-
-      $("dt").each((_, dt) => {
-        const term = $(dt).text().trim().toLowerCase();
-        if (!/in.?app purchase/.test(term)) return;
-
-        const dd = $(dt).nextAll("dd").first();
-        const listItems = dd.find("li");
-        const rows = listItems.length ? listItems : dd.find('[class*="list-with-numbers__item"]');
-
-        rows.each((__, li) => {
-          const $li = $(li);
-          const name =
-            $li.find('[class*="__title"]').first().text().trim() || $li.children("span").first().text().trim();
-          const price = $li.find('[class*="__price"]').first().text().trim() || null;
-          if (!name || seen.has(name)) return;
-          seen.add(name);
-          items.push({ name, price });
-        });
-      });
+      for (const [name, price] of pairs) {
+        const key = `${name}|${price ?? ""}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        items.push({ name, price });
+      }
 
       return items;
     } catch (error) {

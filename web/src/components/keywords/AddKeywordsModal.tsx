@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, useCallback, KeyboardEvent } from
 import { Plus, Search, Sparkles, X } from "lucide-react";
 import { borderDefault, btnSecondary, textMuted, textPrimary, textSecondary } from "../../styles";
 import { useClickOutside } from "../../hooks/useClickOutside";
-import { apiPost, getActiveBundleId } from "../../hooks/useApi";
+import { apiGet, apiPost, getActiveBundleId } from "../../hooks/useApi";
 import { usePermissions } from "../../hooks/usePermissions";
 import { countryName } from "../../utils/formatters";
 import { COUNTRIES, LANGUAGE_BY_COUNTRY } from "./storefronts";
@@ -17,20 +17,36 @@ const langOf = (c: string) => {
   }
 };
 
+interface AiSuggestion {
+  id: string;
+  term: string;
+  popularity: number | null;
+  difficulty: number | null;
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
   defaultCountry: string;
   onAdded: (count: number) => void;
+  onSuggestionsChanged?: () => void;
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }
 
-export default function AddKeywordsModal({ open, onClose, defaultCountry, onAdded, addToast }: Props) {
+export default function AddKeywordsModal({
+  open,
+  onClose,
+  defaultCountry,
+  onAdded,
+  onSuggestionsChanged,
+  addToast,
+}: Props) {
   const { canWrite } = usePermissions();
   const [query, setQuery] = useState("");
   const [staged, setStaged] = useState<string[]>([]);
   const [country, setCountry] = useState(defaultCountry || "de");
   const [adding, setAdding] = useState(false);
+  const [suggestions, setSuggestions] = useState<AiSuggestion[]>([]);
   const [marketOpen, setMarketOpen] = useState(false);
   const marketRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -45,8 +61,21 @@ export default function AddKeywordsModal({ open, onClose, defaultCountry, onAdde
       setQuery("");
       setStaged([]);
       setTimeout(() => inputRef.current?.focus(), 50);
+      apiGet<{ items: AiSuggestion[] }>("/keywords/suggestions")
+        .then((res) => setSuggestions(res.items))
+        .catch(() => setSuggestions([]));
     }
   }, [open, defaultCountry]);
+
+  const dismissSuggestion = async (id: string) => {
+    setSuggestions((prev) => prev.filter((s) => s.id !== id));
+    try {
+      await apiPost(`/keywords/suggestions/${id}/dismiss`, { bundleId: getActiveBundleId() });
+      onSuggestionsChanged?.();
+    } catch (e: any) {
+      addToast(e.message, "error");
+    }
+  };
 
   const normalize = (s: string) => s.trim().toLowerCase();
   const stageTerm = (raw: string) => {
@@ -103,6 +132,7 @@ export default function AddKeywordsModal({ open, onClose, defaultCountry, onAdde
         "success",
       );
       onAdded(staged.length);
+      onSuggestionsChanged?.();
       onClose();
     } catch (e: any) {
       addToast(e.message, "error");
@@ -118,11 +148,6 @@ export default function AddKeywordsModal({ open, onClose, defaultCountry, onAdde
     return query.trim();
   }, [query, staged]);
 
-  const aiSuggestions: { term: string; pop: number; diff: number }[] = [
-    { term: "fitness tracker", pop: 97, diff: 78 },
-    { term: "home workout", pop: 96, diff: 78 },
-    { term: "weight lifting app", pop: 90, diff: 67 },
-  ];
   const opp = (pop: number, diff: number) => Math.round((pop * (100 - diff)) / 100);
   const oppTagCls = (s: number) =>
     s > 50
@@ -130,7 +155,7 @@ export default function AddKeywordsModal({ open, onClose, defaultCountry, onAdde
       : s > 25
         ? "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/25 dark:text-amber-300 dark:ring-amber-800/50"
         : "bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/25 dark:text-red-300 dark:ring-red-800/50";
-  const visibleSuggestions = aiSuggestions.filter((s) => !staged.some((x) => normalize(x) === normalize(s.term)));
+  const visibleSuggestions = suggestions.filter((s) => !staged.some((x) => normalize(x) === normalize(s.term)));
 
   if (!open) return null;
 
@@ -211,27 +236,48 @@ export default function AddKeywordsModal({ open, onClose, defaultCountry, onAdde
                 Suggested by AI
               </div>
               {visibleSuggestions.map((s) => {
-                const o = opp(s.pop, s.diff);
+                const hasScores = s.popularity != null && s.difficulty != null;
+                const o = hasScores ? opp(s.popularity!, s.difficulty!) : null;
                 return (
-                  <button
-                    key={s.term}
-                    onClick={() => stageTerm(s.term)}
-                    className="w-full group flex items-center justify-between gap-2 px-3 py-2 rounded-lg hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left"
+                  <div
+                    key={s.id}
+                    className="w-full group flex items-center justify-between gap-2 pl-3 pr-2 py-2 rounded-lg hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors"
                   >
-                    <span className={`text-[13px] ${textPrimary} truncate`}>{s.term}</span>
+                    <button onClick={() => stageTerm(s.term)} className="flex-1 min-w-0 text-left">
+                      <span className={`text-[13px] ${textPrimary} truncate`}>{s.term}</span>
+                    </button>
                     <span className="flex items-center gap-3 shrink-0">
-                      <span className={`text-[11px] tabular-nums ${textMuted}`}>POP {s.pop}</span>
-                      <span className={`text-[11px] tabular-nums ${textMuted}`}>DIFF {s.diff}</span>
+                      <span className={`text-[11px] tabular-nums ${textMuted}`}>
+                        POP {s.popularity != null ? Math.round(s.popularity) : "—"}
+                      </span>
+                      <span className={`text-[11px] tabular-nums ${textMuted}`}>
+                        DIFF {s.difficulty != null ? Math.round(s.difficulty) : "—"}
+                      </span>
                       <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold ring-1 ring-inset tabular-nums ${oppTagCls(o)}`}
+                        className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold ring-1 ring-inset tabular-nums ${
+                          o != null
+                            ? oppTagCls(o)
+                            : "bg-gray-50 text-gray-500 ring-gray-200 dark:bg-[#252b38] dark:text-[#8b93a5] dark:ring-[#2a2f3d]"
+                        }`}
                       >
-                        {o}
+                        {o != null ? o : "—"}
                       </span>
-                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-md text-[#D94412] group-hover:bg-[#D94412]/10">
+                      <button
+                        onClick={() => stageTerm(s.term)}
+                        title="Stage keyword"
+                        className="inline-flex items-center justify-center w-5 h-5 rounded-md text-[#D94412] hover:bg-[#D94412]/10"
+                      >
                         <Plus className="w-4 h-4" />
-                      </span>
+                      </button>
+                      <button
+                        onClick={() => dismissSuggestion(s.id)}
+                        title="Dismiss suggestion"
+                        className={`inline-flex items-center justify-center w-5 h-5 rounded-md ${textMuted} hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20`}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
                     </span>
-                  </button>
+                  </div>
                 );
               })}
             </div>

@@ -196,6 +196,7 @@ model App {
   reviewSummaries            CompetitorReviewSummary[]
   metadataChanges            AppMetadataChange[]
   inAppPurchases             AppInAppPurchase[]
+  keywordSuggestions         KeywordSuggestion[]
   quickScanAi                AppQuickScanAi?
   createdAt                  DateTime                  @default(now())
   updatedAt                  DateTime                  @updatedAt
@@ -320,6 +321,31 @@ model KeywordSearchResult {
 
   @@index([keywordId, trackedAt])
   @@index([keywordId, bundleId, trackedAt(sort: Desc)])
+}
+
+model KeywordSuggestion {
+  id           String                  @id @default(cuid())
+  appId        String
+  app          App                     @relation(fields: [appId], references: [id], onDelete: Cascade)
+  term         String
+  country      String                  @default("de")
+  language     String                  @default("de")
+  popularity   Float?
+  difficulty   Float?
+  searchVolume Int?
+  source       String                  @default("ai_discovery")
+  status       KeywordSuggestionStatus @default(PENDING)
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+
+  @@unique([appId, term, country])
+  @@index([appId, status])
+}
+
+enum KeywordSuggestionStatus {
+  PENDING
+  ADDED
+  DISMISSED
 }
 
 model CompetitorRelation {

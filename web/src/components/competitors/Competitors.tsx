@@ -1,14 +1,17 @@
 import { useState, useRef, useCallback } from "react";
 import { borderDefault, pageTitle, textMuted, textPrimary, textSecondary } from "../../styles";
-import { ChevronDown, Plus, Users } from "lucide-react";
+import { ChevronDown, LayoutGrid, List, Plus, Users } from "lucide-react";
 import { useApi, apiPost, apiDelete, getActiveBundleId } from "../../hooks/useApi";
 import { useClickOutside } from "../../hooks/useClickOutside";
 import { usePermissions } from "../../hooks/usePermissions";
 import { usePostHog } from "@posthog/react";
 import OwnAppCard, { AppItem } from "./OwnAppCard";
 import CompetitorCard from "./CompetitorCard";
+import CompetitorTable from "./CompetitorTable";
 import CompetitorDetailModal from "./CompetitorDetailModal";
 import AddCompetitorsModal from "./AddCompetitorsModal";
+
+type ViewMode = "grid" | "table";
 
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
@@ -23,6 +26,7 @@ export default function Competitors({ addToast }: Props) {
   const [detailAppId, setDetailAppId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const menuRef = useRef<HTMLDivElement>(null);
   useClickOutside(
     menuRef,
@@ -85,6 +89,32 @@ export default function Competitors({ addToast }: Props) {
       <div className="flex items-start justify-between mb-1">
         <h1 className={`${pageTitle}`}>Competitors</h1>
         <div className="flex items-center gap-2.5">
+          <div
+            className={`inline-flex items-center p-1 rounded-full border ${borderDefault} bg-gray-50/60 dark:bg-[#181c24]`}
+          >
+            <button
+              onClick={() => setViewMode("grid")}
+              aria-pressed={viewMode === "grid"}
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold transition-all ${
+                viewMode === "grid"
+                  ? `bg-white dark:bg-[#252b38] ${textPrimary} shadow-[0_1px_2px_rgba(0,0,0,0.06)]`
+                  : `${textMuted}`
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" /> Grid
+            </button>
+            <button
+              onClick={() => setViewMode("table")}
+              aria-pressed={viewMode === "table"}
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold transition-all ${
+                viewMode === "table"
+                  ? `bg-white dark:bg-[#252b38] ${textPrimary} shadow-[0_1px_2px_rgba(0,0,0,0.06)]`
+                  : `${textMuted}`
+              }`}
+            >
+              <List className="w-3.5 h-3.5" /> List
+            </button>
+          </div>
           <button
             onClick={() => setAddOpen(true)}
             disabled={!canWrite || !ownApp}
@@ -150,6 +180,13 @@ export default function Competitors({ addToast }: Props) {
           <div className={`text-sm font-medium ${textSecondary} mb-1`}>No competitors discovered yet</div>
           <div className={`text-xs ${textMuted}`}>Run a scrape from the Actions page</div>
         </div>
+      ) : viewMode === "table" ? (
+        <CompetitorTable
+          competitors={competitors}
+          ownAppId={ownApp?.id}
+          onRemove={ownApp ? (competitorId) => removeCompetitor(ownApp.id, competitorId) : undefined}
+          onRowClick={(id) => setDetailAppId(id)}
+        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {competitors.map((c) => (

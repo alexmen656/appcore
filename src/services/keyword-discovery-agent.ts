@@ -72,7 +72,7 @@ export class KeywordDiscoveryAgent {
     return ["de"];
   }
 
-  async run(): Promise<{ discovered: number; scored: number; added: number }> {
+  async run(): Promise<{ discovered: number; scored: number; suggested: number }> {
     try {
       if (!this.bundleId) {
         throw new Error("No bundle ID configured, cannot run discovery");
@@ -83,23 +83,23 @@ export class KeywordDiscoveryAgent {
 
       let totalDiscovered = 0;
       let totalScored = 0;
-      let totalAdded = 0;
+      let totalSuggested = 0;
 
       for (const country of countries) {
         const result = await this.discoverForCountry(country);
         totalDiscovered += result.discovered;
         totalScored += result.scored;
-        totalAdded += result.added;
+        totalSuggested += result.suggested;
       }
 
       const result = {
         discovered: totalDiscovered,
         scored: totalScored,
-        added: totalAdded,
+        suggested: totalSuggested,
       };
 
       logger.info(
-        `[Discovery] Run complete: ${result.discovered} found, ${result.scored} qualified, ${result.added} added`,
+        `[Discovery] Run complete: ${result.discovered} found, ${result.scored} qualified, ${result.suggested} suggested`,
       );
       return result;
     } catch (error) {
@@ -110,11 +110,23 @@ export class KeywordDiscoveryAgent {
   private async discoverForCountry(country: string): Promise<{
     discovered: number;
     scored: number;
-    added: number;
+    suggested: number;
   }> {
+    const ownApp = await prisma.app.findUnique({
+      where: { bundleId: this.bundleId },
+    });
+    if (!ownApp) {
+      logger.warn(`[Discovery:${country}] Own app not found for ${this.bundleId}, skipping`);
+      return { discovered: 0, scored: 0, suggested: 0 };
+    }
+
     const scraper = new AppStoreScraper(country);
     const existingTerms = await this.loadExistingTerms(country);
-    logger.info(`[Discovery:${country}] Starting – ${existingTerms.size} keywords already tracked`);
+    const suggestedTerms = await this.loadSuggestedTerms(ownApp.id, country);
+    const excludeTerms = new Set([...existingTerms, ...suggestedTerms]);
+    logger.info(
+      `[Discovery:${country}] Starting – ${existingTerms.size} tracked, ${suggestedTerms.size} already suggested`,
+    );
 
     const [fromCompetitors, fromAutocomplete, fromSemantic] = await Promise.all([
       this.discoverFromCompetitorTexts(existingTerms, country),
@@ -125,7 +137,7 @@ export class KeywordDiscoveryAgent {
     const candidates = new Set<string>();
     for (const term of [...fromCompetitors, ...fromAutocomplete, ...fromSemantic]) {
       const normalized = term.toLowerCase().trim();
-      if (normalized.length >= 3 && !existingTerms.has(normalized)) {
+      if (normalized.length >= 3 && !excludeTerms.has(normalized)) {
         candidates.add(normalized);
       }
     }
@@ -138,40 +150,34 @@ export class KeywordDiscoveryAgent {
     const qualified = await this.scoreAndFilter([...candidates], scraper, country);
 
     const keywordLanguage = langForCountry(country);
-    const ownApp = await prisma.app.findUnique({
-      where: { bundleId: this.bundleId },
-    });
 
     await Promise.all(
-      qualified.map(async (term) => {
-        const keyword = await prisma.keyword.upsert({
-          where: { term_country: { term, country } },
-          create: { term, country, language: keywordLanguage },
-          update: {},
-        });
-
-        if (ownApp) {
-          const existingRanking = await prisma.keywordRanking.findFirst({
-            where: { keywordId: keyword.id, appId: ownApp.id },
-          });
-          if (!existingRanking) {
-            await prisma.keywordRanking.create({
-              data: {
-                keywordId: keyword.id,
-                appId: ownApp.id,
-                rank: null,
-                country,
-              },
-            });
-          }
-        }
-      }),
+      qualified.map((c) =>
+        prisma.keywordSuggestion.upsert({
+          where: { appId_term_country: { appId: ownApp.id, term: c.term, country } },
+          create: {
+            appId: ownApp.id,
+            term: c.term,
+            country,
+            language: keywordLanguage,
+            popularity: c.popularity,
+            difficulty: c.difficulty,
+            searchVolume: c.searchVolume,
+            status: "PENDING",
+          },
+          update: {
+            popularity: c.popularity,
+            difficulty: c.difficulty,
+            searchVolume: c.searchVolume,
+          },
+        }),
+      ),
     );
 
     return {
       discovered: candidates.size,
       scored: qualified.length,
-      added: qualified.length,
+      suggested: qualified.length,
     };
   }
 
@@ -321,9 +327,13 @@ Return JSON only.`;
     }
   }
 
-  private async scoreAndFilter(candidates: string[], scraper: AppStoreScraper, country: string): Promise<string[]> {
+  private async scoreAndFilter(
+    candidates: string[],
+    scraper: AppStoreScraper,
+    country: string,
+  ): Promise<{ term: string; popularity: number; difficulty: number; searchVolume: number }[]> {
     const toScore = candidates.slice(0, this.MAX_SCORE_PER_RUN);
-    const qualified: string[] = [];
+    const qualified: { term: string; popularity: number; difficulty: number; searchVolume: number }[] = [];
 
     logger.info(
       `[Discovery:${country}] Scoring ${toScore.length} of ${candidates.length} candidates (min pop=${this.MIN_POPULARITY} min results=${this.MIN_RESULTS})`,
@@ -331,10 +341,10 @@ Return JSON only.`;
 
     for (const candidate of toScore) {
       try {
-        const { popularity, searchVolume } = await scraper.analyzeKeyword(candidate, 25);
+        const { popularity, difficulty, searchVolume } = await scraper.analyzeKeyword(candidate, 25);
 
         if (popularity >= this.MIN_POPULARITY && searchVolume >= this.MIN_RESULTS) {
-          qualified.push(candidate);
+          qualified.push({ term: candidate, popularity, difficulty, searchVolume });
           logger.debug(`[Discovery:${country}] ✓ "${candidate}" accepted (pop=${popularity} results=${searchVolume})`);
         } else {
           logger.debug(`[Discovery:${country}] ✗ "${candidate}" rejected (pop=${popularity} results=${searchVolume})`);
@@ -347,6 +357,14 @@ Return JSON only.`;
 
     logger.info(`[Discovery:${country}] ${qualified.length}/${toScore.length} candidates passed scoring`);
     return qualified;
+  }
+
+  private async loadSuggestedTerms(appId: string, country: string): Promise<Set<string>> {
+    const suggestions = await prisma.keywordSuggestion.findMany({
+      where: { appId, country },
+      select: { term: true },
+    });
+    return new Set(suggestions.map((s) => s.term.toLowerCase()));
   }
 
   private async loadExistingTerms(country: string): Promise<Set<string>> {

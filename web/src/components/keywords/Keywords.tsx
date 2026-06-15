@@ -27,6 +27,7 @@ export default function Keywords({ addToast }: Props) {
   const writeTip = !canWrite ? "Viewer role cannot perform this action" : undefined;
   const [items, setItems] = useState<Keyword[]>([]);
   const [groups, setGroups] = useState<KeywordGroup[]>([]);
+  const [suggestionCount, setSuggestionCount] = useState(0);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -44,16 +45,24 @@ export default function Keywords({ addToast }: Props) {
       .catch(() => setGroups([]));
   }, []);
 
+  const refetchSuggestions = useCallback(() => {
+    apiGet<{ total: number }>("/keywords/suggestions")
+      .then((res) => setSuggestionCount(res.total))
+      .catch(() => setSuggestionCount(0));
+  }, []);
+
   useEffect(() => {
     refetch();
     refetchGroups();
+    refetchSuggestions();
     const handler = () => {
       refetch();
       refetchGroups();
+      refetchSuggestions();
     };
     window.addEventListener("app-changed", handler);
     return () => window.removeEventListener("app-changed", handler);
-  }, [refetch, refetchGroups]);
+  }, [refetch, refetchGroups, refetchSuggestions]);
   const { data: keywordFieldsData } = useApi<{
     keywordFields: Record<string, string>;
     indexedText?: Record<string, string>;
@@ -404,14 +413,16 @@ export default function Keywords({ addToast }: Props) {
         <button
           onClick={() => setAddModalOpen(true)}
           disabled={!canWrite}
-          title={writeTip ?? "3 new AI suggestions"}
+          title={writeTip ?? (suggestionCount > 0 ? `${suggestionCount} new AI suggestions` : "Add keywords")}
           className={`relative inline-flex items-center gap-1.5 pl-3 pr-3.5 py-[7px] rounded-full border ${borderDefault} bg-white dark:bg-[#1c2028] text-[13px] font-medium ${textPrimary} hover:border-[#D94412] hover:text-[#D94412] transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
         >
           <Plus className="w-3.5 h-3.5" />
           Add keywords
-          <span className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#D94412] text-white text-[10px] font-bold tabular-nums ring-2 ring-white dark:ring-[#0f1117]">
-            3
-          </span>
+          {suggestionCount > 0 && (
+            <span className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#D94412] text-white text-[10px] font-bold tabular-nums ring-2 ring-white dark:ring-[#0f1117]">
+              {suggestionCount}
+            </span>
+          )}
         </button>
         <div
           className={`inline-flex items-center p-1 rounded-full border ${borderDefault} bg-gray-50/60 dark:bg-[#181c24]`}
@@ -489,6 +500,7 @@ export default function Keywords({ addToast }: Props) {
           posthog?.capture("keyword_added", { count });
           refetch();
         }}
+        onSuggestionsChanged={refetchSuggestions}
         addToast={addToast}
       />
 
