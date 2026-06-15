@@ -6,7 +6,7 @@ import MetricsChart from "./MetricsChart";
 import type { ChartMarker } from "./MetricsChart";
 import type { AnalyticsSummary, DashboardData, DownloadsData, Review } from "../../types";
 import { TD, TH, borderDefault, pageTitle, textMuted, textPrimary } from "../../styles";
-import { fmtNumber, fmtRevenue, fmtDateTime, fmtPct, countryName } from "../../utils/formatters";
+import { fmtNumber, fmtRevenue, fmtRelativeDateTime, fmtPct, countryName } from "../../utils/formatters";
 import { type RangeKey, RANGE_OPTIONS, rangeToParams, rangeLabel } from "../../utils/analyticsRange";
 
 interface Props {
@@ -224,20 +224,61 @@ export default function Analytics({ addToast }: Props) {
 
   return (
     <div className="max-w-[1440px] mx-auto">
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className={`${pageTitle} mb-1`}>Analytics</h1>
+      <h1 className={`${pageTitle} mb-6`}>Analytics</h1>
+
+      {!loading && !summary?.totalDownloads && (reviews ?? []).length === 0 && hasASC && (
+        <div className="mb-5 px-4 py-3.5 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/40 text-[13px] text-amber-800 dark:text-amber-400">
+          <strong>No analytics data yet.</strong> Make sure your{" "}
+          <Link to="/settings/team-settings" className="underline font-medium">
+            Vendor Number
+          </Link>{" "}
+          is configured in Settings, then click <strong>Sync Now</strong>.
         </div>
-        <div className="flex">
-          <p className={`text-sm ${textMuted} mr-3`}>
-            {summary?.lastSyncAt && (
-              <span className="block h-full content-center">Last synced {fmtDateTime(summary.lastSyncAt)}</span>
-            )}
-          </p>
+      )}
+
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex gap-1 p-1 bg-[#f3f4f6] dark:bg-[#1c2028] rounded-xl">
+            {RANGE_OPTIONS.map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setRange(opt.key)}
+                className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
+                  range === opt.key
+                    ? `bg-white dark:bg-[#252b38] ${textPrimary} shadow-[0_1px_3px_rgba(0,0,0,0.08)]`
+                    : `${textMuted} hover:text-[#6b7280] dark:hover:text-[#8b93a5]`
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {range === "custom" && (
+            <div className="flex items-center gap-1.5">
+              <input
+                type="date"
+                value={customStart}
+                onChange={(e) => setCustomStart(e.target.value)}
+                className={`h-8 px-2.5 text-[12px] border ${borderDefault} rounded-xl ${textPrimary} bg-white dark:bg-[#1c2028] focus:outline-none focus:border-[#c4c9d4] dark:focus:border-[#D94412]`}
+              />
+              <span className={`${textMuted} text-[12px]`}>–</span>
+              <input
+                type="date"
+                value={customEnd}
+                onChange={(e) => setCustomEnd(e.target.value)}
+                className={`h-8 px-2.5 text-[12px] border ${borderDefault} rounded-xl ${textPrimary} bg-white dark:bg-[#1c2028] focus:outline-none focus:border-[#c4c9d4] dark:focus:border-[#D94412]`}
+              />
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          {summary?.lastSyncAt && (
+            <span className={`text-[12px] ${textMuted}`}>Last synced {fmtRelativeDateTime(summary.lastSyncAt)}</span>
+          )}
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-medium bg-[#D94412] text-white hover:bg-[#c80b24] disabled:opacity-60 transition-colors shrink-0"
+            className="inline-flex items-center gap-1.5 px-3.5 h-[38px] rounded-xl text-[12px] font-medium bg-[#D94412] text-white hover:bg-[#c80b24] disabled:opacity-60 transition-colors shrink-0"
           >
             {syncing ? (
               <>
@@ -252,51 +293,6 @@ export default function Analytics({ addToast }: Props) {
             )}
           </button>
         </div>
-      </div>
-
-      {!loading && !summary?.totalDownloads && (reviews ?? []).length === 0 && hasASC && (
-        <div className="mb-5 px-4 py-3.5 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900/40 text-[13px] text-amber-800 dark:text-amber-400">
-          <strong>No analytics data yet.</strong> Make sure your{" "}
-          <Link to="/settings/team-settings" className="underline font-medium">
-            Vendor Number
-          </Link>{" "}
-          is configured in Settings, then click <strong>Sync Now</strong>.
-        </div>
-      )}
-
-      <div className="flex flex-wrap items-center gap-2 mb-5">
-        <div className="flex gap-1 p-1 bg-[#f3f4f6] dark:bg-[#1c2028] rounded-xl">
-          {RANGE_OPTIONS.map((opt) => (
-            <button
-              key={opt.key}
-              onClick={() => setRange(opt.key)}
-              className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
-                range === opt.key
-                  ? `bg-white dark:bg-[#252b38] ${textPrimary} shadow-[0_1px_3px_rgba(0,0,0,0.08)]`
-                  : `${textMuted} hover:text-[#6b7280] dark:hover:text-[#8b93a5]`
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-        {range === "custom" && (
-          <div className="flex items-center gap-1.5">
-            <input
-              type="date"
-              value={customStart}
-              onChange={(e) => setCustomStart(e.target.value)}
-              className={`h-8 px-2.5 text-[12px] border ${borderDefault} rounded-xl ${textPrimary} bg-white dark:bg-[#1c2028] focus:outline-none focus:border-[#c4c9d4] dark:focus:border-[#D94412]`}
-            />
-            <span className={`${textMuted} text-[12px]`}>–</span>
-            <input
-              type="date"
-              value={customEnd}
-              onChange={(e) => setCustomEnd(e.target.value)}
-              className={`h-8 px-2.5 text-[12px] border ${borderDefault} rounded-xl ${textPrimary} bg-white dark:bg-[#1c2028] focus:outline-none focus:border-[#c4c9d4] dark:focus:border-[#D94412]`}
-            />
-          </div>
-        )}
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-4">

@@ -369,8 +369,8 @@ export default function Keywords({ addToast, isPro }: Props) {
 
   return (
     <div>
-      <h1 className={`${pageTitle} mb-6`}>Keywords</h1>
-      <div className="flex items-center gap-2.5 flex-wrap mb-6">
+      <h1 className={`${pageTitle} mb-8`}>Keywords</h1>
+      <div className="flex items-center gap-2.5 flex-wrap mb-4">
         <div
           className={`inline-flex items-center p-1 rounded-full border ${borderDefault} bg-gray-50/60 dark:bg-[#181c24]`}
         >
@@ -379,7 +379,7 @@ export default function Keywords({ addToast, isPro }: Props) {
             aria-pressed={viewMode === "list"}
             className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold transition-all ${
               viewMode === "list"
-                ? `bg-white dark:bg-[#252b38] ${textPrimary} shadow-[0_1px_2px_rgba(0,0,0,0.06)]`
+                ? "bg-[#D94412] text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
                 : `${textMuted} hover:${textSecondary.replace(/^text-/, "text-")}`
             }`}
           >
@@ -390,7 +390,7 @@ export default function Keywords({ addToast, isPro }: Props) {
             aria-pressed={viewMode === "matrix"}
             className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold transition-all ${
               viewMode === "matrix"
-                ? `bg-white dark:bg-[#252b38] ${textPrimary} shadow-[0_1px_2px_rgba(0,0,0,0.06)]`
+                ? "bg-[#D94412] text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
                 : `${textMuted}`
             }`}
           >

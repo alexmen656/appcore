@@ -20,6 +20,18 @@ export function fmtDateTime(iso: string): string {
   });
 }
 
+export function fmtRelativeDateTime(iso: string): string {
+  const d = new Date(iso);
+  const time = d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diffDays = Math.round((startOfDay(new Date()) - startOfDay(d)) / 86_400_000);
+
+  if (diffDays === 0) return `Today, ${time}`;
+  if (diffDays === 1) return `Yesterday, ${time}`;
+  if (diffDays > 1 && diffDays < 7) return `${diffDays} days ago, ${time}`;
+  return `${d.toLocaleDateString(undefined, { day: "2-digit", month: "short" })}, ${time}`;
+}
+
 export function fmtNumber(n: number | null | undefined): string {
   if (n == null) return "—";
   return n.toLocaleString();

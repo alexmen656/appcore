@@ -71,7 +71,10 @@ analyticsRouter.get("/summary", ...requireBundleAccess("query"), async (req, res
       }),
     ]);
 
-    const lastSync = { completedAt: new Date("2025-01-01") };
+    const lastSyncAgg = await prisma.appStoreAnalytics.aggregate({
+      where: { bundleId },
+      _max: { createdAt: true },
+    });
     const downloads = metricAgg._sum.downloads ?? 0;
     const impressions = metricAgg._sum.impressions ?? 0;
     const pageViews = metricAgg._sum.pageViews ?? 0;
@@ -85,7 +88,7 @@ analyticsRouter.get("/summary", ...requireBundleAccess("query"), async (req, res
       conversionRate: impressions > 0 ? (downloads / impressions) * 100 : null,
       avgRating: reviewAgg._avg.rating ?? null,
       reviewCount: reviewAgg._count.id,
-      lastSyncAt: lastSync?.completedAt ?? null,
+      lastSyncAt: lastSyncAgg._max.createdAt ?? null,
     });
   } catch (err) {
     res.status(500).json({ error: String(err) });
