@@ -1,5 +1,6 @@
 import { useAdminApi } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Users,
   Building,
@@ -80,14 +81,7 @@ interface DashboardStats {
 
 const BRAND = "#FF6B00";
 const BRAND2 = "#CC0022";
-const PIE_COLORS = [
-  "#FF6B00",
-  "#CC0022",
-  "#f97316",
-  "#ec4899",
-  "#8b5cf6",
-  "#06b6d4",
-];
+const PIE_COLORS = ["#FF6B00", "#CC0022", "#f97316", "#ec4899", "#8b5cf6", "#06b6d4"];
 
 const statCards = [
   {
@@ -171,27 +165,19 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          System Overview and Key Metrics
-        </p>
+        <p className="text-muted-foreground text-sm mt-1">System Overview and Key Metrics</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {statCards.map((stat) => (
           <Card key={stat.key} className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {stat.label}
-              </CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">{stat.label}</CardTitle>
               <span className={stat.color}>{stat.icon}</span>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">
-                {loading ? (
-                  <span className="text-muted-foreground text-lg">…</span>
-                ) : (
-                  (stats?.[stat.key]?.toLocaleString("de-DE") ?? 0)
-                )}
+                {loading ? <Skeleton className="h-8 w-20" /> : (stats?.[stat.key]?.toLocaleString("de-DE") ?? 0)}
               </div>
             </CardContent>
           </Card>
@@ -210,18 +196,12 @@ export default function Dashboard() {
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-1">
                 <div className="text-xs text-muted-foreground">MRR (estimated)</div>
-                <div className="text-2xl font-bold">
-                  €{(stats?.mrrEur ?? 0).toLocaleString("en-US")}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  based on €19/mo & €190/yr
-                </div>
+                <div className="text-2xl font-bold">€{(stats?.mrrEur ?? 0).toLocaleString("en-US")}</div>
+                <div className="text-xs text-muted-foreground">based on €19/mo & €190/yr</div>
               </div>
               <div className="space-y-1">
                 <div className="text-xs text-muted-foreground">Active Subscriptions</div>
-                <div className="text-2xl font-bold">
-                  {(stats?.activeSubscriptions ?? 0).toLocaleString("en-US")}
-                </div>
+                <div className="text-2xl font-bold">{(stats?.activeSubscriptions ?? 0).toLocaleString("en-US")}</div>
                 <div className="text-xs text-muted-foreground">
                   of {(stats?.subscriptions ?? 0).toLocaleString("en-US")} total
                 </div>
@@ -262,11 +242,8 @@ export default function Dashboard() {
               <div className="space-y-4">
                 {stats!.ascRateLimits!.map((rl) => {
                   const pct = Math.round((rl.hourRemaining / rl.hourLimit) * 100);
-                  const color =
-                    pct <= 10 ? "bg-red-500" : pct <= 30 ? "bg-yellow-500" : "bg-green-500";
-                  const updatedAgo = Math.round(
-                    (Date.now() - new Date(rl.updatedAt).getTime()) / 60000,
-                  );
+                  const color = pct <= 10 ? "bg-red-500" : pct <= 30 ? "bg-yellow-500" : "bg-green-500";
+                  const updatedAgo = Math.round((Date.now() - new Date(rl.updatedAt).getTime()) / 60000);
                   return (
                     <div key={rl.teamId} className="space-y-1.5">
                       <div className="flex items-center justify-between text-sm">
@@ -285,9 +262,7 @@ export default function Dashboard() {
                           style={{ width: `${Math.max(pct, 1)}%` }}
                         />
                       </div>
-                      <div className="text-xs text-muted-foreground text-right">
-                        updated {updatedAgo} min ago
-                      </div>
+                      <div className="text-xs text-muted-foreground text-right">updated {updatedAgo} min ago</div>
                     </div>
                   );
                 })}
@@ -300,9 +275,7 @@ export default function Dashboard() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">
-              New Users (last 30 days)
-            </CardTitle>
+            <CardTitle className="text-base">New Users (last 30 days)</CardTitle>
           </CardHeader>
           <CardContent>
             {loading || !stats?.charts?.usersOverTime?.length ? (
@@ -318,24 +291,11 @@ export default function Dashboard() {
                       <stop offset="95%" stopColor={BRAND} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 11 }}
-                    tickFormatter={(v) => v.slice(5)}
-                  />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(v) => v.slice(5)} />
                   <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                  <Tooltip
-                    formatter={(v) => [v, "User"]}
-                    labelFormatter={(l) => `Date: ${l}`}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="count"
-                    stroke={BRAND}
-                    fill="url(#userGrad)"
-                    strokeWidth={2}
-                  />
+                  <Tooltip formatter={(v) => [v, "User"]} labelFormatter={(l) => `Date: ${l}`} />
+                  <Area type="monotone" dataKey="count" stroke={BRAND} fill="url(#userGrad)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
             )}
@@ -344,9 +304,7 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">
-              New Apps (last 30 days)
-            </CardTitle>
+            <CardTitle className="text-base">New Apps (last 30 days)</CardTitle>
           </CardHeader>
           <CardContent>
             {loading || !stats?.charts?.appsOverTime?.length ? (
@@ -362,24 +320,11 @@ export default function Dashboard() {
                       <stop offset="95%" stopColor={BRAND2} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 11 }}
-                    tickFormatter={(v) => v.slice(5)}
-                  />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(v) => v.slice(5)} />
                   <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                  <Tooltip
-                    formatter={(v) => [v, "Apps"]}
-                    labelFormatter={(l) => `Date: ${l}`}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="count"
-                    stroke={BRAND2}
-                    fill="url(#appGrad)"
-                    strokeWidth={2}
-                  />
+                  <Tooltip formatter={(v) => [v, "Apps"]} labelFormatter={(l) => `Date: ${l}`} />
+                  <Area type="monotone" dataKey="count" stroke={BRAND2} fill="url(#appGrad)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
             )}
@@ -400,18 +345,9 @@ export default function Dashboard() {
             ) : (
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={stats.charts.suggestionTypes} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis
-                    type="number"
-                    tick={{ fontSize: 11 }}
-                    allowDecimals={false}
-                  />
-                  <YAxis
-                    dataKey="type"
-                    type="category"
-                    tick={{ fontSize: 11 }}
-                    width={100}
-                  />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                  <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
+                  <YAxis dataKey="type" type="category" tick={{ fontSize: 11 }} width={100} />
                   <Tooltip />
                   <Bar dataKey="count" radius={[0, 4, 4, 0]}>
                     {stats.charts.suggestionTypes.map((_, i) => (

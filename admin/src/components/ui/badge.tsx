@@ -1,6 +1,12 @@
 import { cn } from "@/lib/utils";
 
-function Badge({ className, variant = "default", ...props }: React.HTMLAttributes<HTMLDivElement> & { variant?: "default" | "secondary" | "destructive" | "outline" }) {
+type BadgeVariant = "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "brand";
+
+function Badge({
+  className,
+  variant = "default",
+  ...props
+}: React.HTMLAttributes<HTMLDivElement> & { variant?: BadgeVariant }) {
   return (
     <div
       className={cn(
@@ -9,7 +15,10 @@ function Badge({ className, variant = "default", ...props }: React.HTMLAttribute
         variant === "secondary" && "border-transparent bg-secondary text-secondary-foreground",
         variant === "destructive" && "border-transparent bg-destructive text-white shadow",
         variant === "outline" && "text-foreground",
-        className
+        variant === "success" && "border-transparent bg-success/15 text-success",
+        variant === "warning" && "border-transparent bg-warning/20 text-warning",
+        variant === "brand" && "border-transparent bg-brand/15 text-brand",
+        className,
       )}
       {...props}
     />

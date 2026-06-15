@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { getModelConfig, type ModelField } from "@/lib/models";
 import { useAdminApi, adminCreate, adminUpdate, adminDelete, apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -7,17 +7,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TableSkeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/toast";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
-  Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
-} from "@/components/ui/table";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Inbox,
+  Search as SearchIcon,
+} from "lucide-react";
 
 interface PaginatedResponse {
   data: Record<string, unknown>[];
@@ -26,16 +42,31 @@ interface PaginatedResponse {
   pageSize: number;
 }
 
+const PAGE_SIZE = 25;
+
 function formatValue(value: unknown, field: ModelField): React.ReactNode {
   if (value === null || value === undefined) return <span className="text-muted-foreground">—</span>;
-  if (field.type === "boolean") return value ? <Badge variant="default">Yes</Badge> : <Badge variant="secondary">No</Badge>;
+  if (field.type === "boolean")
+    return value ? <Badge variant="success">Yes</Badge> : <Badge variant="secondary">No</Badge>;
   if (field.type === "date") {
     const d = new Date(value as string);
-    return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    return (
+      <span className="whitespace-nowrap text-muted-foreground">
+        {d.toLocaleDateString("de-DE", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
+      </span>
+    );
   }
   if (field.type === "enum") return <Badge variant="outline">{String(value)}</Badge>;
-  if (field.type === "json") return <code className="text-xs">{JSON.stringify(value).slice(0, 50)}…</code>;
+  if (field.type === "json")
+    return <code className="text-xs text-muted-foreground">{JSON.stringify(value).slice(0, 50)}…</code>;
   const str = String(value);
+  if (field.name === "id") return <code className="text-xs text-muted-foreground">{str.slice(0, 10)}…</code>;
   return str.length > 60 ? str.slice(0, 60) + "…" : str;
 }
 
@@ -89,29 +120,31 @@ function RecordForm({
         <div key={field.name} className="space-y-2">
           <Label htmlFor={field.name}>
             {field.display}
-            {field.required && <span className="text-destructive ml-1">*</span>}
+            {field.required && <span className="ml-1 text-destructive">*</span>}
           </Label>
           {field.type === "boolean" ? (
-            <div className="flex items-center gap-2">
+            <label className="flex cursor-pointer items-center gap-2">
               <input
                 type="checkbox"
                 id={field.name}
                 checked={Boolean(formData[field.name])}
                 onChange={(e) => setFormData({ ...formData, [field.name]: e.target.checked })}
-                className="h-4 w-4"
+                className="h-4 w-4 accent-[var(--color-brand)]"
               />
               <span className="text-sm text-muted-foreground">{formData[field.name] ? "Yes" : "No"}</span>
-            </div>
+            </label>
           ) : field.type === "enum" ? (
             <select
               id={field.name}
               value={String(formData[field.name] ?? "")}
               onChange={(e) => setFormData({ ...formData, [field.name]: e.target.value })}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
             >
               <option value="">—</option>
               {field.enumValues?.map((v) => (
-                <option key={v} value={v}>{v}</option>
+                <option key={v} value={v}>
+                  {v}
+                </option>
               ))}
             </select>
           ) : (
@@ -127,8 +160,12 @@ function RecordForm({
         </div>
       ))}
       <div className="flex justify-end gap-2 pt-4">
-        <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={saving}>
+          {saving ? "Saving…" : "Save"}
+        </Button>
       </div>
     </form>
   );
@@ -137,14 +174,36 @@ function RecordForm({
 export default function ModelCrud() {
   const { model: modelPath } = useParams<{ model: string }>();
   const config = getModelConfig(modelPath ?? "");
+  const navigate = useNavigate();
+  const toast = useToast();
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<{ field: string; dir: "asc" | "desc" } | null>(null);
   const [editRecord, setEditRecord] = useState<Record<string, unknown> | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const queryParams = `?page=${page}&pageSize=25${search ? `&search=${encodeURIComponent(search)}` : ""}`;
+  // Debounce the search input
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  // Reset local state when switching models
+  useEffect(() => {
+    setSearchInput("");
+    setSearch("");
+    setSort(null);
+    setPage(1);
+  }, [modelPath]);
+
+  const queryParams = `?page=${page}&pageSize=${PAGE_SIZE}${search ? `&search=${encodeURIComponent(search)}` : ""}`;
   const { data, loading, refetch } = useAdminApi<PaginatedResponse>(`/${modelPath}${queryParams}`);
 
   const editId = searchParams.get("edit");
@@ -152,127 +211,239 @@ export default function ModelCrud() {
     if (!editId || !modelPath) return;
     apiFetch<Record<string, unknown>>(`/${modelPath}/${editId}`)
       .then(setEditRecord)
-      .catch(() => { })
+      .catch(() => {})
       .finally(() => {
         searchParams.delete("edit");
         setSearchParams(searchParams, { replace: true });
       });
   }, [editId, modelPath]);
 
+  const visibleFields = useMemo(() => config?.fields.filter((f) => !f.hidden) ?? [], [config]);
+
+  const sortedRows = useMemo(() => {
+    const rows = data?.data ?? [];
+    if (!sort) return rows;
+    const copy = [...rows];
+    copy.sort((a, b) => {
+      const av = a[sort.field];
+      const bv = b[sort.field];
+      if (av === bv) return 0;
+      if (av === null || av === undefined) return 1;
+      if (bv === null || bv === undefined) return -1;
+      const cmp =
+        typeof av === "number" && typeof bv === "number"
+          ? av - bv
+          : String(av).localeCompare(String(bv), undefined, { numeric: true });
+      return sort.dir === "asc" ? cmp : -cmp;
+    });
+    return copy;
+  }, [data, sort]);
+
   if (!config) {
     return <div className="p-8 text-center text-muted-foreground">Model not found</div>;
   }
 
-  const visibleFields = config.fields.filter((f) => !f.hidden);
-  const totalPages = data ? Math.ceil(data.total / 25) : 0;
+  const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 0;
+
+  const toggleSort = (field: string) => {
+    setSort((prev) => {
+      if (!prev || prev.field !== field) return { field, dir: "asc" };
+      if (prev.dir === "asc") return { field, dir: "desc" };
+      return null;
+    });
+  };
 
   const handleCreate = async (formData: Record<string, unknown>) => {
-    await adminCreate(config.apiPath, formData);
-    setCreateOpen(false);
-    refetch();
+    try {
+      await adminCreate(config.apiPath, formData);
+      setCreateOpen(false);
+      toast.success(`${config.name} created`);
+      refetch();
+    } catch (e) {
+      toast.error("Create failed", e instanceof Error ? e.message : undefined);
+      throw e;
+    }
   };
 
   const handleUpdate = async (formData: Record<string, unknown>) => {
     if (!editRecord) return;
-    await adminUpdate(config.apiPath, editRecord.id as string, formData);
-    setEditRecord(null);
-    refetch();
+    try {
+      await adminUpdate(config.apiPath, editRecord.id as string, formData);
+      setEditRecord(null);
+      toast.success(`${config.name} updated`);
+      refetch();
+    } catch (e) {
+      toast.error("Update failed", e instanceof Error ? e.message : undefined);
+      throw e;
+    }
   };
 
   const handleDelete = async () => {
     if (!deleteId) return;
-    await adminDelete(config.apiPath, deleteId);
-    setDeleteId(null);
-    refetch();
+    setDeleting(true);
+    try {
+      await adminDelete(config.apiPath, deleteId);
+      toast.success(`${config.name} deleted`);
+      setDeleteId(null);
+      refetch();
+    } catch (e) {
+      toast.error("Delete failed", e instanceof Error ? e.message : undefined);
+    } finally {
+      setDeleting(false);
+    }
   };
 
+  const pageNumbers = useMemo(() => {
+    if (totalPages <= 1) return [];
+    const around = new Set<number>([1, totalPages, page, page - 1, page + 1]);
+    return [...around].filter((n) => n >= 1 && n <= totalPages).sort((a, b) => a - b);
+  }, [page, totalPages]);
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">{config.plural}</h1>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">{config.plural}</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {data ? `${data.total.toLocaleString("en-US")} record${data.total === 1 ? "" : "s"}` : "Loading…"}
+          </p>
+        </div>
         <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Erstellen
+          <Plus className="mr-1.5 h-4 w-4" />
+          New {config.name}
         </Button>
       </div>
 
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">
-              {data ? `${data.total} records` : "Loading…"}
+        <CardHeader className="border-b py-3">
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {sort
+                ? `Sorted by ${visibleFields.find((f) => f.name === sort.field)?.display ?? sort.field}`
+                : "All records"}
             </CardTitle>
-            <Input
-              placeholder="Search…"
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="w-64"
-            />
+            <div className="relative w-72 max-w-full">
+              <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search…"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="pl-8"
+              />
+            </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {loading ? (
-            <div className="py-8 text-center text-muted-foreground">Loading data…</div>
+            <div className="p-6">
+              <TableSkeleton rows={10} cols={Math.min(visibleFields.length + 1, 6)} />
+            </div>
+          ) : sortedRows.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
+              <Inbox className="h-10 w-10 text-muted-foreground/40" />
+              <p className="text-sm font-medium">No records found</p>
+              <p className="text-xs text-muted-foreground">
+                {search ? "Try a different search term." : `Create your first ${config.name}.`}
+              </p>
+            </div>
           ) : (
-            <>
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {visibleFields.map((f) => (
-                      <TableHead key={f.name}>{f.display}</TableHead>
-                    ))}
-                    <TableHead className="w-32">Aktionen</TableHead>
+                    {visibleFields.map((f) => {
+                      const active = sort?.field === f.name;
+                      return (
+                        <TableHead key={f.name}>
+                          <button
+                            onClick={() => toggleSort(f.name)}
+                            className={`-mx-1 flex items-center gap-1 rounded px-1 py-0.5 transition-colors hover:text-foreground ${active ? "text-brand" : ""}`}
+                          >
+                            {f.display}
+                            {active ? (
+                              sort!.dir === "asc" ? (
+                                <ArrowUp className="h-3 w-3" />
+                              ) : (
+                                <ArrowDown className="h-3 w-3" />
+                              )
+                            ) : (
+                              <ArrowUpDown className="h-3 w-3 opacity-30" />
+                            )}
+                          </button>
+                        </TableHead>
+                      );
+                    })}
+                    <TableHead className="w-28 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data?.data.map((record) => (
-                    <TableRow key={record.id as string}>
+                  {sortedRows.map((record) => (
+                    <TableRow
+                      key={record.id as string}
+                      className="cursor-pointer"
+                      onClick={() => navigate(`/models/${modelPath}/${record.id as string}`)}
+                    >
                       {visibleFields.map((f) => (
                         <TableCell key={f.name}>{formatValue(record[f.name], f)}</TableCell>
                       ))}
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" asChild>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-end gap-0.5">
+                          <Button variant="ghost" size="icon" asChild title="View">
                             <Link to={`/models/${modelPath}/${record.id as string}`}>
                               <Eye className="h-4 w-4" />
                             </Link>
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => setEditRecord(record)}>
+                          <Button variant="ghost" size="icon" title="Edit" onClick={() => setEditRecord(record)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => setDeleteId(record.id as string)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Delete"
+                            onClick={() => setDeleteId(record.id as string)}
+                          >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>
                       </TableCell>
                     </TableRow>
                   ))}
-                  {data?.data.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={visibleFields.length + 1} className="text-center text-muted-foreground py-8">
-                        No records found
-                      </TableCell>
-                    </TableRow>
-                  )}
                 </TableBody>
               </Table>
+            </div>
+          )}
 
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4">
-                  <span className="text-sm text-muted-foreground">
-                    Seite {page} von {totalPages}
-                  </span>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
+          {!loading && totalPages > 1 && (
+            <div className="flex items-center justify-between gap-2 border-t px-4 py-3">
+              <span className="text-sm text-muted-foreground">
+                Page {page} of {totalPages}
+              </span>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="icon" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                {pageNumbers.map((n, i) => {
+                  const prev = pageNumbers[i - 1];
+                  const gap = prev !== undefined && n - prev > 1;
+                  return (
+                    <span key={n} className="flex items-center">
+                      {gap && <span className="px-1 text-muted-foreground">…</span>}
+                      <Button
+                        variant={n === page ? "default" : "outline"}
+                        size="icon"
+                        onClick={() => setPage(n)}
+                        className="h-9 w-9"
+                      >
+                        {n}
+                      </Button>
+                    </span>
+                  );
+                })}
+                <Button variant="outline" size="icon" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -280,7 +451,7 @@ export default function ModelCrud() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{config.name} erstellen</DialogTitle>
+            <DialogTitle>Create {config.name}</DialogTitle>
             <DialogDescription>Create a new {config.name} record.</DialogDescription>
           </DialogHeader>
           <RecordForm fields={config.fields} onSubmit={handleCreate} onCancel={() => setCreateOpen(false)} />
@@ -290,8 +461,8 @@ export default function ModelCrud() {
       <Dialog open={!!editRecord} onOpenChange={(open) => !open && setEditRecord(null)}>
         <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{config.name} bearbeiten</DialogTitle>
-            <DialogDescription>Edit record.</DialogDescription>
+            <DialogTitle>Edit {config.name}</DialogTitle>
+            <DialogDescription>Update this record's fields.</DialogDescription>
           </DialogHeader>
           {editRecord && (
             <RecordForm
@@ -309,13 +480,17 @@ export default function ModelCrud() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete record?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this record? This action cannot be undone.
+              Are you sure you want to delete this {config.name}? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-white hover:bg-destructive/90">
-              Delete
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting…" : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

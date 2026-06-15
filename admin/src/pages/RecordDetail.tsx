@@ -4,12 +4,20 @@ import { useAdminApi } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import {
-  Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
-} from "@/components/ui/table";
-import {
-  ChevronLeft, Pencil, Building, Users, Settings, Smartphone, Mail,
-  UserCheck, Fingerprint, CreditCard, ArrowRight,
+  ChevronLeft,
+  Pencil,
+  Building,
+  Users,
+  Settings,
+  Smartphone,
+  Mail,
+  UserCheck,
+  Fingerprint,
+  CreditCard,
+  ArrowRight,
 } from "lucide-react";
 
 type Rec = Record<string, any>;
@@ -19,13 +27,16 @@ function fmtDate(value: unknown): string {
   const d = new Date(value as string);
   if (isNaN(d.getTime())) return String(value);
   return d.toLocaleString("de-DE", {
-    day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
 function fmtScalar(value: unknown, field?: ModelField): React.ReactNode {
-  if (value === null || value === undefined || value === "")
-    return <span className="text-muted-foreground">—</span>;
+  if (value === null || value === undefined || value === "") return <span className="text-muted-foreground">—</span>;
   if (field?.type === "boolean" || typeof value === "boolean")
     return value ? <Badge variant="default">Yes</Badge> : <Badge variant="secondary">No</Badge>;
   if (field?.type === "date") return fmtDate(value);
@@ -36,8 +47,16 @@ function fmtScalar(value: unknown, field?: ModelField): React.ReactNode {
 }
 
 function EntityLink({
-  model, id, label, icon,
-}: { model: string; id: string; label: React.ReactNode; icon?: React.ReactNode }) {
+  model,
+  id,
+  label,
+  icon,
+}: {
+  model: string;
+  id: string;
+  label: React.ReactNode;
+  icon?: React.ReactNode;
+}) {
   return (
     <Link
       to={`/models/${model}/${id}`}
@@ -51,8 +70,7 @@ function EntityLink({
 
 function RoleBadge({ role }: { role?: string }) {
   if (!role) return null;
-  const variant =
-    role === "OWNER" || role === "ADMIN" ? "default" : role === "VIEWER" ? "secondary" : "outline";
+  const variant = role === "OWNER" || role === "ADMIN" ? "default" : role === "VIEWER" ? "secondary" : "outline";
   return <Badge variant={variant}>{role}</Badge>;
 }
 
@@ -89,7 +107,11 @@ function AppChip({ app }: { app: Rec }) {
       label={
         <span className="flex items-center gap-1">
           {app.name}
-          {app.isOwnApp && <Badge variant="secondary" className="ml-1">own</Badge>}
+          {app.isOwnApp && (
+            <Badge variant="secondary" className="ml-1">
+              own
+            </Badge>
+          )}
         </span>
       }
       icon={<Smartphone className="h-3.5 w-3.5 text-green-600" />}
@@ -160,8 +182,12 @@ function TeamPanel({ team }: { team: Rec }) {
             <TableBody>
               {members.map((m) => (
                 <TableRow key={m.id}>
-                  <TableCell><UserChip user={m.user} /></TableCell>
-                  <TableCell><RoleBadge role={m.role} /></TableCell>
+                  <TableCell>
+                    <UserChip user={m.user} />
+                  </TableCell>
+                  <TableCell>
+                    <RoleBadge role={m.role} />
+                  </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{fmtDate(m.createdAt)}</TableCell>
                 </TableRow>
               ))}
@@ -178,7 +204,9 @@ function TeamPanel({ team }: { team: Rec }) {
             <Smartphone className="h-3.5 w-3.5" /> Apps
           </div>
           <div className="flex flex-wrap gap-2">
-            {apps.map((a) => <AppChip key={a.id} app={a} />)}
+            {apps.map((a) => (
+              <AppChip key={a.id} app={a} />
+            ))}
           </div>
         </div>
       )}
@@ -214,9 +242,7 @@ export default function RecordDetail() {
     return <div className="p-8 text-center text-muted-foreground">Model not found</div>;
   }
 
-  const title = record
-    ? String(record[config.displayField] ?? record.id ?? id)
-    : "…";
+  const title = record ? String(record[config.displayField] ?? record.id ?? id) : "…";
   const scalarFields = config.fields.filter((f) => !f.hidden);
   const scalarNames = new Set(config.fields.map((f) => f.name));
 
@@ -225,7 +251,9 @@ export default function RecordDetail() {
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
           <Button variant="ghost" size="icon" asChild>
-            <Link to={`/models/${modelPath}`}><ChevronLeft className="h-5 w-5" /></Link>
+            <Link to={`/models/${modelPath}`}>
+              <ChevronLeft className="h-5 w-5" />
+            </Link>
           </Button>
           <div className="min-w-0">
             <p className="text-xs text-muted-foreground">{config.name}</p>
@@ -239,10 +267,24 @@ export default function RecordDetail() {
         </Button>
       </div>
 
-      {loading || !record ? (
-        <div className="py-12 text-center text-muted-foreground">
-          {loading ? "Loading…" : "Record not found"}
-        </div>
+      {loading ? (
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-5 w-32" />
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="space-y-1.5">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-4 w-40" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : !record ? (
+        <div className="py-12 text-center text-muted-foreground">Record not found</div>
       ) : (
         <>
           <Card>
@@ -274,7 +316,9 @@ export default function RecordDetail() {
                       </span>
                       <RoleBadge role={tm.role} />
                     </div>
-                    {tm.team ? <TeamPanel team={tm.team} /> : (
+                    {tm.team ? (
+                      <TeamPanel team={tm.team} />
+                    ) : (
                       <p className="text-sm text-muted-foreground">Team not found.</p>
                     )}
                   </div>
@@ -338,11 +382,15 @@ export default function RecordDetail() {
                     {record.invites.map((inv: Rec) => (
                       <TableRow key={inv.id}>
                         <TableCell className="text-sm">{inv.email}</TableCell>
-                        <TableCell><RoleBadge role={inv.role} /></TableCell>
                         <TableCell>
-                          {inv.acceptedAt
-                            ? <Badge variant="default">accepted</Badge>
-                            : <Badge variant="secondary">pending</Badge>}
+                          <RoleBadge role={inv.role} />
+                        </TableCell>
+                        <TableCell>
+                          {inv.acceptedAt ? (
+                            <Badge variant="default">accepted</Badge>
+                          ) : (
+                            <Badge variant="secondary">pending</Badge>
+                          )}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{fmtDate(inv.expiresAt)}</TableCell>
                       </TableRow>
@@ -374,7 +422,11 @@ export default function RecordDetail() {
                     />
                   )}
                 </div>
-                {record.team && <div className="border-t pt-4"><TeamPanel team={record.team} /></div>}
+                {record.team && (
+                  <div className="border-t pt-4">
+                    <TeamPanel team={record.team} />
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -386,7 +438,9 @@ export default function RecordDetail() {
                   <Building className="h-4 w-4 text-purple-600" /> Linked Overview
                 </CardTitle>
               </CardHeader>
-              <CardContent><TeamPanel team={record.team} /></CardContent>
+              <CardContent>
+                <TeamPanel team={record.team} />
+              </CardContent>
             </Card>
           )}
 
@@ -397,7 +451,9 @@ export default function RecordDetail() {
                   <Building className="h-4 w-4 text-purple-600" /> Team Overview
                 </CardTitle>
               </CardHeader>
-              <CardContent><TeamPanel team={record.team} /></CardContent>
+              <CardContent>
+                <TeamPanel team={record.team} />
+              </CardContent>
             </Card>
           )}
 
