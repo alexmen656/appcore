@@ -1,21 +1,11 @@
-import { useEffect, useState } from "react";
-import { Check, Plus } from "lucide-react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-  ReferenceLine,
-} from "recharts";
+import { useEffect, useMemo, useState } from "react";
+import { Check, Plus, Eye, EyeOff } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { Keyword } from "./KeywordTable";
 import { borderDefault, btnSecSm, textMuted, textPrimary, textSecondary } from "../../styles";
 import { apiPost } from "../../hooks/useApi";
 import { usePermissions } from "../../hooks/usePermissions";
-import type { RankingEntry, KeywordHistoryData } from "../../types";
+import type { KeywordHistoryData } from "../../types";
 
 export type { KeywordHistoryData as HistoryData };
 
@@ -25,7 +15,23 @@ export interface AppliedEvent {
   appliedAt: string;
 }
 
-const CHART_COLORS = ["#D94412", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"];
+const OWN_COLOR = "#D94412";
+const PALETTE = [
+  "#3b82f6",
+  "#10b981",
+  "#8b5cf6",
+  "#f59e0b",
+  "#ec4899",
+  "#06b6d4",
+  "#84cc16",
+  "#ef4444",
+  "#14b8a6",
+  "#f97316",
+  "#a855f7",
+  "#0ea5e9",
+];
+
+const MAX_DEFAULT_LINES = 6;
 
 const TYPE_LABEL: Record<string, string> = {
   TITLE: "Title",
@@ -33,6 +39,60 @@ const TYPE_LABEL: Record<string, string> = {
   KEYWORDS: "Keywords",
   DESCRIPTION: "Description",
 };
+
+interface AppSeries {
+  name: string;
+  color: string;
+  isOwn: boolean;
+  latestRank: number | null;
+  bestRank: number | null;
+}
+
+function useDarkMode() {
+  const [dark, setDark] = useState(() =>
+    typeof document !== "undefined" ? document.documentElement.classList.contains("dark") : false,
+  );
+  useEffect(() => {
+    const el = document.documentElement;
+    const obs = new MutationObserver(() => setDark(el.classList.contains("dark")));
+    obs.observe(el, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
+  return dark;
+}
+
+function ChartTooltip({ active, payload, label, dark }: any) {
+  if (!active || !payload?.length) return null;
+  const rows = payload.filter((p: any) => p.value != null).sort((a: any, b: any) => a.value - b.value);
+  if (!rows.length) return null;
+  return (
+    <div
+      style={{
+        background: dark ? "#252b38" : "#fff",
+        border: `1px solid ${dark ? "#2a2f3d" : "#eef0f3"}`,
+        borderRadius: 12,
+        padding: "10px 12px",
+        boxShadow: "0 8px 24px rgba(0,0,0,.12)",
+        fontSize: 12,
+        minWidth: 170,
+      }}
+    >
+      <div style={{ fontWeight: 600, marginBottom: 6, color: dark ? "#e8eaf0" : "#111827" }}>{label}</div>
+      {rows.map((r: any) => (
+        <div
+          key={r.dataKey}
+          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, padding: "2px 0" }}
+        >
+          <span style={{ display: "flex", alignItems: "center", gap: 7, color: dark ? "#8b93a5" : "#6b7280" }}>
+            <span style={{ width: 8, height: 8, borderRadius: 99, background: r.color, flexShrink: 0 }} />
+            {r.name}
+          </span>
+          <span style={{ fontWeight: 600, color: dark ? "#e8eaf0" : "#111827" }}>#{r.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 interface Props {
   keyword: Keyword;
@@ -54,8 +114,11 @@ export default function RankingHistoryChart({
   onClose,
 }: Props) {
   const { canWrite } = usePermissions();
+  const dark = useDarkMode();
   const [tracked, setTracked] = useState<Set<string>>(new Set());
   const [adding, setAdding] = useState<Set<string>>(new Set());
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [hovered, setHovered] = useState<string | null>(null);
 
   const addCompetitor = async (bundleId: string, name: string) => {
     if (!history?.ownAppId) return;
@@ -85,11 +148,28 @@ export default function RankingHistoryChart({
   }, [onClose]);
 
   const ownLabel = "Your App";
-  const bucketTime = new Map<string, number>();
-  const chartData = (() => {
-    if (!history?.rankings?.length) return [];
+
+  const { chartData, markers, series } = useMemo(() => {
+    const labelOf = (appName: string, bundleId: string) =>
+      ownBundleId && bundleId === ownBundleId
+        ? ownLabel
+        : appName.length > 20
+          ? appName.substring(0, 20) + "\u2026"
+          : appName;
+
+    if (!history?.rankings?.length) {
+      return { chartData: [], markers: [], series: [] as AppSeries[] };
+    }
+
+    const bucketTime = new Map<string, number>();
     const byTime = new Map<string, Record<string, number | null>>();
+    const stats = new Map<
+      string,
+      { isOwn: boolean; latestTs: number; latestRank: number | null; bestRank: number | null }
+    >();
+
     for (const r of history.rankings) {
+      const ts = new Date(r.trackedAt).getTime();
       const date = new Date(r.trackedAt).toLocaleDateString("de-DE", {
         day: "2-digit",
         month: "2-digit",
@@ -97,76 +177,102 @@ export default function RankingHistoryChart({
         minute: "2-digit",
       });
       if (!byTime.has(date)) byTime.set(date, {});
-      if (!bucketTime.has(date)) bucketTime.set(date, new Date(r.trackedAt).getTime());
-      const label =
-        ownBundleId && r.appBundleId === ownBundleId
-          ? ownLabel
-          : r.appName.length > 20
-            ? r.appName.substring(0, 20) + "\u2026"
-            : r.appName;
+      if (!bucketTime.has(date)) bucketTime.set(date, ts);
+      const isOwn = !!(ownBundleId && r.appBundleId === ownBundleId);
+      const label = labelOf(r.appName, r.appBundleId);
       byTime.get(date)![label] = r.rank;
+
+      const s = stats.get(label) ?? { isOwn, latestTs: -Infinity, latestRank: null, bestRank: null };
+      if (ts >= s.latestTs) {
+        s.latestTs = ts;
+        s.latestRank = r.rank;
+      }
+      if (r.rank != null && (s.bestRank == null || r.rank < s.bestRank)) s.bestRank = r.rank;
+      stats.set(label, s);
     }
-    return Array.from(byTime.entries())
+
+    const chartData = Array.from(byTime.entries())
       .reverse()
       .map(([date, ranks]) => ({ date, ...ranks }));
-  })();
 
-  const markers = (() => {
-    if (!events?.length || chartData.length === 0) return [];
-    const times = [...bucketTime.entries()].map(([label, ts]) => ({ label, ts }));
-    const minTs = Math.min(...times.map((t) => t.ts));
-    const maxTs = Math.max(...times.map((t) => t.ts));
-    const byLabel = new Map<string, Set<string>>();
-
-    for (const ev of events) {
-      const evTs = new Date(ev.appliedAt).getTime();
-      if (!Number.isFinite(evTs) || evTs < minTs || evTs > maxTs) continue;
-      let nearest = times[0];
-
-      for (const t of times) {
-        if (Math.abs(t.ts - evTs) < Math.abs(nearest.ts - evTs)) nearest = t;
+    // markers
+    let markers: { label: string; text: string }[] = [];
+    if (events?.length) {
+      const times = [...bucketTime.entries()].map(([label, ts]) => ({ label, ts }));
+      const minTs = Math.min(...times.map((t) => t.ts));
+      const maxTs = Math.max(...times.map((t) => t.ts));
+      const byLabel = new Map<string, Set<string>>();
+      for (const ev of events) {
+        const evTs = new Date(ev.appliedAt).getTime();
+        if (!Number.isFinite(evTs) || evTs < minTs || evTs > maxTs) continue;
+        let nearest = times[0];
+        for (const t of times) {
+          if (Math.abs(t.ts - evTs) < Math.abs(nearest.ts - evTs)) nearest = t;
+        }
+        const set = byLabel.get(nearest.label) ?? new Set<string>();
+        set.add(TYPE_LABEL[ev.type] ?? ev.type);
+        byLabel.set(nearest.label, set);
       }
+      markers = [...byLabel.entries()].map(([label, types]) => ({ label, text: [...types].join(", ") }));
+    }
 
-      const set = byLabel.get(nearest.label) ?? new Set<string>();
-      set.add(TYPE_LABEL[ev.type] ?? ev.type);
-      byLabel.set(nearest.label, set);
+    // series: own first, then others sorted by best rank (ascending = better)
+    const own: AppSeries[] = [];
+    const others: AppSeries[] = [];
+    for (const [name, s] of stats) {
+      const entry: AppSeries = { name, color: "", isOwn: s.isOwn, latestRank: s.latestRank, bestRank: s.bestRank };
+      (s.isOwn ? own : others).push(entry);
     }
-    return [...byLabel.entries()].map(([label, types]) => ({ label, text: [...types].join(", ") }));
-  })();
+    others.sort((a, b) => (a.bestRank ?? 9999) - (b.bestRank ?? 9999));
+    const ordered = [...own, ...others];
+    let ci = 0;
+    for (const s of ordered) s.color = s.isOwn ? OWN_COLOR : PALETTE[ci++ % PALETTE.length];
 
-  const appNames = (() => {
-    if (!history?.rankings?.length) return [];
-    const seen = new Set<string>();
-    for (const r of history.rankings) {
-      seen.add(
-        ownBundleId && r.appBundleId === ownBundleId
-          ? ownLabel
-          : r.appName.length > 20
-            ? r.appName.substring(0, 20) + "\u2026"
-            : r.appName,
-      );
+    return { chartData, markers, series: ordered };
+  }, [history, ownBundleId, events]);
+
+  // Initialise visibility: keep own + top competitors, hide the rest to avoid clutter
+  useEffect(() => {
+    if (series.length === 0) {
+      setHidden(new Set());
+      return;
     }
-    const arr = Array.from(seen);
-    const idx = arr.indexOf(ownLabel);
-    if (idx > 0) {
-      arr.splice(idx, 1);
-      arr.unshift(ownLabel);
+    if (series.length <= MAX_DEFAULT_LINES) {
+      setHidden(new Set());
+      return;
     }
-    return arr;
-  })();
+    const keep = new Set(series.slice(0, MAX_DEFAULT_LINES).map((s) => s.name));
+    setHidden(new Set(series.filter((s) => !keep.has(s.name)).map((s) => s.name)));
+  }, [series]);
+
+  const visible = series.filter((s) => !hidden.has(s.name));
+  const allShown = hidden.size === 0;
+  const toggle = (name: string) =>
+    setHidden((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
       <div className="absolute inset-0 bg-black/40 dark:bg-black/60" onClick={onClose} />
       <div className="relative w-full max-w-5xl max-h-[calc(100vh-2rem)] overflow-hidden rounded-2xl border border-[#eef0f3] bg-white shadow-2xl dark:border-[#2a2f3d] dark:bg-[#1c2028]">
         <div className="flex items-start justify-between gap-4 border-b border-[#eef0f3] px-6 py-5 dark:border-[#2a2f3d]">
-          <div>
-            <h3 className={`text-base font-semibold ${textPrimary}`}>
-              Ranking History: <span className="text-[#D94412]">{keyword.term}</span>
-            </h3>
-            <div className={`mt-1 text-xs ${textMuted}`}>
-              {keyword.country.toUpperCase()} · Popularity {keyword.popularity ?? "—"} · Difficulty{" "}
-              {keyword.difficulty ?? "—"}
+          <div className="min-w-0">
+            <div className={`text-[11px] font-medium uppercase tracking-wider ${textMuted}`}>Ranking History</div>
+            <h3 className={`mt-0.5 truncate text-lg font-semibold ${textPrimary}`}>{keyword.term}</h3>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span className="inline-flex items-center rounded-full bg-[#f3f4f6] px-2 py-0.5 text-[11px] font-semibold text-[#6b7280] dark:bg-[#252b38] dark:text-[#8b93a5]">
+                {keyword.country.toUpperCase()}
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400">
+                Popularity {keyword.popularity ?? "—"}
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+                Difficulty {keyword.difficulty ?? "—"}
+              </span>
             </div>
           </div>
           <button className={btnSecSm} onClick={onClose}>
@@ -182,63 +288,122 @@ export default function RankingHistoryChart({
           ) : chartData.length === 0 ? (
             <div className={`py-16 text-center text-sm ${textMuted}`}>No ranking history yet. Run tracking first.</div>
           ) : (
-            <ResponsiveContainer width="100%" height={420}>
-              <LineChart data={chartData} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#9ca3af" }} tickLine={false} />
-                <YAxis
-                  reversed
-                  domain={[1, "auto"]}
-                  tick={{ fontSize: 11, fill: "#9ca3af" }}
-                  tickLine={false}
-                  label={{
-                    value: "Rank",
-                    angle: -90,
-                    position: "insideLeft",
-                    style: { fontSize: 11, fill: "#9ca3af" },
-                  }}
-                  allowDecimals={false}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "#fff",
-                    border: "1px solid #eef0f3",
-                    borderRadius: 12,
-                    fontSize: 12,
-                    boxShadow: "0 4px 12px rgba(0,0,0,.06)",
-                  }}
-                  labelStyle={{ fontWeight: 600, marginBottom: 4 }}
-                />
-                <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: 12 }} />
-                {markers.map((m) => (
-                  <ReferenceLine
-                    key={m.label}
-                    x={m.label}
-                    stroke="#D94412"
-                    strokeDasharray="4 3"
-                    strokeOpacity={0.7}
-                    label={{
-                      value: `✎ ${m.text}`,
-                      position: "top",
-                      fontSize: 10,
-                      fill: "#D94412",
-                    }}
-                  />
-                ))}
-                {appNames.map((name, i) => (
-                  <Line
-                    key={name}
-                    type="monotone"
-                    dataKey={name}
-                    stroke={CHART_COLORS[i % CHART_COLORS.length]}
-                    strokeWidth={name === ownLabel ? 3 : 1.5}
-                    dot={{ r: name === ownLabel ? 4 : 2 }}
-                    activeDot={{ r: 6 }}
-                    connectNulls
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
+            <>
+              <div className={`rounded-2xl border ${borderDefault} bg-[#fcfcfd] p-4 pr-5 dark:bg-[#171b22]`}>
+                <ResponsiveContainer width="100%" height={400}>
+                  <LineChart data={chartData} margin={{ top: 16, right: 12, left: 4, bottom: 4 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={dark ? "#262b35" : "#eef0f3"} vertical={false} />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 11, fill: dark ? "#5c6478" : "#9ca3af" }}
+                      tickLine={false}
+                      axisLine={{ stroke: dark ? "#2a2f3d" : "#eef0f3" }}
+                      minTickGap={24}
+                    />
+                    <YAxis
+                      reversed
+                      domain={[1, "auto"]}
+                      tick={{ fontSize: 11, fill: dark ? "#5c6478" : "#9ca3af" }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={40}
+                      label={{
+                        value: "Rank",
+                        angle: -90,
+                        position: "insideLeft",
+                        style: { fontSize: 11, fill: dark ? "#5c6478" : "#9ca3af", textAnchor: "middle" },
+                      }}
+                      allowDecimals={false}
+                    />
+                    <Tooltip
+                      content={<ChartTooltip dark={dark} />}
+                      cursor={{ stroke: dark ? "#3a4150" : "#d1d5db", strokeWidth: 1, strokeDasharray: "4 3" }}
+                    />
+                    {markers.map((m) => (
+                      <ReferenceLine
+                        key={m.label}
+                        x={m.label}
+                        stroke={OWN_COLOR}
+                        strokeDasharray="4 3"
+                        strokeOpacity={0.6}
+                        label={{
+                          value: `✎ ${m.text}`,
+                          position: "top",
+                          fontSize: 10,
+                          fill: OWN_COLOR,
+                        }}
+                      />
+                    ))}
+                    {[...visible]
+                      .sort((a, b) => {
+                        const score = (s: AppSeries) => (s.name === hovered ? 2 : s.isOwn ? 1 : 0);
+                        return score(a) - score(b);
+                      })
+                      .map((s) => {
+                        const dim = hovered != null && hovered !== s.name;
+                        const emphasized = s.name === hovered || s.isOwn;
+                        return (
+                          <Line
+                            key={s.name}
+                            type="monotone"
+                            dataKey={s.name}
+                            stroke={s.color}
+                            strokeWidth={emphasized ? 3 : 1.75}
+                            strokeOpacity={dim ? 0.15 : 1}
+                            dot={{ r: s.isOwn ? 3 : 2, strokeWidth: 0, fillOpacity: dim ? 0.15 : 1 }}
+                            activeDot={{ r: 5 }}
+                            connectNulls
+                            isAnimationActive={false}
+                          />
+                        );
+                      })}
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Interactive legend */}
+              <div className="mt-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <div className={`text-[11px] font-medium uppercase tracking-wide ${textMuted}`}>
+                    Apps · {visible.length}/{series.length} shown
+                  </div>
+                  <button
+                    onClick={() => setHidden(allShown ? new Set(series.map((s) => s.name)) : new Set())}
+                    className={`inline-flex items-center gap-1 text-[11px] font-medium ${textMuted} transition-colors hover:text-[#C4001E]`}
+                  >
+                    {allShown ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                    {allShown ? "Hide all" : "Show all"}
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {series.map((s) => {
+                    const off = hidden.has(s.name);
+                    return (
+                      <button
+                        key={s.name}
+                        onClick={() => toggle(s.name)}
+                        onMouseEnter={() => !off && setHovered(s.name)}
+                        onMouseLeave={() => setHovered(null)}
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all ${
+                          off
+                            ? "border-transparent bg-[#f3f4f6] text-[#9ca3af] dark:bg-[#252b38] dark:text-[#5c6478]"
+                            : `${borderDefault} ${textSecondary} hover:border-[#d1d5db] dark:hover:border-[#3a4150]`
+                        } ${s.isOwn && !off ? "ring-1 ring-[#D94412]/30" : ""}`}
+                      >
+                        <span
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ background: off ? "currentColor" : s.color }}
+                        />
+                        <span className="max-w-[140px] truncate">{s.name}</span>
+                        {!off && s.latestRank != null && (
+                          <span className="tabular-nums opacity-60">#{s.latestRank}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
           )}
 
           {history?.competitors && history.competitors.length > 0 && (
