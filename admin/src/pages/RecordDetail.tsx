@@ -1,7 +1,7 @@
 import { Link, useParams } from "react-router-dom";
 import { getModelConfig, type ModelField } from "@/lib/models";
 import { useAdminApi } from "@/lib/api";
-import { Badge } from "@/components/ui/badge";
+import { Badge, AutoBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,9 +38,9 @@ function fmtDate(value: unknown): string {
 function fmtScalar(value: unknown, field?: ModelField): React.ReactNode {
   if (value === null || value === undefined || value === "") return <span className="text-muted-foreground">—</span>;
   if (field?.type === "boolean" || typeof value === "boolean")
-    return value ? <Badge variant="default">Yes</Badge> : <Badge variant="secondary">No</Badge>;
+    return <AutoBadge value={value ? "Yes" : "No"} />;
   if (field?.type === "date") return fmtDate(value);
-  if (field?.type === "enum") return <Badge variant="outline">{String(value)}</Badge>;
+  if (field?.type === "enum") return <AutoBadge value={String(value)} />;
   if (typeof value === "object") return <code className="text-xs">{JSON.stringify(value).slice(0, 80)}</code>;
   const str = String(value);
   return str.length > 120 ? str.slice(0, 120) + "…" : str;
@@ -70,8 +70,7 @@ function EntityLink({
 
 function RoleBadge({ role }: { role?: string }) {
   if (!role) return null;
-  const variant = role === "OWNER" || role === "ADMIN" ? "default" : role === "VIEWER" ? "secondary" : "outline";
-  return <Badge variant={variant}>{role}</Badge>;
+  return <AutoBadge value={role} />;
 }
 
 function FieldGrid({ record, fields }: { record: Rec; fields: ModelField[] }) {
@@ -136,7 +135,7 @@ function TeamPanel({ team }: { team: Rec }) {
         />
         <Badge variant="outline">{members.length} Member</Badge>
         <Badge variant="outline">{apps.length} Apps</Badge>
-        {sub && <Badge variant="default">{sub.status}</Badge>}
+        {sub && <AutoBadge value={sub.status} />}
       </div>
 
       <div>
@@ -145,13 +144,13 @@ function TeamPanel({ team }: { team: Rec }) {
         </div>
         {settings ? (
           <div className="flex flex-wrap gap-2 text-sm">
-            <Badge variant={settings.mcpEnabled ? "default" : "secondary"}>
+            <Badge variant={settings.mcpEnabled ? "success" : "secondary"}>
               MCP {settings.mcpEnabled ? "enabled" : "disabled"}
             </Badge>
-            <Badge variant={settings.ascIssuerId ? "default" : "secondary"}>
+            <Badge variant={settings.ascIssuerId ? "success" : "secondary"}>
               ASC {settings.ascIssuerId ? "connected" : "missing"}
             </Badge>
-            <Badge variant={settings.githubUsername ? "default" : "secondary"}>
+            <Badge variant={settings.githubUsername ? "success" : "secondary"}>
               GitHub {settings.githubUsername ? `@${settings.githubUsername}` : "missing"}
             </Badge>
             <EntityLink
@@ -387,9 +386,9 @@ export default function RecordDetail() {
                         </TableCell>
                         <TableCell>
                           {inv.acceptedAt ? (
-                            <Badge variant="default">accepted</Badge>
+                            <AutoBadge value="accepted" />
                           ) : (
-                            <Badge variant="secondary">pending</Badge>
+                            <AutoBadge value="pending" />
                           )}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{fmtDate(inv.expiresAt)}</TableCell>
@@ -466,7 +465,7 @@ export default function RecordDetail() {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2 text-sm">
-                  <Badge variant="default">{record.subscription.status}</Badge>
+                  <AutoBadge value={record.subscription.status} />
                   {record.subscription.interval && <Badge variant="outline">{record.subscription.interval}</Badge>}
                   {record.subscription.renewsAt && (
                     <span className="text-muted-foreground">renewed {fmtDate(record.subscription.renewsAt)}</span>

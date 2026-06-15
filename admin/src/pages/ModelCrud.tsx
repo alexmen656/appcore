@@ -5,7 +5,7 @@ import { useAdminApi, adminCreate, adminUpdate, adminDelete, apiFetch } from "@/
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { AutoBadge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TableSkeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
@@ -46,8 +46,7 @@ const PAGE_SIZE = 25;
 
 function formatValue(value: unknown, field: ModelField): React.ReactNode {
   if (value === null || value === undefined) return <span className="text-muted-foreground">—</span>;
-  if (field.type === "boolean")
-    return value ? <Badge variant="success">Yes</Badge> : <Badge variant="secondary">No</Badge>;
+  if (field.type === "boolean") return <AutoBadge value={value ? "Yes" : "No"} />;
   if (field.type === "date") {
     const d = new Date(value as string);
     return (
@@ -62,7 +61,7 @@ function formatValue(value: unknown, field: ModelField): React.ReactNode {
       </span>
     );
   }
-  if (field.type === "enum") return <Badge variant="outline">{String(value)}</Badge>;
+  if (field.type === "enum") return <AutoBadge value={String(value)} />;
   if (field.type === "json")
     return <code className="text-xs text-muted-foreground">{JSON.stringify(value).slice(0, 50)}…</code>;
   const str = String(value);

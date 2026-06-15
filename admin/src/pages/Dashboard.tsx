@@ -1,6 +1,7 @@
 import { useAdminApi } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { autoBadgeClass } from "@/components/ui/badge";
 import {
   Users,
   Building,
@@ -213,9 +214,10 @@ export default function Dashboard() {
                     {stats.subscriptionStatus.map((s) => (
                       <span
                         key={s.status}
-                        className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium"
+                        className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-0.5 text-xs font-semibold ${autoBadgeClass(s.status)}`}
                       >
-                        <span className="text-muted-foreground">{s.status}</span>
+                        <span>{s.status}</span>
+                        <span className="opacity-60">·</span>
                         <span>{s.count}</span>
                       </span>
                     ))}

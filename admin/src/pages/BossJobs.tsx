@@ -32,13 +32,13 @@ interface BossSchedule {
 }
 
 const STATE_COLORS: Record<string, string> = {
-  created: "bg-blue-100 text-blue-800",
-  retry: "bg-yellow-100 text-yellow-800",
-  active: "bg-orange-100 text-orange-800",
-  completed: "bg-green-100 text-green-800",
-  expired: "bg-gray-100 text-gray-700",
-  cancelled: "bg-gray-100 text-gray-700",
-  failed: "bg-red-100 text-red-800",
+  created: "bg-blue-500/15 text-blue-700 dark:text-blue-300",
+  retry: "bg-amber-500/20 text-amber-700 dark:text-amber-300",
+  active: "bg-orange-500/15 text-orange-700 dark:text-orange-300",
+  completed: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+  expired: "bg-slate-500/15 text-slate-600 dark:text-slate-300",
+  cancelled: "bg-slate-500/15 text-slate-600 dark:text-slate-300",
+  failed: "bg-rose-500/15 text-rose-700 dark:text-rose-300",
 };
 
 const QUEUES = [
