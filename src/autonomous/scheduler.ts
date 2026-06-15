@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import { prisma, logger } from "../config";
 import { AsoExperimentStatus } from "@prisma/client";
+import { expireStaleAdminGrants } from "../services/pro-grants";
 import { ASOBrain } from "./brain";
 import { ASOEvaluator } from "./evaluator";
 import { ASOMemory } from "./memory";
@@ -122,8 +123,20 @@ export function initScheduler() {
     }
   });
 
+  cron.schedule("30 0 * * *", async () => {
+    try {
+      const expired = await expireStaleAdminGrants();
+      if (expired > 0) {
+        logger.info(`[GrantScheduler] Expired ${expired} admin Pro grant(s) past their end date`);
+      }
+    } catch (err) {
+      logger.error(`[GrantScheduler] Failed to expire admin grants: ${(err as Error).message}`);
+    }
+  });
+
   logger.info(
     "[ASOScheduler] Autonomous ASO schedules registered:\n" +
+      "  • Daily  00:30 — Expire admin Pro grants\n" +
       "  • Daily  03:00 — AI Analysis\n" +
       "  • Daily  04:00 — Experiment Evaluation\n" +
       "  • Weekly Mon 06:00 — Weekly Report",

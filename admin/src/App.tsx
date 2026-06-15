@@ -8,6 +8,7 @@ import ModelCrud from "@/pages/ModelCrud";
 import RecordDetail from "@/pages/RecordDetail";
 import LoginPage from "@/pages/Login";
 import BossJobs from "@/pages/BossJobs";
+import Subscriptions from "@/pages/Subscriptions";
 import {
   LayoutDashboard,
   Users,
@@ -91,6 +92,8 @@ function Breadcrumbs() {
 
   if (pathname === "/jobs") {
     parts.push({ label: "pg-boss Jobs" });
+  } else if (pathname === "/subscriptions") {
+    parts.push({ label: "Subscriptions" });
   } else if (pathname.startsWith("/models/")) {
     const [, , modelPath, id] = pathname.split("/");
     const config = getModelConfig(modelPath ?? "");
@@ -260,6 +263,15 @@ export default function App() {
               </NavLink>
               <div>
                 <h3 className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Billing
+                </h3>
+                <NavLink to="/subscriptions" className={navLinkClass}>
+                  <CreditCard className="h-4 w-4" />
+                  Subscriptions
+                </NavLink>
+              </div>
+              <div>
+                <h3 className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Jobs
                 </h3>
                 <NavLink to="/jobs" className={navLinkClass}>
@@ -328,6 +340,7 @@ export default function App() {
           <div className="mx-auto max-w-[1400px] p-6">
             <Routes>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/subscriptions" element={<Subscriptions />} />
               <Route path="/jobs" element={<BossJobs />} />
               <Route path="/models/:model" element={<ModelCrud />} />
               <Route path="/models/:model/:id" element={<RecordDetail />} />

@@ -2,6 +2,7 @@ import { Router } from "express";
 import crypto from "crypto";
 import { env, logger, prisma } from "../../config";
 import { requireAuth, requireTeamAdmin } from "../auth";
+import { isAdminGrant, PRO_STATUSES } from "../../services/pro-grants";
 
 export const billingRouter = Router();
 
@@ -49,7 +50,19 @@ function serializeSubscription(sub: Awaited<ReturnType<typeof prisma.subscriptio
 billingRouter.get("/", requireAuth, async (req, res) => {
   try {
     const teamId = req.user!.teamId;
-    const sub = await prisma.subscription.findUnique({ where: { teamId } });
+    let sub = await prisma.subscription.findUnique({ where: { teamId } });
+
+    if (
+      isAdminGrant(sub) &&
+      sub?.endsAt &&
+      sub.endsAt <= new Date() &&
+      (PRO_STATUSES as readonly string[]).includes(sub.status)
+    ) {
+      sub = await prisma.subscription.update({
+        where: { teamId },
+        data: { status: "expired" },
+      });
+    }
 
     res.json({
       configured: isConfigured(),

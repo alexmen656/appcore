@@ -2,6 +2,12 @@ import { Router, Request, Response, NextFunction } from "express";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../config";
 import { requireAuth } from "../auth";
+import {
+  ADMIN_GRANT_CUSTOMER,
+  PRO_STATUSES,
+  isAdminGrant,
+  isGrantExpired,
+} from "../../services/pro-grants";
 
 (BigInt.prototype as any).toJSON = function () {
   return Number(this);
@@ -406,6 +412,138 @@ router.get("/boss/stats", async (_req: Request, res: Response) => {
   } catch {
     res.json([]);
   }
+});
+
+// --- Subscription / Pro-grant management -----------------------------------
+
+router.get("/billing/overview", async (_req: Request, res: Response) => {
+  const teams = await prisma.team.findMany({
+    orderBy: { createdAt: "desc" },
+    include: {
+      subscription: true,
+      _count: { select: { members: true, apps: true } },
+    },
+  });
+
+  const now = new Date();
+  const rows = teams.map((t) => {
+    const s = t.subscription;
+    const grant = isAdminGrant(s);
+    const expired = isGrantExpired(s, now);
+    const effectiveStatus = expired ? "expired" : (s?.status ?? null);
+    const isPro = !!effectiveStatus && (PRO_STATUSES as readonly string[]).includes(effectiveStatus);
+    return {
+      teamId: t.id,
+      teamName: t.name,
+      createdAt: t.createdAt,
+      memberCount: t._count.members,
+      appCount: t._count.apps,
+      isPro,
+      subscription: s
+        ? {
+            status: effectiveStatus,
+            interval: s.interval,
+            endsAt: s.endsAt,
+            renewsAt: s.renewsAt,
+            source: grant ? "admin" : "lemon",
+            permanent: grant && !s.endsAt,
+            cardBrand: s.cardBrand,
+            cardLastFour: s.cardLastFour,
+          }
+        : null,
+    };
+  });
+
+  res.json({
+    summary: {
+      totalTeams: rows.length,
+      proTeams: rows.filter((r) => r.isPro).length,
+      adminGrants: rows.filter((r) => r.subscription?.source === "admin" && r.isPro).length,
+      paidTeams: rows.filter((r) => r.subscription?.source === "lemon" && r.isPro).length,
+    },
+    rows,
+  });
+});
+
+router.post("/teams/:teamId/grant-pro", async (req: Request, res: Response) => {
+  const { teamId } = req.params;
+  const { forever, durationDays, interval } = (req.body ?? {}) as {
+    forever?: boolean;
+    durationDays?: number;
+    interval?: string;
+  };
+
+  const team = await prisma.team.findUnique({
+    where: { id: teamId },
+    include: { subscription: true },
+  });
+  if (!team) {
+    res.status(404).json({ error: "Team not found" });
+    return;
+  }
+
+  const existing = team.subscription;
+  if (existing && !isAdminGrant(existing)) {
+    res.status(409).json({
+      error: "Team has a real paid subscription. Manage it in Lemon Squeezy instead.",
+    });
+    return;
+  }
+
+  let endsAt: Date | null = null;
+  if (!forever) {
+    const days = Number(durationDays);
+    if (!Number.isFinite(days) || days <= 0) {
+      res.status(400).json({ error: "Provide a positive durationDays or set forever=true." });
+      return;
+    }
+    // Extend from the current end date if the grant is still in the future.
+    const base =
+      existing?.endsAt && new Date(existing.endsAt) > new Date() ? new Date(existing.endsAt) : new Date();
+    endsAt = new Date(base.getTime() + days * 86_400_000);
+  }
+
+  const intervalVal = interval === "monthly" ? "monthly" : "yearly";
+  const data = {
+    status: "active",
+    interval: intervalVal,
+    endsAt,
+    renewsAt: endsAt,
+    trialEndsAt: null,
+    lemonCustomerId: ADMIN_GRANT_CUSTOMER,
+    lemonOrderId: null,
+    lemonProductId: null,
+    lemonVariantId: null,
+    cardBrand: null,
+    cardLastFour: null,
+    customerPortalUrl: null,
+    updatePaymentMethodUrl: null,
+  };
+
+  const subscription = existing
+    ? await prisma.subscription.update({ where: { teamId }, data })
+    : await prisma.subscription.create({
+        data: { teamId, lemonSubscriptionId: `admin_grant_${teamId}`, ...data },
+      });
+
+  res.json({ ok: true, subscription });
+});
+
+router.post("/teams/:teamId/revoke-pro", async (req: Request, res: Response) => {
+  const { teamId } = req.params;
+  const existing = await prisma.subscription.findUnique({ where: { teamId } });
+  if (!existing) {
+    res.status(404).json({ error: "Team has no subscription." });
+    return;
+  }
+  if (!isAdminGrant(existing)) {
+    res.status(409).json({
+      error: "This is a real paid subscription. Cancel it in Lemon Squeezy instead.",
+    });
+    return;
+  }
+  await prisma.subscription.delete({ where: { teamId } });
+  res.json({ ok: true });
 });
 
 router.get("/:model", async (req: Request, res: Response) => {

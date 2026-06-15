@@ -439,7 +439,7 @@ export const modelConfigs: ModelConfig[] = [
   },
   {
     name: "Subscription",
-    plural: "Subscriptions",
+    plural: "Subscriptions (raw)",
     apiPath: "subscription",
     icon: "credit-card",
     category: "Users & Teams",
