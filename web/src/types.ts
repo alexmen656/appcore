@@ -224,6 +224,7 @@ export interface AuthUser {
   role: string;
   teamId: string | null;
   teamRole: TeamRole | null;
+  plan?: "pro" | "free";
   isDemo?: boolean;
 }
 

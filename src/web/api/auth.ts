@@ -16,6 +16,7 @@ import type {
 } from "@simplewebauthn/server";
 import { logger, prisma, env } from "../../config";
 import { signToken, requireAuth } from "../auth";
+import { PRO_STATUSES } from "../../services/pro-grants";
 import { founderWelcome } from "../../services/notifications/templates";
 
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
@@ -302,11 +303,24 @@ authRouter.get("/me", requireAuth, async (req, res) => {
     const membership = user.teamMembers[0];
     const { passwordHash, ...rest } = user;
 
+    const teamId = membership?.teamId ?? null;
+    let plan: "pro" | "free" = "free";
+    if (teamId) {
+      const sub = await prisma.subscription.findUnique({
+        where: { teamId },
+        select: { status: true },
+      });
+      if (sub && (PRO_STATUSES as readonly string[]).includes(sub.status)) {
+        plan = "pro";
+      }
+    }
+
     res.json({
       ...rest,
       passwordSet: passwordHash != null,
-      teamId: membership?.teamId ?? null,
+      teamId,
       teamRole: user.role === "ADMIN" ? "OWNER" : (membership?.role ?? null),
+      plan,
     });
   } catch (err) {
     res.status(500).json({ error: String(err) });
@@ -841,7 +855,7 @@ authRouter.get("/google/callback", async (req, res) => {
         data: { email, name: displayName, role: "USER" },
         select: { id: true, email: true, name: true, role: true, tokenVersion: true },
       });
-      
+
       const team = await prisma.team.create({
         data: {
           name: `${displayName}'s Team`,

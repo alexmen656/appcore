@@ -441,11 +441,22 @@ function HeaderProfileMenu({
           <div className="px-3 pt-2.5 pb-1">
             <div className="text-[16px] font-semibold text-[#1a1a2e] dark:text-[#e8eaf0] truncate">{displayName}</div>
             {user.email && <div className={`text-[12px] ${textMuted} truncate`}>{user.email}</div>}
-            {user.teamRole && (
-              <div className="mt-1.5 inline-flex text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 dark:bg-[#252b38] text-gray-600 dark:text-[#8b93a5]">
-                {user.teamRole}
-              </div>
-            )}
+            <div className="mt-1.5 flex items-center gap-1.5">
+              {user.teamRole && (
+                <span className="inline-flex text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-gray-100 dark:bg-[#252b38] text-gray-600 dark:text-[#8b93a5]">
+                  {user.teamRole}
+                </span>
+              )}
+              <span
+                className={`inline-flex text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${
+                  user.plan === "pro"
+                    ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400"
+                    : "bg-gray-100 dark:bg-[#252b38] text-gray-600 dark:text-[#8b93a5]"
+                }`}
+              >
+                {user.plan === "pro" ? "Pro" : "Free"}
+              </span>
+            </div>
           </div>
           <div className="h-px bg-[#e5e7eb] dark:bg-[#2a2f3d] mx-3 my-1" />
           <NavLink
