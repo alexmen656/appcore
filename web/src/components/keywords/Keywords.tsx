@@ -1,7 +1,16 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { borderDefault, pageTitle, textMuted, textPrimary, textSecondary } from "../../styles";
-import { ChevronDown, FolderPlus, LayoutGrid, List, MoreHorizontal, Plus, Search, Target, Upload } from "lucide-react";
-import { useApi, apiGet, apiPost, apiPut, apiPatch, apiDelete, authHeaders, getActiveBundleId } from "../../hooks/useApi";
+import { ChevronDown, FolderPlus, LayoutGrid, List, Lock, MoreHorizontal, Plus, Search, Target, Upload } from "lucide-react";
+import {
+  useApi,
+  apiGet,
+  apiPost,
+  apiPut,
+  apiPatch,
+  apiDelete,
+  authHeaders,
+  getActiveBundleId,
+} from "../../hooks/useApi";
 import type { KeywordGroup } from "../../types";
 import { useClickOutside } from "../../hooks/useClickOutside";
 import { usePermissions } from "../../hooks/usePermissions";
@@ -17,11 +26,14 @@ import RankingHistoryChart, { HistoryData, AppliedEvent } from "./RankingHistory
 
 type ViewMode = "list" | "matrix";
 
+const FREE_KEYWORDS_PER_APP = 50;
+
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
+  isPro: boolean;
 }
 
-export default function Keywords({ addToast }: Props) {
+export default function Keywords({ addToast, isPro }: Props) {
   const posthog = usePostHog();
   const { canWrite } = usePermissions();
   const writeTip = !canWrite ? "Viewer role cannot perform this action" : undefined;
@@ -136,6 +148,11 @@ export default function Keywords({ addToast }: Props) {
   };
 
   const keywords = items;
+  const remaining = isPro ? null : Math.max(0, FREE_KEYWORDS_PER_APP - keywords.length);
+  const atLimit = remaining !== null && remaining <= 0;
+  const limitTip = atLimit
+    ? `Free plan is limited to ${FREE_KEYWORDS_PER_APP} keywords per app. Upgrade to Pro to track more.`
+    : undefined;
   const availableCountries = [...new Set(keywords.map((k) => k.country))].sort();
   const filtered = filterCountry ? keywords.filter((k) => k.country === filterCountry) : keywords;
   const keywordFields = keywordFieldsData?.keywordFields ?? {};
@@ -206,7 +223,7 @@ export default function Keywords({ addToast }: Props) {
     if (hi != null && v > hi) return false;
     return true;
   };
-  
+
   const popLo = numOrNull(filters.popMin);
   const popHi = numOrNull(filters.popMax);
   const diffLo = numOrNull(filters.diffMin);
@@ -413,12 +430,16 @@ export default function Keywords({ addToast }: Props) {
         <button
           onClick={() => setAddModalOpen(true)}
           disabled={!canWrite}
-          title={writeTip ?? (suggestionCount > 0 ? `${suggestionCount} new AI suggestions` : "Add keywords")}
-          className={`relative inline-flex items-center gap-1.5 pl-3 pr-3.5 py-[7px] rounded-full border ${borderDefault} bg-white dark:bg-[#1c2028] text-[13px] font-medium ${textPrimary} hover:border-[#D94412] hover:text-[#D94412] transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
+          title={writeTip ?? limitTip ?? (suggestionCount > 0 ? `${suggestionCount} new AI suggestions` : "Add keywords")}
+          className={`relative inline-flex items-center gap-1.5 pl-3 pr-3.5 py-[7px] rounded-full border text-[13px] font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+            atLimit
+              ? "border-[#D94412]/40 bg-[#D94412]/[0.06] text-[#D94412] hover:bg-[#D94412]/10"
+              : `${borderDefault} bg-white dark:bg-[#1c2028] ${textPrimary} hover:border-[#D94412] hover:text-[#D94412]`
+          }`}
         >
-          <Plus className="w-3.5 h-3.5" />
-          Add keywords
-          {suggestionCount > 0 && (
+          {atLimit ? <Lock className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
+          {atLimit ? "Upgrade to add more" : "Add keywords"}
+          {!atLimit && suggestionCount > 0 && (
             <span className="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#D94412] text-white text-[10px] font-bold tabular-nums ring-2 ring-white dark:ring-[#0f1117]">
               {suggestionCount}
             </span>
@@ -480,8 +501,8 @@ export default function Keywords({ addToast }: Props) {
                   setMoreOpen(false);
                   setImportModalOpen(true);
                 }}
-                disabled={!canWrite}
-                title={writeTip}
+                disabled={!canWrite || atLimit}
+                title={writeTip ?? limitTip}
                 className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <Upload className={`w-3.5 h-3.5 ${textSecondary}`} />
@@ -502,6 +523,8 @@ export default function Keywords({ addToast }: Props) {
         }}
         onSuggestionsChanged={refetchSuggestions}
         addToast={addToast}
+        remaining={remaining}
+        limit={FREE_KEYWORDS_PER_APP}
       />
 
       <ImportKeywordsModal
@@ -513,6 +536,8 @@ export default function Keywords({ addToast }: Props) {
           refetch();
         }}
         addToast={addToast}
+        remaining={remaining}
+        limit={FREE_KEYWORDS_PER_APP}
       />
 
       {filterCountry && coverageLocale && coverageTotal > 0 && (
@@ -580,10 +605,18 @@ export default function Keywords({ addToast }: Props) {
         />
       )}
 
-      <div className="text-xs text-gray-400 dark:text-[#5c6478] mt-2">
-        {sorted.length}
-        {sorted.length !== keywords.length ? ` of ${keywords.length}` : ""} keyword
-        {sorted.length !== 1 ? "s" : ""} tracked
+      <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-[#5c6478] mt-2">
+        <span>
+          {sorted.length}
+          {sorted.length !== keywords.length ? ` of ${keywords.length}` : ""} keyword
+          {sorted.length !== 1 ? "s" : ""} tracked
+        </span>
+        {remaining !== null && (
+          <span className={`tabular-nums ${atLimit ? "text-[#D94412] font-medium" : ""}`}>
+            · Free plan {keywords.length}/{FREE_KEYWORDS_PER_APP}
+            {atLimit ? " · limit reached" : ""}
+          </span>
+        )}
       </div>
     </div>
   );

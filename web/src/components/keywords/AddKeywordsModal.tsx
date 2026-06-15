@@ -31,6 +31,8 @@ interface Props {
   onAdded: (count: number) => void;
   onSuggestionsChanged?: () => void;
   addToast: (msg: string, type: "success" | "error" | "info") => void;
+  remaining: number | null;
+  limit: number;
 }
 
 export default function AddKeywordsModal({
@@ -40,6 +42,8 @@ export default function AddKeywordsModal({
   onAdded,
   onSuggestionsChanged,
   addToast,
+  remaining,
+  limit,
 }: Props) {
   const { canWrite } = usePermissions();
   const [query, setQuery] = useState("");
@@ -82,7 +86,17 @@ export default function AddKeywordsModal({
     const t = raw.trim();
     if (!t) return;
     const key = normalize(t);
-    setStaged((prev) => (prev.some((x) => normalize(x) === key) ? prev : [...prev, t]));
+    setStaged((prev) => {
+      if (prev.some((x) => normalize(x) === key)) return prev;
+      if (remaining !== null && prev.length >= remaining) {
+        addToast(
+          `Free plan is limited to ${limit} keywords per app. Upgrade to Pro to track more.`,
+          "info",
+        );
+        return prev;
+      }
+      return [...prev, t];
+    });
   };
 
   const handleSubmitQuery = () => {
@@ -112,6 +126,10 @@ export default function AddKeywordsModal({
       return;
     }
     if (staged.length === 0) return;
+    if (remaining !== null && staged.length > remaining) {
+      addToast(`Free plan is limited to ${limit} keywords per app. Upgrade to Pro to track more.`, "error");
+      return;
+    }
     setAdding(true);
     const c = COUNTRIES.find((x) => x.code === country) ?? COUNTRIES[0];
     try {
@@ -179,6 +197,19 @@ export default function AddKeywordsModal({
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        {remaining !== null && (
+          <div
+            className={`mx-5 mb-2 px-3 py-2 rounded-lg text-[12px] ${
+              remaining - staged.length <= 0
+                ? "bg-[#D94412]/10 text-[#D94412]"
+                : "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
+            }`}
+          >
+            Free plan: {Math.max(0, remaining - staged.length)} of {limit} keyword slots left for this app. Upgrade to
+            Pro for unlimited tracking.
+          </div>
+        )}
 
         <div className="px-5 pb-3">
           <div

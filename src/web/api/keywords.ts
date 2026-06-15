@@ -2,6 +2,7 @@ import { Router } from "express";
 import { prisma } from "../../config";
 import { bundleAccess } from "../auth";
 import { normalizeLanguage } from "../../services/app-store-markets";
+import { FREE_KEYWORDS_PER_APP, isTeamPro } from "../../services/pro-grants";
 
 export const keywordsRouter = Router();
 
@@ -199,15 +200,20 @@ keywordsRouter.get("/:id/history", async (req, res) => {
         where: { OR: [{ appId: ownApp.id }, { competitorId: ownApp.id }] },
         include: { app: { select: { bundleId: true } }, competitor: { select: { bundleId: true } } },
       });
-      trackedBundleIds = new Set(
-        rels.map((r) => (r.appId === ownApp.id ? r.competitor.bundleId : r.app.bundleId)),
-      );
+      trackedBundleIds = new Set(rels.map((r) => (r.appId === ownApp.id ? r.competitor.bundleId : r.app.bundleId)));
     }
 
     // Latest snapshot row per app, sorted by rank — the full list of apps ranked in the most recent scrape.
     const byBundle = new Map<
       string,
-      { bundleId: string; name: string; iconUrl: string | null; rank: number | null; isTracked: boolean; isOwn: boolean }
+      {
+        bundleId: string;
+        name: string;
+        iconUrl: string | null;
+        rank: number | null;
+        isTracked: boolean;
+        isOwn: boolean;
+      }
     >();
     for (const r of results) {
       if (byBundle.has(r.bundleId)) continue;
@@ -251,6 +257,21 @@ keywordsRouter.post("/", bundleAccess("body", "bundleId"), async (req, res) => {
     const normalizedCountry = (country || "de").toLowerCase();
     const normalizedLanguage = normalizeLanguage(language, normalizedCountry);
     const ownApp = req.bundleApp!;
+
+    if (!(await isTeamPro(ownApp.teamId))) {
+      const trackedGroups = await prisma.keywordRanking.groupBy({
+        by: ["keywordId"],
+        where: { appId: ownApp.id },
+      });
+      const tracked = trackedGroups.length;
+      if (tracked >= FREE_KEYWORDS_PER_APP) {
+        return res.status(403).json({
+          error: `Free plan is limited to ${FREE_KEYWORDS_PER_APP} keywords per app. Upgrade to Pro to track more.`,
+          code: "KEYWORD_LIMIT_REACHED",
+          limit: FREE_KEYWORDS_PER_APP,
+        });
+      }
+    }
 
     const keyword = await prisma.keyword.upsert({
       where: { term_country: { term, country: normalizedCountry } },

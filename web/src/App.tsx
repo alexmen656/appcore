@@ -1281,7 +1281,7 @@ export default function App() {
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/suggestions" element={<Suggestions addToast={addToast} />} />
-              <Route path="/keywords" element={<Keywords addToast={addToast} />} />
+              <Route path="/keywords" element={<Keywords addToast={addToast} isPro={user.plan === "pro"} />} />
               <Route path="/competitors" element={<Competitors addToast={addToast} />} />
               <Route path="/competitors/:id" element={<CompetitorDetailPage addToast={addToast} />} />
               <Route path="/analytics" element={<Analytics addToast={addToast} />} />

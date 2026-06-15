@@ -46,9 +46,19 @@ interface Props {
   defaultCountry: string;
   onImported: (count: number) => void;
   addToast: (msg: string, type: "success" | "error" | "info") => void;
+  remaining: number | null;
+  limit: number;
 }
 
-export default function ImportKeywordsModal({ open, onClose, defaultCountry, onImported, addToast }: Props) {
+export default function ImportKeywordsModal({
+  open,
+  onClose,
+  defaultCountry,
+  onImported,
+  addToast,
+  remaining,
+  limit,
+}: Props) {
   const { canWrite } = usePermissions();
   const [text, setText] = useState("");
   const [country, setCountry] = useState(defaultCountry || "de");
@@ -77,11 +87,19 @@ export default function ImportKeywordsModal({ open, onClose, defaultCountry, onI
     }
 
     if (parsed.length === 0) return;
+
+    if (remaining !== null && remaining <= 0) {
+      addToast(`Free plan is limited to ${limit} keywords per app. Upgrade to Pro to import more.`, "error");
+      return;
+    }
+    const toImport = remaining !== null ? parsed.slice(0, remaining) : parsed;
+    const skipped = parsed.length - toImport.length;
+
     setImporting(true);
 
     const c = COUNTRIES.find((x) => x.code === country) ?? COUNTRIES[0];
     const results = await Promise.allSettled(
-      parsed.map((term) =>
+      toImport.map((term) =>
         apiPost("/keywords", {
           term,
           country: c.code,
@@ -96,16 +114,17 @@ export default function ImportKeywordsModal({ open, onClose, defaultCountry, onI
 
     setImporting(false);
     if (ok > 0) {
+      const skipNote = skipped > 0 ? `, ${skipped} skipped (Free plan limit)` : "";
       addToast(
         failed === 0
-          ? `${ok} keyword${ok === 1 ? "" : "s"} imported (${c.code.toUpperCase()})`
-          : `${ok} imported, ${failed} failed (${c.code.toUpperCase()})`,
-        failed === 0 ? "success" : "info",
+          ? `${ok} keyword${ok === 1 ? "" : "s"} imported (${c.code.toUpperCase()})${skipNote}`
+          : `${ok} imported, ${failed} failed (${c.code.toUpperCase()})${skipNote}`,
+        failed === 0 && skipped === 0 ? "success" : "info",
       );
       onImported(ok);
       onClose();
     } else {
-      addToast("Import failed — none of the keywords could be added", "error");
+      addToast("Import failed. None of the keywords could be added.", "error");
     }
   };
 
@@ -123,7 +142,7 @@ export default function ImportKeywordsModal({ open, onClose, defaultCountry, onI
           <div>
             <h2 className={`text-base font-semibold ${textPrimary}`}>Import keywords</h2>
             <p className={`text-xs ${textMuted} mt-0.5`}>
-              Paste keywords from AppFollow, Sensor Tower, AppRadar, or any CSV export — one per line or
+              Paste keywords from AppFollow, Sensor Tower, AppRadar, or any CSV export. One per line or
               comma/tab-separated.
             </p>
           </div>
@@ -134,6 +153,19 @@ export default function ImportKeywordsModal({ open, onClose, defaultCountry, onI
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        {remaining !== null && (
+          <div
+            className={`mx-5 mb-2 px-3 py-2 rounded-lg text-[12px] ${
+              remaining <= 0
+                ? "bg-[#D94412]/10 text-[#D94412]"
+                : "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
+            }`}
+          >
+            Free plan: {remaining} of {limit} keyword slots left for this app. Extra keywords beyond the limit are
+            skipped. Upgrade to Pro for unlimited tracking.
+          </div>
+        )}
 
         <div className="px-5 pb-3 flex-1 overflow-auto">
           <textarea
