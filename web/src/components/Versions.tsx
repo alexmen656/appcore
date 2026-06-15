@@ -314,6 +314,44 @@ const DEVICES: [RegExp, string][] = [
   [/ipad/i, "iPad"],
 ];
 
+const ASC_DISPLAY_TYPE_LABELS: Record<string, string> = {
+  APP_IPHONE_69: 'iPhone 6.9"',
+  APP_IPHONE_67: 'iPhone 6.7"',
+  APP_IPHONE_65: 'iPhone 6.5"',
+  APP_IPHONE_63: 'iPhone 6.3"',
+  APP_IPHONE_61: 'iPhone 6.1"',
+  APP_IPHONE_58: 'iPhone 5.8"',
+  APP_IPHONE_55: 'iPhone 5.5"',
+  APP_IPHONE_47: 'iPhone 4.7"',
+  APP_IPHONE_40: 'iPhone 4.0"',
+  APP_IPHONE_35: 'iPhone 3.5"',
+  APP_IPAD_PRO_3GEN_129: 'iPad 12.9"',
+  APP_IPAD_PRO_129: 'iPad 12.9"',
+  APP_IPAD_PRO_3GEN_11: 'iPad 11"',
+  APP_IPAD_13: 'iPad 13"',
+  APP_IPAD_PRO_11: 'iPad 11"',
+  APP_IPAD_105: 'iPad 10.5"',
+  APP_IPAD_97: 'iPad 9.7"',
+};
+
+const ASC_DEVICE_ORDER = [
+  'iPhone 6.9"',
+  'iPhone 6.7"',
+  'iPhone 6.5"',
+  'iPhone 6.3"',
+  'iPhone 6.1"',
+  'iPhone 5.8"',
+  'iPhone 5.5"',
+  'iPhone 4.7"',
+  'iPhone 4.0"',
+  'iPhone 3.5"',
+  'iPad 13"',
+  'iPad 12.9"',
+  'iPad 11"',
+  'iPad 10.5"',
+  'iPad 9.7"',
+];
+
 function getDeviceLabel(url: string): string {
   const filename = decodeURIComponent(url.split("/").pop() ?? url);
 
@@ -1020,10 +1058,14 @@ function LatestBuildCard({ bundleId, appName }: { bundleId: string; appName: str
 
 function ScreenshotsPanel({
   appId,
+  versionId,
+  bundleId,
   activeLocale,
   addToast,
 }: {
   appId: string;
+  versionId: string | null;
+  bundleId: string | null;
   activeLocale: string | null;
   addToast: (msg: string, type: "success" | "error" | "info") => void;
 }) {
@@ -1085,7 +1127,14 @@ function ScreenshotsPanel({
   const job = data?.job;
   const framedByLocale = job?.framedByLocale ?? {};
   const locales = Object.keys(framedByLocale).filter((l) => (framedByLocale[l]?.length ?? 0) > 0);
-  const effectiveLocale = activeLocale && locales.includes(activeLocale) ? activeLocale : (locales[0] ?? null);
+  const hasLocalForActive = activeLocale ? locales.includes(activeLocale) : false;
+  const effectiveLocale = activeLocale && hasLocalForActive ? activeLocale : (locales[0] ?? null);
+
+  const shouldUseAscFallback = !loading && !hasLocalForActive && !!versionId && !!activeLocale && !!bundleId;
+
+  if (shouldUseAscFallback) {
+    return <AscScreenshotsPanel versionId={versionId!} bundleId={bundleId!} locale={activeLocale!} />;
+  }
 
   if (loading || !job || locales.length === 0) return null;
 
@@ -1291,6 +1340,125 @@ function ScreenshotsPanel({
           <img
             src={previewUrl}
             alt={`${previewLabel} screenshot preview`}
+            className="max-h-[88vh] max-w-[92vw] rounded-xl object-contain shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+    </>
+  );
+}
+
+type AscScreenshot = {
+  id: string;
+  displayType: string;
+  url: string;
+  thumbUrl: string;
+  width: number;
+  height: number;
+};
+
+function AscScreenshotsPanel({ versionId, bundleId, locale }: { versionId: string; bundleId: string; locale: string }) {
+  const { data, loading } = useApi<{ screenshots: AscScreenshot[] }>(
+    `/asc/versions/${versionId}/screenshots?bundleId=${encodeURIComponent(bundleId)}&locale=${encodeURIComponent(locale)}`,
+    [versionId, bundleId, locale],
+  );
+  const [preview, setPreview] = useState<AscScreenshot | null>(null);
+
+  useEffect(() => {
+    if (!preview) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPreview(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [preview]);
+
+  if (loading || !data) return null;
+  const screenshots = data.screenshots ?? [];
+  if (screenshots.length === 0) return null;
+
+  const grouped = new Map<string, AscScreenshot[]>();
+  for (const s of screenshots) {
+    const label = ASC_DISPLAY_TYPE_LABELS[s.displayType] ?? s.displayType;
+    if (!grouped.has(label)) grouped.set(label, []);
+    grouped.get(label)!.push(s);
+  }
+
+  const sortedGroups = [...grouped.entries()].sort(([a], [b]) => {
+    const ia = ASC_DEVICE_ORDER.indexOf(a);
+    const ib = ASC_DEVICE_ORDER.indexOf(b);
+    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+  });
+
+  return (
+    <>
+      <div className="pb-5 border-b border-[#f3f4f6] dark:border-[#2a2f3d]">
+        <div className="flex items-center justify-between mb-4">
+          <div className={`text-[14px] font-bold ${textPrimary}`}>Screenshots</div>
+          <span className={`text-[10px] uppercase tracking-wide font-semibold text-[#9ca3af] dark:text-[#6b7280]`}>
+            From App Store · {locale}
+          </span>
+        </div>
+
+        <div className="flex flex-col gap-5">
+          {sortedGroups.map(([label, items]) => (
+            <div key={label}>
+              <div className="flex items-center gap-2 mb-2.5">
+                <div className={`text-[11px] font-bold ${textMuted}`}>{label}</div>
+                <span className="text-[10px] text-[#c8cdd3] dark:text-[#3a4050]">- {items.length}</span>
+              </div>
+              <div className="flex gap-3 overflow-x-auto pb-1">
+                {items.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setPreview(s)}
+                    className="block text-left shrink-0 group/img"
+                    aria-label={`Open ${label} screenshot preview`}
+                  >
+                    <img
+                      src={s.thumbUrl}
+                      alt={`${label} screenshot`}
+                      loading="lazy"
+                      decoding="async"
+                      className="h-[200px] w-auto rounded-xl border border-[#eef0f3] object-cover shadow-sm group-hover/img:shadow-md group-hover/img:opacity-90 transition-all"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {preview && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 px-4 py-6"
+          onClick={() => setPreview(null)}
+        >
+          <div className="absolute top-4 left-4 right-4 flex items-center justify-between gap-4 text-white">
+            <div className="min-w-0">
+              <div className="text-[13px] font-semibold truncate">
+                {ASC_DISPLAY_TYPE_LABELS[preview.displayType] ?? preview.displayType}
+              </div>
+              <div className="text-[11px] text-white/60 font-mono">{locale}</div>
+            </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setPreview(null);
+              }}
+              className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+              aria-label="Close screenshot preview"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <img
+            src={preview.url}
+            alt="Screenshot preview"
             className="max-h-[88vh] max-w-[92vw] rounded-xl object-contain shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           />
@@ -2203,7 +2371,15 @@ export default function Versions({ addToast }: Props) {
                 <span className={`${badgeOutline("")} uppercase tracking-wide`}>Read-only</span>
               )}
             </div>
-            {data.appId && <ScreenshotsPanel appId={data.appId} activeLocale={activeLocale} addToast={addToast} />}
+            {data.appId && (
+              <ScreenshotsPanel
+                appId={data.appId}
+                versionId={data.versionId}
+                bundleId={data.bundleId}
+                activeLocale={activeLocale}
+                addToast={addToast}
+              />
+            )}
 
             <div className={`text-[14px] font-bold -mb-1 ${textPrimary}`}>App Metadata</div>
 

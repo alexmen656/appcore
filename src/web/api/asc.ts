@@ -669,6 +669,134 @@ ascRouter.get(
   }),
 );
 
+const FROZEN_STATES = new Set(["READY_FOR_SALE", "REPLACED_WITH_NEW_VERSION"]);
+
+ascRouter.get(
+  "/versions/:versionId/screenshots",
+  bundleAccess("query"),
+  handle("getVersionScreenshots", async (req, res) => {
+    const versionId = req.params.versionId;
+    const locale = (req.query.locale as string) || undefined;
+    const refresh = req.query.refresh === "true";
+
+    if (!locale) {
+      res.status(400).json({ error: "locale required" });
+      return;
+    }
+
+    const dbVersion = await loadVersionInBundle(res, versionId, req.bundleApp!.bundleId);
+    if (!dbVersion) return;
+
+    const versionLoc = await prisma.appStoreVersionLocalization.findFirst({
+      where: { versionId, locale },
+      select: {
+        id: true,
+        versionLocalizationId: true,
+        ascScreenshots: true,
+        ascScreenshotsSyncedAt: true,
+      },
+    });
+
+    const frozen = FROZEN_STATES.has(dbVersion.appStoreState);
+    const cached = Array.isArray(versionLoc?.ascScreenshots) ? (versionLoc?.ascScreenshots as any[]) : null;
+    const syncedAt = versionLoc?.ascScreenshotsSyncedAt ?? null;
+    const fresh = syncedAt && Date.now() - new Date(syncedAt).getTime() < CACHE_TTL_MS;
+
+    if (!refresh && cached && (frozen || fresh)) {
+      res.json({ screenshots: cached, cached: true });
+      return;
+    }
+
+    let versionLocalizationId = versionLoc?.versionLocalizationId ?? null;
+    const asc = await ascClientForUser(req.user!.userId);
+
+    if (!versionLocalizationId) {
+      const remoteLocs = await asc.getVersionLocalizations(versionId);
+      versionLocalizationId = remoteLocs.find((l: any) => l.attributes.locale === locale)?.id ?? null;
+    }
+
+    if (!versionLocalizationId) {
+      if (cached) {
+        res.json({ screenshots: cached, cached: true });
+        return;
+      }
+      res.json({ screenshots: [] });
+      return;
+    }
+
+    const sets = await asc.listScreenshotSets(versionLocalizationId);
+    const screenshots: Array<{
+      id: string;
+      displayType: string;
+      url: string;
+      thumbUrl: string;
+      width: number;
+      height: number;
+    }> = [];
+
+    for (const set of sets) {
+      const items = await asc.listScreenshotsInSet(set.id);
+      for (const item of items) {
+        const asset = item.attributes.imageAsset;
+        const ready = item.attributes.assetDeliveryState?.state === "COMPLETE";
+
+        if (!asset || !asset.templateUrl || !ready) continue;
+
+        const buildUrl = (w: number, h: number) =>
+          asset.templateUrl
+            .replace("{w}", String(w))
+            .replace("{h}", String(h))
+            .replace("{c}", "bb")
+            .replace("{f}", "jpg");
+
+        screenshots.push({
+          id: item.id,
+          displayType: set.attributes.screenshotDisplayType,
+          url: buildUrl(asset.width, asset.height),
+          thumbUrl: buildUrl(Math.round(asset.width / 3), Math.round(asset.height / 3)),
+          width: asset.width,
+          height: asset.height,
+        });
+      }
+    }
+
+    // For frozen states, don't overwrite a non-empty cache with an empty result —
+    // ASC can return empty if the app was removed from sale, but we want the history.
+    const keepHistorical = frozen && screenshots.length === 0 && cached && cached.length > 0;
+
+    if (!keepHistorical) {
+      if (versionLoc) {
+        await prisma.appStoreVersionLocalization.update({
+          where: { id: versionLoc.id },
+          data: {
+            ascScreenshots: screenshots as any,
+            ascScreenshotsSyncedAt: new Date(),
+          },
+        });
+      } else {
+        await prisma.appStoreVersionLocalization.upsert({
+          where: { versionId_locale: { versionId, locale } },
+          create: {
+            versionId,
+            locale,
+            versionLocalizationId,
+            ascScreenshots: screenshots as any,
+            ascScreenshotsSyncedAt: new Date(),
+          },
+          update: {
+            versionLocalizationId,
+            ascScreenshots: screenshots as any,
+            ascScreenshotsSyncedAt: new Date(),
+          },
+        });
+      }
+      res.json({ screenshots, cached: false });
+    } else {
+      res.json({ screenshots: cached, cached: true });
+    }
+  }),
+);
+
 ascRouter.patch(
   "/versions/metadata",
   bundleAccess("body"),

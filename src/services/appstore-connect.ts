@@ -70,6 +70,23 @@ export interface ASCScreenshot {
   };
 }
 
+export interface ASCImageAsset {
+  templateUrl: string;
+  width: number;
+  height: number;
+}
+
+export interface ASCScreenshotWithAsset {
+  id: string;
+  attributes: {
+    fileName?: string;
+    fileSize?: number;
+    sourceFileChecksum?: string;
+    imageAsset?: ASCImageAsset | null;
+    assetDeliveryState?: { state?: string } | null;
+  };
+}
+
 export interface ASCCredentials {
   issuerId: string;
   keyId: string;
@@ -633,6 +650,16 @@ export class AppStoreConnectClient {
   async listScreenshotSets(localizationId: string): Promise<ASCScreenshotSet[]> {
     const { data } = await this.client.get(`/appStoreVersionLocalizations/${localizationId}/appScreenshotSets`, {
       params: { "fields[appScreenshotSets]": "screenshotDisplayType" },
+    });
+    return data.data ?? [];
+  }
+
+  async listScreenshotsInSet(setId: string): Promise<ASCScreenshotWithAsset[]> {
+    const { data } = await this.client.get(`/appScreenshotSets/${setId}/appScreenshots`, {
+      params: {
+        "fields[appScreenshots]": "fileName,fileSize,sourceFileChecksum,imageAsset,assetDeliveryState",
+        limit: 200,
+      },
     });
     return data.data ?? [];
   }
