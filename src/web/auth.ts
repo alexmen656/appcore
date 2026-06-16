@@ -66,11 +66,13 @@ export async function loadTeamRole(req: Request, _res: Response, next: NextFunct
   next();
 }
 
+const WRITE_ROLES = new Set<TeamRoleName>(["OWNER", "ADMIN", "MEMBER"]);
+
 export function requireWriteRole(req: Request, res: Response, next: NextFunction) {
   if (!MUTATING_METHODS.has(req.method)) return next();
   if (req.user?.role === "ADMIN") return next();
-  if (req.teamRole === "VIEWER") {
-    res.status(403).json({ error: "Viewer role cannot perform this action" });
+  if (!req.teamRole || !WRITE_ROLES.has(req.teamRole)) {
+    res.status(403).json({ error: "You do not have permission to perform this action" });
     return;
   }
   next();
@@ -129,7 +131,13 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       return;
     }
 
-    req.user = { userId: decoded.userId, email: decoded.email, role: dbUser.role, teamId: decoded.teamId, isDemo: decoded.isDemo ?? false };
+    req.user = {
+      userId: decoded.userId,
+      email: decoded.email,
+      role: dbUser.role,
+      teamId: decoded.teamId,
+      isDemo: decoded.isDemo ?? false,
+    };
     next();
   } catch {
     res.status(500).json({ error: "Internal server error" });

@@ -31,7 +31,20 @@ suggestionsRouter.get("/", async (req, res) => {
     if (status) where.status = String(status).toUpperCase();
     if (locale) where.locale = String(locale);
     if (type) where.type = String(type).toUpperCase();
-    if (bundleId) where.appBundleId = String(bundleId);
+
+    if (bundleId) {
+      const ownedApp = await verifyAppOwnershipByBundleId(req, res, String(bundleId));
+      if (!ownedApp) return;
+
+      where.appBundleId = String(bundleId);
+    } else if (req.user!.role !== "ADMIN") {
+      const teamApps = await prisma.app.findMany({
+        where: { teamId: req.user!.teamId },
+        select: { bundleId: true },
+      });
+
+      where.appBundleId = { in: teamApps.map((a) => a.bundleId) };
+    }
 
     const parsedLimit = limit ? parseInt(String(limit), 10) : 100;
     const safeLimit = Number.isFinite(parsedLimit) ? Math.min(Math.max(1, parsedLimit), 500) : 100;
@@ -77,6 +90,7 @@ async function updateSuggestionStatus(req: Request, res: Response, status: "APPR
     const id = req.params.id as string;
     const existing = await verifySuggestionAccess(req, res, id);
     if (!existing) return;
+
     const suggestion = await prisma.aSOSuggestion.update({
       where: { id },
       data: { status },
@@ -120,11 +134,13 @@ suggestionsRouter.post("/:id/apply", async (req, res) => {
       if (!suggestion.appBundleId) {
         return res.status(400).json({ error: "Suggestion has no associated app" });
       }
+
       await asc.applyASOChanges(changes, locale, suggestion.appBundleId);
       await prisma.aSOSuggestion.update({
         where: { id: req.params.id },
         data: { status: "APPLIED", appliedAt: new Date() },
       });
+
       res.json({ ok: true, applied: changes, locale });
     } else {
       res.status(400).json({ error: `Cannot apply type: ${suggestion.type}` });
@@ -136,8 +152,15 @@ suggestionsRouter.post("/:id/apply", async (req, res) => {
 
 suggestionsRouter.post("/bulk-approve", async (req, res) => {
   try {
-    const { locale } = req.body;
-    const where: any = { status: "PENDING" };
+    const { locale, bundleId } = req.body;
+    if (!bundleId) {
+      res.status(400).json({ error: "bundleId is required" });
+      return;
+    }
+    const ownedApp = await verifyAppOwnershipByBundleId(req, res, bundleId);
+    if (!ownedApp) return;
+
+    const where: any = { status: "PENDING", appBundleId: bundleId };
     if (locale) where.locale = locale;
 
     const result = await prisma.aSOSuggestion.updateMany({
@@ -161,6 +184,7 @@ suggestionsRouter.post("/auto-apply", async (req, res) => {
       res.status(400).json({ error: "bundleId is required" });
       return;
     }
+
     const ownedApp = await verifyAppOwnershipByBundleId(req, res, bundleId);
     if (!ownedApp) return;
 
@@ -208,8 +232,10 @@ suggestionsRouter.post("/auto-apply", async (req, res) => {
 
     for (const [loc, localeSuggestions] of byLocale) {
       const bestByType = new Map<string, (typeof localeSuggestions)[0]>();
+
       for (const s of localeSuggestions) {
         const existing = bestByType.get(s.type);
+
         if (!existing || (s.confidenceScore ?? 0) > (existing.confidenceScore ?? 0)) {
           bestByType.set(s.type, s);
         }

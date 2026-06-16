@@ -25,6 +25,11 @@ function isMissingSchema(err: unknown): boolean {
 }
 
 bossRouter.get("/jobs", async (req, res) => {
+  if (req.user!.role !== "ADMIN") {
+    res.status(403).json({ error: "Admin access required" });
+    return;
+  }
+  
   try {
     const limit = Math.min(parseInt(req.query.limit as string) || 100, 500);
     const queue = (req.query.queue as string) || null;
@@ -60,7 +65,11 @@ bossRouter.get("/jobs", async (req, res) => {
   }
 });
 
-bossRouter.get("/schedules", async (_req, res) => {
+bossRouter.get("/schedules", async (req, res) => {
+  if (req.user!.role !== "ADMIN") {
+    res.status(403).json({ error: "Admin access required" });
+    return;
+  }
   try {
     const rows = await prisma.$queryRaw(
       Prisma.sql`

@@ -181,11 +181,23 @@ appsRouter.get("/:id/competitor-suggestions", appAccess("params", "id"), async (
     const terms = keywords.map((k) => k.term);
     const perTerm = await Promise.all(terms.map((t) => scraper.searchApps(t, 8).catch(() => [])));
 
-    const byBundle = new Map<string, { name: string; iconUrl: string | null; rating: number | null; ratingsCount: number | null; developerName: string | null; appearances: number; bestPos: number }>();
+    const byBundle = new Map<
+      string,
+      {
+        name: string;
+        iconUrl: string | null;
+        rating: number | null;
+        ratingsCount: number | null;
+        developerName: string | null;
+        appearances: number;
+        bestPos: number;
+      }
+    >();
     for (const results of perTerm) {
       results.forEach((r, idx) => {
         if (exclude.has(r.bundleId)) return;
         const existing = byBundle.get(r.bundleId);
+
         if (existing) {
           existing.appearances++;
           existing.bestPos = Math.min(existing.bestPos, idx);
@@ -226,6 +238,7 @@ appsRouter.post("/:id/competitors", appAccess("params", "id"), async (req, res) 
   try {
     const ownApp = req.bundleApp!;
     const bundleId = ((req.body?.bundleId as string) ?? "").trim();
+
     if (!bundleId) {
       res.status(400).json({ error: "bundleId is required" });
       return;
@@ -233,10 +246,12 @@ appsRouter.post("/:id/competitors", appAccess("params", "id"), async (req, res) 
 
     const scraper = new AppStoreScraper(ownApp.country, undefined, ownApp.bundleId);
     const competitorId = await scraper.scrapeAndSaveApp(bundleId, false);
+
     if (!competitorId) {
       res.status(404).json({ error: "App not found on the App Store" });
       return;
     }
+
     if (competitorId === ownApp.id) {
       res.status(400).json({ error: "Cannot add your own app as a competitor" });
       return;
@@ -420,6 +435,21 @@ appsRouter.get("/:id/competitor-detail", bundleAccess("query", "bundleId"), asyn
 
     if (!app) return res.status(404).json({ error: "App not found" });
 
+    if (app.id !== ownApp.id) {
+      const relation = await prisma.competitorRelation.findFirst({
+        where: {
+          OR: [
+            { appId: ownApp.id, competitorId: app.id },
+            { appId: app.id, competitorId: ownApp.id },
+          ],
+        },
+      });
+
+      if (!relation) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+    }
+
     const reviews = await prisma.competitorReview.findMany({
       where: { appId: app.id },
       orderBy: { reviewedAt: "desc" },
@@ -573,6 +603,7 @@ appsRouter.get("/:id/signing", requireAuth, appAccess("params", "id"), async (re
 appsRouter.put("/:id/signing", requireAuth, appAccess("params", "id"), async (req, res) => {
   try {
     const { p12Base64, p12Password, profileBase64, teamId } = req.body;
+
     if (!p12Base64 || !p12Password || !profileBase64) {
       res.status(400).json({
         error: "p12Base64, p12Password, and profileBase64 are required",
@@ -606,10 +637,12 @@ appsRouter.delete("/:id", requireAuth, appAccess("params", "id"), async (req, re
       res.status(404).json({ error: "App not found" });
       return;
     }
+
     if (!isAdmin && app.teamId !== teamId) {
       res.status(403).json({ error: "Not authorized" });
       return;
     }
+
     if (!app.isOwnApp) {
       res.status(400).json({ error: "Only own apps can be deleted" });
       return;

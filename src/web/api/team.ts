@@ -38,10 +38,12 @@ teamRouter.get("/invite/:token", async (req, res) => {
       where: { token: req.params.token },
       include: { team: { select: { name: true } } },
     });
+
     if (!invite || invite.acceptedAt || invite.expiresAt < new Date()) {
       res.status(404).json({ error: "Invalid or expired invite" });
       return;
     }
+
     res.json({
       email: invite.email,
       role: invite.role,
@@ -135,10 +137,12 @@ teamRouter.post("/invite", async (req, res) => {
       res.status(400).json({ error: "email and role required" });
       return;
     }
+
     if (!VALID_ROLES.includes(role as TeamRoleName)) {
       res.status(400).json({ error: "Invalid role" });
       return;
     }
+
     const email = normalizeEmail(rawEmail);
     if (!EMAIL_RE.test(email)) {
       res.status(400).json({ error: "Invalid email" });
@@ -221,6 +225,7 @@ teamRouter.delete("/invites/:id", async (req, res) => {
     const invite = await prisma.teamInvite.findUnique({
       where: { id: req.params.id },
     });
+
     if (!invite || invite.teamId !== teamId) {
       res.status(404).json({ error: "Invite not found" });
       return;
@@ -250,6 +255,7 @@ teamRouter.put("/members/:id", async (req, res) => {
     const target = await prisma.teamMember.findUnique({
       where: { id: req.params.id },
     });
+
     if (!target || target.teamId !== teamId) {
       res.status(404).json({ error: "Member not found" });
       return;
@@ -264,6 +270,7 @@ teamRouter.put("/members/:id", async (req, res) => {
       res.status(403).json({ error: "Insufficient permissions to assign this role" });
       return;
     }
+
     if (target.role === "OWNER" && actorRole !== "OWNER") {
       res.status(403).json({ error: "Only an owner can change another owner's role" });
       return;
@@ -281,6 +288,7 @@ teamRouter.put("/members/:id", async (req, res) => {
       where: { id: req.params.id },
       data: { role: newRole },
     });
+
     res.json({ ok: true });
   } catch (err) {
     send500(res, err, "PUT /members/:id");
@@ -292,6 +300,7 @@ teamRouter.delete("/members/:id", async (req, res) => {
     const existing = await prisma.teamMember.findUnique({
       where: { id: req.params.id },
     });
+
     if (!existing) {
       res.status(404).json({ error: "Member not found" });
       return;
@@ -328,6 +337,11 @@ teamRouter.delete("/members/:id", async (req, res) => {
     }
 
     await prisma.teamMember.delete({ where: { id: req.params.id } });
+    await prisma.user.update({
+      where: { id: existing.userId },
+      data: { tokenVersion: { increment: 1 } },
+    });
+
     res.json({ ok: true });
   } catch (err) {
     send500(res, err, "DELETE /members/:id");
@@ -343,6 +357,7 @@ teamRouter.get("/members/:id/apps", async (req, res) => {
       where: { id: req.params.id },
       include: { appAccess: { select: { appId: true } } },
     });
+
     if (!member || member.teamId !== teamId) {
       res.status(404).json({ error: "Member not found" });
       return;
@@ -365,10 +380,10 @@ teamRouter.put("/members/:id/apps", async (req, res) => {
     }
 
     const teamId = req.user!.teamId;
-
     const member = await prisma.teamMember.findUnique({
       where: { id: req.params.id },
     });
+
     if (!member || member.teamId !== teamId) {
       res.status(404).json({ error: "Member not found" });
       return;
@@ -380,6 +395,7 @@ teamRouter.put("/members/:id/apps", async (req, res) => {
         where: { id: { in: unique }, teamId },
         select: { id: true },
       });
+
       if (valid.length !== unique.length) {
         res.status(400).json({ error: "One or more appIds do not belong to this team" });
         return;
@@ -412,21 +428,23 @@ teamRouter.put("/", async (req, res) => {
 
     const { name } = req.body as { name?: string };
     const trimmed = name?.trim();
+
     if (!trimmed) {
       res.status(400).json({ error: "name required" });
       return;
     }
+
     if (trimmed.length > 100) {
       res.status(400).json({ error: "name too long" });
       return;
     }
 
     const teamId = req.user!.teamId;
-
     const team = await prisma.team.update({
       where: { id: teamId },
       data: { name: trimmed },
     });
+
     res.json({ id: team.id, name: team.name });
   } catch (err) {
     send500(res, err, "PUT /");
