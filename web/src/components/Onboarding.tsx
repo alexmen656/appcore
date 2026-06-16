@@ -11,6 +11,8 @@ import {
   Users,
   AlignLeft,
   TrendingUp,
+  Globe,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { authHeaders, setActiveBundleId } from "../hooks/useApi";
@@ -254,11 +256,14 @@ function AppAvatar({ url, name, size = "md" }: { url?: string | null; name: stri
   );
 }
 
+type Impact = "high" | "med" | "low";
+
 interface ScanFinding {
   key: string;
   title: string;
   desc: string;
-  impact: "high" | "med";
+  impact: Impact;
+  suggestion?: string;
 }
 
 interface ScanData {
@@ -273,6 +278,7 @@ interface ScanData {
   score: number;
   target: number;
   findings: ScanFinding[];
+  aiSummary?: string | null;
 }
 
 const FINDING_ICONS: Record<string, LucideIcon> = {
@@ -282,6 +288,21 @@ const FINDING_ICONS: Record<string, LucideIcon> = {
   screenshots: ImageIcon,
   competitor: Users,
   description: AlignLeft,
+  localization: Globe,
+};
+
+const IMPACT_STYLE: Record<Impact, { cls: string; dot: string; label: string }> = {
+  high: { cls: "text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400", dot: "bg-red-500", label: "High impact" },
+  med: {
+    cls: "text-amber-700 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400",
+    dot: "bg-amber-500",
+    label: "Medium",
+  },
+  low: {
+    cls: "text-slate-600 bg-slate-100 dark:bg-slate-800/50 dark:text-slate-400",
+    dot: "bg-slate-400",
+    label: "Minor",
+  },
 };
 
 const SCAN_STEPS = [
@@ -469,7 +490,7 @@ function ScanScreen({
 }
 
 function ResultsScreen({ data, onContinue }: { data: ScanData; onContinue: () => void }) {
-  const { app, score, target, findings } = data;
+  const { app, score, target, findings, aiSummary } = data;
   const appName = app?.name ?? "your app";
   return (
     <Shell>
@@ -478,7 +499,7 @@ function ResultsScreen({ data, onContinue }: { data: ScanData; onContinue: () =>
           Quick scan complete
         </div>
 
-        <div className="flex items-center gap-5 mb-7">
+        <div className="flex items-center gap-5 mb-5">
           <ScoreRing value={score} />
           <div className="min-w-0">
             <div className={`text-[11px] font-semibold uppercase tracking-wide ${textMuted}`}>ASO score</div>
@@ -486,7 +507,8 @@ function ResultsScreen({ data, onContinue }: { data: ScanData; onContinue: () =>
               {score < 50 ? "Plenty of upside" : score < 75 ? "Solid, room to grow" : "Looking strong"}
             </div>
             <p className={`text-sm ${textSecondary} mt-1`}>
-              Every gap we found is a quick win. Close these {findings.length} and {appName} can climb fast.
+              We found {findings.length} {findings.length === 1 ? "opportunity" : "opportunities"} for {appName}, ranked
+              by impact.
             </p>
             <div className="inline-flex items-center gap-1.5 mt-2.5 text-[12px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 rounded-full px-2.5 py-1">
               <TrendingUp className="w-3 h-3" /> ~{target}/100 within reach
@@ -494,31 +516,48 @@ function ResultsScreen({ data, onContinue }: { data: ScanData; onContinue: () =>
           </div>
         </div>
 
+        {aiSummary && (
+          <div className="flex items-start gap-2.5 mb-5 px-4 py-3 rounded-xl bg-gradient-to-br from-[#D94412]/[0.06] to-[#C4001E]/[0.06] border border-[#D94412]/15">
+            <Sparkles className="w-4 h-4 text-[#C4001E] shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <div className={`text-[11px] font-semibold uppercase tracking-wide ${textMuted}`}>AI review</div>
+              <p className={`text-[13px] ${textSecondary} leading-snug mt-0.5`}>{aiSummary}</p>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col gap-2">
           {findings.map((f) => {
             const Icon = FINDING_ICONS[f.key] ?? Search;
+            const style = IMPACT_STYLE[f.impact] ?? IMPACT_STYLE.med;
             return (
               <div
                 key={f.key}
-                className={`flex items-center gap-3.5 px-4 py-3 bg-[#f7f8fa] dark:bg-[#252b38] rounded-xl border ${borderDefault}`}
+                className={`flex items-start gap-3.5 px-4 py-3 bg-[#f7f8fa] dark:bg-[#252b38] rounded-xl border ${borderDefault}`}
               >
                 <div className="w-9 h-9 rounded-lg bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] flex items-center justify-center text-[#C4001E] shrink-0">
                   <Icon className="w-[18px] h-[18px]" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className={`text-sm font-semibold ${textPrimary}`}>{f.title}</div>
-                  <div className={`text-[12.5px] ${textSecondary} leading-snug`}>{f.desc}</div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className={`text-sm font-semibold ${textPrimary}`}>{f.title}</div>
+                    <span
+                      className={`shrink-0 inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full ${style.cls}`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
+                      {style.label}
+                    </span>
+                  </div>
+                  <div className={`text-[12.5px] ${textSecondary} leading-snug mt-0.5`}>{f.desc}</div>
+                  {f.suggestion && (
+                    <div className="mt-2 flex items-start gap-1.5 text-[12px] bg-[#C4001E]/[0.05] rounded-lg px-2.5 py-1.5">
+                      <Sparkles className="w-3 h-3 shrink-0 mt-0.5 text-[#C4001E]" />
+                      <span className={textSecondary}>
+                        <span className="font-semibold text-[#C4001E] dark:text-orange-300">Try:</span> {f.suggestion}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <span
-                  className={`shrink-0 inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full ${
-                    f.impact === "high"
-                      ? "text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400"
-                      : "text-amber-700 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400"
-                  }`}
-                >
-                  <span className={`w-1.5 h-1.5 rounded-full ${f.impact === "high" ? "bg-red-500" : "bg-amber-500"}`} />
-                  {f.impact === "high" ? "High impact" : "Medium"}
-                </span>
               </div>
             );
           })}

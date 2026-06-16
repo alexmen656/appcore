@@ -9,18 +9,23 @@ import {
   ArrowRight,
   TrendingUp,
   CheckCircle2,
+  Globe,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { useApi } from "../../hooks/useApi";
 import { borderDefault, cardCls, textMuted, textPrimary, textSecondary } from "../../styles";
 import AscConnectCard from "../AscConnectCard";
 
+type Impact = "high" | "med" | "low";
+
 interface ScanFinding {
   key: string;
   title: string;
   desc: string;
-  impact: "high" | "med";
+  impact: Impact;
   metric?: [string, string];
+  suggestion?: string;
 }
 
 interface ScanResult {
@@ -28,7 +33,14 @@ interface ScanResult {
   score?: number;
   target?: number;
   findings?: ScanFinding[];
+  aiSummary?: string | null;
 }
+
+const IMPACT_STYLE: Record<Impact, { cls: string; label: string }> = {
+  high: { cls: "text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400", label: "High impact" },
+  med: { cls: "text-amber-700 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400", label: "Medium" },
+  low: { cls: "text-slate-600 bg-slate-100 dark:bg-slate-800/50 dark:text-slate-400", label: "Minor" },
+};
 
 interface CtaMeta {
   to: string;
@@ -43,6 +55,7 @@ const CTA_BY_KEY: Record<string, CtaMeta> = {
   screenshots: { to: "/versions", label: "Manage screenshots", icon: ImageIcon },
   keyword: { to: "/keywords", label: "Open Keywords", icon: Search },
   competitor: { to: "/competitors", label: "Find competitors", icon: Users },
+  localization: { to: "/versions", label: "Add languages", icon: Globe },
 };
 
 const FALLBACK_CTA: CtaMeta = { to: "/keywords", label: "Open Keywords", icon: Search };
@@ -86,6 +99,13 @@ export default function ActionPlan({ hasASC }: { hasASC: boolean }) {
             )}
           </div>
 
+          {scan.aiSummary && (
+            <div className="flex items-start gap-2.5 mb-3 px-3.5 py-2.5 rounded-xl bg-gradient-to-br from-[#D94412]/[0.06] to-[#C4001E]/[0.06] border border-[#D94412]/15">
+              <Sparkles className="w-3.5 h-3.5 text-[#C4001E] shrink-0 mt-0.5" />
+              <p className={`text-[12.5px] ${textSecondary} leading-snug`}>{scan.aiSummary}</p>
+            </div>
+          )}
+
           {findings.length === 0 ? (
             <div className="flex items-center gap-2.5 py-2 text-[13px] text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="w-4 h-4" />
@@ -96,10 +116,11 @@ export default function ActionPlan({ hasASC }: { hasASC: boolean }) {
               {findings.map((f) => {
                 const cta = CTA_BY_KEY[f.key] ?? FALLBACK_CTA;
                 const Icon = cta.icon;
+                const style = IMPACT_STYLE[f.impact] ?? IMPACT_STYLE.med;
                 return (
                   <div
                     key={f.key}
-                    className={`flex items-cÏenter gap-3.5 px-4 py-3 rounded-xl border ${borderDefault} bg-[#fafbfc] dark:bg-[#252b38]`}
+                    className={`flex items-start gap-3.5 px-4 py-3 rounded-xl border ${borderDefault} bg-[#fafbfc] dark:bg-[#252b38]`}
                   >
                     <div className="w-9 h-9 rounded-lg bg-white dark:bg-[#1c2028] border border-[#eef0f3] dark:border-[#2a2f3d] flex items-center justify-center text-[#C4001E] shrink-0">
                       <Icon className="w-[18px] h-[18px]" />
@@ -108,16 +129,21 @@ export default function ActionPlan({ hasASC }: { hasASC: boolean }) {
                       <div className="flex items-center gap-2">
                         <span className={`text-[13.5px] font-semibold ${textPrimary}`}>{f.title}</span>
                         <span
-                          className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                            f.impact === "high"
-                              ? "text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400"
-                              : "text-amber-700 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400"
-                          }`}
+                          className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${style.cls}`}
                         >
-                          {f.impact === "high" ? "High impact" : "Medium"}
+                          {style.label}
                         </span>
                       </div>
                       <div className={`text-[12.5px] ${textSecondary} leading-snug mt-0.5`}>{f.desc}</div>
+                      {f.suggestion && (
+                        <div className="mt-2 flex items-start gap-1.5 text-[12px] bg-[#C4001E]/[0.05] rounded-lg px-2.5 py-1.5">
+                          <Sparkles className="w-3 h-3 shrink-0 mt-0.5 text-[#C4001E]" />
+                          <span className={textSecondary}>
+                            <span className="font-semibold text-[#C4001E] dark:text-orange-300">Try:</span>{" "}
+                            {f.suggestion}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <Link
                       to={cta.to}

@@ -1,8 +1,8 @@
 import { type Request, type Response } from "express";
 import { prisma } from "../../config";
-import { evaluateAppMetadata } from "./quick-scan-ai";
+import { evaluateAppMetadata, type AiFieldKey } from "./quick-scan-ai";
 
-type Impact = "high" | "med";
+type Impact = "high" | "med" | "low";
 
 type Finding = {
   key: string;
@@ -10,10 +10,25 @@ type Finding = {
   desc: string;
   impact: Impact;
   gap: number;
-  metric: [string, string];
+  metric?: [string, string];
+  suggestion?: string;
 };
 
 const MAX_FINDINGS = 4;
+const IMPACT_RANK: Record<Impact, number> = { high: 0, med: 1, low: 2 };
+
+const AI_FINDING_KEY: Record<AiFieldKey, string> = {
+  title: "title",
+  subtitle: "subtitle",
+  keywords: "keyword",
+  description: "description",
+};
+const AI_FINDING_TITLE: Record<AiFieldKey, string> = {
+  title: "Sharpen your title",
+  subtitle: "Rework your subtitle",
+  keywords: "Strengthen your keywords",
+  description: "Improve your description hook",
+};
 
 export async function runQuickScan(req: Request, res: Response): Promise<void> {
   const bundleId = req.query.bundleId as string;
@@ -48,6 +63,8 @@ export async function runQuickScan(req: Request, res: Response): Promise<void> {
   const rating = snapshot.rating ?? null;
   const pool: Finding[] = [];
 
+  // Subtitle: only nag on length when it's genuinely under-used. A 28/30 subtitle
+  // has no meaningful free space — quality (slogan vs. keywords) is judged by the AI pass below.
   if (!subtitle) {
     pool.push({
       key: "subtitle",
@@ -57,36 +74,57 @@ export async function runQuickScan(req: Request, res: Response): Promise<void> {
       metric: ["0", "/ 30 chars"],
       gap: 1,
     });
-  } else if (subtitle.length < 28) {
+  } else if (subtitle.length < 16) {
     pool.push({
       key: "subtitle",
-      title: "Use your full subtitle",
-      desc: `Your subtitle uses ${subtitle.length} of 30 characters - claim the rest for high-value keywords.`,
+      title: "Use more of your subtitle",
+      desc: `Your subtitle is only ${subtitle.length} of 30 characters - real room left for high-value keywords.`,
       impact: "med",
       metric: [String(subtitle.length), "/ 30 chars"],
       gap: (30 - subtitle.length) / 30,
     });
   }
 
-  if (title && title.length < 28) {
+  // Title: same logic. Don't flag a near-full title; the AI pass judges whether
+  // the characters are well spent (brand + keywords vs. brand alone).
+  if (title && title.length < 16) {
     pool.push({
       key: "title",
-      title: "Optimize your title",
-      desc: `Your title uses ${title.length} of 30 characters - easy keyword space to claim.`,
-      impact: title.length < 18 ? "high" : "med",
+      title: "Use more of your title",
+      desc: `Your title is only ${title.length} of 30 characters - room to pair your brand with strong keywords.`,
+      impact: title.length < 10 ? "high" : "med",
       metric: [String(title.length), "/ 30 chars"],
       gap: (30 - title.length) / 30,
     });
   }
 
-  if (screenshots < 10) {
+  // Screenshots: scale the nudge to how many are missing. 7-9 is a minor tweak, not a warning.
+  if (screenshots < 4) {
     pool.push({
       key: "screenshots",
       title: "Add more screenshots",
-      desc: `You have ${screenshots} screenshot${screenshots === 1 ? "" : "s"}. Up to 10 gives you more room to convert browsers.`,
-      impact: screenshots < 4 ? "high" : "med",
+      desc: `Only ${screenshots} screenshot${screenshots === 1 ? "" : "s"}. The first few drive most installs - fill at least the top slots.`,
+      impact: "high",
       metric: [String(screenshots), "/ 10"],
       gap: (10 - screenshots) / 10,
+    });
+  } else if (screenshots < 7) {
+    pool.push({
+      key: "screenshots",
+      title: "Add more screenshots",
+      desc: `You have ${screenshots} screenshots. Filling more slots (up to 10) gives you more room to convert browsers.`,
+      impact: "med",
+      metric: [String(screenshots), "/ 10"],
+      gap: (10 - screenshots) / 10,
+    });
+  } else if (screenshots < 10) {
+    pool.push({
+      key: "screenshots",
+      title: "A few more screenshots could help",
+      desc: `You have ${screenshots} screenshots - solid. Adding the last ${10 - screenshots} (up to 10) is a minor tweak, not a priority.`,
+      impact: "low",
+      metric: [String(screenshots), "/ 10"],
+      gap: ((10 - screenshots) / 10) * 0.4,
     });
   }
 
@@ -129,10 +167,16 @@ export async function runQuickScan(req: Request, res: Response): Promise<void> {
     });
   }
 
-  const findings = pool
-    .sort((a, b) => b.gap - a.gap)
-    .slice(0, MAX_FINDINGS)
-    .map(({ gap: _gap, ...f }) => f);
+  // Localization is the single biggest untapped reach lever for most apps, so we always
+  // surface it as an opportunity. We can't measure locale coverage from a public scrape,
+  // so it's framed as an opportunity rather than a deficiency.
+  pool.push({
+    key: "localization",
+    title: "Localize for more markets",
+    desc: "Your listing is optimized for one region. Translating your title, subtitle and keywords into more App Store languages unlocks organic installs in markets you're not ranking in yet.",
+    impact: "med",
+    gap: 0.5,
+  });
 
   const mTitle = title ? Math.min(title.length / 30, 1) : 0;
   const mSub = subtitle ? Math.min(subtitle.length / 30, 1) : 0;
@@ -152,6 +196,44 @@ export async function runQuickScan(req: Request, res: Response): Promise<void> {
     description: app.currentDescription ?? snapshot.description ?? "",
   });
 
+  // Merge the AI's qualitative verdicts into the findings. The AI catches what length
+  // checks can't: a subtitle wasted on a marketing slogan, generic/duplicate keywords,
+  // a brand-only title. AI insight is more specific, so it overrides the matching
+  // heuristic finding (and adds a finding when the field passes length checks but reads poorly).
+  const byKey = new Map<string, Finding>();
+  for (const f of pool) byKey.set(f.key, f);
+
+  if (ai) {
+    for (const insight of ai.fields) {
+      if (insight.verdict === "good") continue;
+      const key = AI_FINDING_KEY[insight.field];
+      const impact: Impact = insight.verdict === "poor" ? "high" : "med";
+      const gap = insight.verdict === "poor" ? 0.85 : 0.6;
+      const desc = insight.issue || insight.reasoning;
+      const existing = byKey.get(key);
+      if (existing) {
+        if (desc) existing.desc = desc;
+        existing.suggestion = insight.suggestion || existing.suggestion;
+        if (IMPACT_RANK[impact] < IMPACT_RANK[existing.impact]) existing.impact = impact;
+        existing.gap = Math.max(existing.gap, gap);
+      } else if (desc) {
+        byKey.set(key, {
+          key,
+          title: AI_FINDING_TITLE[insight.field],
+          desc,
+          suggestion: insight.suggestion || undefined,
+          impact,
+          gap,
+        });
+      }
+    }
+  }
+
+  const findings = [...byKey.values()]
+    .sort((a, b) => IMPACT_RANK[a.impact] - IMPACT_RANK[b.impact] || b.gap - a.gap)
+    .slice(0, MAX_FINDINGS)
+    .map(({ gap: _gap, ...f }) => f);
+
   res.json({
     ready: true,
     app: {
@@ -164,6 +246,6 @@ export async function runQuickScan(req: Request, res: Response): Promise<void> {
     score,
     target,
     findings,
-    ai,
+    aiSummary: ai?.summary ?? null,
   });
 }
