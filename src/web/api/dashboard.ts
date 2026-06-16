@@ -23,6 +23,20 @@ dashboardRouter.get("/", async (req, res) => {
     }
 
     const appId = ownApp?.id;
+    let suggestionWhere: any;
+
+    if (activeBundleId) {
+      suggestionWhere = { appBundleId: activeBundleId };
+    } else if (req.user!.role === "ADMIN") {
+      suggestionWhere = {};
+    } else {
+      const teamApps = await prisma.app.findMany({
+        where: { teamId: req.user!.teamId },
+        select: { bundleId: true },
+      });
+
+      suggestionWhere = { appBundleId: { in: teamApps.map((a) => a.bundleId) } };
+    }
 
     const [
       settings,
@@ -60,7 +74,7 @@ dashboardRouter.get("/", async (req, res) => {
           })
         : Promise.resolve(0),
       prisma.aSOSuggestion.findMany({
-        where: activeBundleId ? { appBundleId: activeBundleId } : {},
+        where: suggestionWhere,
         orderBy: { createdAt: "desc" },
         take: 5,
       }),

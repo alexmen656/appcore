@@ -34,12 +34,26 @@ export async function getMcpUserTeamId(userId: string): Promise<string | null> {
   return membership?.teamId ?? null;
 }
 
+export async function getMcpAllowedAppIds(userId: string, teamId: string): Promise<string[] | null> {
+  const member = await prisma.teamMember.findUnique({
+    where: { teamId_userId: { teamId, userId } },
+    include: { appAccess: { select: { appId: true } } },
+  });
+
+  if (!member) return [];
+  if (member.role === "OWNER" || member.role === "ADMIN") return null;
+  if (member.appAccess.length === 0) return null;
+  return member.appAccess.map((a) => a.appId);
+}
+
 export async function verifyMcpAppAccess(userId: string, bundleId: string) {
   const app = await prisma.app.findUnique({ where: { bundleId } });
   if (!app) return null;
   const teamId = await getMcpUserTeamId(userId);
   if (!teamId) return null;
   if (!app.teamId || app.teamId !== teamId) return null;
+  const allowed = await getMcpAllowedAppIds(userId, teamId);
+  if (allowed && !allowed.includes(app.id)) return null;
   return app;
 }
 

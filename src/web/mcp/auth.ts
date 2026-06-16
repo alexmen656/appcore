@@ -1,6 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import { prisma, logger } from "../../config";
 
+// MCP access tokens are bearer credentials with no refresh flow; cap their
+// lifetime so a leaked token cannot grant indefinite access. Clients re-run the
+// OAuth flow to obtain a fresh token when this elapses.
+const MCP_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
 function rejectUnauthorized(req: Request, res: Response) {
   const base = `${req.protocol}://${req.get("host")}`;
   res.setHeader(
@@ -27,6 +32,12 @@ export async function mcpAuth(req: Request, res: Response, next: NextFunction) {
     const oauthToken = await prisma.oAuthToken.findUnique({
       where: { accessToken: key },
     });
+
+    if (oauthToken && Date.now() - oauthToken.createdAt.getTime() > MCP_TOKEN_TTL_MS) {
+      await prisma.oAuthToken.delete({ where: { accessToken: key } }).catch(() => {});
+      rejectUnauthorized(req, res);
+      return;
+    }
 
     if (oauthToken) {
       const membership = await prisma.teamMember.findFirst({

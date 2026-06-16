@@ -4,6 +4,7 @@ import { prisma } from "../../../config";
 import {
   appNotFound,
   appNotFoundWithListApps,
+  getMcpAllowedAppIds,
   getMcpUserTeamId,
   getSettingsWithBundleId,
   mcpToolMessages,
@@ -34,10 +35,12 @@ export function registerAppTools(server: McpServer, userId: string) {
           content: [{ type: "text", text: "[]" }],
         };
       }
+      const allowedAppIds = await getMcpAllowedAppIds(userId, teamId);
       const apps = await prisma.app.findMany({
         where: {
           teamId,
           ...(ownOnly ? { isOwnApp: true } : {}),
+          ...(allowedAppIds ? { id: { in: allowedAppIds } } : {}),
         },
         include: {
           snapshots: { orderBy: { scrapedAt: "desc" }, take: 1 },

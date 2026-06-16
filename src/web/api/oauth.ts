@@ -129,8 +129,12 @@ oauthRouter.get("/authorize", async (req: Request, res: Response) => {
     res.status(400).send("Unknown client_id");
     return;
   }
-  if (client.redirectUris.length > 0 && redirect_uri && !client.redirectUris.includes(redirect_uri)) {
+  if (!redirect_uri || !client.redirectUris.includes(redirect_uri)) {
     res.status(400).send("Invalid redirect_uri");
+    return;
+  }
+  if (!code_challenge || code_challenge_method !== "S256") {
+    res.status(400).send("PKCE with S256 is required");
     return;
   }
 
@@ -324,8 +328,13 @@ oauthRouter.post("/authorize", express.urlencoded({ extended: false }), async (r
       return;
     }
 
-    if (redirect_uri && !client.redirectUris.includes(redirect_uri)) {
+    if (!redirect_uri || !client.redirectUris.includes(redirect_uri)) {
       redirectToForm("Invalid redirect_uri");
+      return;
+    }
+
+    if (!code_challenge || code_challenge_method !== "S256") {
+      redirectToForm("PKCE with S256 is required");
       return;
     }
 
@@ -447,18 +456,19 @@ oauthRouter.post(
           throw new Error("invalid_grant");
         }
 
-        if (authCode.redirectUri && redirect_uri && authCode.redirectUri !== redirect_uri) {
+        if (!redirect_uri || authCode.redirectUri !== redirect_uri) {
           throw new Error("invalid_grant");
         }
 
-        if (authCode.codeChallenge) {
-          if (!code_verifier) {
-            throw new Error("code_verifier_required");
-          }
-          const expected = createHash("sha256").update(code_verifier).digest("base64url");
-          if (expected !== authCode.codeChallenge) {
-            throw new Error("pkce_failed");
-          }
+        if (!authCode.codeChallenge) {
+          throw new Error("invalid_grant");
+        }
+        if (!code_verifier) {
+          throw new Error("code_verifier_required");
+        }
+        const expected = createHash("sha256").update(code_verifier).digest("base64url");
+        if (expected !== authCode.codeChallenge) {
+          throw new Error("pkce_failed");
         }
 
         await tx.oAuthCode.update({ where: { code }, data: { used: true } });
@@ -475,7 +485,7 @@ oauthRouter.post(
         return token;
       });
 
-      res.json({ access_token: accessToken, token_type: "Bearer" });
+      res.json({ access_token: accessToken, token_type: "Bearer", expires_in: 30 * 24 * 60 * 60 });
     } catch (err: any) {
       if (err.message === "code_verifier_required") {
         res.status(400).json({

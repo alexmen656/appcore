@@ -190,6 +190,18 @@ export function requireBundleAccess(
   return [requireAuth, bundleAccess(source, paramName)];
 }
 
+export async function memberAllowedApp(userId: string, teamId: string, appId: string): Promise<boolean> {
+  const member = await prisma.teamMember.findUnique({
+    where: { teamId_userId: { teamId, userId } },
+    include: { appAccess: { select: { appId: true } } },
+  });
+
+  if (!member) return false;
+  if (member.role === "OWNER" || member.role === "ADMIN") return true;
+  if (member.appAccess.length === 0) return true;
+  return member.appAccess.some((a) => a.appId === appId);
+}
+
 export async function verifyAppOwnership(req: Request, res: Response, appId: string) {
   const app = await prisma.app.findUnique({ where: { id: appId } });
   if (!app) {
@@ -199,6 +211,10 @@ export async function verifyAppOwnership(req: Request, res: Response, appId: str
 
   if (req.user!.role === "ADMIN") return app;
   if (!app.teamId || app.teamId !== req.user!.teamId) {
+    res.status(403).json({ error: "Not authorized" });
+    return null;
+  }
+  if (!(await memberAllowedApp(req.user!.userId, req.user!.teamId, app.id))) {
     res.status(403).json({ error: "Not authorized" });
     return null;
   }
@@ -213,6 +229,10 @@ export async function verifyAppOwnershipByBundleId(req: Request, res: Response, 
   }
   if (req.user!.role === "ADMIN") return app;
   if (!app.teamId || app.teamId !== req.user!.teamId) {
+    res.status(403).json({ error: "Not authorized" });
+    return null;
+  }
+  if (!(await memberAllowedApp(req.user!.userId, req.user!.teamId, app.id))) {
     res.status(403).json({ error: "Not authorized" });
     return null;
   }
