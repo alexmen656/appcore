@@ -78,9 +78,27 @@ export default function Login({ onAuth, mode = "login" }: Props) {
   const [pendingAuth, setPendingAuth] = useState<{ user: AuthUser } | null>(null);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [passkeyError, setPasskeyError] = useState<string | null>(null);
+  const [verifySent, setVerifySent] = useState<{ email: string } | null>(null);
+  const [resendState, setResendState] = useState<"idle" | "sending" | "sent">("idle");
 
   const finishAuth = (user: AuthUser) => {
     onAuth(user);
+  };
+
+  const handleResend = async () => {
+    if (!verifySent) return;
+    setResendState("sending");
+
+    try {
+      await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: verifySent.email }),
+      });
+      setResendState("sent");
+    } catch {
+      setResendState("idle");
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -99,6 +117,14 @@ export default function Login({ onAuth, mode = "login" }: Props) {
       });
 
       const data = await res.json();
+
+      if (data.verificationRequired) {
+        posthog?.capture("email_verification_required", { mode });
+        setResendState("idle");
+        setVerifySent({ email: data.email ?? email });
+        return;
+      }
+
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
 
       if (mode === "signup") {
@@ -213,6 +239,49 @@ export default function Login({ onAuth, mode = "login" }: Props) {
       setPasskeyLoading(false);
     }
   };
+
+  if (verifySent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f8f9fb] dark:bg-[#0f1117]">
+        <div className={`w-[400px] bg-white dark:bg-[#1c2028] rounded-2xl shadow-xl border ${borderDefault} p-10`}>
+          <div className="flex flex-col items-center text-center gap-3 mb-6">
+            <div className="w-12 h-12 rounded-full bg-[#fff0f2] dark:bg-[#2a1520] flex items-center justify-center">
+              <KeyRound className="text-[#D94412]" size={24} />
+            </div>
+            <h2 className={`text-lg font-semibold ${textPrimary}`}>Confirm your email</h2>
+            <p className="text-sm text-[#6b7280] dark:text-[#8b9ab0] leading-relaxed">
+              We sent a confirmation link to <strong className={textPrimary}>{verifySent.email}</strong>. Click it to
+              activate your account.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {resendState === "sent" ? (
+              <p className={`text-center text-sm ${textMuted}`}>New link sent. Check your inbox.</p>
+            ) : (
+              <button
+                onClick={handleResend}
+                disabled={resendState === "sending"}
+                className={`${btnPrimary} w-full justify-center`}
+              >
+                {resendState === "sending" ? "Sending…" : "Resend link"}
+              </button>
+            )}
+            <button
+              onClick={() => {
+                setVerifySent(null);
+                setResendState("idle");
+                navigate("/login");
+              }}
+              className="w-full px-4 py-2.5 rounded-xl text-sm font-medium text-[#6b7280] dark:text-[#8b9ab0] hover:bg-[#f8f9fb] dark:hover:bg-[#252b38] transition-colors"
+            >
+              Back to sign in
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (pendingAuth) {
     return (

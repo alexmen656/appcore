@@ -38,6 +38,7 @@ import GameCenterLeaderboards from "./components/gamecenter/Leaderboards";
 import GameCenterAchievements from "./components/gamecenter/Achievements";
 import GameCenterChallenges from "./components/gamecenter/Challenges";
 import Login from "./components/login/Login";
+import VerifyEmail from "./components/login/VerifyEmail";
 import Team from "./components/Team";
 import InviteAccept from "./components/InviteAccept";
 import Onboarding from "./components/Onboarding";
@@ -1168,6 +1169,7 @@ export default function App() {
 
     return (
       <Routes>
+        <Route path="/verify-email" element={<VerifyEmail onAuth={handleAuth} />} />
         <Route path="/signup" element={<Login mode="signup" onAuth={handleAuth} />} />
         <Route path="/login" element={<Login mode="login" onAuth={handleAuth} />} />
         <Route path="*" element={<Login mode="login" onAuth={handleAuth} />} />

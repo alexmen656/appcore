@@ -33,6 +33,19 @@ export async function teamInvite({
   });
 }
 
+export async function verifyEmail({ to, token }: { to: string; token: string }): Promise<void> {
+  const verifyUrl = `${env.APP_URL}/verify-email?token=${token}`;
+
+  await notificationService.sendEmail({
+    to,
+    subject: "Confirm your Marteso email",
+    title: "Confirm your email",
+    body: "Welcome to Marteso. Please confirm your email address to activate your account and start optimizing your app.",
+    cta: { label: "Confirm email", url: verifyUrl },
+    footer: "This link expires in 24 hours. If you did not create a Marteso account, you can safely ignore this email.",
+  });
+}
+
 export function founderWelcome({ to, name }: { to: string; name: string }): void {
   setTimeout(
     () => {

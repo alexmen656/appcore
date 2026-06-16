@@ -17,7 +17,8 @@ import type {
 import { logger, prisma, env } from "../../config";
 import { signToken, requireAuth } from "../auth";
 import { PRO_STATUSES } from "../../services/pro-grants";
-import { founderWelcome } from "../../services/notifications/templates";
+import { founderWelcome, verifyEmail } from "../../services/notifications/templates";
+import type { UserRole } from "@prisma/client";
 
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60 * 1000;
 
@@ -38,6 +39,51 @@ function clearAuthCookie(res: Response) {
     sameSite: "strict",
     path: "/",
   });
+}
+
+const EMAIL_VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
+
+type OAuthUser = {
+  id: string;
+  email: string;
+  name: string | null;
+  role: UserRole;
+  tokenVersion: number;
+  passwordHash: string | null;
+  emailVerifiedAt: Date | null;
+};
+
+// Called when an OAuth provider proves ownership of an existing account's email.
+// If the account was never verified but already had a password, that password
+// was set by an unproven party (pre-registration hijack), so it is revoked and
+// all outstanding tokens invalidated before the real owner is signed in.
+async function reconcileOAuthAccount(user: OAuthUser): Promise<OAuthUser> {
+  if (user.emailVerifiedAt) return user;
+  return prisma.user.update({
+    where: { id: user.id },
+    data: {
+      emailVerifiedAt: new Date(),
+      ...(user.passwordHash ? { passwordHash: null, tokenVersion: { increment: 1 } } : {}),
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      tokenVersion: true,
+      passwordHash: true,
+      emailVerifiedAt: true,
+    },
+  });
+}
+
+async function issueEmailVerification(userId: string, email: string): Promise<void> {
+  await prisma.emailVerificationToken.deleteMany({ where: { userId } });
+  const token = crypto.randomBytes(32).toString("hex");
+  await prisma.emailVerificationToken.create({
+    data: { token, userId, expiresAt: new Date(Date.now() + EMAIL_VERIFICATION_TTL_MS) },
+  });
+  await verifyEmail({ to: email, token }).catch((err) => logger.error("verify email send failed", err));
 }
 
 export const authRouter = Router();
@@ -105,8 +151,10 @@ authRouter.post("/signup", async (req, res) => {
       return;
     }
 
+    // An invite link is delivered to the invitee's mailbox, so accepting it
+    // already proves control of the address; other signups must verify by email.
     const user = await prisma.user.create({
-      data: { email, name: displayName, passwordHash, role: "USER" },
+      data: { email, name: displayName, passwordHash, role: "USER", emailVerifiedAt: invite ? new Date() : null },
     });
 
     let teamId: string | null = null;
@@ -128,6 +176,12 @@ authRouter.post("/signup", async (req, res) => {
         },
       });
       teamId = team.id;
+    }
+
+    if (!invite) {
+      await issueEmailVerification(user.id, user.email);
+      res.status(201).json({ verificationRequired: true, email: user.email });
+      return;
     }
 
     const token = signToken({
@@ -179,6 +233,15 @@ authRouter.post("/login", async (req, res) => {
       return;
     }
 
+    if (!user.emailVerifiedAt) {
+      await issueEmailVerification(user.id, user.email);
+      res.status(403).json({
+        error: "Please verify your email address. We've sent you a new confirmation link.",
+        verificationRequired: true,
+      });
+      return;
+    }
+
     const membership = await prisma.teamMember.findFirst({
       where: { userId: user.id },
       orderBy: { createdAt: "asc" },
@@ -209,6 +272,71 @@ authRouter.post("/login", async (req, res) => {
       },
       hasPasskeys: passkeyCount > 0,
     });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+authRouter.post("/verify-email", async (req, res) => {
+  try {
+    const { token } = req.body as { token?: string };
+    if (!token) {
+      res.status(400).json({ error: "token required" });
+      return;
+    }
+
+    const record = await prisma.emailVerificationToken.findUnique({ where: { token } });
+    if (!record || record.expiresAt < new Date()) {
+      res.status(400).json({ error: "Invalid or expired verification link" });
+      return;
+    }
+
+    const user = await prisma.user.update({
+      where: { id: record.userId },
+      data: { emailVerifiedAt: new Date() },
+    });
+    await prisma.emailVerificationToken.deleteMany({ where: { userId: record.userId } });
+
+    const membership = await prisma.teamMember.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: "asc" },
+    });
+
+    const jwt = signToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      teamId: membership?.teamId ?? null,
+      tokenVersion: user.tokenVersion,
+    });
+    setAuthCookie(res, jwt);
+
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        teamId: membership?.teamId ?? null,
+        teamRole: user.role === "ADMIN" ? "OWNER" : (membership?.role ?? null),
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+authRouter.post("/resend-verification", async (req, res) => {
+  try {
+    const { email } = req.body as { email?: string };
+    if (email) {
+      const user = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
+      if (user && !user.emailVerifiedAt) {
+        await issueEmailVerification(user.id, user.email);
+      }
+    }
+    // Generic response regardless of account existence to avoid enumeration.
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
@@ -356,13 +484,32 @@ authRouter.patch("/profile", requireAuth, async (req, res) => {
       return;
     }
 
+    const emailChanged = typeof updates.email === "string";
+
     const user = await prisma.user.update({
       where: { id: req.user!.userId },
-      data: updates,
-      select: { id: true, email: true, name: true, role: true },
+      data: emailChanged ? { ...updates, tokenVersion: { increment: 1 } } : updates,
+      select: { id: true, email: true, name: true, role: true, tokenVersion: true },
     });
 
-    res.json(user);
+    if (emailChanged) {
+      const membership = await prisma.teamMember.findFirst({
+        where: { userId: user.id },
+        orderBy: { createdAt: "asc" },
+      });
+
+      const token = signToken({
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        teamId: membership?.teamId ?? null,
+        tokenVersion: user.tokenVersion,
+      });
+
+      setAuthCookie(res, token);
+    }
+
+    res.json({ id: user.id, email: user.email, name: user.name, role: user.role });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
@@ -835,7 +982,15 @@ authRouter.get("/google/callback", async (req, res) => {
 
     let user = await prisma.user.findUnique({
       where: { email },
-      select: { id: true, email: true, name: true, role: true, tokenVersion: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        tokenVersion: true,
+        passwordHash: true,
+        emailVerifiedAt: true,
+      },
     });
 
     let teamId: string | null = null;
@@ -843,6 +998,7 @@ authRouter.get("/google/callback", async (req, res) => {
     let isNew = false;
 
     if (user) {
+      user = await reconcileOAuthAccount(user);
       const membership = await prisma.teamMember.findFirst({
         where: { userId: user.id },
         orderBy: { createdAt: "asc" },
@@ -852,8 +1008,16 @@ authRouter.get("/google/callback", async (req, res) => {
     } else {
       const displayName = profile.name?.trim() || email.split("@")[0];
       user = await prisma.user.create({
-        data: { email, name: displayName, role: "USER" },
-        select: { id: true, email: true, name: true, role: true, tokenVersion: true },
+        data: { email, name: displayName, role: "USER", emailVerifiedAt: new Date() },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          tokenVersion: true,
+          passwordHash: true,
+          emailVerifiedAt: true,
+        },
       });
 
       const team = await prisma.team.create({
@@ -966,13 +1130,22 @@ authRouter.get("/github/callback", async (req, res) => {
 
     let user = await prisma.user.findUnique({
       where: { email },
-      select: { id: true, email: true, name: true, role: true, tokenVersion: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        tokenVersion: true,
+        passwordHash: true,
+        emailVerifiedAt: true,
+      },
     });
     let teamId: string | null = null;
     let teamRole: string | null = null;
     let isNew = false;
 
     if (user) {
+      user = await reconcileOAuthAccount(user);
       const membership = await prisma.teamMember.findFirst({
         where: { userId: user.id },
         orderBy: { createdAt: "asc" },
@@ -982,8 +1155,16 @@ authRouter.get("/github/callback", async (req, res) => {
     } else {
       const displayName = profile.name?.trim() || profile.login || email.split("@")[0];
       user = await prisma.user.create({
-        data: { email, name: displayName, role: "USER" },
-        select: { id: true, email: true, name: true, role: true, tokenVersion: true },
+        data: { email, name: displayName, role: "USER", emailVerifiedAt: new Date() },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          tokenVersion: true,
+          passwordHash: true,
+          emailVerifiedAt: true,
+        },
       });
 
       const team = await prisma.team.create({

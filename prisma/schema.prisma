@@ -94,18 +94,31 @@ enum TeamRole {
 }
 
 model User {
-  id           String              @id @default(cuid())
-  email        String              @unique
-  name         String?
-  passwordHash String?
-  tokenVersion Int                 @default(0)
-  role         UserRole            @default(USER)
-  passkeys     PasskeyCredential[]
-  teamMembers  TeamMember[]
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
+  id                 String                   @id @default(cuid())
+  email              String                   @unique
+  name               String?
+  passwordHash       String?
+  emailVerifiedAt    DateTime?
+  tokenVersion       Int                      @default(0)
+  role               UserRole                 @default(USER)
+  passkeys           PasskeyCredential[]
+  teamMembers        TeamMember[]
+  emailVerifications EmailVerificationToken[]
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
 
   @@index([email])
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model PasskeyCredential {
@@ -246,19 +259,19 @@ model AppSnapshot {
 }
 
 model Keyword {
-  id           String           @id @default(cuid())
-  term         String
-  country      String           @default("de")
-  language     String           @default("de")
-  popularity   Float?
-  difficulty   Float?
-  searchVolume Int?
+  id            String                @id @default(cuid())
+  term          String
+  country       String                @default("de")
+  language      String                @default("de")
+  popularity    Float?
+  difficulty    Float?
+  searchVolume  Int?
   rankings      KeywordRanking[]
   searchResults KeywordSearchResult[]
   suggestions   ASOSuggestion[]
-  groupMembers KeywordGroupMember[]
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  groupMembers  KeywordGroupMember[]
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
 
   @@unique([term, country])
   @@index([term])
