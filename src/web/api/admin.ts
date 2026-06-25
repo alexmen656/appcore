@@ -1,4 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
+import bcrypt from "bcryptjs";
 import { Prisma } from "@prisma/client";
 import { prisma, logger } from "../../config";
 import { requireAuth } from "../auth";
@@ -528,6 +529,73 @@ router.post("/teams/:teamId/grant-pro", async (req: Request, res: Response) => {
   }
 
   res.json({ ok: true, subscription });
+});
+
+router.post("/register-user", async (req: Request, res: Response) => {
+  const { email, password, name, role, teamId, teamRole } = (req.body ?? {}) as {
+    email?: string;
+    password?: string;
+    name?: string;
+    role?: "USER" | "ADMIN";
+    teamId?: string;
+    teamRole?: "OWNER" | "ADMIN" | "MEMBER" | "VIEWER";
+  };
+
+  if (!email || !password) {
+    res.status(400).json({ error: "email and password required" });
+    return;
+  }
+  if (password.length < 8) {
+    res.status(400).json({ error: "Password must be at least 8 characters" });
+    return;
+  }
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) {
+    res.status(409).json({ error: "Email already in use" });
+    return;
+  }
+
+  if (teamId) {
+    const team = await prisma.team.findUnique({ where: { id: teamId }, select: { id: true } });
+    if (!team) {
+      res.status(404).json({ error: `Team not found: ${teamId}` });
+      return;
+    }
+  }
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  const displayName = name?.trim() || email.split("@")[0];
+
+  const user = await prisma.user.create({
+    data: {
+      email,
+      name: displayName,
+      passwordHash,
+      role: role ?? "USER",
+      emailVerifiedAt: new Date(),
+    },
+    select: { id: true, email: true, name: true, role: true, createdAt: true, emailVerifiedAt: true },
+  });
+
+  let team;
+  if (teamId) {
+    await prisma.teamMember.create({
+      data: { teamId, userId: user.id, role: teamRole ?? "MEMBER" },
+    });
+    team = await prisma.team.findUnique({ where: { id: teamId }, select: { id: true, name: true } });
+  } else {
+    team = await prisma.team.create({
+      data: {
+        name: `${displayName}'s Team`,
+        members: { create: { userId: user.id, role: "OWNER" } },
+      },
+      select: { id: true, name: true },
+    });
+  }
+
+  logger.info(`Admin register-user: ${user.email} (${user.id}) by ${req.user?.userId ?? "unknown"}`);
+  res.status(201).json({ ok: true, user, team });
 });
 
 router.post("/teams/:teamId/revoke-pro", async (req: Request, res: Response) => {

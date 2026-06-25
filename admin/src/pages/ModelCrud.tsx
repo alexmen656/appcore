@@ -33,6 +33,7 @@ import {
   ArrowDown,
   Inbox,
   Search as SearchIcon,
+  UserPlus,
 } from "lucide-react";
 
 interface PaginatedResponse {
@@ -170,6 +171,253 @@ function RecordForm({
   );
 }
 
+interface TeamLite {
+  id: string;
+  name: string;
+}
+
+type TeamMode = "personal" | "existing";
+type TeamRole = "OWNER" | "ADMIN" | "MEMBER" | "VIEWER";
+
+function TeamPicker({
+  value,
+  onChange,
+}: {
+  value: TeamLite | null;
+  onChange: (team: TeamLite | null) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<TeamLite[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (value) return;
+    const t = setTimeout(() => {
+      setLoading(true);
+      apiFetch<{ data: TeamLite[] }>(`/team?page=1&pageSize=10${query ? `&search=${encodeURIComponent(query)}` : ""}`)
+        .then((r) => setResults(r.data ?? []))
+        .catch(() => setResults([]))
+        .finally(() => setLoading(false));
+    }, 200);
+    return () => clearTimeout(t);
+  }, [query, value]);
+
+  if (value) {
+    return (
+      <div className="flex items-center justify-between gap-2 rounded-md border border-input bg-muted/30 px-3 py-2">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium">{value.name}</p>
+          <code className="text-xs text-muted-foreground">{value.id}</code>
+        </div>
+        <Button type="button" variant="ghost" size="sm" onClick={() => onChange(null)}>
+          Change
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <Input
+        type="text"
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        placeholder="Search teams by name…"
+      />
+      {open && (
+        <div className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-input bg-popover shadow-md">
+          {loading ? (
+            <div className="px-3 py-2 text-xs text-muted-foreground">Loading…</div>
+          ) : results.length === 0 ? (
+            <div className="px-3 py-2 text-xs text-muted-foreground">No teams found</div>
+          ) : (
+            results.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => {
+                  onChange(t);
+                  setOpen(false);
+                  setQuery("");
+                }}
+                className="block w-full px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
+              >
+                <div className="font-medium">{t.name}</div>
+                <code className="text-xs text-muted-foreground">{t.id}</code>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RegisterUserForm({
+  onSubmit,
+  onCancel,
+}: {
+  onSubmit: (data: {
+    email: string;
+    password: string;
+    name?: string;
+    role: "USER" | "ADMIN";
+    teamId?: string;
+    teamRole?: TeamRole;
+  }) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [role, setRole] = useState<"USER" | "ADMIN">("USER");
+  const [teamMode, setTeamMode] = useState<TeamMode>("personal");
+  const [selectedTeam, setSelectedTeam] = useState<TeamLite | null>(null);
+  const [teamRole, setTeamRole] = useState<TeamRole>("MEMBER");
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (teamMode === "existing" && !selectedTeam) return;
+    setSaving(true);
+    try {
+      await onSubmit({
+        email: email.trim(),
+        password,
+        name: name.trim() || undefined,
+        role,
+        ...(teamMode === "existing" && selectedTeam
+          ? { teamId: selectedTeam.id, teamRole }
+          : {}),
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="reg-email">
+          Email<span className="ml-1 text-destructive">*</span>
+        </Label>
+        <Input
+          id="reg-email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          autoComplete="off"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="reg-password">
+          Password<span className="ml-1 text-destructive">*</span>
+        </Label>
+        <Input
+          id="reg-password"
+          type="text"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          minLength={8}
+          autoComplete="new-password"
+        />
+        <p className="text-xs text-muted-foreground">Min 8 characters. Stored as bcrypt hash.</p>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="reg-name">Name</Label>
+        <Input
+          id="reg-name"
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Defaults to email local-part"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="reg-role">Account Role</Label>
+        <select
+          id="reg-role"
+          value={role}
+          onChange={(e) => setRole(e.target.value as "USER" | "ADMIN")}
+          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+        >
+          <option value="USER">USER</option>
+          <option value="ADMIN">ADMIN</option>
+        </select>
+      </div>
+
+      <div className="space-y-2 rounded-md border border-input p-3">
+        <Label>Team</Label>
+        <div className="flex flex-wrap gap-2">
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="team-mode"
+              checked={teamMode === "personal"}
+              onChange={() => setTeamMode("personal")}
+              className="h-4 w-4 accent-[var(--color-brand)]"
+            />
+            New personal team (owner)
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="team-mode"
+              checked={teamMode === "existing"}
+              onChange={() => setTeamMode("existing")}
+              className="h-4 w-4 accent-[var(--color-brand)]"
+            />
+            Add to existing team
+          </label>
+        </div>
+        {teamMode === "existing" && (
+          <div className="space-y-3 pt-2">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Team</Label>
+              <TeamPicker value={selectedTeam} onChange={setSelectedTeam} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="reg-team-role" className="text-xs text-muted-foreground">
+                Role in team
+              </Label>
+              <select
+                id="reg-team-role"
+                value={teamRole}
+                onChange={(e) => setTeamRole(e.target.value as TeamRole)}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+              >
+                <option value="OWNER">OWNER</option>
+                <option value="ADMIN">ADMIN</option>
+                <option value="MEMBER">MEMBER</option>
+                <option value="VIEWER">VIEWER</option>
+              </select>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <p className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+        Email is marked verified, no confirmation email is sent.
+      </p>
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={saving || (teamMode === "existing" && !selectedTeam)}>
+          {saving ? "Registering…" : "Register"}
+        </Button>
+      </div>
+    </form>
+  );
+}
+
 export default function ModelCrud() {
   const { model: modelPath } = useParams<{ model: string }>();
   const config = getModelConfig(modelPath ?? "");
@@ -181,6 +429,7 @@ export default function ModelCrud() {
   const [sort, setSort] = useState<{ field: string; dir: "asc" | "desc" } | null>(null);
   const [editRecord, setEditRecord] = useState<Record<string, unknown> | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [registerOpen, setRegisterOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -264,6 +513,29 @@ export default function ModelCrud() {
     }
   };
 
+  const handleRegisterUser = async (formData: {
+    email: string;
+    password: string;
+    name?: string;
+    role: "USER" | "ADMIN";
+    teamId?: string;
+    teamRole?: TeamRole;
+  }) => {
+    try {
+      await apiFetch("/register-user", {
+        method: "POST",
+        body: JSON.stringify(formData),
+      });
+      setRegisterOpen(false);
+      const where = formData.teamId ? "existing team" : "new personal team";
+      toast.success(`Registered ${formData.email} (${where})`);
+      refetch();
+    } catch (e) {
+      toast.error("Registration failed", e instanceof Error ? e.message : undefined);
+      throw e;
+    }
+  };
+
   const handleUpdate = async (formData: Record<string, unknown>) => {
     if (!editRecord) return;
     try {
@@ -307,10 +579,18 @@ export default function ModelCrud() {
             {data ? `${data.total.toLocaleString("en-US")} record${data.total === 1 ? "" : "s"}` : "Loading…"}
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="mr-1.5 h-4 w-4" />
-          New {config.name}
-        </Button>
+        <div className="flex items-center gap-2">
+          {config.apiPath === "user" && (
+            <Button variant="outline" onClick={() => setRegisterOpen(true)}>
+              <UserPlus className="mr-1.5 h-4 w-4" />
+              Register User
+            </Button>
+          )}
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-1.5 h-4 w-4" />
+            New {config.name}
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -454,6 +734,18 @@ export default function ModelCrud() {
             <DialogDescription>Create a new {config.name} record.</DialogDescription>
           </DialogHeader>
           <RecordForm fields={config.fields} onSubmit={handleCreate} onCancel={() => setCreateOpen(false)} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={registerOpen} onOpenChange={setRegisterOpen}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Register User</DialogTitle>
+            <DialogDescription>
+              Create a fully provisioned account, just like normal signup, but skip email verification.
+            </DialogDescription>
+          </DialogHeader>
+          <RegisterUserForm onSubmit={handleRegisterUser} onCancel={() => setRegisterOpen(false)} />
         </DialogContent>
       </Dialog>
 
