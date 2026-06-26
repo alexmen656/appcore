@@ -43,6 +43,8 @@ export default function Keywords({ addToast, isPro }: Props) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [pendingIds, setPendingIds] = useState<string[]>([]);
+  const baselinesRef = useRef<Record<string, number>>({});
 
   const refetch = useCallback(() => {
     setLoading(true);
@@ -75,6 +77,42 @@ export default function Keywords({ addToast, isPro }: Props) {
     window.addEventListener("app-changed", handler);
     return () => window.removeEventListener("app-changed", handler);
   }, [refetch, refetchGroups, refetchSuggestions]);
+
+  // Poll for freshly added keywords until their background ranking lands.
+  useEffect(() => {
+    if (pendingIds.length === 0) return;
+    let cancelled = false;
+    const startedAt = Date.now();
+    const poll = async () => {
+      try {
+        const res = await apiGet<{ items: Keyword[] }>("/keywords");
+        if (cancelled) return;
+        setItems(res.items);
+        setPendingIds((prev) =>
+          prev.filter((id) => {
+            const item = res.items.find((k) => k.id === id);
+            if (!item) return false; // keyword gone — drop it
+            const baseline = baselinesRef.current[id] ?? 0;
+            const done = item.ourRank != null || Date.parse(item.updatedAt) > baseline;
+            return !done;
+          }),
+        );
+      } catch {
+        /* keep polling */
+      }
+    };
+    const interval = setInterval(() => {
+      if (Date.now() - startedAt > 90000) {
+        setPendingIds([]); // give up after 90s
+        return;
+      }
+      poll();
+    }, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [pendingIds.join(",")]);
   const { data: keywordFieldsData } = useApi<{
     keywordFields: Record<string, string>;
     indexedText?: Record<string, string>;
@@ -377,22 +415,20 @@ export default function Keywords({ addToast, isPro }: Props) {
           <button
             onClick={() => setViewMode("list")}
             aria-pressed={viewMode === "list"}
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold transition-all ${
-              viewMode === "list"
-                ? "bg-[#D94412] text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
-                : `${textMuted} hover:${textSecondary.replace(/^text-/, "text-")}`
-            }`}
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold transition-all ${viewMode === "list"
+              ? "bg-[#D94412] text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
+              : `${textMuted} hover:${textSecondary.replace(/^text-/, "text-")}`
+              }`}
           >
             <List className="w-3.5 h-3.5" /> List
           </button>
           <button
             onClick={() => setViewMode("matrix")}
             aria-pressed={viewMode === "matrix"}
-            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold transition-all ${
-              viewMode === "matrix"
-                ? "bg-[#D94412] text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
-                : `${textMuted}`
-            }`}
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-semibold transition-all ${viewMode === "matrix"
+              ? "bg-[#D94412] text-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]"
+              : `${textMuted}`
+              }`}
           >
             <LayoutGrid className="w-3.5 h-3.5" /> Matrix
           </button>
@@ -408,11 +444,10 @@ export default function Keywords({ addToast, isPro }: Props) {
           title={
             writeTip ?? limitTip ?? (suggestionCount > 0 ? `${suggestionCount} new AI suggestions` : "Add keywords")
           }
-          className={`relative inline-flex items-center gap-1.5 pl-3 pr-3.5 py-[7px] rounded-full border text-[13px] font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-            atLimit
-              ? "border-[#D94412]/40 bg-[#D94412]/[0.06] text-[#D94412] hover:bg-[#D94412]/10"
-              : "border-[#D94412] bg-[#D94412] text-white hover:border-[#c80b24] hover:bg-[#c80b24]"
-          }`}
+          className={`relative inline-flex items-center gap-1.5 pl-3 pr-3.5 py-[7px] rounded-full border text-[13px] font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed ${atLimit
+            ? "border-[#D94412]/40 bg-[#D94412]/[0.06] text-[#D94412] hover:bg-[#D94412]/10"
+            : "border-[#D94412] bg-[#D94412] text-white hover:border-[#c80b24] hover:bg-[#c80b24]"
+            }`}
         >
           {atLimit ? <Lock className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
           {atLimit ? "Upgrade to add more" : "Add keywords"}
@@ -480,8 +515,10 @@ export default function Keywords({ addToast, isPro }: Props) {
         open={addModalOpen}
         onClose={() => setAddModalOpen(false)}
         defaultCountry={filterCountry}
-        onAdded={(count) => {
-          posthog?.capture("keyword_added", { count });
+        onAdded={(added) => {
+          posthog?.capture("keyword_added", { count: added.length });
+          for (const k of added) baselinesRef.current[k.id] = Date.parse(k.updatedAt) || 0;
+          setPendingIds((ids) => [...new Set([...ids, ...added.map((a) => a.id)])]);
           refetch();
         }}
         onSuggestionsChanged={refetchSuggestions}
@@ -536,6 +573,7 @@ export default function Keywords({ addToast, isPro }: Props) {
           groups={groups}
           collapsed={collapsed}
           coveredIds={coveredIds}
+          pendingIds={new Set(pendingIds)}
           selectedKeyword={selectedKeyword}
           sortBy={sortBy}
           sortDir={sortDir}

@@ -28,7 +28,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   defaultCountry: string;
-  onAdded: (count: number) => void;
+  onAdded: (added: { id: string; updatedAt: string }[]) => void;
   onSuggestionsChanged?: () => void;
   addToast: (msg: string, type: "success" | "error" | "info") => void;
   remaining: number | null;
@@ -133,9 +133,9 @@ export default function AddKeywordsModal({
     setAdding(true);
     const c = COUNTRIES.find((x) => x.code === country) ?? COUNTRIES[0];
     try {
-      await Promise.all(
+      const results = await Promise.all(
         staged.map((term) =>
-          apiPost("/keywords", {
+          apiPost<{ keyword: { id: string; updatedAt: string } }>("/keywords", {
             term,
             country: c.code,
             language: c.lang,
@@ -149,7 +149,7 @@ export default function AddKeywordsModal({
           : `${staged.length} keywords (${c.code.toUpperCase()}) added`,
         "success",
       );
-      onAdded(staged.length);
+      onAdded(results.map((r) => r.keyword));
       onSuggestionsChanged?.();
       onClose();
     } catch (e: any) {
@@ -200,11 +200,10 @@ export default function AddKeywordsModal({
 
         {remaining !== null && (
           <div
-            className={`mx-5 mb-2 px-3 py-2 rounded-lg text-[12px] ${
-              remaining - staged.length <= 0
-                ? "bg-[#D94412]/10 text-[#D94412]"
-                : "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
-            }`}
+            className={`mx-5 mb-2 px-3 py-2 rounded-lg text-[12px] ${remaining - staged.length <= 0
+              ? "bg-[#D94412]/10 text-[#D94412]"
+              : "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
+              }`}
           >
             Free plan: {Math.max(0, remaining - staged.length)} of {limit} keyword slots left for this app. Upgrade to
             Pro for unlimited tracking.
@@ -285,11 +284,10 @@ export default function AddKeywordsModal({
                         DIFF {s.difficulty != null ? Math.round(s.difficulty) : "—"}
                       </span>
                       <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold ring-1 ring-inset tabular-nums ${
-                          o != null
-                            ? oppTagCls(o)
-                            : "bg-gray-50 text-gray-500 ring-gray-200 dark:bg-[#252b38] dark:text-[#8b93a5] dark:ring-[#2a2f3d]"
-                        }`}
+                        className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold ring-1 ring-inset tabular-nums ${o != null
+                          ? oppTagCls(o)
+                          : "bg-gray-50 text-gray-500 ring-gray-200 dark:bg-[#252b38] dark:text-[#8b93a5] dark:ring-[#2a2f3d]"
+                          }`}
                       >
                         {o != null ? o : "—"}
                       </span>
@@ -373,9 +371,8 @@ export default function AddKeywordsModal({
                         setCountry(c.code);
                         setMarketOpen(false);
                       }}
-                      className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left ${
-                        country === c.code ? "font-semibold" : ""
-                      }`}
+                      className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left ${country === c.code ? "font-semibold" : ""
+                        }`}
                     >
                       <img
                         src={`/country-flags/${c.code.toLowerCase()}.svg`}

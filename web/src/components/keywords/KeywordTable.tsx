@@ -74,6 +74,7 @@ interface Props {
   groups: KeywordGroup[];
   collapsed: Set<string>;
   coveredIds: Set<string>;
+  pendingIds: Set<string>;
   selectedKeyword: Keyword | null;
   sortBy: SortKey;
   sortDir: "asc" | "desc";
@@ -104,6 +105,7 @@ export default function KeywordTable({
   groups,
   collapsed,
   coveredIds,
+  pendingIds,
   selectedKeyword,
   sortBy,
   sortDir,
@@ -217,6 +219,10 @@ export default function KeywordTable({
       <td className={TD}>
         {k.ourRank != null ? (
           <span className={rankColor(k.ourRank)}>#{k.ourRank}</span>
+        ) : pendingIds.has(k.id) ? (
+          <span className={`inline-flex items-center gap-1.5 ${textMuted} text-xs`}>
+            <span className="spinner !w-3 !h-3" /> tracking…
+          </span>
         ) : (
           <span className={`${textMuted} text-xs`}>not ranked</span>
         )}

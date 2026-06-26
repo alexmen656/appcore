@@ -295,15 +295,11 @@ keywordsRouter.post("/", bundleAccess("body", "bundleId"), async (req, res) => {
       data: { status: "ADDED" },
     });
 
-    let rank: number | null = null;
-    try {
-      const tracker = new KeywordTracker(ownApp.bundleId, normalizedCountry);
-      rank = await tracker.trackKeywordRanking(term, normalizedCountry);
-    } catch (trackErr) {
-      logger.warn(`[keywords/add] Immediate ranking fetch failed for "${term}"`, {
-        error: String(trackErr),
-      });
-
+    const existingRanking = await prisma.keywordRanking.findFirst({
+      where: { keywordId: keyword.id, appId: ownApp.id },
+      select: { id: true },
+    });
+    if (!existingRanking) {
       await prisma.keywordRanking.create({
         data: {
           keywordId: keyword.id,
@@ -314,7 +310,18 @@ keywordsRouter.post("/", bundleAccess("body", "bundleId"), async (req, res) => {
       });
     }
 
-    res.json({ ok: true, keyword, rank });
+    void (async () => {
+      try {
+        const tracker = new KeywordTracker(ownApp.bundleId, normalizedCountry);
+        await tracker.trackKeywordRanking(term, normalizedCountry);
+      } catch (trackErr) {
+        logger.warn(`[keywords/add] Background ranking fetch failed for "${term}"`, {
+          error: String(trackErr),
+        });
+      }
+    })();
+
+    res.json({ ok: true, keyword, tracking: true });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
