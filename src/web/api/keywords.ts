@@ -1,8 +1,9 @@
 import { Router } from "express";
-import { prisma } from "../../config";
+import { prisma, logger } from "../../config";
 import { bundleAccess } from "../auth";
 import { normalizeLanguage } from "../../services/app-store-markets";
 import { FREE_KEYWORDS_PER_APP, isTeamPro } from "../../services/pro-grants";
+import { KeywordTracker } from "../../services/keyword-tracker";
 
 export const keywordsRouter = Router();
 
@@ -93,6 +94,7 @@ keywordsRouter.get("/", bundleAccess("query", "bundleId"), async (req, res) => {
                  "keywordId", "bundleId", name, "iconUrl", rank
           FROM "KeywordSearchResult"
           WHERE "keywordId" = ANY(${keywordIds}::text[])
+            AND "trackedAt" >= NOW() - INTERVAL '7 days'
           ORDER BY "keywordId", "bundleId", "trackedAt" DESC
         ),
         ranked AS (
@@ -283,15 +285,6 @@ keywordsRouter.post("/", bundleAccess("body", "bundleId"), async (req, res) => {
       update: {},
     });
 
-    await prisma.keywordRanking.create({
-      data: {
-        keywordId: keyword.id,
-        appId: ownApp.id,
-        rank: null,
-        country: normalizedCountry,
-      },
-    });
-
     await prisma.keywordSuggestion.updateMany({
       where: {
         appId: ownApp.id,
@@ -302,7 +295,26 @@ keywordsRouter.post("/", bundleAccess("body", "bundleId"), async (req, res) => {
       data: { status: "ADDED" },
     });
 
-    res.json({ ok: true, keyword });
+    let rank: number | null = null;
+    try {
+      const tracker = new KeywordTracker(ownApp.bundleId, normalizedCountry);
+      rank = await tracker.trackKeywordRanking(term, normalizedCountry);
+    } catch (trackErr) {
+      logger.warn(`[keywords/add] Immediate ranking fetch failed for "${term}"`, {
+        error: String(trackErr),
+      });
+
+      await prisma.keywordRanking.create({
+        data: {
+          keywordId: keyword.id,
+          appId: ownApp.id,
+          rank: null,
+          country: normalizedCountry,
+        },
+      });
+    }
+
+    res.json({ ok: true, keyword, rank });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
