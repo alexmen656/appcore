@@ -384,11 +384,10 @@ export default function RankingHistoryChart({
                         onClick={() => toggle(s.name)}
                         onMouseEnter={() => !off && setHovered(s.name)}
                         onMouseLeave={() => setHovered(null)}
-                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all ${
-                          off
-                            ? "border-transparent bg-[#f3f4f6] text-[#9ca3af] dark:bg-[#252b38] dark:text-[#5c6478]"
-                            : `${borderDefault} ${textSecondary} hover:border-[#d1d5db] dark:hover:border-[#3a4150]`
-                        } ${s.isOwn && !off ? "ring-1 ring-[#D94412]/30" : ""}`}
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all ${off
+                          ? "border-transparent bg-[#f3f4f6] text-[#9ca3af] dark:bg-[#252b38] dark:text-[#5c6478]"
+                          : `${borderDefault} ${textSecondary} hover:border-[#d1d5db] dark:hover:border-[#3a4150]`
+                          } ${s.isOwn && !off ? "ring-1 ring-[#D94412]/30" : ""}`}
                       >
                         <span
                           className="h-2 w-2 shrink-0 rounded-full"
@@ -460,7 +459,7 @@ export default function RankingHistoryChart({
                               <button
                                 onClick={() => addCompetitor(c.bundleId, c.name)}
                                 disabled={isAdding || !canWrite || !history.ownAppId}
-                                className="inline-flex items-center gap-1.5 px-2.5 py-[5px] rounded-lg text-[12px] font-semibold bg-[#F4C7A1] text-[#7a2d0a] hover:bg-[#f0b888] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-[5px] rounded-lg text-[12px] font-semibold border-[#D94412] bg-[#D94412] text-white hover:border-[#c80b24] hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                 {isAdding ? (
                                   <>

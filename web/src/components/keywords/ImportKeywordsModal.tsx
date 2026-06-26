@@ -156,11 +156,10 @@ export default function ImportKeywordsModal({
 
         {remaining !== null && (
           <div
-            className={`mx-5 mb-2 px-3 py-2 rounded-lg text-[12px] ${
-              remaining <= 0
+            className={`mx-5 mb-2 px-3 py-2 rounded-lg text-[12px] ${remaining <= 0
                 ? "bg-[#D94412]/10 text-[#D94412]"
                 : "bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300"
-            }`}
+              }`}
           >
             Free plan: {remaining} of {limit} keyword slots left for this app. Extra keywords beyond the limit are
             skipped. Upgrade to Pro for unlimited tracking.
@@ -220,9 +219,8 @@ export default function ImportKeywordsModal({
                       setCountry(c.code);
                       setMarketOpen(false);
                     }}
-                    className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left ${
-                      country === c.code ? "font-semibold" : ""
-                    }`}
+                    className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] ${textPrimary} hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors text-left ${country === c.code ? "font-semibold" : ""
+                      }`}
                   >
                     <img
                       src={`/country-flags/${c.code.toLowerCase()}.svg`}
@@ -245,7 +243,7 @@ export default function ImportKeywordsModal({
               type="button"
               onClick={submit}
               disabled={importing || parsed.length === 0 || !canWrite}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-semibold bg-[#F4C7A1] text-[#7a2d0a] hover:bg-[#f0b888] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-medium border-[#D94412] bg-[#D94412] text-white hover:border-[#c80b24] hover:bg-[#c80b24] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {importing ? (
                 <>

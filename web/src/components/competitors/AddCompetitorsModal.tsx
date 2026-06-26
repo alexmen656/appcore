@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Plus, Search, Sparkles, X } from "lucide-react";
-import { borderDefault, btnSecondary, textMuted, textPrimary, textSecondary } from "../../styles";
+import { borderDefault, btnPrimary, btnSecondary, textMuted, textPrimary, textSecondary } from "../../styles";
 import { apiGet, apiPost } from "../../hooks/useApi";
 import { usePermissions } from "../../hooks/usePermissions";
 import AppIcon from "./AppIcon";
@@ -250,7 +250,7 @@ export default function AddCompetitorsModal({ open, onClose, ownAppId, onAdded, 
               type="button"
               onClick={submit}
               disabled={adding || staged.length === 0 || !canWrite}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-semibold bg-[#F4C7A1] text-[#7a2d0a] hover:bg-[#f0b888] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className={btnPrimary}
             >
               {adding ? (
                 <>
