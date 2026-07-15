@@ -344,6 +344,7 @@ Marteso is actively developed. Some features are experimental or incomplete:
 
 Regarding the hour count: I've logged 177.5h on Hackatime, but 112h were already submitted to HCTG. Please approve only 65.5h for this.
 
+![Screenshot of my HCTG submission](readme_files/hctg.png) 
 ## AI transparency
 
 - Screenshot pipeline: AI was mainly used for debugging Xcode-related code around screenshot generation.
