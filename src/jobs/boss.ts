@@ -100,7 +100,7 @@ export class BossScheduler {
       }
     });
     await this.boss.work(TRACK_KEYWORDS_QUEUE, trackKeywordsHandler);
-    await this.boss.schedule(`${TRACK_KEYWORDS_QUEUE}/dispatch`, "0 */2 * * *", {}, { tz: "Europe/Berlin" });
+    await this.boss.schedule(`${TRACK_KEYWORDS_QUEUE}/dispatch`, "0 */12 * * *", {}, { tz: "Europe/Berlin" });
 
     // ── scrape ──────────────────────────────────────────────────────────────
     await this.boss.work(`${SCRAPE_QUEUE}/dispatch`, async () => {
