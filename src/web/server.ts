@@ -45,7 +45,7 @@ app.use(
 
 const allowedOrigins = env.CORS_ORIGIN
   ? env.CORS_ORIGIN.split(",").map((o) => o.trim())
-  : ["http://localhost:5173", "http://localhost:5174"];
+  : ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"];
 
 app.use((req, res, next) => {
   const p = req.path;

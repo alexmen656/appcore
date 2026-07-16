@@ -61,6 +61,7 @@ import {
   Check,
   Plus,
   X,
+  Menu,
   HelpCircle,
   BookOpen,
   MessageSquare,
@@ -1035,10 +1036,15 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState<1 | 2>(1);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [dark, setDark] = useState(() => {
     return localStorage.getItem("theme") === "dark";
   });
   const inSettings = location.pathname.startsWith("/settings");
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [location.pathname]);
 
   const checkOnboarding = async (forUser?: AuthUser) => {
     if (forUser?.isDemo) return;
@@ -1220,13 +1226,20 @@ export default function App() {
         )}
         {/*demo@marteso.com*/}
         <header className="h-[52px] bg-[var(--shell-bg)] flex items-center px-4 shrink-0 transition-colors">
+          <button
+            onClick={() => setMobileNavOpen(true)}
+            aria-label="Open menu"
+            className="lg:hidden mr-1 -ml-1 p-2 rounded-lg text-[#374151] dark:text-white/80 hover:bg-black/[0.06] dark:hover:bg-white/10 transition-colors"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
           <a href="/" className="flex items-center">
             <img src="/logo-wordmark.svg" alt="Marteso" className="h-[28px] w-auto" />
           </a>
           <div className="flex-1" />
           <button
             onClick={() => setSearchOpen(true)}
-            className="flex items-center gap-2 bg-black/[0.06] dark:bg-white/10 rounded-md px-3 py-1.5 text-sm text-[#6b7280] dark:text-white/50 w-44 mr-3 cursor-pointer select-none hover:bg-black/[0.09] dark:hover:bg-white/[0.15] transition-colors"
+            className="hidden sm:flex items-center gap-2 bg-black/[0.06] dark:bg-white/10 rounded-md px-3 py-1.5 text-sm text-[#6b7280] dark:text-white/50 w-44 mr-3 cursor-pointer select-none hover:bg-black/[0.09] dark:hover:bg-white/[0.15] transition-colors"
           >
             <Search className="w-3.5 h-3.5 shrink-0" />
             <span>Search…</span>
@@ -1238,7 +1251,27 @@ export default function App() {
           <HeaderProfileMenu user={user} onLogout={handleLogout} dark={dark} onToggleDark={() => setDark((d) => !d)} />
         </header>
         <div className="flex flex-1 min-h-0">
-          <aside className="w-[250px] min-w-[250px] bg-[var(--shell-bg)] flex flex-col overflow-y-auto transition-colors">
+          {mobileNavOpen && (
+            <div
+              onClick={() => setMobileNavOpen(false)}
+              className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+              aria-hidden="true"
+            />
+          )}
+          <aside
+            className={`fixed lg:static inset-y-0 left-0 z-50 lg:z-auto w-[250px] min-w-[250px] bg-[var(--shell-bg)] flex flex-col overflow-y-auto transition-transform duration-300 ease-in-out lg:translate-x-0 lg:shadow-none lg:transition-colors ${
+              mobileNavOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
+            }`}
+          >
+            <div className="lg:hidden flex justify-end px-2 pt-2">
+              <button
+                onClick={() => setMobileNavOpen(false)}
+                aria-label="Close menu"
+                className="p-2 rounded-lg text-[#374151] dark:text-[#c4cad8] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             {inSettings ? (
               <SettingsSidebar navLinkClass={navLinkClass} />
             ) : (
@@ -1275,7 +1308,7 @@ export default function App() {
             )}
           </aside>
 
-          <main className="relative z-30 flex-1 overflow-y-auto overscroll-contain px-7 py-6 bg-white dark:bg-[#0f1117] rounded-tl-2xl border-t border-l border-[rgba(16,24,40,0.06)] dark:border-[rgba(255,255,255,0.05)] shadow-[-4px_-4px_14px_-8px_rgba(16,24,40,0.05),0_-6px_16px_-8px_rgba(16,24,40,0.07)] dark:shadow-[-4px_-4px_14px_-8px_rgba(0,0,0,0.3),0_-6px_16px_-8px_rgba(0,0,0,0.35)]">
+          <main className="relative z-30 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-7 sm:py-6 bg-white dark:bg-[#0f1117] rounded-tl-2xl border-t border-l border-[rgba(16,24,40,0.06)] dark:border-[rgba(255,255,255,0.05)] shadow-[-4px_-4px_14px_-8px_rgba(16,24,40,0.05),0_-6px_16px_-8px_rgba(16,24,40,0.07)] dark:shadow-[-4px_-4px_14px_-8px_rgba(0,0,0,0.3),0_-6px_16px_-8px_rgba(0,0,0,0.35)]">
             {showAscBanner && ascRequiredView && (
               <AscConnectCard className="mb-5" description={ascRequiredView.description} />
             )}
