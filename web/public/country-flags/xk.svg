@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 600">
+<rect width="900" height="600" fill="#244AA5"/>
+<path fill="#D0A650" d="M450,260 C500,255 540,270 560,300 C580,330 575,360 555,380 C570,400 565,430 540,445 C520,460 495,455 480,470 C460,485 440,480 425,465 C400,450 390,430 385,400 C370,385 355,365 360,340 C365,310 380,290 400,275 C415,262 430,258 450,260 Z"/>
+<path id="xk-star" fill="#fff" d="M0,-20 4.70,-6.47 19.02,-6.18 7.61,2.47 11.76,16.18 0,8 -11.76,16.18 -7.61,2.47 -19.02,-6.18 -4.70,-6.47Z"/>
+<use href="#xk-star" transform="translate(260,190)"/>
+<use href="#xk-star" transform="translate(340,165)"/>
+<use href="#xk-star" transform="translate(410,150)"/>
+<use href="#xk-star" transform="translate(490,150)"/>
+<use href="#xk-star" transform="translate(560,165)"/>
+<use href="#xk-star" transform="translate(640,190)"/>
+</svg>

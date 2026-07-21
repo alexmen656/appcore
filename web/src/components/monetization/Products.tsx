@@ -30,6 +30,7 @@ import {
   textSecondary,
 } from "../../styles";
 import type { ProductItem, ProductLocalization, ProductPrice, ProductPricePoint } from "../../types";
+import { territoryFlagSrc } from "../../utils/territoryFlags";
 
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
@@ -42,19 +43,6 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const TYPES = Object.keys(TYPE_LABELS);
-
-const STATE_DOT: Record<string, string> = {
-  APPROVED: "bg-emerald-500",
-  READY_TO_SUBMIT: "bg-sky-500",
-  MISSING_METADATA: "bg-amber-500",
-  WAITING_FOR_REVIEW: "bg-blue-500",
-  IN_REVIEW: "bg-violet-500",
-  REJECTED: "bg-red-500",
-  DEVELOPER_ACTION_NEEDED: "bg-red-500",
-  DEVELOPER_REMOVED_FROM_SALE: "bg-gray-400",
-  REMOVED_FROM_SALE: "bg-gray-400",
-  PENDING_BINARY_APPROVAL: "bg-sky-500",
-};
 
 const STATE_SHORT: Record<string, string> = {
   APPROVED: "Approved",
@@ -70,17 +58,12 @@ const STATE_SHORT: Record<string, string> = {
 };
 
 function StatusBadge({ state }: { state: string }) {
-  const dot = STATE_DOT[state] ?? "bg-gray-400";
   const label = STATE_SHORT[state] ?? state;
-  const isApproved = state === "APPROVED";
+  const isApproved = state === "APPROVED" || state === "READY_TO_SUBMIT";
   const isError = state === "REJECTED" || state === "DEVELOPER_ACTION_NEEDED";
-  const variant = isApproved ? "success_tonal" : isError ? "danger_tonal" : "info_tonal";
-  return (
-    <span className={`${badgeOutline(variant)} gap-1.5`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
-      {label}
-    </span>
-  );
+  const isWarning = state === "MISSING_METADATA";
+  const variant = isApproved ? "success_tonal" : isError ? "danger_tonal" : isWarning ? "warning_tonal" : "info_tonal";
+  return <span className={badgeOutline(variant)}>{label}</span>;
 }
 
 interface ProductFormState {
@@ -256,7 +239,9 @@ function LocalizationsPanel({ productId, addToast }: { productId: string; addToa
       });
 
       if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
-      setLocs((l) => l?.map((loc) => (loc.id === id ? { ...loc, name: editName, description: editDesc } : loc)) ?? null);
+      setLocs(
+        (l) => l?.map((loc) => (loc.id === id ? { ...loc, name: editName, description: editDesc } : loc)) ?? null,
+      );
       setEditingId(null);
       addToast("Localization updated", "success");
     } catch (err: any) {
@@ -295,7 +280,9 @@ function LocalizationsPanel({ productId, addToast }: { productId: string; addToa
 
   return (
     <div className={`rounded-xl border ${borderDefault} overflow-hidden`}>
-      <div className={`flex items-center justify-between px-4 py-3 border-b ${borderDefault} bg-[#fafbfc] dark:bg-[#252b38]`}>
+      <div
+        className={`flex items-center justify-between px-4 py-3 border-b ${borderDefault} bg-[#fafbfc] dark:bg-[#252b38]`}
+      >
         <span className={`text-[13px] font-semibold ${textPrimary}`}>Localizations</span>
         <button
           onClick={() => setShowAdd(true)}
@@ -322,20 +309,36 @@ function LocalizationsPanel({ productId, addToast }: { productId: string; addToa
               editingId === loc.id ? (
                 <tr key={loc.id} className="border-t border-[#f3f4f6] dark:border-[#2a2f3d]">
                   <td className={TD}>
-                    <span className={`text-[11px] font-mono font-semibold ${textSecondary} uppercase`}>{loc.locale}</span>
+                    <span className={`text-[11px] font-mono font-semibold ${textSecondary} uppercase`}>
+                      {loc.locale}
+                    </span>
                   </td>
                   <td className={TD}>
-                    <input className={inputCls} value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Display name" />
+                    <input
+                      className={inputCls}
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="Display name"
+                    />
                   </td>
                   <td className={TD}>
-                    <input className={inputCls} value={editDesc} onChange={(e) => setEditDesc(e.target.value)} placeholder="Description (optional)" />
+                    <input
+                      className={inputCls}
+                      value={editDesc}
+                      onChange={(e) => setEditDesc(e.target.value)}
+                      placeholder="Description (optional)"
+                    />
                   </td>
                   <td className={`${TD} text-right`}>
                     <div className="flex gap-1 justify-end">
                       <button onClick={() => setEditingId(null)} className={btnSecSm}>
                         <X className="w-3 h-3" />
                       </button>
-                      <button onClick={() => saveEdit(loc.id)} disabled={savingEdit || !editName.trim()} className={btnSecSm}>
+                      <button
+                        onClick={() => saveEdit(loc.id)}
+                        disabled={savingEdit || !editName.trim()}
+                        className={btnSecSm}
+                      >
                         {savingEdit ? <div className="spinner !w-3 !h-3" /> : <Check className="w-3 h-3" />}
                         Save
                       </button>
@@ -348,14 +351,20 @@ function LocalizationsPanel({ productId, addToast }: { productId: string; addToa
                   className="group border-t border-[#f3f4f6] dark:border-[#2a2f3d] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors"
                 >
                   <td className={TD}>
-                    <span className={`text-[11px] font-mono font-semibold ${textSecondary} uppercase`}>{loc.locale}</span>
+                    <span className={`text-[11px] font-mono font-semibold ${textSecondary} uppercase`}>
+                      {loc.locale}
+                    </span>
                   </td>
                   <td className={`${TD} font-medium ${textPrimary}`}>{loc.name}</td>
                   <td className={`${TD} ${textSecondary}`}>{loc.description || "—"}</td>
                   <td className={`${TD} text-right`}>
                     <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        onClick={() => { setEditingId(loc.id); setEditName(loc.name); setEditDesc(loc.description ?? ""); }}
+                        onClick={() => {
+                          setEditingId(loc.id);
+                          setEditName(loc.name);
+                          setEditDesc(loc.description ?? "");
+                        }}
                         className="p-1.5 rounded-lg text-gray-400 hover:text-[#C4001E] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all"
                       >
                         <Pencil className="w-3 h-3" />
@@ -381,19 +390,36 @@ function LocalizationsPanel({ productId, addToast }: { productId: string; addToa
           <div className="grid grid-cols-3 gap-2">
             <div className="flex flex-col gap-1">
               <label className={`text-[11px] ${textSecondary} font-medium`}>Locale</label>
-              <input className={inputCls} value={newLocale} onChange={(e) => setNewLocale(e.target.value)} placeholder="en-US" />
+              <input
+                className={inputCls}
+                value={newLocale}
+                onChange={(e) => setNewLocale(e.target.value)}
+                placeholder="en-US"
+              />
             </div>
             <div className="flex flex-col gap-1">
               <label className={`text-[11px] ${textSecondary} font-medium`}>Display Name</label>
-              <input className={inputCls} value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Gold Pack" />
+              <input
+                className={inputCls}
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Gold Pack"
+              />
             </div>
             <div className="flex flex-col gap-1">
               <label className={`text-[11px] ${textSecondary} font-medium`}>Description (optional)</label>
-              <input className={inputCls} value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="Unlock extra coins" />
+              <input
+                className={inputCls}
+                value={newDesc}
+                onChange={(e) => setNewDesc(e.target.value)}
+                placeholder="Unlock extra coins"
+              />
             </div>
           </div>
           <div className="flex gap-2 justify-end">
-            <button onClick={() => setShowAdd(false)} className={btnSecSm}>Cancel</button>
+            <button onClick={() => setShowAdd(false)} className={btnSecSm}>
+              Cancel
+            </button>
             <button onClick={addLoc} disabled={saving || !newLocale.trim() || !newName.trim()} className={btnSecSm}>
               {saving ? <div className="spinner !w-3 !h-3" /> : <Plus className="w-3 h-3" />}
               Add
@@ -507,7 +533,9 @@ function PricingPanel({ productId, addToast }: { productId: string; addToast: Pr
 
   return (
     <div className={`rounded-xl border ${borderDefault} overflow-hidden`}>
-      <div className={`flex items-center justify-between px-4 py-3 border-b ${borderDefault} bg-[#fafbfc] dark:bg-[#252b38]`}>
+      <div
+        className={`flex items-center justify-between px-4 py-3 border-b ${borderDefault} bg-[#fafbfc] dark:bg-[#252b38]`}
+      >
         <span className={`text-[13px] font-semibold ${textPrimary}`}>Pricing</span>
         <button
           onClick={openAdd}
@@ -531,8 +559,31 @@ function PricingPanel({ productId, addToast }: { productId: string; addToast: Pr
           </thead>
           <tbody>
             {prices?.map((p) => (
-              <tr key={p.id} className="border-t border-[#f3f4f6] dark:border-[#2a2f3d] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors">
-                <td className={`${TD} font-mono font-medium ${textPrimary}`}>{p.territory ?? "—"}</td>
+              <tr
+                key={p.id}
+                className="border-t border-[#f3f4f6] dark:border-[#2a2f3d] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors"
+              >
+                <td className={`${TD} font-mono font-medium ${textPrimary}`}>
+                  {p.territory ? (
+                    <span className="flex items-center gap-1.5">
+                      {territoryFlagSrc(p.territory) != null && (
+                        <img
+                          src={territoryFlagSrc(p.territory)!}
+                          alt=""
+                          width={20}
+                          height={15}
+                          className="h-[14px] w-[19px] object-contain shrink-0 rounded-xs"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = "none";
+                          }}
+                        />
+                      )}
+                      {p.territory}
+                    </span>
+                  ) : (
+                    "—"
+                  )}
+                </td>
                 <td className={`${TD} ${textSecondary}`}>{p.currency ?? "—"}</td>
                 <td className={`${TD} font-semibold ${textPrimary}`}>
                   {p.customerPrice != null ? `${p.currency ?? ""} ${p.customerPrice}` : "—"}
@@ -580,7 +631,9 @@ function PricingPanel({ productId, addToast }: { productId: string; addToast: Pr
             </div>
           </div>
           <div className="flex gap-2 justify-end">
-            <button onClick={() => setShowAdd(false)} className={btnSecSm}>Cancel</button>
+            <button onClick={() => setShowAdd(false)} className={btnSecSm}>
+              Cancel
+            </button>
             <button onClick={setPrice} disabled={saving || !selectedPP} className={btnSecSm}>
               {saving ? <div className="spinner !w-3 !h-3" /> : <Check className="w-3 h-3" />}
               Set Price
@@ -630,7 +683,10 @@ function ReviewPanel({ product, onReviewNoteUpdated, addToast }: ReviewPanelProp
         <span className={`text-[12px] font-semibold ${textSecondary} uppercase tracking-wide`}>Review Note</span>
         {!editing && (
           <button
-            onClick={() => { setNoteText(product.reviewNote ?? ""); setEditing(true); }}
+            onClick={() => {
+              setNoteText(product.reviewNote ?? "");
+              setEditing(true);
+            }}
             className="text-[12px] text-[#C4001E] hover:underline"
           >
             {product.reviewNote ? "Edit" : "Add"}
@@ -650,7 +706,9 @@ function ReviewPanel({ product, onReviewNoteUpdated, addToast }: ReviewPanelProp
           <div className="flex items-center justify-between">
             <span className="text-[11px] text-[#9ca3af]">{noteText.length}/4000</span>
             <div className="flex gap-2">
-              <button onClick={() => setEditing(false)} className={btnSecondary}>Cancel</button>
+              <button onClick={() => setEditing(false)} className={btnSecondary}>
+                Cancel
+              </button>
               <button onClick={handleSave} disabled={saving} className={btnPrimary}>
                 {saving ? <div className="spinner !w-3.5 !h-3.5" /> : <Check className="w-3.5 h-3.5" />}
                 Save
@@ -659,7 +717,9 @@ function ReviewPanel({ product, onReviewNoteUpdated, addToast }: ReviewPanelProp
           </div>
         </div>
       ) : product.reviewNote ? (
-        <p className={`text-[13px] text-[#374151] dark:text-[#c4c9d6] whitespace-pre-wrap leading-relaxed rounded-xl bg-[#f9fafb] dark:bg-[#1a1f2b] border ${borderDefault} px-3.5 py-3`}>
+        <p
+          className={`text-[13px] text-[#374151] dark:text-[#c4c9d6] whitespace-pre-wrap leading-relaxed rounded-xl bg-[#f9fafb] dark:bg-[#1a1f2b] border ${borderDefault} px-3.5 py-3`}
+        >
           {product.reviewNote}
         </p>
       ) : (
@@ -761,7 +821,11 @@ function DetailView({ product, bundleId, onBack, onUpdated, onDeleted, addToast 
     },
     {
       label: "Product Type",
-      value: <span className={`text-[13px] ${textPrimary}`}>{TYPE_LABELS[product.inAppPurchaseType] ?? product.inAppPurchaseType}</span>,
+      value: (
+        <span className={`text-[13px] ${textPrimary}`}>
+          {TYPE_LABELS[product.inAppPurchaseType] ?? product.inAppPurchaseType}
+        </span>
+      ),
     },
   ];
 
@@ -836,28 +900,31 @@ function DetailView({ product, bundleId, onBack, onUpdated, onDeleted, addToast 
             <div className={`flex gap-1 mb-4 pb-3 border-b ${borderDefault}`}>
               <button
                 onClick={() => setActiveTab("localizations")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${activeTab === "localizations"
-                  ? `bg-[#f3f4f6] dark:bg-[#252b38] ${textPrimary}`
-                  : `${textSecondary} hover:text-[#111827] dark:hover:text-[#e8eaf0]`
-                  }`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${
+                  activeTab === "localizations"
+                    ? `bg-[#f3f4f6] dark:bg-[#252b38] ${textPrimary}`
+                    : `${textSecondary} hover:text-[#111827] dark:hover:text-[#e8eaf0]`
+                }`}
               >
                 <Globe className="w-3.5 h-3.5" /> Localizations
               </button>
               <button
                 onClick={() => setActiveTab("pricing")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${activeTab === "pricing"
-                  ? `bg-[#f3f4f6] dark:bg-[#252b38] ${textPrimary}`
-                  : `${textSecondary} hover:text-[#111827] dark:hover:text-[#e8eaf0]`
-                  }`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${
+                  activeTab === "pricing"
+                    ? `bg-[#f3f4f6] dark:bg-[#252b38] ${textPrimary}`
+                    : `${textSecondary} hover:text-[#111827] dark:hover:text-[#e8eaf0]`
+                }`}
               >
                 <DollarSign className="w-3.5 h-3.5" /> Pricing
               </button>
               <button
                 onClick={() => setActiveTab("review")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${activeTab === "review"
-                  ? `bg-[#f3f4f6] dark:bg-[#252b38] ${textPrimary}`
-                  : `${textSecondary} hover:text-[#111827] dark:hover:text-[#e8eaf0]`
-                  }`}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${
+                  activeTab === "review"
+                    ? `bg-[#f3f4f6] dark:bg-[#252b38] ${textPrimary}`
+                    : `${textSecondary} hover:text-[#111827] dark:hover:text-[#e8eaf0]`
+                }`}
               >
                 <FileText className="w-3.5 h-3.5" /> Review
               </button>
@@ -892,9 +959,7 @@ export default function MonetizationProducts({ addToast }: Props) {
     setLoading(true);
     try {
       // bundleId
-      const url = bundleId
-        ? `/api/asc/products?bundleId=${encodeURIComponent(bundleId)}`
-        : "/api/asc/products";
+      const url = bundleId ? `/api/asc/products?bundleId=${encodeURIComponent(bundleId)}` : "/api/asc/products";
       const res = await fetch(url, { headers: authHeaders() });
 
       if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
@@ -1007,13 +1072,25 @@ export default function MonetizationProducts({ addToast }: Props) {
       {products && products.length === 0 && !showNewForm && (
         <div className={`${cardCls} flex flex-col items-center justify-center py-16 gap-4 text-center`}>
           <div className="w-12 h-12 rounded-2xl bg-[#fef2f3] dark:bg-[#2a1f23] flex items-center justify-center">
-            <svg className="w-6 h-6 text-[#C4001E]" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            <svg
+              className="w-6 h-6 text-[#C4001E]"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.5}
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+              />
             </svg>
           </div>
           <div>
             <p className={`text-[15px] font-semibold ${textPrimary}`}>No in-app products</p>
-            <p className={`text-sm ${textSecondary} mt-1`}>Create your first product to start selling in-app purchases.</p>
+            <p className={`text-sm ${textSecondary} mt-1`}>
+              Create your first product to start selling in-app purchases.
+            </p>
           </div>
           <button onClick={() => setShowNewForm(true)} className={btnPrimary}>
             <Plus className="w-3.5 h-3.5" /> New Product
@@ -1052,7 +1129,9 @@ export default function MonetizationProducts({ addToast }: Props) {
                     <StatusBadge state={prod.state} />
                   </td>
                   <td className={`${TD} text-right`}>
-                    <MoreHorizontal className={`w-4 h-4 ${textMuted} opacity-0 group-hover:opacity-100 transition-opacity`} />
+                    <MoreHorizontal
+                      className={`w-4 h-4 ${textMuted} opacity-0 group-hover:opacity-100 transition-opacity`}
+                    />
                   </td>
                 </tr>
               ))}

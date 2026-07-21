@@ -39,6 +39,7 @@ import type {
   SubscriptionPricePoint,
   SubscriptionReviewScreenshot,
 } from "../../types";
+import { territoryFlagSrc } from "../../utils/territoryFlags";
 
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
@@ -55,19 +56,6 @@ const PERIOD_LABELS: Record<string, string> = {
 
 const PERIODS = Object.keys(PERIOD_LABELS);
 
-const STATE_DOT: Record<string, string> = {
-  APPROVED: "bg-emerald-500",
-  READY_TO_SUBMIT: "bg-sky-500",
-  MISSING_METADATA: "bg-amber-500",
-  WAITING_FOR_REVIEW: "bg-blue-500",
-  IN_REVIEW: "bg-violet-500",
-  REJECTED: "bg-red-500",
-  DEVELOPER_ACTION_NEEDED: "bg-red-500",
-  DEVELOPER_REMOVED_FROM_SALE: "bg-gray-400",
-  REMOVED_FROM_SALE: "bg-gray-400",
-  PENDING_BINARY_APPROVAL: "bg-sky-500",
-};
-
 const STATE_SHORT: Record<string, string> = {
   APPROVED: "Approved",
   READY_TO_SUBMIT: "Ready",
@@ -82,17 +70,12 @@ const STATE_SHORT: Record<string, string> = {
 };
 
 function StatusBadge({ state }: { state: string }) {
-  const dot = STATE_DOT[state] ?? "bg-gray-400";
   const label = STATE_SHORT[state] ?? state;
-  const isApproved = state === "APPROVED";
+  const isApproved = state === "APPROVED" || state === "READY_TO_SUBMIT";
   const isError = state === "REJECTED" || state === "DEVELOPER_ACTION_NEEDED";
-  const variant = isApproved ? "success_tonal" : isError ? "danger_tonal" : "info_tonal";
-  return (
-    <span className={`${badgeOutline(variant)} gap-1.5`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
-      {label}
-    </span>
-  );
+  const isWarning = state === "MISSING_METADATA";
+  const variant = isApproved ? "success_tonal" : isError ? "danger_tonal" : isWarning ? "warning_tonal" : "info_tonal";
+  return <span className={badgeOutline(variant)}>{label}</span>;
 }
 
 interface SubFormState {
@@ -899,7 +882,27 @@ function PricingPanel({ subscriptionId, addToast }: { subscriptionId: string; ad
                 key={p.id}
                 className="group border-t border-[#f3f4f6] dark:border-[#2a2f3d] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors"
               >
-                <td className={`${TD} font-mono font-medium ${textPrimary}`}>{p.territory ?? "—"}</td>
+                <td className={`${TD} font-mono font-medium ${textPrimary}`}>
+                  {p.territory ? (
+                    <span className="flex items-center gap-1.5">
+                      {territoryFlagSrc(p.territory) != null && (
+                        <img
+                          src={territoryFlagSrc(p.territory)!}
+                          alt=""
+                          width={20}
+                          height={15}
+                          className="h-[14px] w-[19px] object-contain shrink-0 rounded-xs"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = "none";
+                          }}
+                        />
+                      )}
+                      {p.territory}
+                    </span>
+                  ) : (
+                    "—"
+                  )}
+                </td>
                 <td className={`${TD} ${textSecondary}`}>{p.currency ?? "—"}</td>
                 <td className={`${TD} font-semibold ${textPrimary}`}>
                   {p.customerPrice != null ? `${p.currency ?? ""} ${p.customerPrice}` : "—"}

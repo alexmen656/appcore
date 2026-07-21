@@ -85,6 +85,7 @@ export const badgeOutlineVariants: Record<string, string> = {
   success_tonal: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
   danger_tonal: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
   info_tonal: "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20",
+  warning_tonal: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
   approved:
     "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-900/40",
   applied: "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-900/40",
