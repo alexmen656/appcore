@@ -11,6 +11,7 @@ import {
 } from "../../jobs/workers/translate-localization.worker";
 import * as translationTracker from "../../jobs/translation-tracker";
 import { runQuickScan } from "./quick-scan";
+import { evaluateLocalizationQuality, isFirstVersionLocalizationSet } from "../lib/localization-quality";
 
 export const ascRouter = Router();
 ascRouter.use(requireAuth);
@@ -26,36 +27,12 @@ const EDITABLE_STATES = new Set([
   "PENDING_DEVELOPER_RELEASE",
 ]);
 
-const VERSION_LOCALIZATION_FIELDS = [
-  "name",
-  "subtitle",
-  "keywords",
-  "description",
-  "promotionalText",
-  "whatsNew",
-  "supportUrl",
-  "privacyPolicyUrl",
-  "marketingUrl",
-] as const;
-
 function isFresh(syncedAt: Date): boolean {
   return Date.now() - syncedAt.getTime() < CACHE_TTL_MS;
 }
 
 function isDemoBundle(bundleId: string | undefined | null): boolean {
   return typeof bundleId === "string" && bundleId.startsWith("com.marteso.demo.");
-}
-
-function isFirstVersionLocalizationSet(localizations: Array<{ whatsNew?: string | null }>): boolean {
-  return localizations.every((l) => !(typeof l.whatsNew === "string" && l.whatsNew.trim().length > 0));
-}
-
-function isLocalizationComplete(loc: Record<string, string | null | undefined>, isFirstVersion: boolean): boolean {
-  return VERSION_LOCALIZATION_FIELDS.every((field) => {
-    if (isFirstVersion && field === "whatsNew") return true;
-    const value = loc[field];
-    return typeof value === "string" && value.trim().length > 0;
-  });
 }
 
 function toLocalizationResponse(l: any) {
@@ -77,12 +54,18 @@ function toLocalizationResponse(l: any) {
 
 function toLocalizationSummaries(localizations: any[]) {
   const isFirstVersion = isFirstVersionLocalizationSet(localizations);
-  return localizations.map((l) => ({
-    locale: l.locale,
-    appInfoLocalizationId: l.appInfoLocalizationId,
-    versionLocalizationId: l.versionLocalizationId,
-    isComplete: isLocalizationComplete(l, isFirstVersion),
-  }));
+  return localizations.map((l) => {
+    const quality = evaluateLocalizationQuality(l, isFirstVersion);
+    return {
+      locale: l.locale,
+      appInfoLocalizationId: l.appInfoLocalizationId,
+      versionLocalizationId: l.versionLocalizationId,
+      isComplete: quality.isComplete,
+      isOptimal: quality.isOptimal,
+      // Why a locale is yellow (non-optimal) or gray (incomplete); empty when green.
+      qualityReasons: quality.reasons,
+    };
+  });
 }
 
 function pickInitialLocale(

@@ -742,6 +742,11 @@ function PricingPanel({ subscriptionId, addToast }: { subscriptionId: string; ad
   const [selectedPP, setSelectedPP] = useState("");
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editPricePoints, setEditPricePoints] = useState<SubscriptionPricePoint[] | null>(null);
+  const [editLoadingPP, setEditLoadingPP] = useState(false);
+  const [editSelectedPP, setEditSelectedPP] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
   const fetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadPrices = useCallback(async () => {
@@ -823,6 +828,61 @@ function PricingPanel({ subscriptionId, addToast }: { subscriptionId: string; ad
     }
   };
 
+  const startEditPrice = async (p: SubscriptionPrice) => {
+    if (!p.territory) return;
+    setEditingId(p.id);
+    setEditPricePoints(null);
+    setEditSelectedPP(p.pricePointId ?? "");
+    setEditLoadingPP(true);
+
+    try {
+      const res = await fetch(
+        `/api/asc/subscriptions/${subscriptionId}/price-points?territory=${encodeURIComponent(p.territory)}`,
+        { headers: authHeaders() },
+      );
+      if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      const data: SubscriptionPricePoint[] = await res.json();
+      setEditPricePoints(data);
+
+      if (!data.some((pp) => pp.id === p.pricePointId)) {
+        setEditSelectedPP(data[0]?.id ?? "");
+      }
+    } catch (err: any) {
+      addToast(err.message, "error");
+      setEditPricePoints([]);
+    } finally {
+      setEditLoadingPP(false);
+    }
+  };
+
+  const cancelEditPrice = () => setEditingId(null);
+
+  const saveEditPrice = async (p: SubscriptionPrice) => {
+    if (!editSelectedPP || !p.territory) return;
+    setSavingEdit(true);
+
+    try {
+      const res = await fetch("/api/asc/subscriptions/prices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({
+          subscriptionId,
+          pricePointId: editSelectedPP,
+          territory: p.territory,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+      setEditingId(null);
+      await loadPrices();
+      addToast("Price updated", "success");
+    } catch (err: any) {
+      addToast(err.message, "error");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   const deletePrice = async (id: string) => {
     if (!confirm("Remove this price?")) return;
     setDeletingId(id);
@@ -877,50 +937,107 @@ function PricingPanel({ subscriptionId, addToast }: { subscriptionId: string; ad
             </tr>
           </thead>
           <tbody>
-            {prices?.map((p) => (
-              <tr
-                key={p.id}
-                className="group border-t border-[#f3f4f6] dark:border-[#2a2f3d] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors"
-              >
-                <td className={`${TD} font-mono font-medium ${textPrimary}`}>
-                  {p.territory ? (
-                    <span className="flex items-center gap-1.5">
-                      {territoryFlagSrc(p.territory) != null && (
-                        <img
-                          src={territoryFlagSrc(p.territory)!}
-                          alt=""
-                          width={20}
-                          height={15}
-                          className="h-[14px] w-[19px] object-contain shrink-0 rounded-xs"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).style.display = "none";
-                          }}
-                        />
-                      )}
-                      {p.territory}
-                    </span>
-                  ) : (
-                    "—"
+            {prices?.map((p) => {
+              const territoryCell = (
+                <span className="flex items-center gap-1.5">
+                  {territoryFlagSrc(p.territory) != null && (
+                    <img
+                      src={territoryFlagSrc(p.territory)!}
+                      alt=""
+                      width={20}
+                      height={15}
+                      className="h-[14px] w-[19px] object-contain shrink-0 rounded-xs"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).style.display = "none";
+                      }}
+                    />
                   )}
-                </td>
-                <td className={`${TD} ${textSecondary}`}>{p.currency ?? "—"}</td>
-                <td className={`${TD} font-semibold ${textPrimary}`}>
-                  {p.customerPrice != null ? `${p.currency ?? ""} ${p.customerPrice}` : "—"}
-                </td>
-                <td className={`${TD} ${textSecondary}`}>
-                  {p.proceeds != null ? `${p.currency ?? ""} ${p.proceeds}` : "—"}
-                </td>
-                <td className={`${TD} text-right`}>
-                  <button
-                    onClick={() => deletePrice(p.id)}
-                    disabled={deletingId === p.id}
-                    className="p-1.5 opacity-0 group-hover:opacity-100 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all disabled:opacity-50"
-                  >
-                    {deletingId === p.id ? <div className="spinner !w-3 !h-3" /> : <Trash2 className="w-3 h-3" />}
-                  </button>
-                </td>
-              </tr>
-            ))}
+                  {p.territory}
+                </span>
+              );
+
+              if (editingId === p.id) {
+                const selectedEditPP = editPricePoints?.find((pp) => pp.id === editSelectedPP);
+                return (
+                  <tr key={p.id} className="border-t border-[#f3f4f6] dark:border-[#2a2f3d]">
+                    <td className={`${TD} font-mono font-medium ${textPrimary}`}>
+                      {p.territory ? territoryCell : "—"}
+                    </td>
+                    <td className={`${TD} ${textSecondary}`}>{p.currency ?? "—"}</td>
+                    <td className={TD}>
+                      {editLoadingPP ? (
+                        <div className={`${inputCls} ${textMuted}`}>Loading tiers…</div>
+                      ) : editPricePoints && editPricePoints.length > 0 ? (
+                        <select
+                          className={inputCls}
+                          value={editSelectedPP}
+                          onChange={(e) => setEditSelectedPP(e.target.value)}
+                        >
+                          {editPricePoints.map((pp) => (
+                            <option key={pp.id} value={pp.id}>
+                              {pp.currency} {pp.customerPrice} (proceeds: {pp.proceeds})
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className={`${inputCls} ${textMuted}`}>No tiers found</div>
+                      )}
+                    </td>
+                    <td className={`${TD} ${textSecondary}`}>
+                      {selectedEditPP ? `${p.currency ?? ""} ${selectedEditPP.proceeds}` : "—"}
+                    </td>
+                    <td className={`${TD} text-right`}>
+                      <div className="flex gap-1 justify-end">
+                        <button onClick={cancelEditPrice} className={btnSecSm}>
+                          <X className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={() => saveEditPrice(p)}
+                          disabled={savingEdit || !editSelectedPP}
+                          className={btnSecSm}
+                        >
+                          {savingEdit ? <div className="spinner !w-3 !h-3" /> : <Check className="w-3 h-3" />}
+                          Save
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              }
+
+              return (
+                <tr
+                  key={p.id}
+                  className="group border-t border-[#f3f4f6] dark:border-[#2a2f3d] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors"
+                >
+                  <td className={`${TD} font-mono font-medium ${textPrimary}`}>{p.territory ? territoryCell : "—"}</td>
+                  <td className={`${TD} ${textSecondary}`}>{p.currency ?? "—"}</td>
+                  <td className={`${TD} font-semibold ${textPrimary}`}>
+                    {p.customerPrice != null ? `${p.currency ?? ""} ${p.customerPrice}` : "—"}
+                  </td>
+                  <td className={`${TD} ${textSecondary}`}>
+                    {p.proceeds != null ? `${p.currency ?? ""} ${p.proceeds}` : "—"}
+                  </td>
+                  <td className={`${TD} text-right`}>
+                    <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => startEditPrice(p)}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-[#C4001E] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => deletePrice(p.id)}
+                        disabled={deletingId === p.id}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all disabled:opacity-50"
+                      >
+                        {deletingId === p.id ? <div className="spinner !w-3 !h-3" /> : <Trash2 className="w-3 h-3" />}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}

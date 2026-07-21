@@ -2,7 +2,8 @@ import { prisma, logger } from "../config";
 import { AIClient } from "./ai-client";
 import { AppStoreScraper } from "./appstore-scraper";
 
-const SUBSCRIPTION_HINT = /\b(week|weekly|month|monthly|year|yearly|annual|quarter|season|sub|subscription|premium|plus|pro|unlimited)\b/i;
+const SUBSCRIPTION_HINT =
+  /\b(week|weekly|month|monthly|year|yearly|annual|quarter|season|sub|subscription|premium|plus|pro|unlimited)\b/i;
 
 interface ScrapedReview {
   externalId: string;
@@ -234,6 +235,20 @@ Be concise but thorough. Extract actionable insights.`;
 
     const [current, previous] = app.snapshots;
     let changesDetected = 0;
+    let versionReleaseDate: Date | undefined;
+
+    if (current.version !== previous.version && current.version && app.trackId) {
+      try {
+        const scraper = new AppStoreScraper();
+        const history = await scraper.scrapeVersionHistory(Number(app.trackId));
+        const match = history.find((h) => h.version === current.version);
+        if (match) versionReleaseDate = new Date(match.date);
+      } catch (err) {
+        logger.warn(`Failed to resolve release date for ${appId} v${current.version}`, {
+          error: err instanceof Error ? err.message : err,
+        });
+      }
+    }
 
     const fieldsToTrack: Array<{
       field: string;
@@ -288,6 +303,7 @@ Be concise but thorough. Extract actionable insights.`;
             field,
             oldValue: prevVal ? String(prevVal).substring(0, 5000) : null,
             newValue: curVal ? String(curVal).substring(0, 5000) : null,
+            ...(field === "version" && versionReleaseDate ? { detectedAt: versionReleaseDate } : {}),
           },
         });
         changesDetected++;

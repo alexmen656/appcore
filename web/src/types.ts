@@ -386,6 +386,9 @@ export interface VersionLocalizationSummary {
   appInfoLocalizationId: string | null;
   versionLocalizationId: string | null;
   isComplete: boolean;
+  isOptimal: boolean;
+  // Human-readable reasons the locale is yellow (non-optimal) or gray (incomplete); empty when green.
+  qualityReasons: string[];
 }
 
 export interface VersionsData {

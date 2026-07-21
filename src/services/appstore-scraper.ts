@@ -14,6 +14,7 @@ interface ITunesResult {
   userRatingCount?: number;
   price: number;
   version: string;
+  currentVersionReleaseDate?: string;
   releaseNotes?: string;
   screenshotUrls: string[];
   artworkUrl512: string;
@@ -429,8 +430,14 @@ export class AppStoreScraper {
         field: string;
         oldValue: string | null;
         newValue: string | null;
+        detectedAt?: Date;
       }> = [];
-      const compare = (field: string, oldVal: string | null | undefined, newVal: string | null | undefined) => {
+      const compare = (
+        field: string,
+        oldVal: string | null | undefined,
+        newVal: string | null | undefined,
+        detectedAt?: Date,
+      ) => {
         const o = oldVal ?? null;
         const n = newVal ?? null;
         if (o !== n)
@@ -438,13 +445,19 @@ export class AppStoreScraper {
             field,
             oldValue: o ? String(o).substring(0, 5000) : null,
             newValue: n ? String(n).substring(0, 5000) : null,
+            detectedAt,
           });
       };
+
+      // Use the real App Store release date for version bumps, not the detection time.
+      const releaseDate = itunesData.currentVersionReleaseDate
+        ? new Date(itunesData.currentVersionReleaseDate)
+        : undefined;
 
       compare("title", prevSnapshot.title, itunesData.trackName);
       compare("subtitle", prevSnapshot.subtitle, webData?.subtitle);
       compare("description", prevSnapshot.description, itunesData.description);
-      compare("version", prevSnapshot.version, itunesData.version);
+      compare("version", prevSnapshot.version, itunesData.version, releaseDate);
       compare("releaseNotes", prevSnapshot.releaseNotes, itunesData.releaseNotes ?? webData?.whatsNew);
       compare("rating", prevSnapshot.rating?.toFixed(2), itunesData.averageUserRating?.toFixed(2));
       compare("price", prevSnapshot.price?.toString(), itunesData.price?.toString());
@@ -456,6 +469,7 @@ export class AppStoreScraper {
             field: c.field,
             oldValue: c.oldValue,
             newValue: c.newValue,
+            ...(c.detectedAt ? { detectedAt: c.detectedAt } : {}),
           })),
         });
         logger.info(

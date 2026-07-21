@@ -1966,6 +1966,8 @@ export default function Versions({ addToast }: Props) {
                     appInfoLocalizationId: created.appInfoLocalizationId ?? null,
                     versionLocalizationId: created.versionLocalizationId ?? null,
                     isComplete: false,
+                    isOptimal: false,
+                    qualityReasons: [],
                   },
                 ],
                 localizations: current.localizations.some((loc) => loc.locale === locale)
@@ -2263,17 +2265,28 @@ export default function Versions({ addToast }: Props) {
                         const localeTranslating = translatingLocales.includes(loc.locale);
                         const localeLoading = visibleLoadingLocale === loc.locale;
                         const isComplete = loc.isComplete;
+                        const isSubOptimal = isComplete && !loc.isOptimal;
                         const isActive = loc.locale === activeLocale;
+                        const qualityReasons = loc.qualityReasons ?? [];
+                        const localeTooltip = isSubOptimal
+                          ? `Submittable, but keywords aren't fully optimized:\n• ${qualityReasons.join("\n• ")}`
+                          : qualityReasons.length > 0
+                            ? qualityReasons.join("\n")
+                            : undefined;
+
                         return (
                           <div key={loc.locale} className="relative group">
                             <button
                               onClick={() => selectLocale(loc.locale)}
+                              title={localeTooltip}
                               className={`flex items-center gap-2 px-3.5 py-[7px] rounded-xl transition-all whitespace-nowrap ${
                                 isActive
                                   ? "bg-[#111827] dark:bg-[#e8eaf0]/10 dark:border dark:border-[#e8eaf0]/20 border text-white shadow-sm"
-                                  : isComplete
-                                    ? `bg-emerald-50/70 dark:bg-emerald-900/15 border border-emerald-200/60 dark:border-emerald-800/40 ${textPrimary} hover:border-emerald-300 dark:hover:border-emerald-700/60`
-                                    : `bg-[#fafbfc] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] ${textPrimary} hover:border-[#d1d5db] dark:hover:border-[#3a4050]`
+                                  : isSubOptimal
+                                    ? `bg-amber-50/70 dark:bg-amber-900/15 border border-amber-200/60 dark:border-amber-800/40 ${textPrimary} hover:border-amber-300 dark:hover:border-amber-700/60`
+                                    : isComplete
+                                      ? `bg-emerald-50/70 dark:bg-emerald-900/15 border border-emerald-200/60 dark:border-emerald-800/40 ${textPrimary} hover:border-emerald-300 dark:hover:border-emerald-700/60`
+                                      : `bg-[#fafbfc] dark:bg-[#252b38] border border-[#eef0f3] dark:border-[#2a2f3d] ${textPrimary} hover:border-[#d1d5db] dark:hover:border-[#3a4050]`
                               }`}
                             >
                               <LocaleFlag locale={loc.locale} />

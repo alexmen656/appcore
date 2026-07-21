@@ -160,7 +160,7 @@ analyticsRouter.get("/downloads", ...requireBundleAccess("query"), async (req, r
         impressions: 0,
         pageViews: 0,
       });
-      
+
       c.downloads += r.downloads;
       c.impressions += r.impressions;
       c.pageViews += r.pageViews;
@@ -253,12 +253,22 @@ analyticsRouter.get("/markers", ...requireBundleAccess("query"), async (req, res
       }
     }
 
+    const seenVersions = new Set<string>();
+    const versionUpdates: { date: string; version: string }[] = [];
+
+    for (const c of versionChanges) {
+      const version = c.newValue ?? "";
+      if (!version || seenVersions.has(version)) continue;
+      seenVersions.add(version);
+      versionUpdates.push({
+        date: c.detectedAt.toISOString().slice(0, 10),
+        version,
+      });
+    }
+
     res.json({
       activatedAt: app.createdAt.toISOString().slice(0, 10),
-      versionUpdates: versionChanges.map((c) => ({
-        date: c.detectedAt.toISOString().slice(0, 10),
-        version: c.newValue ?? "",
-      })),
+      versionUpdates,
     });
   } catch (err) {
     res.status(500).json({ error: String(err) });
