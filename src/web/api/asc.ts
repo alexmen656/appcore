@@ -760,8 +760,6 @@ ascRouter.get(
       }
     }
 
-    // For frozen states, don't overwrite a non-empty cache with an empty result —
-    // ASC can return empty if the app was removed from sale, but we want the history.
     const keepHistorical = frozen && screenshots.length === 0 && cached && cached.length > 0;
 
     if (!keepHistorical) {
@@ -2158,56 +2156,81 @@ ascRouter.get(
   }),
 );
 
+async function fetchIapSchedulePrices(
+  asc: AppStoreConnectClient,
+  scheduleId: string,
+  relation: "manualPrices" | "automaticPrices",
+): Promise<any[]> {
+  const { data: resp } = await asc.client.get(`/inAppPurchasePriceSchedules/${scheduleId}/${relation}`, {
+    params: {
+      include: "territory,inAppPurchasePricePoint",
+      "fields[inAppPurchasePrices]": "startDate,territory,inAppPurchasePricePoint",
+      "fields[territories]": "currency",
+      "fields[inAppPurchasePricePoints]": "customerPrice,proceeds",
+      limit: 200,
+    },
+  });
+
+  const included: any[] = resp.included ?? [];
+  const terrMap = new Map<string, any>();
+  const ppMap = new Map<string, any>();
+
+  for (const item of included) {
+    if (item.type === "territories") terrMap.set(item.id, item);
+    if (item.type === "inAppPurchasePricePoints") ppMap.set(item.id, item);
+  }
+
+  return (resp.data ?? []).map((price: any) => {
+    const terrId = price.relationships?.territory?.data?.id;
+    const ppId = price.relationships?.inAppPurchasePricePoint?.data?.id;
+    const terr = terrId ? terrMap.get(terrId) : null;
+    const pp = ppId ? ppMap.get(ppId) : null;
+    return {
+      id: price.id,
+      territory: terrId ?? null,
+      currency: terr?.attributes?.currency ?? null,
+      customerPrice: pp?.attributes?.customerPrice ?? null,
+      proceeds: pp?.attributes?.proceeds ?? null,
+      startDate: price.attributes?.startDate ?? null,
+      pricePointId: ppId ?? null,
+    };
+  });
+}
+
 ascRouter.get(
   "/products/:id/prices",
   handle("listProductPrices", async (req, res) => {
     const { id } = req.params;
     const asc = await ascClientForUser(req.user!.userId);
+
+    let scheduleId: string | undefined;
     try {
-      const { data: resp } = await asc.client.get(`${ASC_V2}/inAppPurchases/${id}/iapPriceSchedule`, {
-        params: {
-          include: "manualPrices,manualPrices.territory,manualPrices.inAppPurchasePricePoint",
-          "fields[inAppPurchasePriceSchedules]": "manualPrices",
-          "fields[inAppPurchasePrices]": "startDate,territory,inAppPurchasePricePoint",
-          "fields[territories]": "currency",
-          "fields[inAppPurchasePricePoints]": "customerPrice,proceeds",
-          "limit[manualPrices]": 200,
-        },
-      });
-
-      const included: any[] = resp.included ?? [];
-      const priceMap = new Map<string, any>();
-      const terrMap = new Map<string, any>();
-      const ppMap = new Map<string, any>();
-
-      for (const item of included) {
-        if (item.type === "inAppPurchasePrices") priceMap.set(item.id, item);
-        if (item.type === "territories") terrMap.set(item.id, item);
-        if (item.type === "inAppPurchasePricePoints") ppMap.set(item.id, item);
+      const { data: sched } = await asc.client.get(`${ASC_V2}/inAppPurchases/${id}/iapPriceSchedule`);
+      scheduleId = sched.data?.id;
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        res.json([]);
+        return;
       }
-
-      const manualRefs: any[] = resp.data?.relationships?.manualPrices?.data ?? [];
-      res.json(
-        manualRefs.map((ref: any) => {
-          const price = priceMap.get(ref.id);
-          const terrId = price?.relationships?.territory?.data?.id;
-          const ppId = price?.relationships?.inAppPurchasePricePoint?.data?.id;
-          const terr = terrId ? terrMap.get(terrId) : null;
-          const pp = ppId ? ppMap.get(ppId) : null;
-          return {
-            id: ref.id,
-            territory: terrId ?? null,
-            currency: terr?.attributes?.currency ?? null,
-            customerPrice: pp?.attributes?.customerPrice ?? null,
-            proceeds: pp?.attributes?.proceeds ?? null,
-            startDate: price?.attributes?.startDate ?? null,
-            pricePointId: ppId ?? null,
-          };
-        }),
-      );
-    } catch {
-      res.json([]);
+      throw err;
     }
+
+    if (!scheduleId) {
+      res.json([]);
+      return;
+    }
+
+    const [manual, automatic] = await Promise.all([
+      fetchIapSchedulePrices(asc, scheduleId, "manualPrices"),
+      fetchIapSchedulePrices(asc, scheduleId, "automaticPrices"),
+    ]);
+
+    const byTerritory = new Map<string, any>();
+    for (const p of [...automatic, ...manual]) {
+      if (p.territory) byTerritory.set(p.territory, p);
+    }
+
+    res.json([...byTerritory.values()].sort((a, b) => (a.territory ?? "").localeCompare(b.territory ?? "")));
   }),
 );
 

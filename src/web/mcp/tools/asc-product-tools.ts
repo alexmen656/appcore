@@ -39,6 +39,46 @@ function json(data: unknown) {
   };
 }
 
+async function fetchIapSchedulePrices(
+  asc: Awaited<ReturnType<typeof createAscClient>>,
+  scheduleId: string,
+  relation: "manualPrices" | "automaticPrices",
+): Promise<any[]> {
+  const { data: resp } = await asc.client.get(`/inAppPurchasePriceSchedules/${scheduleId}/${relation}`, {
+    params: {
+      include: "territory,inAppPurchasePricePoint",
+      "fields[inAppPurchasePrices]": "startDate,territory,inAppPurchasePricePoint",
+      "fields[territories]": "currency",
+      "fields[inAppPurchasePricePoints]": "customerPrice,proceeds",
+      limit: 200,
+    },
+  });
+
+  const included: any[] = resp.included ?? [];
+  const terrMap = new Map<string, any>();
+  const ppMap = new Map<string, any>();
+  for (const item of included) {
+    if (item.type === "territories") terrMap.set(item.id, item);
+    if (item.type === "inAppPurchasePricePoints") ppMap.set(item.id, item);
+  }
+
+  return (resp.data ?? []).map((price: any) => {
+    const terrId = price.relationships?.territory?.data?.id;
+    const ppId = price.relationships?.inAppPurchasePricePoint?.data?.id;
+    const terr = terrId ? terrMap.get(terrId) : null;
+    const pp = ppId ? ppMap.get(ppId) : null;
+    return {
+      id: price.id,
+      territory: terrId ?? null,
+      currency: terr?.attributes?.currency ?? null,
+      customerPrice: pp?.attributes?.customerPrice ?? null,
+      proceeds: pp?.attributes?.proceeds ?? null,
+      startDate: price.attributes?.startDate ?? null,
+      pricePointId: ppId ?? null,
+    };
+  });
+}
+
 function mapProduct(p: any) {
   return {
     id: p.id,
@@ -425,46 +465,28 @@ export function registerAscProductTools(server: McpServer, userId: string) {
 
       try {
         const asc = await createAscClient(settings);
-        const { data: resp } = await asc.client.get(`${ASC_V2}/inAppPurchases/${productDbId}/iapPriceSchedule`, {
-          params: {
-            include: "manualPrices,manualPrices.territory,manualPrices.inAppPurchasePricePoint",
-            "fields[inAppPurchasePriceSchedules]": "manualPrices",
-            "fields[inAppPurchasePrices]": "startDate,territory,inAppPurchasePricePoint",
-            "fields[territories]": "currency",
-            "fields[inAppPurchasePricePoints]": "customerPrice,proceeds",
-            "limit[manualPrices]": 200,
-          },
-        });
 
-        const included: any[] = resp.included ?? [];
-        const priceMap = new Map<string, any>();
-        const terrMap = new Map<string, any>();
-        const ppMap = new Map<string, any>();
-        for (const item of included) {
-          if (item.type === "inAppPurchasePrices") priceMap.set(item.id, item);
-          if (item.type === "territories") terrMap.set(item.id, item);
-          if (item.type === "inAppPurchasePricePoints") ppMap.set(item.id, item);
+        let scheduleId: string | undefined;
+        try {
+          const { data: sched } = await asc.client.get(`${ASC_V2}/inAppPurchases/${productDbId}/iapPriceSchedule`);
+          scheduleId = sched.data?.id;
+        } catch (err: any) {
+          if (err?.response?.status === 404) return json([]);
+          throw err;
+        }
+        if (!scheduleId) return json([]);
+
+        const [manual, automatic] = await Promise.all([
+          fetchIapSchedulePrices(asc, scheduleId, "manualPrices"),
+          fetchIapSchedulePrices(asc, scheduleId, "automaticPrices"),
+        ]);
+
+        const byTerritory = new Map<string, any>();
+        for (const p of [...automatic, ...manual]) {
+          if (p.territory) byTerritory.set(p.territory, p);
         }
 
-        const manualRefs: any[] = resp.data?.relationships?.manualPrices?.data ?? [];
-        return json(
-          manualRefs.map((ref: any) => {
-            const price = priceMap.get(ref.id);
-            const terrId = price?.relationships?.territory?.data?.id;
-            const ppId = price?.relationships?.inAppPurchasePricePoint?.data?.id;
-            const terr = terrId ? terrMap.get(terrId) : null;
-            const pp = ppId ? ppMap.get(ppId) : null;
-            return {
-              id: ref.id,
-              territory: terrId ?? null,
-              currency: terr?.attributes?.currency ?? null,
-              customerPrice: pp?.attributes?.customerPrice ?? null,
-              proceeds: pp?.attributes?.proceeds ?? null,
-              startDate: price?.attributes?.startDate ?? null,
-              pricePointId: ppId ?? null,
-            };
-          }),
-        );
+        return json([...byTerritory.values()].sort((a, b) => (a.territory ?? "").localeCompare(b.territory ?? "")));
       } catch (err: any) {
         return ascError(err);
       }
