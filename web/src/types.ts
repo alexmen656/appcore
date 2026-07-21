@@ -578,3 +578,15 @@ export interface ProductPrice {
   startDate: string | null;
   pricePointId: string | null;
 }
+
+export interface SmartPriceRow {
+  territory: string;
+  currency: string | null;
+  multiplier: number;
+  currentPricePointId: string | null;
+  currentPrice: string | null;
+  suggestedPricePointId: string;
+  suggestedPrice: string | null;
+  suggestedProceeds: string | null;
+  changed: boolean;
+}

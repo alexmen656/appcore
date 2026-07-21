@@ -12,6 +12,7 @@ import {
   MoreHorizontal,
   Paperclip,
   FileText,
+  Sparkles,
 } from "lucide-react";
 import { authHeaders, getActiveBundleId } from "../../hooks/useApi";
 import {
@@ -31,6 +32,7 @@ import {
 } from "../../styles";
 import type { ProductItem, ProductLocalization, ProductPrice, ProductPricePoint } from "../../types";
 import { territoryFlagSrc } from "../../utils/territoryFlags";
+import SmartPricingModal from "./SmartPricingModal";
 
 interface Props {
   addToast: (msg: string, type: "success" | "error" | "info") => void;
@@ -445,6 +447,7 @@ function PricingPanel({ productId, addToast }: { productId: string; addToast: Pr
   const [editLoadingPP, setEditLoadingPP] = useState(false);
   const [editSelectedPP, setEditSelectedPP] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
+  const [showSmart, setShowSmart] = useState(false);
   const fetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadPrices = useCallback(async () => {
@@ -596,13 +599,31 @@ function PricingPanel({ productId, addToast }: { productId: string; addToast: Pr
         className={`flex items-center justify-between px-4 py-3 border-b ${borderDefault} bg-[#fafbfc] dark:bg-[#252b38]`}
       >
         <span className={`text-[13px] font-semibold ${textPrimary}`}>Pricing</span>
-        <button
-          onClick={openAdd}
-          className="inline-flex items-center gap-1 text-[12px] text-[#C4001E] hover:opacity-80 transition-opacity font-medium"
-        >
-          <Plus className="w-3.5 h-3.5" /> Set Price
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowSmart(true)}
+            className="inline-flex items-center gap-1 text-[12px] text-[#C4001E] hover:opacity-80 transition-opacity font-medium"
+          >
+            <Sparkles className="w-3.5 h-3.5" /> Smart Pricing
+          </button>
+          <button
+            onClick={openAdd}
+            className="inline-flex items-center gap-1 text-[12px] text-[#C4001E] hover:opacity-80 transition-opacity font-medium"
+          >
+            <Plus className="w-3.5 h-3.5" /> Set Price
+          </button>
+        </div>
       </div>
+
+      <SmartPricingModal
+        open={showSmart}
+        onClose={() => setShowSmart(false)}
+        kind="product"
+        entityId={productId}
+        currentUsaPricePointId={prices?.find((p) => p.territory === "USA")?.pricePointId ?? null}
+        onApplied={loadPrices}
+        addToast={addToast}
+      />
 
       {(!prices || prices.length === 0) && !showAdd ? (
         <p className={`text-[12px] ${textMuted} px-4 py-4`}>No prices set yet.</p>

@@ -4,6 +4,7 @@ import { prisma, logger } from "../../config";
 import { requireAuth, bundleAccess, loadVersionInBundle, loadVersionLocalizationInBundle } from "../auth";
 import { AppStoreConnectClient } from "../../services/appstore-connect";
 import { LOCALE_MAP } from "../../services/utils/country_lang";
+import { priceMultiplierFor } from "../../services/utils/price-multipliers";
 import { bossScheduler } from "../../jobs/boss";
 import {
   QUEUE_NAME as TRANSLATE_LOCALIZATION_QUEUE,
@@ -1735,45 +1736,47 @@ ascRouter.get(
   }),
 );
 
+async function fetchSubscriptionPrices(asc: AppStoreConnectClient, subscriptionId: string): Promise<any[]> {
+  const { data: resp } = await asc.client.get(`/subscriptions/${subscriptionId}/prices`, {
+    params: {
+      include: "territory,subscriptionPricePoint",
+      "fields[subscriptionPrices]": "startDate,preserved,territory,subscriptionPricePoint",
+      "fields[territories]": "currency",
+      "fields[subscriptionPricePoints]": "customerPrice,proceeds,territory",
+      limit: 200,
+    },
+  });
+  const included: any[] = resp.included ?? [];
+  const terrMap = new Map<string, any>(
+    included.filter((i: any) => i.type === "territories").map((t: any) => [t.id, t]),
+  );
+  const ppMap = new Map<string, any>(
+    included.filter((i: any) => i.type === "subscriptionPricePoints").map((pp: any) => [pp.id, pp]),
+  );
+  return (resp.data ?? []).map((p: any) => {
+    const terrId = p.relationships?.territory?.data?.id ?? null;
+    const ppId = p.relationships?.subscriptionPricePoint?.data?.id ?? null;
+    const terr = terrId ? terrMap.get(terrId) : null;
+    const pp = ppId ? ppMap.get(ppId) : null;
+    return {
+      id: p.id,
+      territory: terrId,
+      currency: terr?.attributes?.currency ?? null,
+      customerPrice: pp?.attributes?.customerPrice ?? null,
+      proceeds: pp?.attributes?.proceeds ?? null,
+      pricePointId: ppId,
+      startDate: p.attributes?.startDate ?? null,
+      preserved: p.attributes?.preserved ?? false,
+    };
+  });
+}
+
 ascRouter.get(
   "/subscriptions/:id/prices",
   handle("listSubscriptionPrices", async (req, res) => {
     const { id } = req.params;
     const asc = await ascClientForUser(req.user!.userId);
-    const { data: resp } = await asc.client.get(`/subscriptions/${id}/prices`, {
-      params: {
-        include: "territory,subscriptionPricePoint",
-        "fields[subscriptionPrices]": "startDate,preserved,territory,subscriptionPricePoint",
-        "fields[territories]": "currency",
-        "fields[subscriptionPricePoints]": "customerPrice,proceeds,territory",
-        limit: 200,
-      },
-    });
-    const included: any[] = resp.included ?? [];
-    const terrMap = new Map<string, any>(
-      included.filter((i: any) => i.type === "territories").map((t: any) => [t.id, t]),
-    );
-    const ppMap = new Map<string, any>(
-      included.filter((i: any) => i.type === "subscriptionPricePoints").map((pp: any) => [pp.id, pp]),
-    );
-    res.json(
-      (resp.data ?? []).map((p: any) => {
-        const terrId = p.relationships?.territory?.data?.id ?? null;
-        const ppId = p.relationships?.subscriptionPricePoint?.data?.id ?? null;
-        const terr = terrId ? terrMap.get(terrId) : null;
-        const pp = ppId ? ppMap.get(ppId) : null;
-        return {
-          id: p.id,
-          territory: terrId,
-          currency: terr?.attributes?.currency ?? null,
-          customerPrice: pp?.attributes?.customerPrice ?? null,
-          proceeds: pp?.attributes?.proceeds ?? null,
-          pricePointId: ppId,
-          startDate: p.attributes?.startDate ?? null,
-          preserved: p.attributes?.preserved ?? false,
-        };
-      }),
-    );
+    res.json(await fetchSubscriptionPrices(asc, String(id)));
   }),
 );
 
@@ -1821,6 +1824,245 @@ ascRouter.delete(
     const asc = await ascClientForUser(req.user!.userId);
     await asc.client.delete(`/subscriptionPrices/${id}`);
     res.json({ ok: true });
+  }),
+);
+
+// ---- Smart pricing (purchasing-power based suggestions from a USA base price) ----
+
+const SMART_PRICING_BASE_TERRITORY = "USA";
+
+interface EqualizedPricePoint {
+  id: string;
+  customerPrice: string | null;
+  proceeds: string | null;
+  territory: string | null;
+  currency: string | null;
+}
+
+function nearestPricePoint(
+  catalog: Array<{ id: string; customerPrice: string | null }>,
+  target: number,
+): { id: string; customerPrice: string | null } | null {
+  let best: { id: string; customerPrice: string | null } | null = null;
+  let bestDiff = Infinity;
+  for (const point of catalog) {
+    const price = Number(point.customerPrice);
+    if (!Number.isFinite(price)) continue;
+    const diff = Math.abs(price - target);
+    // Prefer the cheaper point on ties so suggestions never round up ambiguously.
+    if (diff < bestDiff || (diff === bestDiff && best && price < Number(best.customerPrice))) {
+      best = point;
+      bestDiff = diff;
+    }
+  }
+  return best;
+}
+
+async function buildSmartPriceRows(opts: {
+  basePricePointId: string;
+  baseCatalog: Array<{ id: string; customerPrice: string | null }>;
+  currentByTerritory: Map<
+    string,
+    { pricePointId: string | null; customerPrice: string | null; currency: string | null }
+  >;
+  fetchEqualizations: (pricePointId: string) => Promise<EqualizedPricePoint[]>;
+}) {
+  const basePoint = opts.baseCatalog.find((p) => p.id === opts.basePricePointId);
+  const basePrice = Number(basePoint?.customerPrice);
+  if (!basePoint || !Number.isFinite(basePrice)) {
+    throw new Error("Base price point not found in the USA price point catalog");
+  }
+
+  // Only snap to the classic x.99 tiers. The full catalog contains odd in-between
+  // steps (1.09, 1.25, ...) whose equalized local prices look arbitrary in stores.
+  const charmCatalog = opts.baseCatalog.filter((p) => p.customerPrice?.endsWith(".99"));
+  const snapCatalog = charmCatalog.length > 0 ? charmCatalog : opts.baseCatalog;
+
+  // One equalizations call for the base point yields Apple's exchange-rate
+  // parity price in every available territory and doubles as the territory list.
+  const baseEqualizations = await opts.fetchEqualizations(opts.basePricePointId);
+  const parityByTerritory = new Map<string, EqualizedPricePoint>();
+  const territoryGroups = new Map<string, string[]>();
+  for (const point of baseEqualizations) {
+    if (!point.territory || point.territory === SMART_PRICING_BASE_TERRITORY) continue;
+    parityByTerritory.set(point.territory, point);
+    const multiplier = priceMultiplierFor(point.territory);
+    const targetPoint = nearestPricePoint(snapCatalog, basePrice * multiplier);
+    if (!targetPoint) continue;
+    const group = territoryGroups.get(targetPoint.id) ?? [];
+    group.push(point.territory);
+    territoryGroups.set(targetPoint.id, group);
+  }
+
+  // Multipliers come from a small discrete set, so distinct target tiers stay
+  // in the low double digits regardless of how many territories exist.
+  const suggestedByTerritory = new Map<string, EqualizedPricePoint>();
+  await Promise.all(
+    [...territoryGroups.entries()].map(async ([targetPointId, territories]) => {
+      const equalized =
+        targetPointId === opts.basePricePointId ? baseEqualizations : await opts.fetchEqualizations(targetPointId);
+      const byTerritory = new Map(equalized.filter((p) => p.territory).map((p) => [p.territory!, p]));
+      for (const territory of territories) {
+        const point = byTerritory.get(territory) ?? parityByTerritory.get(territory);
+        if (point) suggestedByTerritory.set(territory, point);
+      }
+    }),
+  );
+
+  const rows = [...suggestedByTerritory.entries()].map(([territory, suggested]) => {
+    const current = opts.currentByTerritory.get(territory) ?? null;
+    return {
+      territory,
+      currency: suggested.currency ?? current?.currency ?? null,
+      multiplier: priceMultiplierFor(territory),
+      currentPricePointId: current?.pricePointId ?? null,
+      currentPrice: current?.customerPrice ?? null,
+      suggestedPricePointId: suggested.id,
+      suggestedPrice: suggested.customerPrice,
+      suggestedProceeds: suggested.proceeds,
+      changed: current?.pricePointId !== suggested.id,
+    };
+  });
+  rows.sort((a, b) => a.territory.localeCompare(b.territory));
+
+  const baseCurrent = opts.currentByTerritory.get(SMART_PRICING_BASE_TERRITORY) ?? null;
+  rows.unshift({
+    territory: SMART_PRICING_BASE_TERRITORY,
+    currency: "USD",
+    multiplier: 1,
+    currentPricePointId: baseCurrent?.pricePointId ?? null,
+    currentPrice: baseCurrent?.customerPrice ?? null,
+    suggestedPricePointId: basePoint.id,
+    suggestedPrice: basePoint.customerPrice,
+    suggestedProceeds: null,
+    changed: baseCurrent?.pricePointId !== basePoint.id,
+  });
+
+  return rows;
+}
+
+async function fetchSubscriptionEqualizations(
+  asc: AppStoreConnectClient,
+  pricePointId: string,
+): Promise<EqualizedPricePoint[]> {
+  const { data: resp } = await asc.client.get(`/subscriptionPricePoints/${pricePointId}/equalizations`, {
+    params: {
+      include: "territory",
+      "fields[subscriptionPricePoints]": "customerPrice,proceeds,territory",
+      "fields[territories]": "currency",
+      limit: 8000,
+    },
+  });
+  const included: any[] = resp.included ?? [];
+  const terrMap = new Map<string, any>(
+    included.filter((i: any) => i.type === "territories").map((t: any) => [t.id, t]),
+  );
+  return (resp.data ?? []).map((pp: any) => {
+    const terrId = pp.relationships?.territory?.data?.id ?? null;
+    return {
+      id: pp.id,
+      customerPrice: pp.attributes?.customerPrice ?? null,
+      proceeds: pp.attributes?.proceeds ?? null,
+      territory: terrId,
+      currency: terrId ? (terrMap.get(terrId)?.attributes?.currency ?? null) : null,
+    };
+  });
+}
+
+ascRouter.post(
+  "/subscriptions/:id/smart-prices",
+  handle("previewSubscriptionSmartPrices", async (req, res) => {
+    const { id } = req.params;
+    const { basePricePointId } = (req.body ?? {}) as { basePricePointId?: string };
+    const asc = await ascClientForUser(req.user!.userId);
+
+    const [catalogResp, currentPrices] = await Promise.all([
+      asc.client.get(`/subscriptions/${id}/pricePoints`, {
+        params: {
+          "fields[subscriptionPricePoints]": "customerPrice",
+          "filter[territory]": SMART_PRICING_BASE_TERRITORY,
+          limit: 8000,
+        },
+      }),
+      fetchSubscriptionPrices(asc, String(id)),
+    ]);
+    const baseCatalog = (catalogResp.data.data ?? []).map((pp: any) => ({
+      id: pp.id,
+      customerPrice: pp.attributes?.customerPrice ?? null,
+    }));
+    const currentByTerritory = new Map<string, any>(
+      currentPrices.filter((p: any) => p.territory).map((p: any) => [p.territory, p]),
+    );
+
+    const baseId = basePricePointId ?? currentByTerritory.get(SMART_PRICING_BASE_TERRITORY)?.pricePointId;
+    if (!baseId) {
+      res.status(400).json({ error: "No USA price set. Pick a US base price first." });
+      return;
+    }
+
+    const rows = await buildSmartPriceRows({
+      basePricePointId: baseId,
+      baseCatalog,
+      currentByTerritory,
+      fetchEqualizations: (pointId) => fetchSubscriptionEqualizations(asc, pointId),
+    });
+    res.json({ baseTerritory: SMART_PRICING_BASE_TERRITORY, basePricePointId: baseId, rows });
+  }),
+);
+
+ascRouter.post(
+  "/subscriptions/prices/bulk",
+  handle("bulkCreateSubscriptionPrices", async (req, res) => {
+    const { subscriptionId, items, preserveCurrentPrice } = req.body as {
+      subscriptionId?: string;
+      items?: Array<{ territory?: string; pricePointId?: string }>;
+      preserveCurrentPrice?: boolean;
+    };
+    if (!subscriptionId || !Array.isArray(items) || items.length === 0) {
+      res.status(400).json({ error: "subscriptionId and a non-empty items array are required" });
+      return;
+    }
+    if (items.some((i) => !i.territory || !i.pricePointId)) {
+      res.status(400).json({ error: "Every item needs territory and pricePointId" });
+      return;
+    }
+
+    const asc = await ascClientForUser(req.user!.userId);
+    const results: Array<{ territory: string; ok: boolean; error?: string }> = [];
+    const CONCURRENCY = 4;
+    for (let i = 0; i < items.length; i += CONCURRENCY) {
+      const chunk = items.slice(i, i + CONCURRENCY);
+      const chunkResults = await Promise.all(
+        chunk.map(async (item) => {
+          try {
+            await asc.client.post("/subscriptionPrices", {
+              data: {
+                type: "subscriptionPrices",
+                attributes: {
+                  ...(preserveCurrentPrice !== undefined ? { preserveCurrentPrice } : {}),
+                },
+                relationships: {
+                  subscription: { data: { type: "subscriptions", id: subscriptionId } },
+                  subscriptionPricePoint: { data: { type: "subscriptionPricePoints", id: item.pricePointId! } },
+                  territory: { data: { type: "territories", id: item.territory! } },
+                },
+              },
+            });
+            return { territory: item.territory!, ok: true };
+          } catch (err: any) {
+            const detail = err?.response?.data?.errors?.[0]?.detail ?? err?.message ?? "Unknown error";
+            logger.error(
+              `ASC bulkCreateSubscriptionPrices failed for ${item.territory}`,
+              err?.response?.data?.errors ?? err,
+            );
+            return { territory: item.territory!, ok: false, error: detail };
+          }
+        }),
+      );
+      results.push(...chunkResults);
+    }
+    const failed = results.filter((r) => !r.ok).length;
+    res.json({ ok: failed === 0, applied: results.length - failed, failed, results });
   }),
 );
 
@@ -2121,7 +2363,7 @@ ascRouter.get(
     const asc = await ascClientForUser(req.user!.userId);
     const params: Record<string, any> = {
       "fields[inAppPurchasePricePoints]": "customerPrice,proceeds,territory",
-      limit: 200,
+      limit: 8000,
     };
 
     if (territory) params["filter[territory]"] = territory;
@@ -2180,40 +2422,39 @@ async function fetchIapSchedulePrices(
   });
 }
 
+async function getIapScheduleId(asc: AppStoreConnectClient, iapId: string): Promise<string | null> {
+  try {
+    const { data: sched } = await asc.client.get(`${ASC_V2}/inAppPurchases/${iapId}/iapPriceSchedule`);
+    return sched.data?.id ?? null;
+  } catch (err: any) {
+    if (err?.response?.status === 404) return null;
+    throw err;
+  }
+}
+
+async function fetchProductPrices(asc: AppStoreConnectClient, iapId: string): Promise<any[]> {
+  const scheduleId = await getIapScheduleId(asc, iapId);
+  if (!scheduleId) return [];
+
+  const [manual, automatic] = await Promise.all([
+    fetchIapSchedulePrices(asc, scheduleId, "manualPrices"),
+    fetchIapSchedulePrices(asc, scheduleId, "automaticPrices"),
+  ]);
+
+  const byTerritory = new Map<string, any>();
+  for (const p of [...automatic, ...manual]) {
+    if (p.territory) byTerritory.set(p.territory, p);
+  }
+
+  return [...byTerritory.values()].sort((a, b) => (a.territory ?? "").localeCompare(b.territory ?? ""));
+}
+
 ascRouter.get(
   "/products/:id/prices",
   handle("listProductPrices", async (req, res) => {
     const { id } = req.params;
     const asc = await ascClientForUser(req.user!.userId);
-
-    let scheduleId: string | undefined;
-    try {
-      const { data: sched } = await asc.client.get(`${ASC_V2}/inAppPurchases/${id}/iapPriceSchedule`);
-      scheduleId = sched.data?.id;
-    } catch (err: any) {
-      if (err?.response?.status === 404) {
-        res.json([]);
-        return;
-      }
-      throw err;
-    }
-
-    if (!scheduleId) {
-      res.json([]);
-      return;
-    }
-
-    const [manual, automatic] = await Promise.all([
-      fetchIapSchedulePrices(asc, scheduleId, "manualPrices"),
-      fetchIapSchedulePrices(asc, scheduleId, "automaticPrices"),
-    ]);
-
-    const byTerritory = new Map<string, any>();
-    for (const p of [...automatic, ...manual]) {
-      if (p.territory) byTerritory.set(p.territory, p);
-    }
-
-    res.json([...byTerritory.values()].sort((a, b) => (a.territory ?? "").localeCompare(b.territory ?? "")));
+    res.json(await fetchProductPrices(asc, String(id)));
   }),
 );
 
@@ -2259,6 +2500,151 @@ ascRouter.post(
     });
 
     res.json({ ok: true });
+  }),
+);
+
+async function fetchProductEqualizations(
+  asc: AppStoreConnectClient,
+  pricePointId: string,
+): Promise<EqualizedPricePoint[]> {
+  const { data: resp } = await asc.client.get(`${ASC_V2}/inAppPurchasePricePoints/${pricePointId}/equalizations`, {
+    params: {
+      include: "territory",
+      "fields[inAppPurchasePricePoints]": "customerPrice,proceeds,territory",
+      "fields[territories]": "currency",
+      limit: 8000,
+    },
+  });
+  const included: any[] = resp.included ?? [];
+  const terrMap = new Map<string, any>(
+    included.filter((i: any) => i.type === "territories").map((t: any) => [t.id, t]),
+  );
+  return (resp.data ?? []).map((pp: any) => {
+    const terrId = pp.relationships?.territory?.data?.id ?? pp.attributes?.territory ?? null;
+    return {
+      id: pp.id,
+      customerPrice: pp.attributes?.customerPrice ?? null,
+      proceeds: pp.attributes?.proceeds ?? null,
+      territory: terrId,
+      currency: terrId ? (terrMap.get(terrId)?.attributes?.currency ?? null) : null,
+    };
+  });
+}
+
+ascRouter.post(
+  "/products/:id/smart-prices",
+  handle("previewProductSmartPrices", async (req, res) => {
+    const { id } = req.params;
+    const { basePricePointId } = (req.body ?? {}) as { basePricePointId?: string };
+    const asc = await ascClientForUser(req.user!.userId);
+
+    const [catalogResp, currentPrices] = await Promise.all([
+      asc.client.get(`${ASC_V2}/inAppPurchases/${id}/pricePoints`, {
+        params: {
+          "fields[inAppPurchasePricePoints]": "customerPrice",
+          "filter[territory]": SMART_PRICING_BASE_TERRITORY,
+          limit: 8000,
+        },
+      }),
+      fetchProductPrices(asc, String(id)),
+    ]);
+    const baseCatalog = (catalogResp.data.data ?? []).map((pp: any) => ({
+      id: pp.id,
+      customerPrice: pp.attributes?.customerPrice ?? null,
+    }));
+    const currentByTerritory = new Map<string, any>(
+      currentPrices.filter((p: any) => p.territory).map((p: any) => [p.territory, p]),
+    );
+
+    const baseId = basePricePointId ?? currentByTerritory.get(SMART_PRICING_BASE_TERRITORY)?.pricePointId;
+    if (!baseId) {
+      res.status(400).json({ error: "No USA price set. Pick a US base price first." });
+      return;
+    }
+
+    const rows = await buildSmartPriceRows({
+      basePricePointId: baseId,
+      baseCatalog,
+      currentByTerritory,
+      fetchEqualizations: (pointId) => fetchProductEqualizations(asc, pointId),
+    });
+    res.json({ baseTerritory: SMART_PRICING_BASE_TERRITORY, basePricePointId: baseId, rows });
+  }),
+);
+
+ascRouter.post(
+  "/products/prices/bulk",
+  handle("bulkSetProductPrices", async (req, res) => {
+    const { productId: iapId, items } = req.body as {
+      productId?: string;
+      items?: Array<{ territory?: string; pricePointId?: string }>;
+    };
+    if (!iapId || !Array.isArray(items) || items.length === 0) {
+      res.status(400).json({ error: "productId and a non-empty items array are required" });
+      return;
+    }
+    if (items.some((i) => !i.territory || !i.pricePointId)) {
+      res.status(400).json({ error: "Every item needs territory and pricePointId" });
+      return;
+    }
+
+    const asc = await ascClientForUser(req.user!.userId);
+
+    // Creating a price schedule replaces the whole schedule in ASC, so merge the
+    // new prices with the existing manual ones to avoid dropping other territories.
+    const scheduleId = await getIapScheduleId(asc, iapId);
+    let baseTerritory = SMART_PRICING_BASE_TERRITORY;
+    const merged = new Map<string, string>();
+    if (scheduleId) {
+      try {
+        const { data: bt } = await asc.client.get(`/inAppPurchasePriceSchedules/${scheduleId}/baseTerritory`);
+        baseTerritory = bt.data?.id ?? SMART_PRICING_BASE_TERRITORY;
+      } catch {
+        // keep default base territory
+      }
+      const existingManual = await fetchIapSchedulePrices(asc, scheduleId, "manualPrices");
+      for (const p of existingManual) {
+        if (p.territory && p.pricePointId) merged.set(p.territory, p.pricePointId);
+      }
+    }
+    for (const item of items) merged.set(item.territory!, item.pricePointId!);
+
+    if (!merged.has(baseTerritory)) {
+      res
+        .status(400)
+        .json({ error: `The base territory (${baseTerritory}) needs a price. Include it in the selection.` });
+      return;
+    }
+
+    const entries = [...merged.entries()];
+    await asc.client.post("/inAppPurchasePriceSchedules", {
+      data: {
+        type: "inAppPurchasePriceSchedules",
+        relationships: {
+          inAppPurchase: { data: { type: "inAppPurchases", id: iapId } },
+          baseTerritory: { data: { type: "territories", id: baseTerritory } },
+          manualPrices: {
+            data: entries.map((_, i) => ({ type: "inAppPurchasePrices", id: `\${manualPrice${i + 1}}` })),
+          },
+        },
+      },
+      included: entries.map(([territory, pricePointId], i) => ({
+        type: "inAppPurchasePrices",
+        id: `\${manualPrice${i + 1}}`,
+        attributes: { startDate: null },
+        relationships: {
+          inAppPurchasePricePoint: { data: { type: "inAppPurchasePricePoints", id: pricePointId } },
+          territory: { data: { type: "territories", id: territory } },
+        },
+      })),
+    });
+
+    res.json({
+      ok: true,
+      applied: items.length,
+      failed: 0,
+      results: items.map((i) => ({ territory: i.territory!, ok: true })),
+    });
   }),
 );
 
