@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   couldNotResolveAscAppId,
   createAscClient,
+  formatAscError,
   getSettingsWithBundleId,
   hasAscCredentials,
   mcpToolMessages,
@@ -13,7 +14,7 @@ function ascError(err: any) {
     content: [
       {
         type: "text" as const,
-        text: `ASC error: ${err?.message ?? String(err)}`,
+        text: `ASC error: ${formatAscError(err)}`,
       },
     ],
   };
@@ -236,6 +237,183 @@ export function registerAscSubscriptionTools(
       try {
         const asc = await createAscClient(settings);
         await asc.client.delete(`/subscriptionGroups/${groupId}`);
+        return json({ ok: true });
+      } catch (err: any) {
+        return ascError(err);
+      }
+    },
+  );
+
+  // @ts-ignore
+  server.registerTool(
+    "list_asc_subscription_group_localizations",
+    {
+      description:
+        "List all localizations for a subscription group. Each localization has a display name (shown to users, e.g. on the subscription management page) " +
+        "and an optional custom app name per locale. Note: subscription groups do not have a 'description' field in App Store Connect, only name and customAppName. " +
+        "Use this to get localization IDs for update/delete operations.",
+      inputSchema: {
+        groupId: z
+          .string()
+          .describe("Subscription group ID from list_asc_subscription_groups."),
+      },
+    },
+    async ({ groupId }) => {
+      const { settings } = await getSettingsWithBundleId(userId);
+      if (!hasAscCredentials(settings)) return credentialsMissing();
+
+      try {
+        const asc = await createAscClient(settings);
+        const { data: resp } = await asc.client.get(
+          `/subscriptionGroups/${groupId}/subscriptionGroupLocalizations`,
+          {
+            params: {
+              "fields[subscriptionGroupLocalizations]":
+                "name,customAppName,locale,state",
+              limit: 50,
+            },
+          },
+        );
+        return json(
+          (resp.data ?? []).map((l: any) => ({
+            id: l.id,
+            locale: l.attributes?.locale ?? "",
+            name: l.attributes?.name ?? "",
+            customAppName: l.attributes?.customAppName ?? null,
+            state: l.attributes?.state ?? "",
+          })),
+        );
+      } catch (err: any) {
+        return ascError(err);
+      }
+    },
+  );
+
+  // @ts-ignore
+  server.registerTool(
+    "create_asc_subscription_group_localization",
+    {
+      description:
+        "Create a new localization for a subscription group with a display name (shown to users) and an optional custom app name for that locale.",
+      inputSchema: {
+        groupId: z
+          .string()
+          .describe("Subscription group ID from list_asc_subscription_groups."),
+        locale: z
+          .string()
+          .describe("Locale code (e.g. 'en-US', 'de-DE', 'fr-FR')."),
+        name: z.string().describe("Display name shown to users in this locale."),
+        customAppName: z
+          .string()
+          .optional()
+          .describe(
+            "Optional custom app name to show for this locale instead of the app's default name.",
+          ),
+      },
+    },
+    async ({ groupId, locale, name, customAppName }) => {
+      const { settings } = await getSettingsWithBundleId(userId);
+      if (!hasAscCredentials(settings)) return credentialsMissing();
+
+      try {
+        const asc = await createAscClient(settings);
+        const { data: resp } = await asc.client.post(
+          "/subscriptionGroupLocalizations",
+          {
+            data: {
+              type: "subscriptionGroupLocalizations",
+              attributes: {
+                locale,
+                name,
+                ...(customAppName ? { customAppName } : {}),
+              },
+              relationships: {
+                subscriptionGroup: {
+                  data: { type: "subscriptionGroups", id: groupId },
+                },
+              },
+            },
+          },
+        );
+        return json({
+          id: resp.data.id,
+          locale: resp.data.attributes?.locale ?? locale,
+          name: resp.data.attributes?.name ?? name,
+          customAppName:
+            resp.data.attributes?.customAppName ?? customAppName ?? null,
+          state: resp.data.attributes?.state ?? "",
+        });
+      } catch (err: any) {
+        return ascError(err);
+      }
+    },
+  );
+
+  // @ts-ignore
+  server.registerTool(
+    "update_asc_subscription_group_localization",
+    {
+      description:
+        "Update the display name or custom app name of an existing subscription group localization. Only pass the fields you want to change.",
+      inputSchema: {
+        localizationId: z
+          .string()
+          .describe(
+            "Subscription group localization ID from list_asc_subscription_group_localizations.",
+          ),
+        name: z.string().optional().describe("New display name."),
+        customAppName: z.string().optional().describe("New custom app name."),
+      },
+    },
+    async ({ localizationId, name, customAppName }) => {
+      const { settings } = await getSettingsWithBundleId(userId);
+      if (!hasAscCredentials(settings)) return credentialsMissing();
+
+      try {
+        const asc = await createAscClient(settings);
+        const attributes: Record<string, any> = {};
+        if (name !== undefined) attributes.name = name;
+        if (customAppName !== undefined) attributes.customAppName = customAppName;
+
+        await asc.client.patch(
+          `/subscriptionGroupLocalizations/${localizationId}`,
+          {
+            data: {
+              type: "subscriptionGroupLocalizations",
+              id: localizationId,
+              attributes,
+            },
+          },
+        );
+        return json({ ok: true });
+      } catch (err: any) {
+        return ascError(err);
+      }
+    },
+  );
+
+  // @ts-ignore
+  server.registerTool(
+    "delete_asc_subscription_group_localization",
+    {
+      description: "Delete a subscription group localization.",
+      inputSchema: {
+        localizationId: z
+          .string()
+          .describe(
+            "Subscription group localization ID from list_asc_subscription_group_localizations.",
+          ),
+      },
+    },
+    async ({ localizationId }) => {
+      const { settings } = await getSettingsWithBundleId(userId);
+      if (!hasAscCredentials(settings)) return credentialsMissing();
+
+      try {
+        const asc = await createAscClient(settings);
+        await asc.client.delete(
+          `/subscriptionGroupLocalizations/${localizationId}`,
+        );
         return json({ ok: true });
       } catch (err: any) {
         return ascError(err);

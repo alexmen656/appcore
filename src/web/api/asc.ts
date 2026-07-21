@@ -1460,6 +1460,93 @@ ascRouter.delete(
   }),
 );
 
+ascRouter.get(
+  "/subscriptions/groups/:id/localizations",
+  handle("listSubscriptionGroupLocalizations", async (req, res) => {
+    const { id } = req.params;
+    const asc = await ascClientForUser(req.user!.userId);
+    const { data: resp } = await asc.client.get(`/subscriptionGroups/${id}/subscriptionGroupLocalizations`, {
+      params: {
+        "fields[subscriptionGroupLocalizations]": "name,customAppName,locale,state",
+        limit: 50,
+      },
+    });
+    res.json(
+      (resp.data ?? []).map((l: any) => ({
+        id: l.id,
+        locale: l.attributes?.locale ?? "",
+        name: l.attributes?.name ?? "",
+        customAppName: l.attributes?.customAppName ?? null,
+        state: l.attributes?.state ?? "",
+      })),
+    );
+  }),
+);
+
+ascRouter.post(
+  "/subscriptions/groups/localizations",
+  handle("createSubscriptionGroupLocalization", async (req, res) => {
+    const { groupId, locale, name, customAppName } = req.body as {
+      groupId?: string;
+      locale?: string;
+      name?: string;
+      customAppName?: string;
+    };
+    if (!groupId || !locale || !name) {
+      res.status(400).json({ error: "groupId, locale and name are required" });
+      return;
+    }
+    const asc = await ascClientForUser(req.user!.userId);
+    const { data: resp } = await asc.client.post("/subscriptionGroupLocalizations", {
+      data: {
+        type: "subscriptionGroupLocalizations",
+        attributes: { locale, name, ...(customAppName ? { customAppName } : {}) },
+        relationships: {
+          subscriptionGroup: {
+            data: { type: "subscriptionGroups", id: groupId },
+          },
+        },
+      },
+    });
+    res.status(201).json({
+      id: resp.data.id,
+      locale: resp.data.attributes?.locale ?? locale,
+      name: resp.data.attributes?.name ?? name,
+      customAppName: resp.data.attributes?.customAppName ?? customAppName ?? null,
+      state: resp.data.attributes?.state ?? "",
+    });
+  }),
+);
+
+ascRouter.patch(
+  "/subscriptions/groups/localizations/:id",
+  handle("updateSubscriptionGroupLocalization", async (req, res) => {
+    const { id } = req.params;
+    const { name, customAppName } = req.body as {
+      name?: string;
+      customAppName?: string;
+    };
+    const attributes: Record<string, any> = {};
+    if (name !== undefined) attributes.name = name;
+    if (customAppName !== undefined) attributes.customAppName = customAppName;
+    const asc = await ascClientForUser(req.user!.userId);
+    await asc.client.patch(`/subscriptionGroupLocalizations/${id}`, {
+      data: { type: "subscriptionGroupLocalizations", id, attributes },
+    });
+    res.json({ ok: true });
+  }),
+);
+
+ascRouter.delete(
+  "/subscriptions/groups/localizations/:id",
+  handle("deleteSubscriptionGroupLocalization", async (req, res) => {
+    const { id } = req.params;
+    const asc = await ascClientForUser(req.user!.userId);
+    await asc.client.delete(`/subscriptionGroupLocalizations/${id}`);
+    res.json({ ok: true });
+  }),
+);
+
 ascRouter.post(
   "/subscriptions",
   handle("createSubscription", async (req, res) => {

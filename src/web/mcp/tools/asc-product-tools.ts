@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   couldNotResolveAscAppId,
   createAscClient,
+  formatAscError,
   getSettingsWithBundleId,
   hasAscCredentials,
   mcpToolMessages,
@@ -15,7 +16,7 @@ function ascError(err: any) {
     content: [
       {
         type: "text" as const,
-        text: `ASC error: ${err?.message ?? String(err)}`,
+        text: `ASC error: ${formatAscError(err)}`,
       },
     ],
   };

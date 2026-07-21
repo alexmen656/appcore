@@ -32,6 +32,7 @@ import {
 } from "../../styles";
 import type {
   SubscriptionGroup,
+  SubscriptionGroupLocalization,
   SubscriptionItem,
   SubscriptionLocalization,
   SubscriptionPrice,
@@ -466,6 +467,270 @@ function LocalizationsPanel({ subscriptionId, addToast }: { subscriptionId: stri
                 value={newDesc}
                 onChange={(e) => setNewDesc(e.target.value)}
                 placeholder="Unlock all features"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button onClick={() => setShowAdd(false)} className={btnSecSm}>
+              Cancel
+            </button>
+            <button onClick={addLoc} disabled={saving || !newLocale.trim() || !newName.trim()} className={btnSecSm}>
+              {saving ? <div className="spinner !w-3 !h-3" /> : <Plus className="w-3 h-3" />}
+              Add
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GroupLocalizationsPanel({ groupId, addToast }: { groupId: string; addToast: Props["addToast"] }) {
+  const [locs, setLocs] = useState<SubscriptionGroupLocalization[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [newLocale, setNewLocale] = useState("en-US");
+  const [newName, setNewName] = useState("");
+  const [newCustomAppName, setNewCustomAppName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editCustomAppName, setEditCustomAppName] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/asc/subscriptions/groups/${groupId}/localizations`, { headers: authHeaders() });
+      if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      setLocs(await res.json());
+    } catch (err: any) {
+      addToast(err.message, "error");
+      setLocs([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [groupId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const addLoc = async () => {
+    if (!newLocale.trim() || !newName.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/asc/subscriptions/groups/localizations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({
+          groupId,
+          locale: newLocale.trim(),
+          name: newName.trim(),
+          customAppName: newCustomAppName.trim() || undefined,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+      setLocs((l) => [...(l ?? []), json]);
+      setShowAdd(false);
+      setNewLocale("en-US");
+      setNewName("");
+      setNewCustomAppName("");
+      addToast("Localization added", "success");
+    } catch (err: any) {
+      addToast(err.message, "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveEdit = async (id: string) => {
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`/api/asc/subscriptions/groups/localizations/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ name: editName, customAppName: editCustomAppName }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      setLocs(
+        (l) =>
+          l?.map((loc) =>
+            loc.id === id ? { ...loc, name: editName, customAppName: editCustomAppName || null } : loc,
+          ) ?? null,
+      );
+      setEditingId(null);
+      addToast("Localization updated", "success");
+    } catch (err: any) {
+      addToast(err.message, "error");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const deleteLoc = async (id: string) => {
+    if (!confirm("Delete this localization?")) return;
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/asc/subscriptions/groups/localizations/${id}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? `HTTP ${res.status}`);
+      setLocs((l) => l?.filter((loc) => loc.id !== id) ?? null);
+      addToast("Localization deleted", "success");
+    } catch (err: any) {
+      addToast(err.message, "error");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  if (loading && !locs) {
+    return (
+      <div className={`flex items-center gap-1.5 py-4 text-[12px] ${textMuted}`}>
+        <div className="spinner !w-3 !h-3" /> Loading…
+      </div>
+    );
+  }
+
+  return (
+    <div className={`border-t ${borderDefault}`}>
+      <div
+        className={`flex items-center justify-between px-4 py-3 border-b ${borderDefault} bg-[#fafbfc] dark:bg-[#252b38]`}
+      >
+        <span className={`text-[13px] font-semibold ${textPrimary}`}>Group Localizations</span>
+        <button
+          onClick={() => setShowAdd(true)}
+          className="inline-flex items-center gap-1 text-[12px] text-[#C4001E] hover:opacity-80 transition-opacity font-medium"
+        >
+          <Paperclip className="w-3.5 h-3.5" /> Add
+        </button>
+      </div>
+
+      {(!locs || locs.length === 0) && !showAdd ? (
+        <p className={`text-[12px] ${textMuted} px-4 py-4`}>No localizations yet.</p>
+      ) : (
+        <table className="w-full">
+          <thead>
+            <tr>
+              <th className={TH}>Locale</th>
+              <th className={TH}>Display Name</th>
+              <th className={TH}>Custom App Name</th>
+              <th className={TH} />
+            </tr>
+          </thead>
+          <tbody>
+            {locs?.map((loc) =>
+              editingId === loc.id ? (
+                <tr key={loc.id} className="border-t border-[#f3f4f6] dark:border-[#2a2f3d]">
+                  <td className={TD}>
+                    <span className={`text-[11px] font-mono font-semibold ${textSecondary} uppercase`}>
+                      {loc.locale}
+                    </span>
+                  </td>
+                  <td className={TD}>
+                    <input
+                      className={inputCls}
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="Display name"
+                    />
+                  </td>
+                  <td className={TD}>
+                    <input
+                      className={inputCls}
+                      value={editCustomAppName}
+                      onChange={(e) => setEditCustomAppName(e.target.value)}
+                      placeholder="Custom app name (optional)"
+                    />
+                  </td>
+                  <td className={`${TD} text-right`}>
+                    <div className="flex gap-1 justify-end">
+                      <button onClick={() => setEditingId(null)} className={btnSecSm}>
+                        <X className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => saveEdit(loc.id)}
+                        disabled={savingEdit || !editName.trim()}
+                        className={btnSecSm}
+                      >
+                        {savingEdit ? <div className="spinner !w-3 !h-3" /> : <Check className="w-3 h-3" />}
+                        Save
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                <tr
+                  key={loc.id}
+                  className="group border-t border-[#f3f4f6] dark:border-[#2a2f3d] hover:bg-[#fafbfc] dark:hover:bg-[#252b38] transition-colors"
+                >
+                  <td className={TD}>
+                    <span className={`text-[11px] font-mono font-semibold ${textSecondary} uppercase`}>
+                      {loc.locale}
+                    </span>
+                  </td>
+                  <td className={`${TD} font-medium ${textPrimary}`}>{loc.name}</td>
+                  <td className={`${TD} ${textSecondary}`}>{loc.customAppName || "—"}</td>
+                  <td className={`${TD} text-right`}>
+                    <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => {
+                          setEditingId(loc.id);
+                          setEditName(loc.name);
+                          setEditCustomAppName(loc.customAppName ?? "");
+                        }}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-[#C4001E] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all"
+                      >
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => deleteLoc(loc.id)}
+                        disabled={deletingId === loc.id}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all disabled:opacity-50"
+                      >
+                        {deletingId === loc.id ? <div className="spinner !w-3 !h-3" /> : <Trash2 className="w-3 h-3" />}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ),
+            )}
+          </tbody>
+        </table>
+      )}
+
+      {showAdd && (
+        <div className={`border-t ${borderDefault} p-3 flex flex-col gap-2 bg-[#fafbfc] dark:bg-[#1c2028]`}>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="flex flex-col gap-1">
+              <label className={`text-[11px] ${textSecondary} font-medium`}>Locale</label>
+              <input
+                className={inputCls}
+                value={newLocale}
+                onChange={(e) => setNewLocale(e.target.value)}
+                placeholder="en-US"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className={`text-[11px] ${textSecondary} font-medium`}>Display Name</label>
+              <input
+                className={inputCls}
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Pro Membership"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className={`text-[11px] ${textSecondary} font-medium`}>Custom App Name (optional)</label>
+              <input
+                className={inputCls}
+                value={newCustomAppName}
+                onChange={(e) => setNewCustomAppName(e.target.value)}
+                placeholder="Shown instead of the app name"
               />
             </div>
           </div>
@@ -1211,6 +1476,7 @@ function GroupTable({
   const [nameVal, setNameVal] = useState(group.referenceName);
   const [savingName, setSavingName] = useState(false);
   const [deletingGroup, setDeletingGroup] = useState(false);
+  const [showLocalizations, setShowLocalizations] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -1368,6 +1634,15 @@ function GroupTable({
                   <button
                     onClick={() => {
                       setShowGroupMenu(false);
+                      setShowLocalizations((v) => !v);
+                    }}
+                    className="w-full text-left px-3 py-2 text-[13px] text-[#374151] dark:text-[#c4cad8] hover:bg-[#f3f4f6] dark:hover:bg-[#252b38] flex items-center gap-2 transition-colors"
+                  >
+                    <Globe className="w-3.5 h-3.5" /> {showLocalizations ? "Hide localizations" : "Edit localizations"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowGroupMenu(false);
                       deleteGroup();
                     }}
                     disabled={deletingGroup}
@@ -1382,6 +1657,8 @@ function GroupTable({
           </div>
         )}
       </div>
+
+      {showLocalizations && <GroupLocalizationsPanel groupId={group.id} addToast={addToast} />}
 
       <table className="w-full">
         <thead>

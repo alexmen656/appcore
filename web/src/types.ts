@@ -497,6 +497,14 @@ export interface SubscriptionGroup {
   subscriptions: SubscriptionItem[];
 }
 
+export interface SubscriptionGroupLocalization {
+  id: string;
+  locale: string;
+  name: string;
+  customAppName: string | null;
+  state: string;
+}
+
 export interface SubscriptionLocalization {
   id: string;
   locale: string;

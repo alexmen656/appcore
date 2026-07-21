@@ -95,3 +95,11 @@ export async function resolveAscAppId(
 
   return ascAppId;
 }
+
+export function formatAscError(err: any): string {
+  const errors = err?.response?.data?.errors;
+  if (Array.isArray(errors) && errors.length > 0) {
+    return errors.map((e: any) => e.detail || e.title || JSON.stringify(e)).join("; ");
+  }
+  return err?.message ?? String(err);
+}
