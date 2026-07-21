@@ -520,13 +520,13 @@ export function registerAscProductTools(server: McpServer, userId: string) {
                 data: { type: "inAppPurchases", id: productDbId },
               },
               baseTerritory: { data: { type: "territories", id: territory } },
-              manualPrices: { data: [{ type: "inAppPurchasePrices", id: "1" }] },
+              manualPrices: { data: [{ type: "inAppPurchasePrices", id: "${manualPrice1}" }] },
             },
           },
           included: [
             {
               type: "inAppPurchasePrices",
-              id: "1",
+              id: "${manualPrice1}",
               attributes: { startDate: null },
               relationships: {
                 inAppPurchasePricePoint: {

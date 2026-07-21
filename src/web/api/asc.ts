@@ -2242,13 +2242,13 @@ ascRouter.post(
         relationships: {
           inAppPurchase: { data: { type: "inAppPurchases", id: iapId } },
           baseTerritory: { data: { type: "territories", id: territory } },
-          manualPrices: { data: [{ type: "inAppPurchasePrices", id: "1" }] },
+          manualPrices: { data: [{ type: "inAppPurchasePrices", id: "${manualPrice1}" }] },
         },
       },
       included: [
         {
           type: "inAppPurchasePrices",
-          id: "1",
+          id: "${manualPrice1}",
           attributes: { startDate: null },
           relationships: {
             inAppPurchasePricePoint: { data: { type: "inAppPurchasePricePoints", id: pricePointId } },
