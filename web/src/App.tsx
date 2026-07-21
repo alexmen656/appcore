@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { usePostHog } from "@posthog/react";
 import { borderDefault, textMuted, textPrimary, textSecondary } from "./styles";
 import { Routes, Route, NavLink, Navigate, useNavigate, useLocation } from "react-router-dom";
@@ -287,75 +288,77 @@ function AppSwitcher({
         )}
       </div>
 
-      {importOpen && (
-        <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 dark:bg-black/60"
-          onClick={closeImport}
-        >
+      {importOpen &&
+        createPortal(
           <div
-            className="bg-white dark:bg-[#1c2028] rounded-2xl shadow-2xl w-[480px] max-h-[80vh] flex flex-col"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 dark:bg-black/60"
+            onClick={closeImport}
           >
-            <div className="px-6 pt-5 pb-4 border-b border-gray-100 dark:border-[#2a2f3d] flex items-center justify-between">
-              <div>
-                <h2 className={`text-lg font-bold ${textPrimary}`}>Add project</h2>
-                <p className="text-sm text-gray-500 dark:text-[#8b93a5] mt-0.5">
-                  Import an app from App Store Connect.
-                </p>
-              </div>
-              <button
-                onClick={closeImport}
-                className="w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-[#252b38] flex items-center justify-center text-gray-400 dark:text-[#5c6478] transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="px-6 py-5 flex-1 overflow-y-auto">
-              {ascLoading && (
-                <div className="flex items-center justify-center py-8 gap-2 text-gray-400 dark:text-[#5c6478] text-sm">
-                  <div className="spinner" /> Loading…
+            <div
+              className="bg-white dark:bg-[#1c2028] rounded-2xl shadow-2xl w-[480px] max-h-[80vh] flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="px-6 pt-5 pb-4 border-b border-gray-100 dark:border-[#2a2f3d] flex items-center justify-between">
+                <div>
+                  <h2 className={`text-lg font-bold ${textPrimary}`}>Add project</h2>
+                  <p className="text-sm text-gray-500 dark:text-[#8b93a5] mt-0.5">
+                    Import an app from App Store Connect.
+                  </p>
                 </div>
-              )}
-              {ascApps !== null && unimportedAscApps !== null && unimportedAscApps.length === 0 && (
-                <p className="text-xs text-gray-400 dark:text-[#5c6478] text-center py-6">
-                  {ascApps.length === 0
-                    ? "No apps found. Check your ASC credentials in Settings."
-                    : "All apps are already imported."}
-                </p>
-              )}
-              {unimportedAscApps !== null && unimportedAscApps.length > 0 && (
-                <div className="flex flex-col gap-2">
-                  {unimportedAscApps.map((app) => (
-                    <div
-                      key={app.ascId}
-                      className="flex items-center justify-between gap-3 px-4 py-3 bg-[#f7f8fa] dark:bg-[#252b38] rounded-xl border border-gray-200 dark:border-[#2a2f3d]"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <AppAvatar url={app.iconUrl} name={app.name} size={9} accent />
-                        <div className="min-w-0">
-                          <div className={`text-sm font-semibold ${textPrimary} truncate`}>{app.name}</div>
-                          <div className="text-[11px] text-gray-400 dark:text-[#5c6478] font-mono">
-                            {app.bundleId}
-                            {app.primaryLocale ? ` · ${app.primaryLocale}` : ""}
+                <button
+                  onClick={closeImport}
+                  className="w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-[#252b38] flex items-center justify-center text-gray-400 dark:text-[#5c6478] transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="px-6 py-5 flex-1 overflow-y-auto">
+                {ascLoading && (
+                  <div className="flex items-center justify-center py-8 gap-2 text-gray-400 dark:text-[#5c6478] text-sm">
+                    <div className="spinner" /> Loading…
+                  </div>
+                )}
+                {ascApps !== null && unimportedAscApps !== null && unimportedAscApps.length === 0 && (
+                  <p className="text-xs text-gray-400 dark:text-[#5c6478] text-center py-6">
+                    {ascApps.length === 0
+                      ? "No apps found. Check your ASC credentials in Settings."
+                      : "All apps are already imported."}
+                  </p>
+                )}
+                {unimportedAscApps !== null && unimportedAscApps.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    {unimportedAscApps.map((app) => (
+                      <div
+                        key={app.ascId}
+                        className="flex items-center justify-between gap-3 px-4 py-3 bg-[#f7f8fa] dark:bg-[#252b38] rounded-xl border border-gray-200 dark:border-[#2a2f3d]"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <AppAvatar url={app.iconUrl} name={app.name} size={9} accent />
+                          <div className="min-w-0">
+                            <div className={`text-sm font-semibold ${textPrimary} truncate`}>{app.name}</div>
+                            <div className="text-[11px] text-gray-400 dark:text-[#5c6478] font-mono">
+                              {app.bundleId}
+                              {app.primaryLocale ? ` · ${app.primaryLocale}` : ""}
+                            </div>
                           </div>
                         </div>
+                        <button
+                          type="button"
+                          disabled={importing === app.ascId}
+                          onClick={() => importApp(app)}
+                          className={`shrink-0 px-3 py-1.5 rounded-xl border ${borderDefault} bg-transparent ${textPrimary} text-xs font-medium hover:border-[#C4001E] hover:text-[#C4001E] transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          {importing === app.ascId ? "Importing…" : "Import"}
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        disabled={importing === app.ascId}
-                        onClick={() => importApp(app)}
-                        className={`shrink-0 px-3 py-1.5 rounded-xl border ${borderDefault} bg-transparent ${textPrimary} text-xs font-medium hover:border-[#C4001E] hover:text-[#C4001E] transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
-                      >
-                        {importing === app.ascId ? "Importing…" : "Import"}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </>
   );
 }
